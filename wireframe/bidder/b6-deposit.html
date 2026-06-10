@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deposit - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL BIDDER</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="b1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><a href="b3-katalog.html" class="nav-item "><span class="icon">📋</span> Katalog</a><a href="b5-watchlist.html" class="nav-item "><span class="icon">⭐</span> Watchlist</a><div class="nav-section">Lelang</div><a href="b7-bidding-room.html" class="nav-item "><span class="icon">🏛️</span> Ruang Lelang</a><a href="b12-riwayat-lelang.html" class="nav-item "><span class="icon">📚</span> Riwayat Lelang</a><div class="nav-section">Pembayaran</div><a href="b6-deposit.html" class="nav-item active"><span class="icon">💰</span> Deposit</a><a href="b10-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="b13-riwayat-transaksi.html" class="nav-item "><span class="icon">📄</span> Riwayat Transaksi</a><div class="nav-section">Lainnya</div><a href="b11-pengambilan.html" class="nav-item "><span class="icon">📦</span> Pengambilan Barang</a><a href="b2-profil.html" class="nav-item "><span class="icon">👤</span> Profil & Pengaturan</a><a href="b14-notifikasi.html" class="nav-item "><span class="icon">🔔</span> Notifikasi</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Deposit</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">BS</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Deposit</h1>
+          <p class="page-subtitle">Panel Area bidder &bull; Prototipe Wireframe</p>
+          
+          <div class="grid-2-1" style="grid-template-columns: 1.5fr 1fr; gap:2rem;">
+            <div class="card">
+              <div class="card-header">Pembelian Jaminan Lelang (NIPL)</div>
+              <div class="form-group">
+                <label class="form-label">Pilih Sesi Lelang</label>
+                <select class="form-select">
+                  <option selected>Lelang Mobil Penumpang Jakarta - Batch 15 (Deposit: Rp 5.000.000 / NIPL)</option>
+                  <option>Lelang Sepeda Motor Bandung - Batch 22 (Deposit: Rp 1.000.000 / NIPL)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jumlah Tiket NIPL Yang Ingin Dibeli</label>
+                <input type="number" class="form-input" value="1" min="1">
+                <span class="form-hint">Satu tiket NIPL hanya berlaku untuk memenangkan 1 unit lot.</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pilih Metode Pembayaran</label>
+                <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.9rem;">
+                  <label><input type="radio" name="paymethod" checked> Virtual Account BCA (Verifikasi Otomatis)</label>
+                  <label><input type="radio" name="paymethod"> Virtual Account Mandiri (Verifikasi Otomatis)</label>
+                  <label><input type="radio" name="paymethod"> GoPay / E-Wallet</label>
+                </div>
+              </div>
+              <button class="btn btn-primary">Pesan & Dapatkan Nomor VA</button>
+            </div>
+            
+            <div class="card">
+              <div class="card-header">Instruksi Virtual Account</div>
+              <div class="text-center" style="padding:1rem; background:var(--wf-bg); border-radius:6px; margin-bottom:1rem;">
+                <div class="text-muted fs-sm">Nomor VA BCA:</div>
+                <div class="fw-bold" style="font-size:1.4rem; color:var(--wf-primary);">8077708123456789</div>
+                <div class="text-muted fs-sm">Total Pembayaran: <strong>Rp 5.000.000</strong></div>
+              </div>
+              <div class="fs-sm text-muted">
+                <strong>Cara Transfer:</strong><br>
+                1. Masuk ke m-BCA > Transfer > BCA Virtual Account.<br>
+                2. Masukkan nomor VA di atas.<br>
+                3. Pastikan nominal transfer sesuai tagihan.<br>
+                4. Setelah transfer, NIPL Anda akan aktif otomatis dalam 1 menit.
+              </div>
+              <div class="separator"></div>
+              <button class="btn btn-success w-100" id="btn-simulate-dep-pay" style="justify-content:center;">⚡ Simulasikan Pembayaran VA Sukses</button>
+            </div>
+          </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const btnSimulate = document.getElementById('btn-simulate-dep-pay');
+              btnSimulate.addEventListener('click', function() {
+                alert('Simulasi: Pembayaran VA Rp 5.000.000 Berhasil! Deposit diterima, 1 tiket NIPL aktif.');
+                window.location.href = 'b3-katalog.html';
+              });
+            });
+          </script>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

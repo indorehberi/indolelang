@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Analitik - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL ADMIN</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="ad1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><div class="nav-section">Pengguna</div><a href="ad2-list-bidder.html" class="nav-item "><span class="icon">👥</span> Bidder</a><a href="ad3-list-provider.html" class="nav-item "><span class="icon">🏢</span> Provider</a><a href="ad6-verifikasi-kyc.html" class="nav-item "><span class="icon">🔍</span> Verifikasi KYC</a><a href="ad4-list-admin.html" class="nav-item "><span class="icon">👮</span> Admin/Operator</a><div class="nav-section">Katalog</div><a href="ad7-list-barang.html" class="nav-item "><span class="icon">📦</span> Daftar Barang</a><a href="ad9-approval-barang.html" class="nav-item "><span class="icon">✔️</span> Approval Barang</a><a href="ad10-penyusunan-lot.html" class="nav-item "><span class="icon">📦</span> Penyusunan Lot</a><div class="nav-section">Lelang</div><a href="ad11-list-sesi.html" class="nav-item "><span class="icon">📅</span> Daftar Sesi</a><a href="ad13-ruang-kontrol.html" class="nav-item "><span class="icon">🏛️</span> Ruang Kontrol</a><a href="ad14-hasil-sesi.html" class="nav-item "><span class="icon">📋</span> Hasil Sesi</a><div class="nav-section">Keuangan</div><a href="ad15-deposit.html" class="nav-item "><span class="icon">💰</span> Deposit</a><a href="ad16-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="ad17-pencairan.html" class="nav-item "><span class="icon">💸</span> Pencairan</a><a href="ad18-refund.html" class="nav-item "><span class="icon">💵</span> Refund</a><div class="nav-section">Laporan & Pengaturan</div><a href="ad21-dashboard-analitik.html" class="nav-item active"><span class="icon">📈</span> Dashboard Analitik</a><a href="ad23-campaign.html" class="nav-item "><span class="icon">📣</span> Campaign</a><a href="ad25-pengaturan.html" class="nav-item "><span class="icon">⚙️</span> Pengaturan</a><a href="ad26-audit-trail.html" class="nav-item "><span class="icon">🔒</span> Audit Trail</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Dashboard Analitik</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">AD</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Dashboard Analitik</h1>
+          <p class="page-subtitle">Panel Area admin &bull; Prototipe Wireframe</p>
+          
+          <!-- KPI Cards -->
+          <div class="kpi-grid" style="margin-bottom: 2rem;">
+            <div class="kpi-card" style="border-left-color: var(--wf-primary);">
+              <div class="kpi-label">Nilai GMV Terjual (Bulan Ini)</div>
+              <div class="kpi-value">Rp 12.450.000.000</div>
+              <div class="kpi-trend up">↑ 14.2% dibanding Mei</div>
+            </div>
+            <div class="kpi-card gold">
+              <div class="kpi-label">Rata-Rata Markup Harga (Hammer Price)</div>
+              <div class="kpi-value">+18.5%</div>
+              <div class="kpi-trend up">↑ Dari harga dasar pembukaan</div>
+            </div>
+            <div class="kpi-card success">
+              <div class="kpi-label">Conversion Rate Lot Terjual</div>
+              <div class="kpi-value">89.4%</div>
+              <div class="kpi-trend">Target bulanan: 85%</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--wf-info);">
+              <div class="kpi-label">Total Bidder Aktif Bidding</div>
+              <div class="kpi-value">3.240 User</div>
+              <div class="kpi-trend up">↑ 22% Pertumbuhan bulanan</div>
+            </div>
+          </div>
+
+          <div class="grid-2-1" style="grid-template-columns: 1.5fr 1fr; gap: 2rem;">
+            <!-- Line Chart Card -->
+            <div class="card">
+              <div class="card-header">
+                <span>📈 Tren Nilai Penjualan Mingguan (GMV)</span>
+                <span class="badge badge-success">Juni 2026</span>
+              </div>
+              <div style="position: relative; padding: 1rem 0;">
+                <svg viewBox="0 0 500 200" style="width: 100%; height: auto; display: block; overflow: visible;">
+                  <defs>
+                    <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="var(--wf-accent)" stop-opacity="0.3"/>
+                      <stop offset="100%" stop-color="var(--wf-accent)" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  
+                  <!-- Grid Lines -->
+                  <line x1="40" y1="30" x2="480" y2="30" stroke="#f1f2f6" stroke-width="1" />
+                  <line x1="40" y1="80" x2="480" y2="80" stroke="#f1f2f6" stroke-width="1" />
+                  <line x1="40" y1="130" x2="480" y2="130" stroke="#f1f2f6" stroke-width="1" />
+                  <line x1="40" y1="170" x2="480" y2="170" stroke="#dcdde1" stroke-width="1" />
+                  
+                  <!-- Axes Labels -->
+                  <text x="15" y="35" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">5M</text>
+                  <text x="15" y="85" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">3M</text>
+                  <text x="15" y="135" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">1M</text>
+                  
+                  <!-- X Labels -->
+                  <text x="70" y="190" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">Minggu 1</text>
+                  <text x="190" y="190" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">Minggu 2</text>
+                  <text x="310" y="190" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">Minggu 3</text>
+                  <text x="430" y="190" fill="var(--wf-text-muted)" font-size="9" text-anchor="middle">Minggu 4</text>
+                  
+                  <!-- Area path under curve -->
+                  <path d="M 70,170 C 120,130 140,90 190,95 C 240,100 260,35 310,40 C 360,45 380,85 430,60 L 430,170 Z" fill="url(#chart-grad)" />
+                  
+                  <!-- Line Chart curve -->
+                  <path d="M 70,170 C 120,130 140,90 190,95 C 240,100 260,35 310,40 C 360,45 380,85 430,60" fill="none" stroke="var(--wf-accent)" stroke-width="3" stroke-linecap="round" />
+                  
+                  <!-- Bullet dots -->
+                  <circle cx="70" cy="170" r="4" fill="#fff" stroke="var(--wf-accent)" stroke-width="2" />
+                  <circle cx="190" cy="95" r="4" fill="#fff" stroke="var(--wf-accent)" stroke-width="2" />
+                  <circle cx="310" cy="40" r="5" fill="#fff" stroke="var(--wf-gold)" stroke-width="3" />
+                  <circle cx="430" cy="60" r="4" fill="#fff" stroke="var(--wf-accent)" stroke-width="2" />
+                  
+                  <!-- Tooltip Marker label -->
+                  <rect x="270" y="5" width="80" height="20" rx="3" fill="var(--wf-primary)" />
+                  <text x="310" y="17" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">Rp 4.2 Miliar</text>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Pie/Donut Chart Card -->
+            <div class="card">
+              <div class="card-header">🛒 Pembagian Nilai Aset Terjual</div>
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem 0;">
+                <svg viewBox="0 0 120 120" style="width: 130px; height: 130px; display: block; transform: rotate(-90deg);">
+                  <!-- Donut Background -->
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="#f1f2f6" stroke-width="18" />
+                  
+                  <!-- Mobil: 55% -->
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--wf-primary)" stroke-width="18" stroke-dasharray="155.5 127.2" stroke-dashoffset="0" />
+                  
+                  <!-- Motor: 30% -->
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--wf-gold)" stroke-width="18" stroke-dasharray="84.8 197.9" stroke-dashoffset="-155.5" />
+                  
+                  <!-- Alat Berat: 15% -->
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--wf-success)" stroke-width="18" stroke-dasharray="42.4 240.3" stroke-dashoffset="-240.3" />
+                </svg>
+                
+                <div style="margin-top: 1.5rem; width: 100%; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🔵 <strong>Mobil Penumpang</strong> (55%)</span>
+                    <span class="fw-bold">Rp 6.847.500.000</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🟡 <strong>Sepeda Motor</strong> (30%)</span>
+                    <span class="fw-bold">Rp 3.735.000.000</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🟢 <strong>Alat Berat</strong> (15%)</span>
+                    <span class="fw-bold">Rp 1.867.500.000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

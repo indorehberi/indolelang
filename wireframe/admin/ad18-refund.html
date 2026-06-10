@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL ADMIN</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="ad1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><div class="nav-section">Pengguna</div><a href="ad2-list-bidder.html" class="nav-item "><span class="icon">👥</span> Bidder</a><a href="ad3-list-provider.html" class="nav-item "><span class="icon">🏢</span> Provider</a><a href="ad6-verifikasi-kyc.html" class="nav-item "><span class="icon">🔍</span> Verifikasi KYC</a><a href="ad4-list-admin.html" class="nav-item "><span class="icon">👮</span> Admin/Operator</a><div class="nav-section">Katalog</div><a href="ad7-list-barang.html" class="nav-item "><span class="icon">📦</span> Daftar Barang</a><a href="ad9-approval-barang.html" class="nav-item "><span class="icon">✔️</span> Approval Barang</a><a href="ad10-penyusunan-lot.html" class="nav-item "><span class="icon">📦</span> Penyusunan Lot</a><div class="nav-section">Lelang</div><a href="ad11-list-sesi.html" class="nav-item "><span class="icon">📅</span> Daftar Sesi</a><a href="ad13-ruang-kontrol.html" class="nav-item "><span class="icon">🏛️</span> Ruang Kontrol</a><a href="ad14-hasil-sesi.html" class="nav-item "><span class="icon">📋</span> Hasil Sesi</a><div class="nav-section">Keuangan</div><a href="ad15-deposit.html" class="nav-item "><span class="icon">💰</span> Deposit</a><a href="ad16-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="ad17-pencairan.html" class="nav-item "><span class="icon">💸</span> Pencairan</a><a href="ad18-refund.html" class="nav-item active"><span class="icon">💵</span> Refund</a><div class="nav-section">Laporan & Pengaturan</div><a href="ad21-dashboard-analitik.html" class="nav-item "><span class="icon">📈</span> Dashboard Analitik</a><a href="ad23-campaign.html" class="nav-item "><span class="icon">📣</span> Campaign</a><a href="ad25-pengaturan.html" class="nav-item "><span class="icon">⚙️</span> Pengaturan</a><a href="ad26-audit-trail.html" class="nav-item "><span class="icon">🔒</span> Audit Trail</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Refund</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">AD</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Refund</h1>
+          <p class="page-subtitle">Panel Area admin &bull; Prototipe Wireframe</p>
+          
+          <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">Saldo Merchant (Disbursement Balance)</div><div class="kpi-value" id="merchant-balance">Rp 480.000.000</div><div class="kpi-trend text-success">Di-escrow via Xendit/Midtrans</div></div>
+            <div class="kpi-card gold"><div class="kpi-label">Antrian Refund Pending</div><div class="kpi-value" id="pending-refund-count">3 Transaksi</div><div class="kpi-trend text-danger">Total Rp 356.000.000</div></div>
+            <div class="kpi-card success"><div class="kpi-label">Refund Berhasil (Sesi Ini)</div><div class="kpi-value" id="success-refund-count">12 Transaksi</div><div class="kpi-trend text-success">Total Rp 60.000.000</div></div>
+          </div>
+          
+          <div class="grid-2-1" style="grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Daftar Antrian Refund Jaminan (Deposit)</span>
+                <button class="btn btn-primary btn-sm" id="btn-bulk-refund">⚡ Jalankan Bulk Auto-Refund (Semua)</button>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr><th>Bidder</th><th>Bank Tujuan</th><th>No Rekening</th><th>Nominal</th><th>Jaringan Rute</th><th>Status</th><th>Aksi</th></tr>
+                  </thead>
+                  <tbody id="refund-table-body">
+                    <tr id="row-rf-1" data-amount="5000000" data-bidder="Ahmad Fauzi" data-bank="BCA" data-acc="80981273912">
+                      <td class="fw-bold">Ahmad Fauzi</td>
+                      <td>Bank BCA</td>
+                      <td><code>80981273912</code></td>
+                      <td class="fw-bold">Rp 5.000.000</td>
+                      <td><span class="badge badge-info">Auto (BI-FAST)</span></td>
+                      <td class="status-cell"><span class="badge badge-warning">Menunggu</span></td>
+                      <td class="action-cell"><button class="btn btn-sm btn-success btn-trigger-refund" data-row="1">Transfer</button></td>
+                    </tr>
+                    <tr id="row-rf-2" data-amount="1000000" data-bidder="Hendra Wijaya" data-bank="Mandiri" data-acc="1370018273918">
+                      <td class="fw-bold">Hendra Wijaya</td>
+                      <td>Bank Mandiri</td>
+                      <td><code>1370018273918</code></td>
+                      <td class="fw-bold">Rp 1.000.000</td>
+                      <td><span class="badge badge-info">Auto (BI-FAST)</span></td>
+                      <td class="status-cell"><span class="badge badge-warning">Menunggu</span></td>
+                      <td class="action-cell"><button class="btn btn-sm btn-success btn-trigger-refund" data-row="2">Transfer</button></td>
+                    </tr>
+                    <tr id="row-rf-3" data-amount="350000000" data-bidder="PT Auto Transport" data-bank="BRI" data-acc="020601928371502">
+                      <td class="fw-bold">PT Auto Transport</td>
+                      <td>Bank BRI</td>
+                      <td><code>020601928371502</code></td>
+                      <td class="fw-bold">Rp 350.000.000</td>
+                      <td><span class="badge badge-danger" style="background:#8e44ad; color:#fff;">Auto (RTGS)</span></td>
+                      <td class="status-cell"><span class="badge badge-warning">Menunggu</span></td>
+                      <td class="action-cell"><button class="btn btn-sm btn-success btn-trigger-refund" data-row="3">Transfer</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div class="card" style="margin-bottom:0; display:flex; flex-direction:column;">
+              <div class="card-header">Logs API Payment Gateway (JSON Webhook)</div>
+              <div style="background:#1e1e1e; color:#00ff00; padding:1rem; border-radius:6px; font-family:monospace; font-size:0.75rem; flex:1; overflow-y:auto; min-height:280px; max-height:360px;" id="api-log-box">
+                // System idle. Menunggu aktivitas API...
+              </div>
+            </div>
+          </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              let balance = 480000000;
+              let successCount = 12;
+              let pendingCount = 3;
+              let refundTotal = 60000000;
+              const fee = 2500; // Flat fee per disbursement
+              
+              const balanceEl = document.getElementById('merchant-balance');
+              const pendingCountEl = document.getElementById('pending-refund-count');
+              const successCountEl = document.getElementById('success-refund-count');
+              const logBox = document.getElementById('api-log-box');
+              
+              function formatRupiah(num) {
+                return 'Rp ' + num.toLocaleString('id-ID');
+              }
+              
+              function writeLog(message, isJson = false) {
+                const timestamp = new Date().toLocaleTimeString();
+                if (isJson) {
+                  logBox.innerHTML = '<span style="color:#85c1e9;">[' + timestamp + '] REQUEST & RESPONSE:</span>\n' + message + '\n\n' + logBox.innerHTML;
+                } else {
+                  logBox.innerHTML = '<span style="color:#f39c12;">[' + timestamp + ']</span> ' + message + '\n' + logBox.innerHTML;
+                }
+              }
+              
+              function triggerRefund(rowId, callback) {
+                const tr = document.getElementById('row-rf-' + rowId);
+                if (!tr || tr.dataset.processed === 'true') {
+                  if (callback) callback();
+                  return;
+                }
+                
+                tr.dataset.processed = 'true';
+                const amount = parseInt(tr.dataset.amount);
+                const bidder = tr.dataset.bidder;
+                const bank = tr.dataset.bank;
+                const acc = tr.dataset.acc;
+                
+                const statusCell = tr.querySelector('.status-cell');
+                const actionCell = tr.querySelector('.action-cell');
+                
+                statusCell.innerHTML = '<span class="badge badge-info">Memproses...</span>';
+                actionCell.innerHTML = '<span style="font-size:0.8rem; color:var(--wf-text-muted);">In-Progress</span>';
+                
+                const method = amount > 250000000 ? 'RTGS' : 'BI-FAST';
+                writeLog('Pemicu otomatisasi refund untuk ' + bidder + ' senilai ' + formatRupiah(amount));
+                
+                // Simulate network latency (1.5 seconds)
+                setTimeout(function() {
+                  // Deduct balance
+                  balance -= (amount + fee);
+                  successCount += 1;
+                  pendingCount -= 1;
+                  refundTotal += amount;
+                  
+                  // Update KPIs
+                  balanceEl.textContent = formatRupiah(balance);
+                  pendingCountEl.textContent = pendingCount + ' Transaksi';
+                  successCountEl.textContent = successCount + ' Transaksi';
+                  
+                  // Update row status
+                  statusCell.innerHTML = '<span class="badge badge-success">Selesai (Auto)</span>';
+                  actionCell.innerHTML = '<span style="color:green; font-weight:bold;">✔️ Sent (' + method + ')</span>';
+                  
+                  // Mock JSON Payload
+                  const requestPayload = {
+                    external_id: "ref-dep-" + Math.floor(Math.random()*90000 + 10000),
+                    amount: amount,
+                    bank_code: bank,
+                    account_number: acc,
+                    description: "Refund Deposit NIPL Sesi Jakarta",
+                    callback_url: "https://indolelang.com/webhooks/refund"
+                  };
+                  
+                  const responsePayload = {
+                    id: "disb-" + Math.random().toString(36).substring(2, 11),
+                    external_id: requestPayload.external_id,
+                    amount: amount,
+                    status: "COMPLETED",
+                    payment_method: method,
+                    bank_code: bank,
+                    account_holder_name: bidder.toUpperCase(),
+                    account_number: acc,
+                    disbursement_description: requestPayload.description,
+                    failure_code: null,
+                    created: new Date().toISOString(),
+                    completed_at: new Date().toISOString(),
+                    fee_charged: fee
+                  };
+                  
+                  writeLog(JSON.stringify({
+                    API_ENDPOINT: "POST /disbursements",
+                    REQUEST: requestPayload,
+                    RESPONSE: responsePayload
+                  }, null, 2), true);
+                  
+                  writeLog("Refund berhasil dikirim melalui jaringan " + method + " ke " + bidder + " (" + bank + ")!");
+                  
+                  if (callback) callback();
+                }, 1500);
+              }
+              
+              // Event listeners for individual triggers
+              document.addEventListener("click", function(e) {
+                if (e.target && e.target.classList.contains("btn-trigger-refund")) {
+                  const rowId = e.target.getAttribute("data-row");
+                  triggerRefund(rowId);
+                }
+              });
+              
+              // Bulk trigger
+              const btnBulk = document.getElementById("btn-bulk-refund");
+              btnBulk.addEventListener("click", function() {
+                btnBulk.disabled = true;
+                btnBulk.style.opacity = 0.5;
+                btnBulk.textContent = "Memproses Bulk Refund...";
+                
+                let i = 1;
+                function processNext() {
+                  if (i <= 3) {
+                    const tr = document.getElementById("row-rf-" + i);
+                    if (tr && tr.dataset.processed !== "true") {
+                      triggerRefund(i, function() {
+                        i++;
+                        setTimeout(processNext, 500);
+                      });
+                    } else {
+                      i++;
+                      processNext();
+                    }
+                  } else {
+                    btnBulk.textContent = "Bulk Refund Selesai ✔️";
+                  }
+                }
+                processNext();
+              });
+            });
+          </script>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

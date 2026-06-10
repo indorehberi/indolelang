@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hasil Lelang / Invoice - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL BIDDER</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="b1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><a href="b3-katalog.html" class="nav-item "><span class="icon">📋</span> Katalog</a><a href="b5-watchlist.html" class="nav-item "><span class="icon">⭐</span> Watchlist</a><div class="nav-section">Lelang</div><a href="b7-bidding-room.html" class="nav-item "><span class="icon">🏛️</span> Ruang Lelang</a><a href="b12-riwayat-lelang.html" class="nav-item "><span class="icon">📚</span> Riwayat Lelang</a><div class="nav-section">Pembayaran</div><a href="b6-deposit.html" class="nav-item "><span class="icon">💰</span> Deposit</a><a href="b10-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="b13-riwayat-transaksi.html" class="nav-item "><span class="icon">📄</span> Riwayat Transaksi</a><div class="nav-section">Lainnya</div><a href="b11-pengambilan.html" class="nav-item "><span class="icon">📦</span> Pengambilan Barang</a><a href="b2-profil.html" class="nav-item "><span class="icon">👤</span> Profil & Pengaturan</a><a href="b14-notifikasi.html" class="nav-item "><span class="icon">🔔</span> Notifikasi</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Hasil Lelang / Invoice</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">BS</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Hasil Lelang / Invoice</h1>
+          <p class="page-subtitle">Panel Area bidder &bull; Prototipe Wireframe</p>
+          
+          <div class="card" style="max-width:800px; margin: 0 auto; padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2rem;">
+              <div>
+                <h2 style="font-weight:700; color:var(--wf-primary); font-size:1.5rem;">INVOICE PEMENANG LELANG</h2>
+                <div class="text-muted fs-sm">Nomor: #INV/2026/06/1045</div>
+              </div>
+              <div class="text-right">
+                <div class="badge badge-warning">Menunggu Pelunasan</div>
+                <div class="text-muted fs-sm mt-1">Tanggal: 10 Juni 2026</div>
+              </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem; font-size:0.85rem;" class="text-muted">
+              <div>
+                <strong>Ditagihkan Kepada:</strong><br>
+                Budi Santoso (Bidder #98122)<br>
+                budi.santoso@gmail.com<br>
+                08123456789
+              </div>
+              <div>
+                <strong>Lokasi Pengambilan Barang:</strong><br>
+                Gudang Utama JKT Selatan<br>
+                Jl. Gatot Subroto No. 45, Jakarta<br>
+                PIC Gudang: Pak Jaka
+              </div>
+            </div>
+            
+            <table style="width:100%; margin-bottom:2rem;">
+              <thead>
+                <tr><th>Deskripsi Lot</th><th class="text-right">Total Harga</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Lot #1045 - Toyota Avanza 1.3 G MT 2022 (Hammer Price)</td>
+                  <td class="text-right fw-bold">Rp 167.500.000</td>
+                </tr>
+                <tr>
+                  <td>Biaya Administrasi Balai Lelang (Buyer's Premium - 1.5%)</td>
+                  <td class="text-right fw-bold">Rp 2.512.500</td>
+                </tr>
+                <tr>
+                  <td>Pajak Pembelian (PPN - 1.1%)</td>
+                  <td class="text-right fw-bold">Rp 1.842.500</td>
+                </tr>
+                <tr style="background:#f8f9fa;">
+                  <td>Potongan Uang Jaminan (NIPL Deposit)</td>
+                  <td class="text-right fw-bold text-success">- Rp 5.000.000</td>
+                </tr>
+                <tr style="font-size:1.1rem; border-top: 2px solid var(--wf-primary);">
+                  <td class="fw-bold">Total Sisa Pelunasan Wajib Bayar</td>
+                  <td class="text-right fw-bold text-danger">Rp 166.855.000</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div style="display:flex; justify-content:flex-end; gap:1rem;">
+              <button class="btn btn-outline">📥 Download PDF</button>
+              <a href="b10-pelunasan.html" class="btn btn-primary">Lanjutkan Pembayaran Pelunasan &rarr;</a>
+            </div>
+          </div>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

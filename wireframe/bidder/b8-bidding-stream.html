@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruang Lelang + Live Streaming - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL BIDDER</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="b1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><a href="b3-katalog.html" class="nav-item "><span class="icon">📋</span> Katalog</a><a href="b5-watchlist.html" class="nav-item "><span class="icon">⭐</span> Watchlist</a><div class="nav-section">Lelang</div><a href="b7-bidding-room.html" class="nav-item "><span class="icon">🏛️</span> Ruang Lelang</a><a href="b12-riwayat-lelang.html" class="nav-item "><span class="icon">📚</span> Riwayat Lelang</a><div class="nav-section">Pembayaran</div><a href="b6-deposit.html" class="nav-item "><span class="icon">💰</span> Deposit</a><a href="b10-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="b13-riwayat-transaksi.html" class="nav-item "><span class="icon">📄</span> Riwayat Transaksi</a><div class="nav-section">Lainnya</div><a href="b11-pengambilan.html" class="nav-item "><span class="icon">📦</span> Pengambilan Barang</a><a href="b2-profil.html" class="nav-item "><span class="icon">👤</span> Profil & Pengaturan</a><a href="b14-notifikasi.html" class="nav-item "><span class="icon">🔔</span> Notifikasi</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Ruang Lelang + Live Streaming</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">BS</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Ruang Lelang + Live Streaming</h1>
+          <p class="page-subtitle">Panel Area bidder &bull; Prototipe Wireframe</p>
+          
+          <div class="grid-2-1">
+            <div class="card" style="padding:0; overflow:hidden;">
+              <div class="img-placeholder" style="height:360px; background:#000; color:#fff; flex-direction:column; position:relative;">
+                <div style="position:absolute; top:1rem; left:1rem;"><span class="badge badge-danger">LIVE STREAM</span></div>
+                <div style="font-size:3rem;">🎥</div>
+                <div class="fs-sm">Streaming Juru Lelang (WebRTC)</div>
+              </div>
+              <div style="padding: 1rem;">
+                <h3 class="fw-bold" style="font-size:1.1rem;">Toyota Avanza 1.3 G MT 2022</h3>
+                <p class="text-muted fs-sm">Lot #1045 • Sesi Jakarta • Grade B</p>
+              </div>
+            </div>
+            <div class="bidding-panel">
+              <div class="fs-sm text-uppercase" style="color: rgba(255,255,255,0.7);">Harga Penawaran Tertinggi</div>
+              <div class="bid-current-price" id="current-price-val">Rp 167.500.000</div>
+              <div class="fs-sm mb-2" style="color: rgba(255,255,255,0.7);">Juru Lelang: Budi Operator</div>
+              <div class="bid-timer mb-3" id="bid-timer-val" style="color:var(--wf-danger);">00:45</div>
+              <button class="btn btn-gold btn-lg w-100" id="btn-place-bid" style="justify-content:center; margin-bottom:0.5rem; font-size:1.2rem;">BID Rp 170.000.000</button>
+              <div class="separator" style="border-color:rgba(255,255,255,0.1)"></div>
+              <div class="text-left fw-bold mb-1 fs-sm" style="color:#fff;">Chat / Q&A Live & Penawaran</div>
+              <div class="bid-history text-left" id="bid-history-list" style="height:120px;">
+                <div class="bid-history-item"><span>User_1:</span><span>Apakah STNK aktif?</span></div>
+                <div class="bid-history-item"><span>Mod:</span><span>Aktif s/d Desember 2026.</span></div>
+                <div class="bid-history-item"><span>Bidder_A***</span><span class="text-gold">Rp 167.500.000</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              let currentPrice = 167500000;
+              const bidIncrement = 2500000;
+              let sisaWaktu = 45;
+              let highestBidder = 'Bidder_A***';
+              let myNipl = '#98122';
+              let isFinished = false;
+
+              const priceEl = document.getElementById('current-price-val');
+              const timerEl = document.getElementById('bid-timer-val');
+              const btnBid = document.getElementById('btn-place-bid');
+              const historyList = document.getElementById('bid-history-list');
+
+              function formatRupiah(num) {
+                return 'Rp ' + num.toLocaleString('id-ID');
+              }
+
+              function updateUI() {
+                priceEl.textContent = formatRupiah(currentPrice);
+                btnBid.textContent = 'BID ' + formatRupiah(currentPrice + bidIncrement);
+                
+                let mins = Math.floor(sisaWaktu / 60);
+                let secs = sisaWaktu % 60;
+                timerEl.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+              }
+
+              function addChatLog(user, text, isBid, isMe) {
+                const row = document.createElement('div');
+                row.className = 'bid-history-item';
+                if (isMe) row.style.background = 'rgba(243,156,18,0.2)';
+                if (isBid) {
+                  row.innerHTML = '<span>🚀 <strong>' + user + '</strong></span><span class="text-gold">' + formatRupiah(text) + '</span>';
+                } else {
+                  row.innerHTML = '<span>💬 ' + user + ':</span><span>' + text + '</span>';
+                }
+                historyList.insertBefore(row, historyList.firstChild);
+              }
+
+              const timerInterval = setInterval(function() {
+                if (isFinished) return;
+                sisaWaktu--;
+                if (sisaWaktu <= 0) {
+                  sisaWaktu = 0;
+                  isFinished = true;
+                  clearInterval(timerInterval);
+                  showEndModal();
+                }
+                updateUI();
+              }, 1000);
+
+              function triggerFakeBid() {
+                if (isFinished) return;
+                if (highestBidder === 'Anda (' + myNipl + ')') {
+                  highestBidder = 'Bidder_' + String.fromCharCode(65 + Math.floor(Math.random()*6)) + '***';
+                  currentPrice += bidIncrement;
+                  addChatLog(highestBidder, currentPrice, true, false);
+                  if (sisaWaktu < 20) sisaWaktu = 30;
+                  updateUI();
+                }
+                setTimeout(triggerFakeBid, 6000 + Math.random()*5000);
+              }
+              setTimeout(triggerFakeBid, 5000);
+
+              btnBid.addEventListener('click', function() {
+                if (isFinished) return;
+                currentPrice += bidIncrement;
+                highestBidder = 'Anda (' + myNipl + ')';
+                addChatLog(highestBidder, currentPrice, true, true);
+                if (sisaWaktu < 20) sisaWaktu = 45;
+                updateUI();
+              });
+
+              function showEndModal() {
+                const modalOverlay = document.createElement('div');
+                modalOverlay.className = 'modal-overlay';
+                let isWinner = highestBidder.includes('Anda');
+                modalOverlay.innerHTML = `
+                  <div class="modal" style="max-width: 450px; color: var(--wf-text);">
+                    <div class="modal-header"><span>${isWinner ? '🎉 Pemenang Lelang!' : '🏁 Selesai'}</span></div>
+                    <div class="modal-body text-center">
+                      <p>${isWinner ? 'Selamat! Anda memenangkan lot Avanza!' : 'Lot dimenangkan oleh ' + highestBidder}</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content: center;">
+                      <a href="b9-invoice.html" class="btn btn-primary">Lihat Detail</a>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(modalOverlay);
+              }
+            });
+          </script>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

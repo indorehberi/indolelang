@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin/Operator - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-panel">
+  
+      
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏛️ INDO-LELANG</div>
+    <div class="sidebar-role">PANEL ADMIN</div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div><a href="ad1-dashboard.html" class="nav-item "><span class="icon">📊</span> Dashboard</a><div class="nav-section">Pengguna</div><a href="ad2-list-bidder.html" class="nav-item "><span class="icon">👥</span> Bidder</a><a href="ad3-list-provider.html" class="nav-item "><span class="icon">🏢</span> Provider</a><a href="ad6-verifikasi-kyc.html" class="nav-item "><span class="icon">🔍</span> Verifikasi KYC</a><a href="ad4-list-admin.html" class="nav-item active"><span class="icon">👮</span> Admin/Operator</a><div class="nav-section">Katalog</div><a href="ad7-list-barang.html" class="nav-item "><span class="icon">📦</span> Daftar Barang</a><a href="ad9-approval-barang.html" class="nav-item "><span class="icon">✔️</span> Approval Barang</a><a href="ad10-penyusunan-lot.html" class="nav-item "><span class="icon">📦</span> Penyusunan Lot</a><div class="nav-section">Lelang</div><a href="ad11-list-sesi.html" class="nav-item "><span class="icon">📅</span> Daftar Sesi</a><a href="ad13-ruang-kontrol.html" class="nav-item "><span class="icon">🏛️</span> Ruang Kontrol</a><a href="ad14-hasil-sesi.html" class="nav-item "><span class="icon">📋</span> Hasil Sesi</a><div class="nav-section">Keuangan</div><a href="ad15-deposit.html" class="nav-item "><span class="icon">💰</span> Deposit</a><a href="ad16-pelunasan.html" class="nav-item "><span class="icon">💳</span> Pelunasan</a><a href="ad17-pencairan.html" class="nav-item "><span class="icon">💸</span> Pencairan</a><a href="ad18-refund.html" class="nav-item "><span class="icon">💵</span> Refund</a><div class="nav-section">Laporan & Pengaturan</div><a href="ad21-dashboard-analitik.html" class="nav-item "><span class="icon">📈</span> Dashboard Analitik</a><a href="ad23-campaign.html" class="nav-item "><span class="icon">📣</span> Campaign</a><a href="ad25-pengaturan.html" class="nav-item "><span class="icon">⚙️</span> Pengaturan</a><a href="ad26-audit-trail.html" class="nav-item "><span class="icon">🔒</span> Audit Trail</a>
+    </nav>
+    <div style="padding:1rem; text-align:center;">
+      <a href="../index.html" class="btn btn-outline btn-sm" style="color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.2);">Keluar ke Index</a>
+    </div>
+  </aside>
+      <div class="main-content">
+        
+  <header class="topbar">
+    <div class="breadcrumb">Menu &bull; <strong>Admin/Operator</strong></div>
+    <div class="topbar-right">
+      <input type="text" class="search-box" placeholder="Cari data...">
+      <div class="notif-bell">🔔<div class="dot"></div></div>
+      <div class="user-avatar">AD</div>
+    </div>
+  </header>
+
+        <div class="page-content">
+          <h1 class="page-title">Admin/Operator</h1>
+          <p class="page-subtitle">Panel Area admin &bull; Prototipe Wireframe</p>
+          
+          <div class="card">
+            <div class="toolbar">
+              <div class="toolbar-right">
+                <a href="ad4b-tambah-staf.html" class="btn btn-primary">➕ Tambah Staf Baru</a>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>ID Staf</th><th>Nama Lengkap</th><th>Email</th><th>Role Hak Akses</th><th>Cabang Kantor</th><th>Status</th></tr>
+                </thead>
+                <tbody id="staff-table-body">
+                  <tr>
+                    <td>#ADM-001</td>
+                    <td class="fw-bold">Super Admin Utama</td>
+                    <td>admin.main@indolelang.com</td>
+                    <td><span class="badge badge-success">Superadmin</span></td>
+                    <td>Jakarta (HQ)</td>
+                    <td><span class="badge badge-success">Aktif</span></td>
+                  </tr>
+                  <tr>
+                    <td>#ADM-005</td>
+                    <td class="fw-bold">Joko Appraisal</td>
+                    <td>joko.inspektor@indolelang.com</td>
+                    <td><span class="badge badge-info">Appraisal</span></td>
+                    <td>Surabaya</td>
+                    <td><span class="badge badge-success">Aktif</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const tableBody = document.getElementById('staff-table-body');
+              const customStaff = JSON.parse(localStorage.getItem('mock_staff') || '[]');
+              customStaff.forEach((staf, idx) => {
+                const row = document.createElement('tr');
+                let badgeClass = 'badge-info';
+                if (staf.role === 'Superadmin') badgeClass = 'badge-success';
+                else if (staf.role === 'Keuangan') badgeClass = 'badge-warning';
+                
+                row.innerHTML = `
+                  <td>#ADM-0${10 + idx}</td>
+                  <td class="fw-bold">${staf.nama}</td>
+                  <td>${staf.email}</td>
+                  <td><span class="badge ${badgeClass}">${staf.role}</span></td>
+                  <td>${staf.cabang}</td>
+                  <td><span class="badge badge-success">Aktif</span></td>
+                `;
+                tableBody.appendChild(row);
+              });
+            });
+          </script>
+        
+        </div>
+      </div>
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>

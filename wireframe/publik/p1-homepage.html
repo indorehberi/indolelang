@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>p1-homepage - Platform Lelang Digital</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="layout-public">
+  
+      
+  <header class="pub-header">
+    <div class="logo">🏛️ INDO-LELANG</div>
+    <nav>
+      <a href="p1-homepage.html" class="active">Home</a>
+      <a href="p2-katalog.html" class="">Katalog</a>
+      <a href="p4-jadwal.html" class="">Jadwal Lelang</a>
+      <a href="p5-tentang.html" class="">Tentang Kami</a>
+      <a href="p7-faq.html" class="">FAQ</a>
+    </nav>
+    <div class="auth-btns">
+      <a href="../auth/a1-login.html" class="btn btn-outline" style="color:#fff; border-color:rgba(255,255,255,0.5)">Masuk</a>
+      <a href="../auth/a2-register-bidder.html" class="btn btn-gold">Daftar</a>
+    </div>
+  </header>
+
+      <main>
+        <!-- Hero Section -->
+        <div class="hero" style="padding: 4rem 2rem; background: linear-gradient(135deg, var(--wf-primary), var(--wf-accent)); margin-bottom: 0;">
+          <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Lelang Digital Terpercaya, Cepat & Transparan</h1>
+          <p style="font-size: 1.1rem; margin-bottom: 2rem;">Temukan ribuan kendaraan, properti, dan alat berat dengan harga terbaik dari seluruh Indonesia.</p>
+          
+          <!-- Quick Search Bar -->
+          <div style="background: white; padding: 1rem; border-radius: 8px; display: flex; gap: 1rem; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <input type="text" class="form-input" placeholder="Cari merk, model, atau lokasi..." style="flex: 2; border: none; background: #f5f6fa;">
+            <select class="form-select" style="flex: 1; border: none; background: #f5f6fa;">
+              <option>Semua Kategori</option>
+              <option>Mobil Penumpang</option>
+              <option>Sepeda Motor</option>
+              <option>Komersial & Alat Berat</option>
+              <option>Properti</option>
+            </select>
+            <button class="btn btn-gold" style="padding: 0.5rem 2rem;">Cari</button>
+          </div>
+        </div>
+
+        <!-- KPI / Stats -->
+        <div class="kpi-grid" style="margin-top: -2rem; position: relative; z-index: 10; padding: 0 1rem;">
+          <div class="kpi-card text-center"><div class="kpi-value" style="color: var(--wf-primary)">1,200+</div><div class="kpi-label">Lot Terjual</div></div>
+          <div class="kpi-card text-center"><div class="kpi-value" style="color: var(--wf-primary)">3,400+</div><div class="kpi-label">Peserta Aktif</div></div>
+          <div class="kpi-card text-center"><div class="kpi-value" style="color: var(--wf-primary)">15+</div><div class="kpi-label">Cabang Kota</div></div>
+          <div class="kpi-card text-center"><div class="kpi-value" style="color: var(--wf-success)">98%</div><div class="kpi-label">Tingkat Kepuasan</div></div>
+        </div>
+
+        <!-- Kenapa Memilih IndoLelang -->
+        <div style="margin-top: 5rem;">
+          <h2 class="page-title text-center">Kenapa Memilih IndoLelang?</h2>
+          <p class="page-subtitle text-center" style="max-width: 600px; margin: 0 auto 2.5rem;">Kami menghadirkan platform lelang digital yang modern dengan berbagai keunggulan dibanding lelang konvensional.</p>
+          <div class="grid-3" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <div class="card text-center" style="padding: 2.5rem 1.5rem;">
+              <div style="font-size: 2.5rem; margin-bottom: 1rem;">🛡️</div>
+              <h3 class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.5rem;">Keamanan Terjamin (eKYC)</h3>
+              <p class="fs-sm text-muted" style="line-height: 1.6;">Verifikasi identitas bidder dan provider secara cepat dengan sistem eKYC otomatis untuk memastikan integritas peserta.</p>
+            </div>
+            <div class="card text-center" style="padding: 2.5rem 1.5rem;">
+              <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
+              <h3 class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.5rem;">Sistem Bidding Real-Time</h3>
+              <p class="fs-sm text-muted" style="line-height: 1.6;">Nikmati bidding live secara real-time dengan kelipatan penawaran otomatis dan perpanjangan waktu dinamis (Anti-Sniping).</p>
+            </div>
+            <div class="card text-center" style="padding: 2.5rem 1.5rem;">
+              <div style="font-size: 2.5rem; margin-bottom: 1rem;">💵</div>
+              <h3 class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.5rem;">Pembayaran Instan (VA)</h3>
+              <p class="fs-sm text-muted" style="line-height: 1.6;">Transaksi aman menggunakan Virtual Account otomatis untuk pembelian deposit (NIPL), pembayaran pelunasan, hingga auto-refund.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Sesi Demo / Cara Kerja -->
+        <div style="margin-top: 5rem; background: var(--wf-white); padding: 3rem 2rem; border-radius: var(--radius); border: 1px solid var(--wf-border); box-shadow: var(--shadow);">
+          <div class="grid-2-1" style="grid-template-columns: 1.2fr 1fr; align-items: center; gap: 3rem;">
+            <div>
+              <div class="img-placeholder" style="height: 320px; position: relative; cursor: pointer; background: linear-gradient(135deg, var(--wf-primary), var(--wf-accent)); border-radius: 8px;">
+                <div style="position: absolute; font-size: 5rem; color: #fff;">▶️</div>
+                <div style="position: absolute; bottom: 1.5rem; left: 1.5rem; color: #fff; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Video Tutorial: Cara Bidding di IndoLelang</div>
+              </div>
+            </div>
+            <div>
+              <h2 class="page-title" style="margin-bottom: 1rem;">Tonton Cara Kerjanya</h2>
+              <p class="text-muted mb-2" style="line-height: 1.6;">Belum pernah mengikuti lelang online? Jangan khawatir! Video tutorial 3 menit ini akan memandu Anda mulai dari proses pendaftaran akun, verifikasi eKYC, pembelian jaminan (NIPL), hingga proses memenangkan lot lelang secara langsung.</p>
+              <ul style="list-style: none; padding: 0; line-height: 2; font-size: 0.9rem;" class="text-muted">
+                <li>✔️ Proses Registrasi & eKYC 5 Menit</li>
+                <li>✔️ Cara Top Up Deposit untuk NIPL</li>
+                <li>✔️ Simulasi Penawaran di Bidding Room</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kategori Lelang -->
+        <div style="margin-top: 5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem;">
+            <div>
+              <h2 class="page-title">Jelajahi Kategori Aset</h2>
+              <p class="page-subtitle" style="margin-bottom:0">Temukan barang berkualitas dengan harga pembukaan rendah</p>
+            </div>
+            <a href="p2-katalog.html" class="btn btn-outline">Lihat Semua &rarr;</a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <div class="card text-center" style="cursor:pointer; border-bottom: 3px solid var(--wf-accent); transition: transform 0.2s; padding: 2rem 1rem;">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🚗</div>
+              <div class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.3rem;">Mobil Penumpang</div>
+              <div class="fs-sm text-muted">450+ Lot Tersedia</div>
+            </div>
+            <div class="card text-center" style="cursor:pointer; border-bottom: 3px solid var(--wf-accent); transition: transform 0.2s; padding: 2rem 1rem;">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🏍️</div>
+              <div class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.3rem;">Sepeda Motor</div>
+              <div class="fs-sm text-muted">820+ Lot Tersedia</div>
+            </div>
+            <div class="card text-center" style="cursor:pointer; border-bottom: 3px solid var(--wf-accent); transition: transform 0.2s; padding: 2rem 1rem;">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🚜</div>
+              <div class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.3rem;">Komersial & Alat Berat</div>
+              <div class="fs-sm text-muted">85+ Lot Tersedia</div>
+            </div>
+            <div class="card text-center" style="cursor:pointer; border-bottom: 3px solid var(--wf-accent); transition: transform 0.2s; padding: 2rem 1rem;">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🏢</div>
+              <div class="fw-bold" style="font-size: 1.1rem; margin-bottom: 0.3rem;">Properti & Aset Lain</div>
+              <div class="fs-sm text-muted">32+ Lot Tersedia</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rekomendasi Lelang Mendatang -->
+        <div style="margin-top: 5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem;">
+            <div>
+              <h2 class="page-title">Rekomendasi Lelang Terpopuler</h2>
+              <p class="page-subtitle" style="margin-bottom:0">Lot-lot lelang dengan penawaran tertinggi yang akan segera dimulai</p>
+            </div>
+            <a href="p4-jadwal.html" class="btn btn-outline">Lihat Jadwal &rarr;</a>
+          </div>
+          <div class="lot-grid">
+            <div class="lot-card">
+              <div class="lot-img" style="font-size: 2rem;">🚘</div>
+              <div class="lot-body">
+                <div class="lot-title">Toyota Avanza 1.3 G MT 2022</div>
+                <div class="lot-price">Rp 145.000.000</div>
+                <div class="lot-meta">Lokasi: Jakarta Selatan • Grade: B</div>
+                <div class="lot-countdown mt-1">Sesi: 12 Jun 2026, 10:00</div>
+                <a href="p3-detail-lot.html" class="btn btn-primary w-100 mt-2" style="justify-content:center">Lihat Detail</a>
+              </div>
+            </div>
+            <div class="lot-card">
+              <div class="lot-img" style="font-size: 2rem;">🚘</div>
+              <div class="lot-body">
+                <div class="lot-title">Honda CR-V 1.5 Turbo Prestige 2021</div>
+                <div class="lot-price">Rp 385.000.000</div>
+                <div class="lot-meta">Lokasi: Bandung • Grade: A</div>
+                <div class="lot-countdown mt-1">Sesi: 12 Jun 2026, 10:00</div>
+                <a href="p3-detail-lot.html" class="btn btn-primary w-100 mt-2" style="justify-content:center">Lihat Detail</a>
+              </div>
+            </div>
+            <div class="lot-card">
+              <div class="lot-img" style="font-size: 2rem;">🚘</div>
+              <div class="lot-body">
+                <div class="lot-title">Mitsubishi Xpander Ultimate 2023</div>
+                <div class="lot-price">Rp 215.000.000</div>
+                <div class="lot-meta">Lokasi: Surabaya • Grade: A</div>
+                <div class="lot-countdown mt-1">Sesi: 14 Jun 2026, 13:00</div>
+                <a href="p3-detail-lot.html" class="btn btn-primary w-100 mt-2" style="justify-content:center">Lihat Detail</a>
+              </div>
+            </div>
+            <div class="lot-card">
+              <div class="lot-img" style="font-size: 2rem;">🏍️</div>
+              <div class="lot-body">
+                <div class="lot-title">Yamaha NMAX 155 ABS 2022</div>
+                <div class="lot-price">Rp 21.500.000</div>
+                <div class="lot-meta">Lokasi: Jakarta Pusat • Grade: B</div>
+                <div class="lot-countdown mt-1">Sesi: 14 Jun 2026, 13:00</div>
+                <a href="p3-detail-lot.html" class="btn btn-primary w-100 mt-2" style="justify-content:center">Lihat Detail</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Artikel / Edukasi -->
+        <div style="margin-top: 5rem;">
+          <h2 class="page-title text-center">Tips & Artikel Terbaru</h2>
+          <p class="page-subtitle text-center" style="max-width: 600px; margin: 0 auto 2.5rem;">Temukan informasi edukatif seputar prosedur lelang digital, hukum kepemilikan aset, dan tips pembelian kendaraan.</p>
+          <div class="grid-3" style="gap: 1.5rem;">
+            <div class="card">
+              <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🚗</div>
+              <div class="fs-sm text-muted">10 Juni 2026 • Edukasi Kendaraan</div>
+              <h3 class="fw-bold mt-1" style="font-size: 1rem; line-height: 1.4;">Tips Mengikuti Inspeksi Fisik Mobil Bekas Sebelum Lelang</h3>
+              <p class="fs-sm text-muted mt-1" style="line-height: 1.5;">Bagaimana cara membaca laporan Grade Appraisal dan detail apa saja yang harus diperiksa secara langsung di pool gudang...</p>
+              <a href="#" class="btn btn-sm btn-outline mt-2 w-100" style="justify-content: center;">Baca Selengkapnya</a>
+            </div>
+            <div class="card">
+              <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🛡️</div>
+              <div class="fs-sm text-muted">08 Juni 2026 • Keamanan & Hukum</div>
+              <h3 class="fw-bold mt-1" style="font-size: 1rem; line-height: 1.4;">Mengenal Keabsahan Hukum Dokumen Risalah Lelang Digital</h3>
+              <p class="fs-sm text-muted mt-1" style="line-height: 1.5;">Penjelasan lengkap mengenai kedudukan Risalah Lelang yang dikeluarkan KPKNL atau Balai Lelang resmi di mata hukum...</p>
+              <a href="#" class="btn btn-sm btn-outline mt-2 w-100" style="justify-content: center;">Baca Selengkapnya</a>
+            </div>
+            <div class="card">
+              <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">📄</div>
+              <div class="fs-sm text-muted">05 Juni 2026 • Finansial</div>
+              <h3 class="fw-bold mt-1" style="font-size: 1rem; line-height: 1.4;">Cara Membayar Deposit Jaminan NIPL Melalui Virtual Account</h3>
+              <p class="fs-sm text-muted mt-1" style="line-height: 1.5;">Langkah mudah transfer deposit, batas waktu pemesanan NIPL, serta alur refund otomatis 100% jika Anda kalah lelang...</p>
+              <a href="#" class="btn btn-sm btn-outline mt-2 w-100" style="justify-content: center;">Baca Selengkapnya</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unduh Aplikasi Mobile -->
+        <div style="margin-top: 5rem; background: linear-gradient(135deg, var(--wf-primary), var(--wf-accent)); color: #fff; padding: 4rem 2rem; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
+          <div style="max-width: 600px;">
+            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff;">Unduh Aplikasi IndoLelang</h2>
+            <p style="opacity: 0.9; line-height: 1.6;">Dapatkan akses penawaran lelang yang lebih cepat dan nyaman langsung dari smartphone Anda. Dapatkan notifikasi push real-time untuk lot favorit Anda!</p>
+          </div>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div style="background: #000; color: #fff; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 0.5rem;">
+              <span>🤖</span>
+              <div>
+                <div style="font-size: 0.65rem; font-weight: 400; opacity: 0.6;">GET IT ON</div>
+                Google Play
+              </div>
+            </div>
+            <div style="background: #000; color: #fff; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 0.5rem;">
+              <span>🍎</span>
+              <div>
+                <div style="font-size: 0.65rem; font-weight: 400; opacity: 0.6;">Download on the</div>
+                App Store
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cara Kerja Lelang -->
+        <div style="margin-top: 5rem; background: var(--wf-white); padding: 3rem 2rem; border-radius: var(--radius); border: 1px solid var(--wf-border); text-align: center; box-shadow: var(--shadow);">
+          <h2 class="page-title mb-1">Cara Kerja Lelang Digital</h2>
+          <p class="page-subtitle mb-3" style="max-width: 600px; margin: 0 auto 2rem;">Proses lelang yang mudah, aman, dan transparan dari mana saja.</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; position: relative;">
+            <div>
+              <div style="width: 70px; height: 70px; background: var(--wf-gold-bg); color: var(--wf-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; margin: 0 auto 1rem; border: 2px solid var(--wf-gold);">1</div>
+              <div class="fw-bold fs-lg mb-1">Daftar & Verifikasi</div>
+              <div class="fs-sm text-muted">Buat akun bidder dan verifikasi data e-KTP Anda dalam hitungan menit secara otomatis.</div>
+            </div>
+            <div>
+              <div style="width: 70px; height: 70px; background: var(--wf-gold-bg); color: var(--wf-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; margin: 0 auto 1rem; border: 2px solid var(--wf-gold);">2</div>
+              <div class="fw-bold fs-lg mb-1">Beli NIPL / Deposit</div>
+              <div class="fs-sm text-muted">Beli Nomor Induk Peserta Lelang (Deposit) sebagai syarat dan jaminan keikutsertaan Anda.</div>
+            </div>
+            <div>
+              <div style="width: 70px; height: 70px; background: var(--wf-gold-bg); color: var(--wf-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; margin: 0 auto 1rem; border: 2px solid var(--wf-gold);">3</div>
+              <div class="fw-bold fs-lg mb-1">Ikuti Bidding Live</div>
+              <div class="fs-sm text-muted">Lakukan penawaran (bidding) secara real-time bersama peserta lain saat sesi lelang dimulai.</div>
+            </div>
+            <div>
+              <div style="width: 70px; height: 70px; background: var(--wf-gold-bg); color: var(--wf-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; margin: 0 auto 1rem; border: 2px solid var(--wf-gold);">4</div>
+              <div class="fw-bold fs-lg mb-1">Menang & Pelunasan</div>
+              <div class="fs-sm text-muted">Lakukan pelunasan jika Anda menang. Jika kalah, deposit akan dikembalikan 100% tanpa potongan.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trust Badges / Partners -->
+        <div style="margin-top: 5rem; text-align: center;">
+          <p class="fw-bold text-muted text-uppercase mb-2" style="letter-spacing: 1px; font-size: 0.85rem;">Didukung Oleh Partner Perbankan & Pembayaran Resmi</p>
+          <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; opacity: 0.5; filter: grayscale(100%); align-items: center;">
+            <div style="padding: 1rem 2rem; border: 1px solid var(--wf-border); border-radius: 6px; font-weight: 800; font-size: 1.2rem; background: #fff;">BANK BCA</div>
+            <div style="padding: 1rem 2rem; border: 1px solid var(--wf-border); border-radius: 6px; font-weight: 800; font-size: 1.2rem; background: #fff;">BANK MANDIRI</div>
+            <div style="padding: 1rem 2rem; border: 1px solid var(--wf-border); border-radius: 6px; font-weight: 800; font-size: 1.2rem; background: #fff;">BANK BNI</div>
+            <div style="padding: 1rem 2rem; border: 1px solid var(--wf-border); border-radius: 6px; font-weight: 800; font-size: 1.2rem; background: #fff;">MIDTRANS</div>
+            <div style="padding: 1rem 2rem; border: 1px solid var(--wf-border); border-radius: 6px; font-weight: 800; font-size: 1.2rem; background: #fff;">GOPAY</div>
+          </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div style="margin-top: 5rem; margin-bottom: 2rem; background: var(--wf-primary); color: white; padding: 4rem 2rem; border-radius: var(--radius); text-align: center; display: flex; flex-direction: column; align-items: center; box-shadow: var(--shadow-md);">
+          <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #fff;">Siap Menemukan Aset Impian Anda?</h2>
+          <p style="font-size: 1.1rem; opacity: 0.85; margin-bottom: 2.5rem; max-width: 650px;">Bergabung dengan ribuan peserta lainnya dan nikmati pengalaman lelang digital yang cepat, aman, dan memuaskan. Mulai perjalanan Anda hari ini.</p>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+            <a href="../auth/a2-register-bidder.html" class="btn btn-gold btn-lg" style="padding: 1rem 2.5rem; font-size: 1.1rem;">Daftar Sebagai Bidder</a>
+            <a href="../auth/a3-register-provider.html" class="btn btn-outline btn-lg" style="color: white; border-color: rgba(255,255,255,0.4); padding: 1rem 2.5rem; font-size: 1.1rem;">Titip Jual Aset Anda</a>
+          </div>
+        </div>
+      </main>
+      
+  <footer class="pub-footer" style="background: var(--wf-primary); color: rgba(255,255,255,0.8); padding: 4rem 2rem 2rem; border-top: 1px solid var(--wf-border); margin-top: auto;">
+    <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; text-align: left; padding-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <div>
+        <div class="logo" style="font-weight: 700; font-size: 1.3rem; color: #fff; margin-bottom: 1rem;">🏛️ INDO-LELANG</div>
+        <p style="font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.6);">Platform lelang digital terintegrasi di Indonesia. Transparan, aman, cepat, dan terpercaya untuk mobil, motor, properti, dan alat berat.</p>
+        <div style="margin-top: 1rem; font-size: 0.85rem;">
+          <strong>Hubungi Kami:</strong><br>
+          ✉️ support@indolelang.com<br>
+          📞 (021) 5098-8888
+        </div>
+      </div>
+      <div>
+        <h4 style="color: var(--wf-gold); font-size: 0.95rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">Tautan Publik</h4>
+        <ul style="list-style: none; padding: 0; font-size: 0.85rem; line-height: 2;">
+          <li><a href="p2-katalog.html" style="color: rgba(255,255,255,0.7);">Katalog Lelang</a></li>
+          <li><a href="p4-jadwal.html" style="color: rgba(255,255,255,0.7);">Jadwal Sesi Lelang</a></li>
+          <li><a href="p5-tentang.html" style="color: rgba(255,255,255,0.7);">Tentang Kami</a></li>
+          <li><a href="p7-faq.html" style="color: rgba(255,255,255,0.7);">FAQ & Pusat Bantuan</a></li>
+          <li><a href="p8-kontak.html" style="color: rgba(255,255,255,0.7);">Kontak & Alamat</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: var(--wf-gold); font-size: 0.95rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">Panduan Bidder</h4>
+        <ul style="list-style: none; padding: 0; font-size: 0.85rem; line-height: 2;">
+          <li><a href="../auth/a2-register-bidder.html" style="color: rgba(255,255,255,0.7);">Registrasi Bidder</a></li>
+          <li><a href="p6-syarat.html" style="color: rgba(255,255,255,0.7);">Aturan & Syarat Bidding</a></li>
+          <li><a href="../auth/a6-ekyc-upload.html" style="color: rgba(255,255,255,0.7);">Verifikasi Akun (eKYC)</a></li>
+          <li><a href="p7-faq.html" style="color: rgba(255,255,255,0.7);">Kebijakan Deposit & Refund</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: var(--wf-gold); font-size: 0.95rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">Portal Provider</h4>
+        <ul style="list-style: none; padding: 0; font-size: 0.85rem; line-height: 2;">
+          <li><a href="../auth/a3-register-provider.html" style="color: rgba(255,255,255,0.7);">Daftar Sebagai Provider</a></li>
+          <li><a href="p6-syarat.html" style="color: rgba(255,255,255,0.7);">Ketentuan Titip Jual</a></li>
+          <li><a href="p7-faq.html" style="color: rgba(255,255,255,0.7);">Skema Settlement Dana</a></li>
+          <li><a href="p8-kontak.html" style="color: rgba(255,255,255,0.7);">Kerjasama Korporasi</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="max-width: 1200px; margin: 2rem auto 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 0.8rem; color: rgba(255,255,255,0.4);">
+      <p>&copy; 2026 Indo-Lelang. Hak Cipta Dilindungi Undang-Undang.</p>
+      <div style="display: flex; gap: 1.5rem;">
+        <a href="p6-syarat.html" style="color: inherit;">Kebijakan Privasi</a>
+        <a href="p6-syarat.html" style="color: inherit;">Syarat Penggunaan</a>
+      </div>
+    </div>
+  </footer>
+
+    
+  <div class="wf-label">WIREFRAME — Platform Lelang Digital</div>
+</body>
+</html>
