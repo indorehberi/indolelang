@@ -1516,13 +1516,13 @@ function generatePanelPages(area, prefix, menuItems, initial) {
         `;
       } else if (p.id === 'b7') { // Bidding Room
         specificContent = `
-          <div class="grid-2-1">
-            <div class="card">
-              <div class="img-placeholder" style="height:350px; margin-bottom:1rem; font-size: 3rem;">🚗 Toyota Avanza 2022</div>
-              <h2 class="page-title">Toyota Avanza 1.3 G MT 2022</h2>
-              <p class="text-muted">Lot #1045 • Sesi Kendaraan Jakarta</p>
+          <div class="grid-2-1" id="bidding-room-grid">
+            <div class="card" id="lot-info-card">
+              <div class="img-placeholder" id="lot-image" style="height:350px; margin-bottom:1rem; font-size: 3rem;">🚗 Toyota Avanza 2022</div>
+              <h2 class="page-title" id="lot-name">Toyota Avanza 1.3 G MT 2022</h2>
+              <p class="text-muted" id="lot-num-str">Lot #1045 • Sesi Kendaraan Jakarta</p>
               <div class="separator"></div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; font-size:0.85rem;" class="text-muted">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; font-size:0.85rem;" class="text-muted" id="lot-details">
                 <div>• Lokasi Gudang: Jakarta Selatan</div>
                 <div>• Tahun / Warna: 2022 / Hitam</div>
                 <div>• Kondisi: Grade B (Bodi Mulus)</div>
@@ -1532,38 +1532,77 @@ function generatePanelPages(area, prefix, menuItems, initial) {
             <div class="bidding-panel">
               <div class="fs-sm text-uppercase" style="color: rgba(255,255,255,0.7);">Harga Penawaran Tertinggi</div>
               <div class="bid-current-price" id="current-price-val">Rp 167.500.000</div>
-              <div class="fs-sm mb-2" style="color: rgba(255,255,255,0.7);">Kelipatan Bid: Rp 2.500.000 | NIPL Anda: #98122</div>
+              <div class="fs-sm mb-2" style="color: rgba(255,255,255,0.7);" id="nipl-info-label">Kelipatan Bid: Rp 2.500.000 | NIPL Anda: #98122</div>
               <div class="bid-timer mb-3" id="bid-timer-val">00:45</div>
               <button class="btn btn-gold btn-lg w-100" id="btn-place-bid" style="justify-content:center; margin-bottom:0.5rem; font-size:1.2rem;">BID Rp 170.000.000</button>
               <div class="bid-buttons">
-                <button class="btn btn-outline btn-sm btn-quick-bid" data-mult="1" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 2.5jt</button>
-                <button class="btn btn-outline btn-sm btn-quick-bid" data-mult="2" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 5.0jt</button>
-                <button class="btn btn-outline btn-sm btn-quick-bid" data-mult="4" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 10.0jt</button>
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-1" data-mult="1" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 2.5jt</button>
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-2" data-mult="2" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 5.0jt</button>
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-3" data-mult="4" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 10.0jt</button>
               </div>
               <div class="separator" style="border-color:rgba(255,255,255,0.1)"></div>
-              <div class="text-left fw-bold mb-1 fs-sm" style="color:#fff;">Riwayat Penawaran (3)</div>
-              <div class="bid-history text-left" id="bid-history-list">
-                <div class="bid-history-item"><span>Bidder_A*** (Luar Kota)</span><span class="text-gold">Rp 167.500.000</span></div>
-                <div class="bid-history-item"><span>Anda (#98122)</span><span>Rp 165.000.000</span></div>
-                <div class="bid-history-item"><span>Bidder_B*** (Jakarta)</span><span>Rp 162.500.000</span></div>
+              <div class="text-left fw-bold mb-1 fs-sm" style="color:#fff;">Riwayat Penawaran</div>
+              <div class="bid-history text-left" id="bid-history-list" style="height: 150px; overflow-y: auto;">
+                <div class="bid-history-item"><span>Bidder_A***</span><span class="text-gold">Rp 167.500.000</span></div>
               </div>
             </div>
           </div>
           
           <script>
             document.addEventListener('DOMContentLoaded', function() {
+              const LIST_LOTS = [
+                {
+                  lotNumber: 12,
+                  idStr: "#1045",
+                  name: "Toyota Avanza 1.3 G MT 2022",
+                  startingPrice: 145000000,
+                  currentPrice: 167500000,
+                  bidIncrement: 2500000,
+                  image: "🚗 Toyota Avanza 2022",
+                  details: ["• Lokasi: Jakarta", "• Warna: Hitam", "• Kondisi: Grade B", "• KM: 45K"]
+                },
+                {
+                  lotNumber: 13,
+                  idStr: "#1046",
+                  name: "Mitsubishi Pajero Sport 2.4 Dakar 2021",
+                  startingPrice: 380000000,
+                  currentPrice: 380000000,
+                  bidIncrement: 5000000,
+                  image: "🚘 Pajero Sport 2021",
+                  details: ["• Lokasi: Jakarta Selatan", "• Warna: Putih Mutiara", "• Kondisi: Grade A", "• KM: 28K"]
+                },
+                {
+                  lotNumber: 14,
+                  idStr: "#1047",
+                  name: "Honda Beat Sporty CBS 2023",
+                  startingPrice: 12000000,
+                  currentPrice: 12000000,
+                  bidIncrement: 500000,
+                  image: "🛵 Honda Beat 2023",
+                  details: ["• Lokasi: Tangerang", "• Warna: Biru Hitam", "• Kondisi: Grade A", "• KM: 4K"]
+                }
+              ];
+
+              let currentLotIdx = 0;
               let currentPrice = 167500000;
-              const bidIncrement = 2500000;
+              let bidIncrement = 2500000;
               let sisaWaktu = 45;
               let highestBidder = 'Bidder_A***';
               let myNipl = '#98122';
               let isFinished = false;
+              let activeModal = null;
+
+              const lotImage = document.getElementById('lot-image');
+              const lotName = document.getElementById('lot-name');
+              const lotNumStr = document.getElementById('lot-num-str');
+              const lotDetails = document.getElementById('lot-details');
 
               const priceEl = document.getElementById('current-price-val');
               const timerEl = document.getElementById('bid-timer-val');
               const btnBid = document.getElementById('btn-place-bid');
               const historyList = document.getElementById('bid-history-list');
               const quickBtns = document.querySelectorAll('.btn-quick-bid');
+              const niplInfo = document.getElementById('nipl-info-label');
 
               function formatRupiah(num) {
                 return 'Rp ' + num.toLocaleString('id-ID');
@@ -1593,12 +1632,9 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                   row.style.background = 'rgba(243,156,18,0.2)';
                   row.style.fontWeight = 'bold';
                 }
-                row.innerHTML = '<span>' + user + '</span><span class="' + (isMe || !user.includes('Anda') ? 'text-gold' : '') + '">' + formatRupiah(amount) + '</span>';
+                const isAmount = typeof amount === 'number';
+                row.innerHTML = '<span>' + user + '</span><span class="' + (isMe || !user.includes('Anda') ? 'text-gold' : '') + '">' + (isAmount ? formatRupiah(amount) : amount) + '</span>';
                 historyList.insertBefore(row, historyList.firstChild);
-                
-                while (historyList.children.length > 8) {
-                  historyList.removeChild(historyList.lastChild);
-                }
               }
 
               const timerInterval = setInterval(function() {
@@ -1608,26 +1644,15 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                   sisaWaktu = 0;
                   isFinished = true;
                   clearInterval(timerInterval);
+                  const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                  if (state.status !== 'SOLD') {
+                    state.status = 'SOLD';
+                    localStorage.setItem('active_lot_state', JSON.stringify(state));
+                  }
                   showEndModal();
                 }
                 updateUI();
               }, 1000);
-
-              function triggerFakeBid() {
-                if (isFinished) return;
-                if (highestBidder === 'Anda (' + myNipl + ')') {
-                  highestBidder = 'Bidder_' + String.fromCharCode(65 + Math.floor(Math.random()*6)) + '***';
-                  currentPrice += bidIncrement;
-                  addBidLog(highestBidder, currentPrice, false);
-                  if (sisaWaktu < 20) {
-                    sisaWaktu = 30;
-                    alertNotification("Sniping Alert: Waktu diperpanjang 30 detik!");
-                  }
-                  updateUI();
-                }
-                setTimeout(triggerFakeBid, 5000 + Math.random()*5000);
-              }
-              setTimeout(triggerFakeBid, 6000);
 
               function alertNotification(msg) {
                 const banner = document.createElement('div');
@@ -1660,6 +1685,12 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 
                 updateUI();
                 
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                state.currentPrice = currentPrice;
+                state.highestBidder = highestBidder;
+                state.sisaWaktu = sisaWaktu;
+                localStorage.setItem('active_lot_state', JSON.stringify(state));
+                
                 btnBid.disabled = true;
                 btnBid.style.opacity = 0.5;
                 setTimeout(() => {
@@ -1679,19 +1710,87 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 });
               });
 
+              function loadLotData(idx) {
+                const lot = LIST_LOTS[idx];
+                currentLotIdx = idx;
+                
+                lotImage.innerText = lot.image;
+                lotName.innerText = lot.name;
+                lotNumStr.innerText = 'Lot ' + lot.idStr + ' • Sesi Kendaraan Jakarta';
+                
+                lotDetails.innerHTML = '';
+                lot.details.forEach(detail => {
+                  const div = document.createElement('div');
+                  div.innerText = detail;
+                  lotDetails.appendChild(div);
+                });
+                
+                bidIncrement = lot.bidIncrement;
+                niplInfo.innerHTML = 'Kelipatan Bid: ' + formatRupiah(bidIncrement) + ' | NIPL Anda: ' + myNipl;
+                
+                historyList.innerHTML = '';
+                addBidLog('Sistem', 'Sesi lelang dibuka untuk ' + lot.name, false);
+              }
+
+              setInterval(function() {
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (!state.lotNumber) return;
+                
+                if (state.status === 'LIVE') {
+                  if (state.lotNumber !== LIST_LOTS[currentLotIdx].lotNumber) {
+                    if (activeModal) {
+                      activeModal.remove();
+                      activeModal = null;
+                    }
+                    loadLotData(state.idx);
+                    
+                    currentPrice = state.currentPrice;
+                    highestBidder = state.highestBidder;
+                    sisaWaktu = state.sisaWaktu;
+                    isFinished = false;
+                    
+                    updateUI();
+                    addBidLog(highestBidder, currentPrice, false);
+                    alertNotification("Sesi Berlanjut ke Lot " + LIST_LOTS[state.idx].lotNumber);
+                  } else {
+                    if (state.currentPrice > currentPrice) {
+                      currentPrice = state.currentPrice;
+                      highestBidder = state.highestBidder;
+                      sisaWaktu = state.sisaWaktu;
+                      
+                      const isMe = highestBidder.includes('Anda');
+                      addBidLog(highestBidder, currentPrice, isMe);
+                      updateUI();
+                    }
+                  }
+                } else if (state.status === 'SOLD') {
+                  if (!isFinished) {
+                    isFinished = true;
+                    currentPrice = state.currentPrice;
+                    highestBidder = state.highestBidder;
+                    showEndModal();
+                  }
+                }
+              }, 1000);
+
               function showEndModal() {
+                if (activeModal) return;
+                
                 const modalOverlay = document.createElement('div');
                 modalOverlay.className = 'modal-overlay';
+                activeModal = modalOverlay;
                 
                 let isWinner = highestBidder.includes('Anda');
                 let title = isWinner ? '🎉 SELAMAT! Anda Pemenang Lot!' : '🏁 Sesi Lelang Selesai';
+                
+                const lot = LIST_LOTS[currentLotIdx];
                 let desc = isWinner 
-                  ? 'Anda memenangkan lot <strong>Toyota Avanza 1.3 G MT 2022</strong> dengan penawaran tertinggi <strong>' + formatRupiah(currentPrice) + '</strong>.'
-                  : 'Lot lelang ditutup. Pemenang tertinggi adalah <strong>' + highestBidder + '</strong> seharga <strong>' + formatRupiah(currentPrice) + '</strong>.';
+                  ? 'Anda memenangkan lot <strong>' + lot.name + '</strong> dengan penawaran tertinggi <strong>' + formatRupiah(currentPrice) + '</strong>.'
+                  : 'Lot #' + lot.lotNumber + ' ditutup. Terjual kepada <strong>' + highestBidder + '</strong> seharga <strong>' + formatRupiah(currentPrice) + '</strong>.';
                 
                 let actionBtn = isWinner 
                   ? '<a href="b9-invoice.html" class="btn btn-primary" style="text-decoration:none;">Buka Invoice Pelunasan</a>'
-                  : '<a href="b1-dashboard.html" class="btn btn-outline" style="text-decoration:none;">Kembali ke Dashboard</a>';
+                  : '<div style="color:var(--wf-gold); font-weight:bold; padding:0.5rem; font-size:0.9rem;">⏳ Menunggu Juru Lelang membuka Lot berikutnya...</div>';
 
                 modalOverlay.innerHTML = \`
                   <div class="modal" style="max-width: 450px;">
@@ -1701,7 +1800,7 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                     <div class="modal-body text-center">
                       <div style="font-size: 4rem; margin-bottom: 1rem;">\${isWinner ? '🏆' : '🤝'}</div>
                       <p style="margin-bottom: 1.5rem; line-height: 1.6;">\${desc}</p>
-                      \${isWinner ? '<p class="fs-sm text-muted">Uang jaminan (NIPL) Anda telah otomatis dipotong. Harap lakukan pelunasan sisa tagihan dalam waktu 5 hari kerja.</p>' : ''}
+                      \${isWinner ? '<p class="fs-sm text-muted">Uang jaminan (NIPL) Anda telah otomatis dipotong. Harap lakukan pelunasan sisa tagihan dalam waktu 5 hari kerja.</p>' : '<p class="fs-sm text-muted">Layar Anda akan diperbarui otomatis begitu Admin memulai lelang unit berikutnya.</p>'}
                     </div>
                     <div class="modal-footer" style="justify-content: center;">
                       \${actionBtn}
@@ -1728,21 +1827,24 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 </iframe>
               </div>
               <div style="padding: 1rem; background: var(--wf-card-bg);">
-                <h3 class="fw-bold" style="font-size:1.1rem; margin-bottom: 0.25rem;">Toyota Avanza 1.3 G MT 2022</h3>
-                <p class="text-muted fs-sm">Lot #1045 • Sesi Jakarta • Live Juru Lelang JBA</p>
+                <h3 class="fw-bold" style="font-size:1.1rem; margin-bottom: 0.25rem;" id="lot-name-stream">Toyota Avanza 1.3 G MT 2022</h3>
+                <p class="text-muted fs-sm" id="lot-num-stream">Lot #1045 • Sesi Jakarta • Live Juru Lelang JBA</p>
               </div>
             </div>
             <div class="bidding-panel">
               <div class="fs-sm text-uppercase" style="color: rgba(255,255,255,0.7);">Harga Penawaran Tertinggi</div>
               <div class="bid-current-price" id="current-price-val">Rp 167.500.000</div>
-              <div class="fs-sm mb-2" style="color: rgba(255,255,255,0.7);">Juru Lelang: Budi Operator</div>
+              <div class="fs-sm mb-2" style="color: rgba(255,255,255,0.7);" id="nipl-info-label">Kelipatan Bid: Rp 2.500.000 | NIPL Anda: #98122</div>
               <div class="bid-timer mb-3" id="bid-timer-val" style="color:var(--wf-danger);">00:45</div>
               <button class="btn btn-gold btn-lg w-100" id="btn-place-bid" style="justify-content:center; margin-bottom:0.5rem; font-size:1.2rem;">BID Rp 170.000.000</button>
+              <div class="bid-buttons">
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-1" data-mult="1" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 2.5jt</button>
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-2" data-mult="2" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 5.0jt</button>
+                <button class="btn btn-outline btn-sm btn-quick-bid" id="btn-quick-3" data-mult="4" style="color:#fff; border-color:rgba(255,255,255,0.3)">+Rp 10.0jt</button>
+              </div>
               <div class="separator" style="border-color:rgba(255,255,255,0.1)"></div>
               <div class="text-left fw-bold mb-1 fs-sm" style="color:#fff;">Chat / Q&A Live & Penawaran</div>
-              <div class="bid-history text-left" id="bid-history-list" style="height:120px;">
-                <div class="bid-history-item"><span>User_1:</span><span>Apakah STNK aktif?</span></div>
-                <div class="bid-history-item"><span>Mod:</span><span>Aktif s/d Desember 2026.</span></div>
+              <div class="bid-history text-left" id="bid-history-list" style="height:120px; overflow-y:auto;">
                 <div class="bid-history-item"><span>Bidder_A***</span><span class="text-gold">Rp 167.500.000</span></div>
               </div>
             </div>
@@ -1750,17 +1852,57 @@ function generatePanelPages(area, prefix, menuItems, initial) {
           
           <script>
             document.addEventListener('DOMContentLoaded', function() {
+              const LIST_LOTS = [
+                {
+                  lotNumber: 12,
+                  idStr: "#1045",
+                  name: "Toyota Avanza 1.3 G MT 2022",
+                  startingPrice: 145000000,
+                  currentPrice: 167500000,
+                  bidIncrement: 2500000,
+                  image: "🚗 Toyota Avanza 2022",
+                  details: ["• Lokasi: Jakarta", "• Warna: Hitam", "• Kondisi: Grade B", "• KM: 45K"]
+                },
+                {
+                  lotNumber: 13,
+                  idStr: "#1046",
+                  name: "Mitsubishi Pajero Sport 2.4 Dakar 2021",
+                  startingPrice: 380000000,
+                  currentPrice: 380000000,
+                  bidIncrement: 5000000,
+                  image: "🚘 Pajero Sport 2021",
+                  details: ["• Lokasi: Jakarta Selatan", "• Warna: Putih Mutiara", "• Kondisi: Grade A", "• KM: 28K"]
+                },
+                {
+                  lotNumber: 14,
+                  idStr: "#1047",
+                  name: "Honda Beat Sporty CBS 2023",
+                  startingPrice: 12000000,
+                  currentPrice: 12000000,
+                  bidIncrement: 500000,
+                  image: "🛵 Honda Beat 2023",
+                  details: ["• Lokasi: Tangerang", "• Warna: Biru Hitam", "• Kondisi: Grade A", "• KM: 4K"]
+                }
+              ];
+
+              let currentLotIdx = 0;
               let currentPrice = 167500000;
-              const bidIncrement = 2500000;
+              let bidIncrement = 2500000;
               let sisaWaktu = 45;
               let highestBidder = 'Bidder_A***';
               let myNipl = '#98122';
               let isFinished = false;
+              let activeModal = null;
+
+              const lotNameStream = document.getElementById('lot-name-stream');
+              const lotNumStream = document.getElementById('lot-num-stream');
 
               const priceEl = document.getElementById('current-price-val');
               const timerEl = document.getElementById('bid-timer-val');
               const btnBid = document.getElementById('btn-place-bid');
               const historyList = document.getElementById('bid-history-list');
+              const quickBtns = document.querySelectorAll('.btn-quick-bid');
+              const niplInfo = document.getElementById('nipl-info-label');
 
               function formatRupiah(num) {
                 return 'Rp ' + num.toLocaleString('id-ID');
@@ -1773,18 +1915,30 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 let mins = Math.floor(sisaWaktu / 60);
                 let secs = sisaWaktu % 60;
                 timerEl.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                
+                if (sisaWaktu <= 10) {
+                  timerEl.style.color = '#e74c3c';
+                  timerEl.style.fontWeight = 'bold';
+                } else {
+                  timerEl.style.color = 'var(--wf-danger)';
+                  timerEl.style.fontWeight = 'normal';
+                }
               }
 
-              function addChatLog(user, text, isBid, isMe) {
+              function addBidLog(user, amount, isMe) {
                 const row = document.createElement('div');
                 row.className = 'bid-history-item';
-                if (isMe) row.style.background = 'rgba(243,156,18,0.2)';
-                if (isBid) {
-                  row.innerHTML = '<span>🚀 <strong>' + user + '</strong></span><span class="text-gold">' + formatRupiah(text) + '</span>';
-                } else {
-                  row.innerHTML = '<span>💬 ' + user + ':</span><span>' + text + '</span>';
+                if (isMe) {
+                  row.style.background = 'rgba(243,156,18,0.2)';
+                  row.style.fontWeight = 'bold';
                 }
+                const isAmount = typeof amount === 'number';
+                row.innerHTML = '<span>' + user + '</span><span class="' + (isMe || !user.includes('Anda') ? 'text-gold' : '') + '">' + (isAmount ? formatRupiah(amount) : amount) + '</span>';
                 historyList.insertBefore(row, historyList.firstChild);
+                
+                while (historyList.children.length > 8) {
+                  historyList.removeChild(historyList.lastChild);
+                }
               }
 
               const timerInterval = setInterval(function() {
@@ -1794,50 +1948,174 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                   sisaWaktu = 0;
                   isFinished = true;
                   clearInterval(timerInterval);
+                  const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                  if (state.status !== 'SOLD') {
+                    state.status = 'SOLD';
+                    localStorage.setItem('active_lot_state', JSON.stringify(state));
+                  }
                   showEndModal();
                 }
                 updateUI();
               }, 1000);
 
-              function triggerFakeBid() {
-                if (isFinished) return;
-                if (highestBidder === 'Anda (' + myNipl + ')') {
-                  highestBidder = 'Bidder_' + String.fromCharCode(65 + Math.floor(Math.random()*6)) + '***';
-                  currentPrice += bidIncrement;
-                  addChatLog(highestBidder, currentPrice, true, false);
-                  if (sisaWaktu < 20) sisaWaktu = 30;
-                  updateUI();
-                }
-                setTimeout(triggerFakeBid, 6000 + Math.random()*5000);
+              function alertNotification(msg) {
+                const banner = document.createElement('div');
+                banner.style.position = 'absolute';
+                banner.style.top = '10px';
+                banner.style.left = '50%';
+                banner.style.transform = 'translateX(-50%)';
+                banner.style.background = '#f39c12';
+                banner.style.color = '#fff';
+                banner.style.padding = '5px 15px';
+                banner.style.borderRadius = '4px';
+                banner.style.fontSize = '0.8rem';
+                banner.style.zIndex = '9999';
+                banner.textContent = msg;
+                document.body.appendChild(banner);
+                setTimeout(() => banner.remove(), 2500);
               }
-              setTimeout(triggerFakeBid, 5000);
+
+              function handleUserBid(customIncrement) {
+                if (isFinished) return;
+                
+                currentPrice += customIncrement;
+                highestBidder = 'Anda (' + myNipl + ')';
+                addBidLog(highestBidder, currentPrice, true);
+                
+                if (sisaWaktu < 20) {
+                  sisaWaktu = 45;
+                  alertNotification("Anti-Sniping: Waktu diperpanjang ke 45 detik!");
+                }
+                
+                updateUI();
+                
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                state.currentPrice = currentPrice;
+                state.highestBidder = highestBidder;
+                state.sisaWaktu = sisaWaktu;
+                localStorage.setItem('active_lot_state', JSON.stringify(state));
+                
+                btnBid.disabled = true;
+                btnBid.style.opacity = 0.5;
+                setTimeout(() => {
+                  btnBid.disabled = false;
+                  btnBid.style.opacity = 1;
+                }, 1200);
+              }
 
               btnBid.addEventListener('click', function() {
-                if (isFinished) return;
-                currentPrice += bidIncrement;
-                highestBidder = 'Anda (' + myNipl + ')';
-                addChatLog(highestBidder, currentPrice, true, true);
-                if (sisaWaktu < 20) sisaWaktu = 45;
-                updateUI();
+                handleUserBid(bidIncrement);
               });
 
+              quickBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                  const mult = parseInt(btn.getAttribute('data-mult'));
+                  handleUserBid(bidIncrement * mult);
+                });
+              });
+
+              function loadLotData(idx) {
+                const lot = LIST_LOTS[idx];
+                currentLotIdx = idx;
+                
+                lotNameStream.innerText = lot.name;
+                lotNumStream.innerText = 'Lot ' + lot.idStr + ' • Sesi Jakarta • Live Juru Lelang JBA';
+                
+                bidIncrement = lot.bidIncrement;
+                niplInfo.innerHTML = 'Kelipatan Bid: ' + formatRupiah(bidIncrement) + ' | NIPL Anda: ' + myNipl;
+                
+                historyList.innerHTML = '';
+                addBidLog('Sistem', 'Sesi lelang dibuka untuk ' + lot.name, false);
+              }
+
+              setInterval(function() {
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (!state.lotNumber) return;
+                
+                if (state.status === 'LIVE') {
+                  if (state.lotNumber !== LIST_LOTS[currentLotIdx].lotNumber) {
+                    if (activeModal) {
+                      activeModal.remove();
+                      activeModal = null;
+                    }
+                    loadLotData(state.idx);
+                    
+                    currentPrice = state.currentPrice;
+                    highestBidder = state.highestBidder;
+                    sisaWaktu = state.sisaWaktu;
+                    isFinished = false;
+                    
+                    updateUI();
+                    addBidLog(highestBidder, currentPrice, false);
+                    alertNotification("Sesi Berlanjut ke Lot " + LIST_LOTS[state.idx].lotNumber);
+                  } else {
+                    if (state.currentPrice > currentPrice) {
+                      currentPrice = state.currentPrice;
+                      highestBidder = state.highestBidder;
+                      sisaWaktu = state.sisaWaktu;
+                      
+                      const isMe = highestBidder.includes('Anda');
+                      addBidLog(highestBidder, currentPrice, isMe);
+                      updateUI();
+                    }
+                  }
+                } else if (state.status === 'SOLD') {
+                  if (!isFinished) {
+                    isFinished = true;
+                    currentPrice = state.currentPrice;
+                    highestBidder = state.highestBidder;
+                    showEndModal();
+                  }
+                }
+              }, 1000);
+
               function showEndModal() {
+                if (activeModal) return;
+                
                 const modalOverlay = document.createElement('div');
                 modalOverlay.className = 'modal-overlay';
+                activeModal = modalOverlay;
+                
                 let isWinner = highestBidder.includes('Anda');
+                let title = isWinner ? '🎉 SELAMAT! Anda Pemenang Lot!' : '🏁 Sesi Lelang Selesai';
+                
+                const lot = LIST_LOTS[currentLotIdx];
+                let desc = isWinner 
+                  ? 'Anda memenangkan lot <strong>' + lot.name + '</strong> dengan penawaran tertinggi <strong>' + formatRupiah(currentPrice) + '</strong>.'
+                  : 'Lot #' + lot.lotNumber + ' ditutup. Terjual kepada <strong>' + highestBidder + '</strong> seharga <strong>' + formatRupiah(currentPrice) + '</strong>.';
+                
+                let actionBtn = isWinner 
+                  ? '<a href="b9-invoice.html" class="btn btn-primary" style="text-decoration:none;">Buka Invoice Pelunasan</a>'
+                  : '<div style="color:var(--wf-gold); font-weight:bold; padding:0.5rem; font-size:0.9rem;">⏳ Menunggu Juru Lelang membuka Lot berikutnya...</div>';
+
                 modalOverlay.innerHTML = \`
                   <div class="modal" style="max-width: 450px; color: var(--wf-text);">
-                    <div class="modal-header"><span>\${isWinner ? '🎉 Pemenang Lelang!' : '🏁 Selesai'}</span></div>
+                    <div class="modal-header">
+                      <span>\${title}</span>
+                    </div>
                     <div class="modal-body text-center">
-                      <p>\${isWinner ? 'Selamat! Anda memenangkan lot Avanza!' : 'Lot dimenangkan oleh ' + highestBidder}</p>
+                      <div style="font-size: 4rem; margin-bottom: 1rem;">\${isWinner ? '🏆' : '🤝'}</div>
+                      <p style="margin-bottom: 1.5rem; line-height: 1.6;">\${desc}</p>
+                      \${isWinner ? '<p class="fs-sm text-muted">Uang jaminan (NIPL) Anda telah otomatis dipotong. Harap lakukan pelunasan sisa tagihan dalam waktu 5 hari kerja.</p>' : '<p class="fs-sm text-muted">Layar Anda akan diperbarui otomatis begitu Admin memulai lelang unit berikutnya.</p>'}
                     </div>
                     <div class="modal-footer" style="justify-content: center;">
-                      <a href="b9-invoice.html" class="btn btn-primary">Lihat Detail</a>
+                      \${actionBtn}
                     </div>
                   </div>
                 \`;
                 document.body.appendChild(modalOverlay);
               }
+              
+              const initialState = JSON.parse(localStorage.getItem('active_lot_state'));
+              if (initialState && initialState.status === 'LIVE') {
+                loadLotData(initialState.idx);
+                currentPrice = initialState.currentPrice;
+                highestBidder = initialState.highestBidder;
+                sisaWaktu = initialState.sisaWaktu;
+              } else {
+                loadLotData(0);
+              }
+              updateUI();
             });
           </script>
         `;
@@ -3163,14 +3441,14 @@ function generatePanelPages(area, prefix, menuItems, initial) {
           <div class="grid-2-1">
             <div class="card">
               <div class="card-header">Kontrol Sesi Lelang Aktif <span class="badge badge-danger">LIVE</span></div>
-              <h2 class="page-title mt-1">Sesi Mobil Jakarta - Batch 15</h2>
+              <h2 class="page-title mt-1" id="admin-session-title">Sesi Mobil Jakarta - Batch 15</h2>
               <div class="separator"></div>
               
               <div style="background:var(--wf-bg); padding:1rem; border-radius:6px; margin-bottom:1.5rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <div>
-                    <div class="text-muted fs-sm">Lot Berjalan: 12 dari 45</div>
-                    <strong style="font-size:1.1rem;">Toyota Avanza 1.3 G MT 2022</strong>
+                    <div class="text-muted fs-sm" id="admin-lot-indicator">Lot Berjalan: 12 dari 45</div>
+                    <strong style="font-size:1.1rem;" id="admin-lot-name">Toyota Avanza 1.3 G MT 2022</strong>
                   </div>
                   <div class="text-right">
                     <div class="text-muted fs-sm">Sisa Waktu Bid:</div>
@@ -3181,7 +3459,7 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               
               <div style="background:var(--wf-white); border:1px solid var(--wf-border); border-radius:6px; padding:1rem; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <span class="text-muted fs-sm">Harga Pembukaan: Rp 145.000.000</span><br>
+                  <span class="text-muted fs-sm" id="admin-start-price">Harga Pembukaan: Rp 145.000.000</span><br>
                   <span class="fs-sm">Harga Hammer Terkini: <strong class="text-success" id="admin-price-val" style="font-size:1.1rem;">Rp 167.500.000</strong></span>
                 </div>
                 <div>
@@ -3198,21 +3476,60 @@ function generatePanelPages(area, prefix, menuItems, initial) {
             
             <div class="card">
               <div class="card-header">Riwayat Bid Real-Time</div>
-              <div class="bid-history" id="admin-bid-history-list" style="height:250px;">
+              <div class="bid-history" id="admin-bid-history-list" style="height:250px; overflow-y:auto;">
                 <div class="bid-history-item"><span>Bidder_A*** (8092)</span><span class="text-success fw-bold">Rp 167.500.000</span></div>
-                <div class="bid-history-item"><span>Bidder_X*** (98122)</span><span>Rp 165.000.000</span></div>
               </div>
             </div>
           </div>
           
           <script>
             document.addEventListener('DOMContentLoaded', function() {
-              let currentPrice = 167500000;
-              const bidIncrement = 2500000;
-              let sisaWaktu = 48;
-              let highestBidder = 'Bidder_A*** (8092)';
+              const LIST_LOTS = [
+                {
+                  lotNumber: 12,
+                  idStr: "#1045",
+                  name: "Toyota Avanza 1.3 G MT 2022",
+                  startingPrice: 145000000,
+                  currentPrice: 167500000,
+                  bidIncrement: 2500000,
+                  image: "🚗 Toyota Avanza 2022",
+                  details: ["• Lokasi: Jakarta", "• Warna: Hitam", "• Kondisi: Grade B", "• KM: 45K"]
+                },
+                {
+                  lotNumber: 13,
+                  idStr: "#1046",
+                  name: "Mitsubishi Pajero Sport 2.4 Dakar 2021",
+                  startingPrice: 380000000,
+                  currentPrice: 380000000,
+                  bidIncrement: 5000000,
+                  image: "🚘 Pajero Sport 2021",
+                  details: ["• Lokasi: Jakarta Selatan", "• Warna: Putih Mutiara", "• Kondisi: Grade A", "• KM: 28K"]
+                },
+                {
+                  lotNumber: 14,
+                  idStr: "#1047",
+                  name: "Honda Beat Sporty CBS 2023",
+                  startingPrice: 12000000,
+                  currentPrice: 12000000,
+                  bidIncrement: 500000,
+                  image: "🛵 Honda Beat 2023",
+                  details: ["• Lokasi: Tangerang", "• Warna: Biru Hitam", "• Kondisi: Grade A", "• KM: 4K"]
+                }
+              ];
+
+              let lotIdx = parseInt(localStorage.getItem('active_lot_idx') || '0');
+              const lot = LIST_LOTS[lotIdx];
+
+              let currentPrice = lot.startingPrice;
+              let bidIncrement = lot.bidIncrement;
+              let sisaWaktu = 45;
+              let highestBidder = 'Mulai Sesi';
               let isFinished = false;
 
+              // Elements
+              const lotIndicator = document.getElementById('admin-lot-indicator');
+              const lotName = document.getElementById('admin-lot-name');
+              const startPriceEl = document.getElementById('admin-start-price');
               const timerEl = document.getElementById('admin-timer-val');
               const priceEl = document.getElementById('admin-price-val');
               const leaderEl = document.getElementById('admin-leader-val');
@@ -3224,6 +3541,39 @@ function generatePanelPages(area, prefix, menuItems, initial) {
 
               function formatRupiah(num) {
                 return 'Rp ' + num.toLocaleString('id-ID');
+              }
+
+              function initLot() {
+                lotIndicator.textContent = 'Lot Berjalan: ' + lot.lotNumber + ' dari 45';
+                lotName.textContent = lot.name;
+                startPriceEl.textContent = 'Harga Pembukaan: ' + formatRupiah(lot.startingPrice);
+                
+                const state = JSON.parse(localStorage.getItem('active_lot_state'));
+                if (state && state.lotNumber === lot.lotNumber && state.status === 'LIVE') {
+                  currentPrice = state.currentPrice;
+                  highestBidder = state.highestBidder;
+                  sisaWaktu = state.sisaWaktu;
+                } else {
+                  currentPrice = lot.startingPrice;
+                  highestBidder = 'Belum Ada Bid';
+                  sisaWaktu = 45;
+                  
+                  const newState = {
+                    idx: lotIdx,
+                    lotNumber: lot.lotNumber,
+                    idStr: lot.idStr,
+                    name: lot.name,
+                    currentPrice: currentPrice,
+                    highestBidder: highestBidder,
+                    sisaWaktu: sisaWaktu,
+                    status: 'LIVE'
+                  };
+                  localStorage.setItem('active_lot_state', JSON.stringify(newState));
+                }
+                
+                historyList.innerHTML = '';
+                addBidLog('Sistem', 'Sesi lelang lot #' + lot.lotNumber + ' dibuka.');
+                updateUI();
               }
 
               function updateUI() {
@@ -3246,7 +3596,11 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               function addBidLog(user, amount) {
                 const row = document.createElement('div');
                 row.className = 'bid-history-item';
-                row.innerHTML = '<span>' + user + '</span><span class="text-success fw-bold">' + formatRupiah(amount) + '</span>';
+                if (user === 'Sistem') {
+                  row.innerHTML = '<span style="color:var(--wf-primary); font-weight:bold;">📢 ' + user + '</span><span>' + amount + '</span>';
+                } else {
+                  row.innerHTML = '<span>' + user + '</span><span class="text-success fw-bold">' + (typeof amount === 'number' ? formatRupiah(amount) : amount) + '</span>';
+                }
                 historyList.insertBefore(row, historyList.firstChild);
                 
                 while (historyList.children.length > 8) {
@@ -3257,6 +3611,13 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               const timerInterval = setInterval(function() {
                 if (isFinished) return;
                 sisaWaktu--;
+                
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (state.status === 'LIVE') {
+                  state.sisaWaktu = sisaWaktu;
+                  localStorage.setItem('active_lot_state', JSON.stringify(state));
+                }
+                
                 if (sisaWaktu <= 0) {
                   sisaWaktu = 0;
                   isFinished = true;
@@ -3268,23 +3629,56 @@ function generatePanelPages(area, prefix, menuItems, initial) {
 
               function triggerFakeBid() {
                 if (isFinished) return;
+                
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (state.highestBidder && state.highestBidder.includes('Anda')) {
+                  setTimeout(triggerFakeBid, 4000);
+                  return;
+                }
+                
                 const randomId = 1000 + Math.floor(Math.random()*9000);
                 highestBidder = 'Bidder_' + String.fromCharCode(65 + Math.floor(Math.random()*6)) + '*** (' + randomId + ')';
                 currentPrice += bidIncrement;
                 addBidLog(highestBidder, currentPrice);
+                
                 if (sisaWaktu < 15) {
                   sisaWaktu = 30;
                 }
                 updateUI();
                 
-                setTimeout(triggerFakeBid, 5000 + Math.random()*4000);
+                if (state.status === 'LIVE') {
+                  state.currentPrice = currentPrice;
+                  state.highestBidder = highestBidder;
+                  state.sisaWaktu = sisaWaktu;
+                  localStorage.setItem('active_lot_state', JSON.stringify(state));
+                }
+                
+                setTimeout(triggerFakeBid, 5000 + Math.random()*5000);
               }
-              setTimeout(triggerFakeBid, 4000);
+              setTimeout(triggerFakeBid, 6000);
+
+              setInterval(function() {
+                if (isFinished) return;
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (state.currentPrice > currentPrice) {
+                  currentPrice = state.currentPrice;
+                  highestBidder = state.highestBidder;
+                  sisaWaktu = state.sisaWaktu;
+                  addBidLog(highestBidder, currentPrice);
+                  updateUI();
+                }
+              }, 1000);
 
               btnAddTime.addEventListener('click', function() {
                 if (isFinished) return;
                 sisaWaktu += 30;
                 updateUI();
+                
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                if (state.status === 'LIVE') {
+                  state.sisaWaktu = sisaWaktu;
+                  localStorage.setItem('active_lot_state', JSON.stringify(state));
+                }
               });
 
               btnCancel.addEventListener('click', function() {
@@ -3293,7 +3687,13 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 if (conf) {
                   isFinished = true;
                   clearInterval(timerInterval);
-                  alert('Lot #1045 telah dibatalkan dari sesi lelang.');
+                  
+                  const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                  state.status = 'SOLD';
+                  state.highestBidder = 'Dibatalkan';
+                  localStorage.setItem('active_lot_state', JSON.stringify(state));
+                  
+                  alert('Lot #' + lot.lotNumber + ' telah dibatalkan.');
                   window.location.reload();
                 }
               });
@@ -3306,8 +3706,23 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               });
 
               function triggerSold() {
+                const state = JSON.parse(localStorage.getItem('active_lot_state') || '{}');
+                state.status = 'SOLD';
+                state.currentPrice = currentPrice;
+                state.highestBidder = highestBidder;
+                localStorage.setItem('active_lot_state', JSON.stringify(state));
+
                 const modalOverlay = document.createElement('div');
                 modalOverlay.className = 'modal-overlay';
+                
+                let nextBtnHtml = '';
+                if (lotIdx < LIST_LOTS.length - 1) {
+                  const nextLot = LIST_LOTS[lotIdx + 1];
+                  nextBtnHtml = '<button id="btn-next-lot" class="btn btn-gold" style="font-weight:bold;">🚨 Jalankan Lot Berikutnya (Lot #' + nextLot.lotNumber + ')</button>';
+                } else {
+                  nextBtnHtml = '<button id="btn-restart-session" class="btn btn-outline">🔄 Ulangi Sesi (Reset dari Lot 12)</button>';
+                }
+
                 modalOverlay.innerHTML = \`
                   <div class="modal" style="max-width: 450px; color: var(--wf-text);">
                     <div class="modal-header">
@@ -3315,21 +3730,56 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                     </div>
                     <div class="modal-body text-center">
                       <div style="font-size: 4rem; margin-bottom: 1rem;">🔨</div>
-                      <h3 class="fw-bold" style="color:var(--wf-success);">Lot #1045 Dinyatakan TERJUAL</h3>
+                      <h3 class="fw-bold" style="color:var(--wf-success);">Lot #\${lot.lotNumber} Dinyatakan TERJUAL</h3>
                       <p style="margin-top: 1rem; line-height: 1.6;">
-                        • Aset: <strong>Toyota Avanza 1.3 G MT 2022</strong><br>
-                        • Harga Akhir: <strong>\\\${formatRupiah(currentPrice)}</strong><br>
-                        • Pemenang: <strong>\\\${highestBidder}</strong>
+                        • Aset: <strong>\${lot.name}</strong><br>
+                        • Harga Akhir: <strong>\${formatRupiah(currentPrice)}</strong><br>
+                        • Pemenang: <strong>\${highestBidder}</strong>
                       </p>
-                      <p class="fs-sm text-muted mt-2">Sistem sedang menerbitkan invoice pelunasan otomatis untuk pemenang lelang.</p>
+                      <p class="fs-sm text-muted mt-2">Sistem telah membekukan penawaran. Anda bisa mengaktifkan lot lelang berikutnya untuk para bidder secara langsung di sini.</p>
                     </div>
-                    <div class="modal-footer" style="justify-content: center;">
-                      <a href="ad14-hasil-sesi.html" class="btn btn-primary">Buka Laporan Hasil Sesi</a>
+                    <div class="modal-footer" style="justify-content: center; flex-direction:column; gap:0.5rem;">
+                      \${nextBtnHtml}
+                      <a href="ad14-hasil-sesi.html" class="btn btn-link" style="font-size:0.9rem;">Buka Laporan Hasil Sesi</a>
                     </div>
                   </div>
                 \`;
                 document.body.appendChild(modalOverlay);
+
+                const btnNext = document.getElementById('btn-next-lot');
+                const btnRestart = document.getElementById('btn-restart-session');
+                
+                if (btnNext) {
+                  btnNext.addEventListener('click', function() {
+                    const nextIdx = lotIdx + 1;
+                    localStorage.setItem('active_lot_idx', nextIdx);
+                    
+                    const nextLot = LIST_LOTS[nextIdx];
+                    const nextState = {
+                      idx: nextIdx,
+                      lotNumber: nextLot.lotNumber,
+                      idStr: nextLot.idStr,
+                      name: nextLot.name,
+                      currentPrice: nextLot.startingPrice,
+                      highestBidder: 'Menunggu Bid Pertama',
+                      sisaWaktu: 45,
+                      status: 'LIVE'
+                    };
+                    localStorage.setItem('active_lot_state', JSON.stringify(nextState));
+                    window.location.reload();
+                  });
+                }
+                
+                if (btnRestart) {
+                  btnRestart.addEventListener('click', function() {
+                    localStorage.setItem('active_lot_idx', '0');
+                    localStorage.removeItem('active_lot_state');
+                    window.location.reload();
+                  });
+                }
               }
+
+              initLot();
             });
           </script>
         `;
