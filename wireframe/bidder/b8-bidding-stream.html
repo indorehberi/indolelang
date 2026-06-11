@@ -35,15 +35,20 @@
           <p class="page-subtitle">Panel Area bidder &bull; Prototipe Wireframe</p>
           
           <div class="grid-2-1">
-            <div class="card" style="padding:0; overflow:hidden;">
-              <div class="img-placeholder" style="height:360px; background:#000; color:#fff; flex-direction:column; position:relative;">
-                <div style="position:absolute; top:1rem; left:1rem;"><span class="badge badge-danger">LIVE STREAM</span></div>
-                <div style="font-size:3rem;">🎥</div>
-                <div class="fs-sm">Streaming Juru Lelang (WebRTC)</div>
+            <div class="card" style="padding:0; overflow:hidden; position:relative; background:#000; margin-bottom:0;">
+              <div style="position:absolute; top:1rem; left:1rem; z-index:10;"><span class="badge badge-danger" style="box-shadow:0 2px 8px rgba(255,0,0,0.5);">LIVE STREAM</span></div>
+              <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; background:#000;">
+                <iframe 
+                  style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" 
+                  src="https://www.youtube.com/embed/e1fXk0e-q5A?autoplay=1&mute=1&loop=1&playlist=e1fXk0e-q5A&controls=1&showinfo=0&rel=0&modestbranding=1" 
+                  title="Live Auction Stream" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowfullscreen>
+                </iframe>
               </div>
-              <div style="padding: 1rem;">
-                <h3 class="fw-bold" style="font-size:1.1rem;">Toyota Avanza 1.3 G MT 2022</h3>
-                <p class="text-muted fs-sm">Lot #1045 • Sesi Jakarta • Grade B</p>
+              <div style="padding: 1rem; background: var(--wf-card-bg);">
+                <h3 class="fw-bold" style="font-size:1.1rem; margin-bottom: 0.25rem;">Toyota Avanza 1.3 G MT 2022</h3>
+                <p class="text-muted fs-sm">Lot #1045 • Sesi Jakarta • Live Juru Lelang JBA</p>
               </div>
             </div>
             <div class="bidding-panel">
