@@ -13,22 +13,183 @@
           
         <div class="text-center mb-3">
           <h1 style="color:var(--wf-primary); margin-bottom:0.5rem;">🏛️ INDO-LELANG</h1>
-          <p class="text-muted">Status eKYC Anda</p>
+          <p class="text-muted">Status eKYC & Identitas</p>
         </div>
-        <div class="text-center" style="padding:1.5rem; background:var(--wf-gold-bg); border-radius:8px; margin-bottom:1.5rem;">
-          <div style="font-size:3rem; margin-bottom:0.5rem;">⏳</div>
-          <h3 class="fw-bold" style="color:#7d6608;">Dokumen Sedang Diverifikasi</h3>
-          <p class="fs-sm text-muted mt-1">Dokumen identitas Anda sedang diverifikasi secara otomatis oleh sistem OCR dan admin. Estimasi verifikasi selesai dalam 5-10 menit.</p>
+
+        <!-- Mode Otomatis (SDK Pihak Ketiga) -->
+        <div id="ekyc-sdk-container" style="display:none;">
+          <div class="text-center" style="padding:1.5rem; background:rgba(30, 144, 255, 0.05); border:1px solid #1e90ff; border-radius:8px; margin-bottom:1.5rem;">
+            <div id="sdk-scanner" style="position:relative; width:100px; height:100px; margin:0 auto 1rem; border-radius:50%; border:3px solid #1e90ff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+              <div style="font-size:2.5rem;">🤳</div>
+              <div id="sdk-scan-bar" style="position:absolute; width:100%; height:4px; background:#00ff00; top:0; left:0; box-shadow:0 0 8px #00ff00; animation: scanAnim 1.5s infinite alternate;"></div>
+            </div>
+            <h3 class="fw-bold" style="color:#1e90ff;" id="sdk-title">Privy e-KYC Verification</h3>
+            <p class="fs-sm text-muted mt-1" id="sdk-status-desc">Menghubungkan ke server identitas...</p>
+          </div>
+          
+          <div style="background:var(--wf-bg); padding:1rem; border-radius:8px; margin-bottom:1.5rem; font-size:0.85rem; text-align:left;">
+            <div style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+              <span>1. Membaca data KTP (OCR)</span>
+              <span id="chk-ocr" style="color:var(--wf-text-light);">⏳ Menunggu</span>
+            </div>
+            <div style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+              <span>2. Deteksi Keaktifan (Liveness)</span>
+              <span id="chk-liveness" style="color:var(--wf-text-light);">⏳ Menunggu</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span>3. Pencocokan Dukcapil</span>
+              <span id="chk-dukcapil" style="color:var(--wf-text-light);">⏳ Menunggu</span>
+            </div>
+          </div>
         </div>
-        
-        <div style="font-size:0.85rem; line-height:1.8;" class="text-muted mb-2">
-          <strong>Detail Dokumen Terkirim:</strong><br>
-          • NIK: 327310******9003<br>
-          • Nama: Budi Santoso<br>
-          • Tanggal Upload: 10 Juni 2026, 21:45 WIB
+
+        <!-- Mode Manual -->
+        <div id="ekyc-manual-container" style="display:none;">
+          <div class="text-center" style="padding:1.5rem; background:var(--wf-gold-bg); border-radius:8px; margin-bottom:1.5rem;">
+            <div style="font-size:3rem; margin-bottom:0.5rem;" id="manual-icon">⏳</div>
+            <h3 class="fw-bold" style="color:#7d6608;" id="manual-title">Dokumen Sedang Diverifikasi</h3>
+            <p class="fs-sm text-muted mt-1" id="manual-desc">Dokumen identitas Anda sedang diverifikasi secara manual oleh Tim Admin Indo-Lelang. Estimasi verifikasi selesai dalam 5-10 menit.</p>
+          </div>
+          
+          <div style="font-size:0.85rem; line-height:1.8; text-align:left; background:var(--wf-bg); padding:1rem; border-radius:8px; margin-bottom:1rem;" class="text-muted">
+            <strong>Detail Dokumen Terkirim:</strong><br>
+            • NIK: 327310******9003<br>
+            • Nama: Budi Santoso<br>
+            • Metode: Verifikasi Manual Admin
+          </div>
+          
+          <!-- Tombol Helper untuk Demo Cepat -->
+          <div style="margin-bottom:1rem;">
+            <button class="btn btn-outline w-100 btn-sm" id="btn-helper-approve-manual" style="justify-content:center; border-style:dashed;">⚡ Simulasikan Admin Approve Akun</button>
+          </div>
         </div>
-        
-        <a href="../bidder/b1-dashboard.html" class="btn btn-primary w-100 text-center" style="justify-content:center;">Masuk ke Dashboard (Simulasi Selesai)</a>
+
+        <!-- Button Lanjut -->
+        <a href="../bidder/b1-dashboard.html" class="btn btn-primary w-100 text-center" id="btn-ekyc-continue" style="justify-content:center;">Masuk ke Dashboard</a>
+
+        <style>
+          @keyframes scanAnim {
+            0% { top: 0%; }
+            100% { top: 100%; }
+          }
+        </style>
+
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            const ekycMode = localStorage.getItem('ekyc_mode') || 'manual';
+            const sdkContainer = document.getElementById('ekyc-sdk-container');
+            const manualContainer = document.getElementById('ekyc-manual-container');
+            const btnContinue = document.getElementById('btn-ekyc-continue');
+            const btnHelper = document.getElementById('btn-helper-approve-manual');
+            
+            // Check current status
+            let currentStatus = localStorage.getItem('user_ekyc_status') || 'pending';
+            
+            if (ekycMode === 'otomatis') {
+              sdkContainer.style.display = 'block';
+              btnContinue.style.display = 'none'; // Hide continue button during verification
+              
+              if (currentStatus === 'verified') {
+                showOtomatisSuccess();
+              } else {
+                startOtomatisVerification();
+              }
+            } else {
+              manualContainer.style.display = 'block';
+              
+              if (currentStatus === 'verified') {
+                showManualSuccess();
+              } else {
+                // Pending state
+                btnContinue.classList.add('btn-outline');
+                btnContinue.style.pointerEvents = 'none';
+                btnContinue.innerText = 'Menunggu Verifikasi Admin...';
+              }
+            }
+            
+            // Helper approve button for manual demo
+            btnHelper.addEventListener('click', function() {
+              localStorage.setItem('user_ekyc_status', 'verified');
+              showManualSuccess();
+              alert('Simulasi: Admin telah menyetujui dokumen eKYC Budi Santoso!');
+            });
+            
+            function startOtomatisVerification() {
+              const chkOcr = document.getElementById('chk-ocr');
+              const chkLiveness = document.getElementById('chk-liveness');
+              const chkDukcapil = document.getElementById('chk-dukcapil');
+              const statusDesc = document.getElementById('sdk-status-desc');
+              
+              statusDesc.innerText = 'Menginisialisasi kamera...';
+              
+              setTimeout(() => {
+                statusDesc.innerText = 'Membaca data KTP...';
+                chkOcr.innerHTML = '<span style="color:#00ff00;">⏳ Proses...</span>';
+              }, 800);
+              
+              setTimeout(() => {
+                chkOcr.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+                statusDesc.innerText = 'Menguji keaktifan wajah (liveness)...';
+                chkLiveness.innerHTML = '<span style="color:#00ff00;">⏳ Proses...</span>';
+              }, 2000);
+              
+              setTimeout(() => {
+                chkLiveness.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+                statusDesc.innerText = 'Mencocokkan data ke Dukcapil...';
+                chkDukcapil.innerHTML = '<span style="color:#00ff00;">⏳ Proses...</span>';
+              }, 3500);
+              
+              setTimeout(() => {
+                chkDukcapil.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+                localStorage.setItem('user_ekyc_status', 'verified');
+                showOtomatisSuccess();
+              }, 5000);
+            }
+            
+            function showOtomatisSuccess() {
+              const scanBar = document.getElementById('sdk-scan-bar');
+              const scanner = document.getElementById('sdk-scanner');
+              const statusDesc = document.getElementById('sdk-status-desc');
+              const chkOcr = document.getElementById('chk-ocr');
+              const chkLiveness = document.getElementById('chk-liveness');
+              const chkDukcapil = document.getElementById('chk-dukcapil');
+              const sdkTitle = document.getElementById('sdk-title');
+              
+              if (scanBar) scanBar.style.display = 'none';
+              if (scanner) {
+                scanner.style.borderColor = 'var(--wf-success)';
+                scanner.innerHTML = '<div style="font-size:3rem;">✔️</div>';
+              }
+              if (statusDesc) statusDesc.innerHTML = '<span style="color:var(--wf-success); font-weight:bold;">e-KYC Sukses & Terverifikasi!</span>';
+              if (sdkTitle) sdkTitle.innerText = 'Privy SDK';
+              
+              if (chkOcr) chkOcr.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+              if (chkLiveness) chkLiveness.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+              if (chkDukcapil) chkDukcapil.innerHTML = '<span style="color:var(--wf-success);">✔️ Sukses</span>';
+              
+              btnContinue.style.display = 'inline-flex';
+              btnContinue.classList.remove('btn-outline');
+              btnContinue.style.pointerEvents = 'auto';
+              btnContinue.innerText = 'Lanjut ke Dashboard (Akun Aktif) 🚀';
+            }
+            
+            function showManualSuccess() {
+              const icon = document.getElementById('manual-icon');
+              const title = document.getElementById('manual-title');
+              const desc = document.getElementById('manual-desc');
+              
+              icon.innerText = '✔️';
+              title.innerText = 'Akun Terverifikasi';
+              title.style.color = 'var(--wf-success)';
+              desc.innerText = 'Selamat! Tim Admin Indo-Lelang telah memverifikasi dokumen eKYC Anda. Akun Anda kini aktif.';
+              
+              btnHelper.style.display = 'none';
+              btnContinue.classList.remove('btn-outline');
+              btnContinue.style.pointerEvents = 'auto';
+              btnContinue.innerText = 'Masuk ke Dashboard 🚀';
+            }
+          });
+        </script>
       
         </div>
       </div>

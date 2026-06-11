@@ -60,8 +60,54 @@
               <label class="form-label">Batas Waktu Pelunasan Invoice (Hari Kerja)</label>
               <input type="number" class="form-input" value="5">
             </div>
-            <button class="btn btn-primary">Simpan Aturan Bisnis</button>
+            
+            <div class="separator" style="margin: 1.5rem 0;"></div>
+            
+            <div class="form-group">
+              <label class="form-label" style="font-weight:bold; font-size:1.05rem;">⚙️ Integrasi Sistem & e-KYC</label>
+              <p class="fs-sm text-muted mb-2">Tentukan bagaimana platform memproses verifikasi e-KYC untuk akun pendaftar baru.</p>
+              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+                <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                  <input type="radio" name="ekyc_mode" value="manual" id="settings-ekyc-manual" style="margin-top:0.25rem;">
+                  <div>
+                    <strong>Verifikasi Manual (Queue Review)</strong>
+                    <div class="fs-sm text-muted">Staf admin harus mencocokkan dokumen KTP & selfie secara manual di antrean KYC sebelum menyetujui akun.</div>
+                  </div>
+                </label>
+                <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                  <input type="radio" name="ekyc_mode" value="otomatis" id="settings-ekyc-otomatis" style="margin-top:0.25rem;">
+                  <div>
+                    <strong>Verifikasi Otomatis (Instant e-KYC SDK)</strong>
+                    <div class="fs-sm text-muted">Sistem terintegrasi dengan pihak ketiga (Privy/Verihubs) untuk mengecek liveness & Dukcapil instan (3 detik).</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            
+            <button class="btn btn-primary" id="btn-save-settings">Simpan Aturan & Konfigurasi</button>
           </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const ekycManual = document.getElementById('settings-ekyc-manual');
+              const ekycOtomatis = document.getElementById('settings-ekyc-otomatis');
+              const btnSave = document.getElementById('btn-save-settings');
+              
+              // Load active setting
+              const currentMode = localStorage.getItem('ekyc_mode') || 'manual';
+              if (currentMode === 'otomatis') {
+                ekycOtomatis.checked = true;
+              } else {
+                ekycManual.checked = true;
+              }
+              
+              btnSave.addEventListener('click', function() {
+                const selectedMode = ekycManual.checked ? 'manual' : 'otomatis';
+                localStorage.setItem('ekyc_mode', selectedMode);
+                alert('Pengaturan berhasil disimpan! Mode Verifikasi e-KYC diubah menjadi: ' + selectedMode.toUpperCase());
+              });
+            });
+          </script>
         
         </div>
       </div>

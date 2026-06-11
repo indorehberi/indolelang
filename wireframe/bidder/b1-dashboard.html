@@ -34,11 +34,29 @@
           <h1 class="page-title">Dashboard</h1>
           <p class="page-subtitle">Panel Area bidder &bull; Prototipe Wireframe</p>
           
-          <div class="alert alert-info">
+          <div class="alert alert-info" id="ekyc-alert-banner">
             <div>
-              <strong>🔔 Pengingat eKYC:</strong> Akun Anda sudah terverifikasi! Anda dapat membeli NIPL untuk ikut serta dalam lelang.
+              <strong>🔔 Pengingat eKYC:</strong> Akun Anda sedang diperiksa.
             </div>
           </div>
+          
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const alertBanner = document.getElementById('ekyc-alert-banner');
+              const ekycStatus = localStorage.getItem('user_ekyc_status') || 'pending';
+              
+              if (ekycStatus === 'verified') {
+                alertBanner.className = 'alert alert-success';
+                alertBanner.innerHTML = '<div><strong>🟢 Akun Terverifikasi (eKYC Aktif):</strong> Anda memiliki akses penuh ke fitur lelang dan pembelian NIPL.</div>';
+              } else if (ekycStatus === 'rejected') {
+                alertBanner.className = 'alert alert-danger';
+                alertBanner.innerHTML = '<div><strong>❌ Verifikasi eKYC Ditolak:</strong> Dokumen Anda ditolak oleh admin. Harap unggah ulang dokumen yang valid. <a href="../auth/a6-ekyc-upload.html" class="fw-bold" style="text-decoration:underline; color:inherit; margin-left:0.5rem;">Unggah Ulang Dokumen</a></div>';
+              } else {
+                alertBanner.className = 'alert alert-warning';
+                alertBanner.innerHTML = '<div><strong>⚠️ Akun Belum Terverifikasi (eKYC Pending):</strong> Anda tidak dapat membeli NIPL atau ikut serta dalam lelang sebelum melengkapi verifikasi eKYC. <a href="../auth/a6-ekyc-upload.html" class="fw-bold" style="text-decoration:underline; color:inherit; margin-left:0.5rem;">Verifikasi Sekarang</a></div>';
+              }
+            });
+          </script>
           <div class="kpi-grid">
             <div class="kpi-card"><div class="kpi-label">NIPL Aktif</div><div class="kpi-value">2 Tiket</div><div class="kpi-trend up">Mobil & Motor</div></div>
             <div class="kpi-card gold"><div class="kpi-label">Lot Diikuti</div><div class="kpi-value">3 Lot</div><div class="kpi-trend">Sedang Berjalan</div></div>

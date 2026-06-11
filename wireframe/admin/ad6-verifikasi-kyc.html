@@ -34,11 +34,42 @@
           <h1 class="page-title">Verifikasi KYC</h1>
           <p class="page-subtitle">Panel Area admin &bull; Prototipe Wireframe</p>
           
-          <div class="grid-1-2" style="grid-template-columns:1fr 1.5fr; gap:2rem;">
+          <!-- Toggle Banner eKYC -->
+          <div class="card" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--wf-bg); border-left: 4px solid var(--wf-primary); flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 class="fw-bold" style="margin-bottom:0.25rem;">⚙️ Mode Verifikasi e-KYC Platform</h3>
+              <p class="fs-sm text-muted">Tentukan apakah pendaftaran pengguna diverifikasi secara manual oleh tim admin atau otomatis menggunakan SDK Privy/Verihubs.</p>
+            </div>
+            <div>
+              <div style="display: flex; gap: 0.25rem; background: var(--wf-border); padding: 0.25rem; border-radius: 6px;">
+                <button id="btn-mode-manual" class="btn btn-sm" style="border:none; cursor:pointer;">Manual (Admin)</button>
+                <button id="btn-mode-otomatis" class="btn btn-sm" style="border:none; cursor:pointer;">Otomatis (SDK)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Notice -->
+          <div id="otomatis-status-notice" class="alert alert-success" style="display:none; margin-bottom:1.5rem;">
+            <div>
+              <strong>⚡ e-KYC Otomatis AKTIF:</strong> Sistem saat ini menggunakan integrasi pihak ketiga. Pendaftaran pengguna baru akan langsung disetujui dalam 3 detik. Antrean di bawah ini bersifat arsip/log historis.
+            </div>
+          </div>
+
+          <div id="manual-status-notice" class="alert alert-info" style="margin-bottom:1.5rem;">
+            <div>
+              <strong>💡 e-KYC Manual AKTIF:</strong> Seluruh pendaftaran pengguna ditahan di status Pending dan membutuhkan review admin secara manual melalui panel di bawah ini.
+            </div>
+          </div>
+
+          <div class="grid-1-2" style="grid-template-columns:1fr 1.5fr; gap:2rem;" id="kyc-content-grid">
             <div class="card">
               <div class="card-header">Daftar Permohonan Pending</div>
-              <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                <div style="padding:0.75rem; border:1px solid var(--wf-accent); border-radius:6px; background:var(--wf-gold-bg); cursor:pointer;">
+              <div style="display:flex; flex-direction:column; gap:0.5rem;" id="kyc-pending-list">
+                <div id="kyc-item-budi" style="padding:0.75rem; border:1px solid var(--wf-accent); border-radius:6px; background:var(--wf-gold-bg); cursor:pointer;">
+                  <strong>Budi Santoso (Anda)</strong><br>
+                  <span class="fs-sm text-muted" id="budi-status-badge">Diajukan: Baru saja (Status: Pending)</span>
+                </div>
+                <div style="padding:0.75rem; border:1px solid var(--wf-border); border-radius:6px; cursor:pointer;">
                   <strong>Hendra Wijaya</strong><br>
                   <span class="fs-sm text-muted">Diajukan: Hari ini, 20:00 WIB</span>
                 </div>
@@ -49,26 +80,108 @@
               </div>
             </div>
             
-            <div class="card">
-              <div class="card-header">Verifikasi Detail: Hendra Wijaya</div>
+            <div class="card" id="kyc-detail-card">
+              <div class="card-header" id="kyc-detail-title">Verifikasi Detail: Budi Santoso</div>
               <div class="grid-2" style="gap:1rem; margin-bottom:1.5rem;">
                 <div>
-                  <div class="img-placeholder" style="height:140px;">KTP: Hendra Wijaya</div>
+                  <div class="img-placeholder" style="height:140px;">KTP: Budi Santoso</div>
                 </div>
                 <div>
-                  <div class="img-placeholder" style="height:140px;">Selfie: Hendra Wijaya</div>
+                  <div class="img-placeholder" style="height:140px;">Selfie: Budi Santoso</div>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Data Ekstraksi OCR vs NIK Tertera</label>
-                <input type="text" class="form-input" value="3273101234567890 (Cocok)" disabled>
+                <input type="text" class="form-input" value="327310******9003 (Cocok dengan NIK Dukcapil)" disabled>
               </div>
-              <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-                <button class="btn btn-danger">Tolak Verifikasi</button>
-                <button class="btn btn-success">Setujui & Verifikasi</button>
+              <div style="display:flex; gap:0.5rem; justify-content:flex-end;" id="kyc-action-buttons">
+                <button class="btn btn-danger" id="btn-reject-kyc">Tolak Verifikasi</button>
+                <button class="btn btn-success" id="btn-approve-kyc">Setujui & Verifikasi</button>
               </div>
             </div>
           </div>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const btnManual = document.getElementById('btn-mode-manual');
+              const btnOtomatis = document.getElementById('btn-mode-otomatis');
+              const noticeOtomatis = document.getElementById('otomatis-status-notice');
+              const noticeManual = document.getElementById('manual-status-notice');
+              
+              // Load ekyc mode
+              let ekycMode = localStorage.getItem('ekyc_mode') || 'manual';
+              updateToggleUI();
+              
+              btnManual.addEventListener('click', function() {
+                localStorage.setItem('ekyc_mode', 'manual');
+                ekycMode = 'manual';
+                updateToggleUI();
+                alert('Mode Verifikasi e-KYC diubah ke MANUAL. Pendaftaran baru memerlukan persetujuan admin.');
+              });
+              
+              btnOtomatis.addEventListener('click', function() {
+                localStorage.setItem('ekyc_mode', 'otomatis');
+                ekycMode = 'otomatis';
+                updateToggleUI();
+                alert('Mode Verifikasi e-KYC diubah ke OTOMATIS. Sistem akan menggunakan SDK Pihak Ketiga secara instan.');
+              });
+              
+              function updateToggleUI() {
+                if (ekycMode === 'otomatis') {
+                  btnOtomatis.style.background = 'var(--wf-primary)';
+                  btnOtomatis.style.color = '#fff';
+                  btnManual.style.background = 'transparent';
+                  btnManual.style.color = 'var(--wf-text-muted)';
+                  
+                  noticeOtomatis.style.display = 'block';
+                  noticeManual.style.display = 'none';
+                } else {
+                  btnManual.style.background = 'var(--wf-primary)';
+                  btnManual.style.color = '#fff';
+                  btnOtomatis.style.background = 'transparent';
+                  btnOtomatis.style.color = 'var(--wf-text-muted)';
+                  
+                  noticeManual.style.display = 'block';
+                  noticeOtomatis.style.display = 'none';
+                }
+              }
+              
+              // Handle Budi Santoso manual approval simulation
+              const btnApprove = document.getElementById('btn-approve-kyc');
+              const btnReject = document.getElementById('btn-reject-kyc');
+              const kycItemBudi = document.getElementById('kyc-item-budi');
+              const budiStatusBadge = document.getElementById('budi-status-badge');
+              
+              // Update badge state based on localStorage
+              const currentStatus = localStorage.getItem('user_ekyc_status') || 'pending';
+              if (currentStatus === 'verified') {
+                showBudiAsVerified();
+              }
+              
+              btnApprove.addEventListener('click', function() {
+                localStorage.setItem('user_ekyc_status', 'verified');
+                showBudiAsVerified();
+                alert('Akun Budi Santoso berhasil diverifikasi secara manual!');
+              });
+              
+              btnReject.addEventListener('click', function() {
+                localStorage.setItem('user_ekyc_status', 'rejected');
+                budiStatusBadge.innerHTML = 'Diajukan: Baru saja (Status: DITOLAK)';
+                budiStatusBadge.style.color = 'var(--wf-danger)';
+                alert('Pendaftaran e-KYC Budi Santoso ditolak.');
+              });
+              
+              function showBudiAsVerified() {
+                budiStatusBadge.innerHTML = 'Diajukan: Baru saja (Status: TERVERIFIKASI)';
+                budiStatusBadge.style.color = 'var(--wf-success)';
+                if (kycItemBudi) {
+                  kycItemBudi.style.background = 'rgba(46, 204, 113, 0.1)';
+                  kycItemBudi.style.borderColor = 'var(--wf-success)';
+                }
+                document.getElementById('kyc-action-buttons').innerHTML = '<span style="color:var(--wf-success); font-weight:bold;">🟢 Disetujui & Aktif</span>';
+              }
+            });
+          </script>
         
         </div>
       </div>
