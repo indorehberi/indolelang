@@ -39,56 +39,285 @@
               <div class="card-header">Pembelian Jaminan Lelang (NIPL)</div>
               <div class="form-group">
                 <label class="form-label">Pilih Sesi Lelang</label>
-                <select class="form-select">
+                <select class="form-select" id="deposit-sesi">
                   <option selected>Lelang Mobil Penumpang Jakarta - Batch 15 (Deposit: Rp 5.000.000 / NIPL)</option>
                   <option>Lelang Sepeda Motor Bandung - Batch 22 (Deposit: Rp 1.000.000 / NIPL)</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Jumlah Tiket NIPL Yang Ingin Dibeli</label>
-                <input type="number" class="form-input" value="1" min="1">
+                <input type="number" class="form-input" id="deposit-qty" value="1" min="1">
                 <span class="form-hint">Satu tiket NIPL hanya berlaku untuk memenangkan 1 unit lot.</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Pilih Metode Pembayaran</label>
-                <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.9rem;">
-                  <label><input type="radio" name="paymethod" checked> Virtual Account BCA (Verifikasi Otomatis)</label>
-                  <label><input type="radio" name="paymethod"> Virtual Account Mandiri (Verifikasi Otomatis)</label>
-                  <label><input type="radio" name="paymethod"> GoPay / E-Wallet</label>
+                <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.9rem;">
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-bca" checked> 
+                    <span>🏦 Virtual Account BCA (Verifikasi Otomatis)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-mandiri"> 
+                    <span>🏢 Virtual Account Mandiri (Verifikasi Otomatis)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-gopay"> 
+                    <span>📱 GoPay / QRIS E-Wallet (Scan Otomatis)</span>
+                  </label>
                 </div>
               </div>
-              <button class="btn btn-primary">Pesan & Dapatkan Nomor VA</button>
+              
+              <div class="form-group" style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="fs-sm text-muted">Total Pembayaran Jaminan:</span>
+                  <span class="fw-bold" style="font-size:1.3rem; color:var(--wf-gold);" id="calc-total-preview">Rp 5.000.000</span>
+                </div>
+              </div>
+              
+              <button class="btn btn-primary w-100" id="btn-get-va" style="justify-content:center; margin-top:1rem;">Pesan & Dapatkan Nomor VA</button>
             </div>
             
-            <div class="card">
-              <div class="card-header">Instruksi Virtual Account</div>
-              <div class="text-center" style="padding:1rem; background:var(--wf-bg); border-radius:6px; margin-bottom:1rem;">
-                <div class="text-muted fs-sm">Nomor VA BCA:</div>
-                <div class="fw-bold" style="font-size:1.4rem; color:var(--wf-primary);">8077708123456789</div>
-                <div class="text-muted fs-sm">Total Pembayaran: <strong>Rp 5.000.000</strong></div>
+            <div class="card" id="va-instruction-card">
+              <div class="card-header">Instruksi Pembayaran</div>
+              
+              <!-- Placeholder: Shown when no order is made -->
+              <div id="va-placeholder" style="padding: 3rem 1rem; text-align: center;">
+                <div style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.6;">💰</div>
+                <div class="fw-bold" style="margin-bottom: 0.5rem; font-size:1.1rem; color:#fff;">Belum Ada Pesanan</div>
+                <p class="text-muted fs-sm" style="line-height: 1.6; max-width: 250px; margin: 0 auto;">Silakan tentukan kuantitas tiket NIPL dan metode pembayaran di sebelah kiri, kemudian klik <strong>Pesan & Dapatkan Nomor VA</strong>.</p>
               </div>
-              <div class="fs-sm text-muted">
-                <strong>Cara Transfer:</strong><br>
-                1. Masuk ke m-BCA > Transfer > BCA Virtual Account.<br>
-                2. Masukkan nomor VA di atas.<br>
-                3. Pastikan nominal transfer sesuai tagihan.<br>
-                4. Setelah transfer, NIPL Anda akan aktif otomatis dalam 1 menit.
+              
+              <!-- Content: Shown after Order is placed -->
+              <div id="va-content" style="display: none;">
+                <div class="text-center" style="padding:1rem; background:var(--wf-bg); border-radius:6px; margin-bottom:1rem; border:1px solid rgba(255,255,255,0.05);">
+                  <div class="text-muted fs-sm" id="va-bank-label">Nomor VA BCA:</div>
+                  <div class="fw-bold" style="font-size:1.4rem; color:var(--wf-primary); letter-spacing:1px; margin: 0.5rem 0;" id="va-number-text">8077708123456789</div>
+                  
+                  <!-- QRIS Mock Box -->
+                  <div id="qris-box" style="display:none; margin: 1rem auto; text-align:center;">
+                    <div style="background:#fff; padding:0.75rem; border-radius:8px; display:inline-block; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                      <svg width="140" height="140" viewBox="0 0 100 100" style="display:block;">
+                        <rect x="0" y="0" width="100" height="100" fill="white" />
+                        <rect x="5" y="5" width="22" height="22" fill="black" />
+                        <rect x="9" y="9" width="14" height="14" fill="white" />
+                        <rect x="12" y="12" width="8" height="8" fill="black" />
+                        
+                        <rect x="73" y="5" width="22" height="22" fill="black" />
+                        <rect x="77" y="9" width="14" height="14" fill="white" />
+                        <rect x="80" y="12" width="8" height="8" fill="black" />
+                        
+                        <rect x="5" y="73" width="22" height="22" fill="black" />
+                        <rect x="9" y="77" width="14" height="14" fill="white" />
+                        <rect x="12" y="80" width="8" height="8" fill="black" />
+                        
+                        <rect x="32" y="8" width="8" height="8" fill="black" />
+                        <rect x="44" y="15" width="16" height="8" fill="black" />
+                        <rect x="15" y="38" width="8" height="18" fill="black" />
+                        <rect x="38" y="38" width="24" height="24" fill="black" />
+                        <rect x="43" y="43" width="14" height="14" fill="white" />
+                        <rect x="46" y="46" width="8" height="8" fill="black" />
+                        <rect x="72" y="38" width="18" height="8" fill="black" />
+                        <rect x="80" y="52" width="12" height="16" fill="black" />
+                        <rect x="38" y="70" width="20" height="12" fill="black" />
+                        <rect x="70" y="70" width="14" height="14" fill="black" />
+                        <rect x="80" y="80" width="15" height="15" fill="black" />
+                        <rect x="85" y="85" width="5" height="5" fill="white" />
+                        
+                        <rect x="41" y="41" width="18" height="18" fill="#e11d48" rx="2" />
+                        <text x="50" y="52" font-size="7" font-weight="900" fill="white" text-anchor="middle" font-family="sans-serif">QRIS</text>
+                      </svg>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--wf-gold); font-weight:700; margin-top:0.6rem; letter-spacing:0.5px;">PINDAI DENGAN GOPAY / E-WALLET</div>
+                  </div>
+                  
+                  <div class="text-muted fs-sm" style="margin-top:0.5rem;">Total Tagihan: <strong id="va-total-text" style="color:var(--wf-gold); font-size:1.1rem;">Rp 5.000.000</strong></div>
+                </div>
+                
+                <div class="fs-sm text-muted" id="va-instructions-text" style="line-height:1.6; margin-bottom:1.5rem;">
+                  <!-- Dynamic instructions injected here -->
+                </div>
+                <div class="separator"></div>
+                <button class="btn btn-success w-100" id="btn-simulate-dep-pay" style="justify-content:center;">⚡ Simulasikan Pembayaran Sukses</button>
               </div>
-              <div class="separator"></div>
-              <button class="btn btn-success w-100" id="btn-simulate-dep-pay" style="justify-content:center;">⚡ Simulasikan Pembayaran VA Sukses</button>
             </div>
           </div>
           
+          <style>
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .spinner-anim {
+              animation: spin 0.8s linear infinite;
+            }
+          </style>
+          
           <script>
             document.addEventListener('DOMContentLoaded', function() {
-              const btnSimulate = document.getElementById('btn-simulate-dep-pay');
-              const ekycStatus = localStorage.getItem('user_ekyc_status') || 'pending';
+              const depositSesi = document.getElementById('deposit-sesi');
+              const depositQty = document.getElementById('deposit-qty');
+              const calcTotalPreview = document.getElementById('calc-total-preview');
+              const btnGetVa = document.getElementById('btn-get-va');
               
+              const vaPlaceholder = document.getElementById('va-placeholder');
+              const vaContent = document.getElementById('va-content');
+              const vaBankLabel = document.getElementById('va-bank-label');
+              const vaNumberText = document.getElementById('va-number-text');
+              const qrisBox = document.getElementById('qris-box');
+              const vaTotalText = document.getElementById('va-total-text');
+              const vaInstructionsText = document.getElementById('va-instructions-text');
+              const btnSimulate = document.getElementById('btn-simulate-dep-pay');
+              
+              // Prices
+              const PRICES = {
+                mobil: 5000000,
+                motor: 1000000
+              };
+              
+              function getSelectedPrice() {
+                return depositSesi.selectedIndex === 0 ? PRICES.mobil : PRICES.motor;
+              }
+              
+              function formatRupiah(amount) {
+                return 'Rp ' + amount.toLocaleString('id-ID');
+              }
+              
+              function updatePrices() {
+                const price = getSelectedPrice();
+                const qty = parseInt(depositQty.value) || 1;
+                const total = price * qty;
+                calcTotalPreview.innerText = formatRupiah(total);
+              }
+              
+              if (depositSesi && depositQty && calcTotalPreview) {
+                depositSesi.addEventListener('change', updatePrices);
+                depositQty.addEventListener('input', updatePrices);
+                depositQty.addEventListener('change', updatePrices);
+              }
+              
+              if (btnGetVa) {
+                btnGetVa.addEventListener('click', function() {
+                  const price = getSelectedPrice();
+                  const qty = parseInt(depositQty.value) || 1;
+                  if (qty < 1) {
+                    alert('Jumlah tiket NIPL minimal 1.');
+                    return;
+                  }
+                  const total = price * qty;
+                  
+                  // Disable form input and button temporarily
+                  btnGetVa.disabled = true;
+                  const originalHtml = btnGetVa.innerHTML;
+                  btnGetVa.innerHTML = '<div class="spinner-anim" style="border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; width: 14px; height: 14px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;"></div> Menghubungkan...';
+                  
+                  // Show loading spinner in place of the instructions
+                  vaPlaceholder.innerHTML = `
+                    <div style="padding: 3rem 1rem; text-align: center;">
+                      <div class="spinner-anim" style="border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--wf-gold); border-radius: 50%; width: 40px; height: 40px; margin: 0 auto 1.5rem;"></div>
+                      <div class="fw-bold" style="margin-bottom: 0.5rem; color:#fff; font-size:1.1rem;">Menghubungkan ke API Payment Gateway...</div>
+                      <p class="text-muted fs-sm" style="max-width:280px; margin:0 auto; line-height:1.6;">Mengirimkan rincian pesanan dan mengunduh detail Virtual Account dari gateway pembayaran...</p>
+                    </div>
+                  `;
+                  vaPlaceholder.style.display = 'block';
+                  vaContent.style.display = 'none';
+                  
+                  setTimeout(function() {
+                    // Restore button state
+                    btnGetVa.disabled = false;
+                    btnGetVa.innerHTML = originalHtml;
+                    
+                    // Hide placeholder and show content
+                    vaPlaceholder.style.display = 'none';
+                    vaContent.style.display = 'block';
+                    
+                    const methodBca = document.getElementById('pay-bca').checked;
+                    const methodMandiri = document.getElementById('pay-mandiri').checked;
+                    
+                    let vaNumber = '';
+                    let instructionsHtml = '';
+                    
+                    vaTotalText.innerText = formatRupiah(total);
+                    
+                    if (methodBca) {
+                      qrisBox.style.display = 'none';
+                      vaNumberText.style.display = 'block';
+                      vaBankLabel.innerText = 'Nomor Virtual Account BCA:';
+                      const rand = Math.floor(10000000000 + Math.random() * 90000000000);
+                      vaNumber = '80777' + rand;
+                      vaNumberText.innerText = vaNumber;
+                      
+                      instructionsHtml = `
+                        <strong>Cara Transfer BCA Virtual Account:</strong><br>
+                        1. Masuk ke aplikasi <strong>m-BCA</strong> atau KlikBCA.<br>
+                        2. Pilih menu <strong>Transfer > BCA Virtual Account</strong>.<br>
+                        3. Masukkan nomor Virtual Account: <strong style="color:var(--wf-primary); font-size:1.05rem;">${vaNumber}</strong><br>
+                        4. Nominal transfer otomatis terisi sebesar <strong>${formatRupiah(total)}</strong>.<br>
+                        5. Periksa nama (INDO-LELANG - BUDI SANTOSO), masukkan PIN BCA, dan kirim.<br>
+                        6. Simpan bukti transfer Anda. NIPL akan aktif secara otomatis.
+                      `;
+                    } else if (methodMandiri) {
+                      qrisBox.style.display = 'none';
+                      vaNumberText.style.display = 'block';
+                      vaBankLabel.innerText = 'Nomor Virtual Account Mandiri:';
+                      const rand = Math.floor(10000000000 + Math.random() * 90000000000);
+                      vaNumber = '88077' + rand;
+                      vaNumberText.innerText = vaNumber;
+                      
+                      instructionsHtml = `
+                        <strong>Cara Transfer Mandiri Virtual Account:</strong><br>
+                        1. Masuk ke aplikasi <strong>Livin' by Mandiri</strong>.<br>
+                        2. Pilih menu <strong>Bayar > Multipayment</strong>.<br>
+                        3. Cari penyedia jasa <strong>INDO-LELANG (88077)</strong>.<br>
+                        4. Masukkan nomor Virtual Account: <strong style="color:var(--wf-primary); font-size:1.05rem;">${vaNumber}</strong>.<br>
+                        5. Nominal tagihan akan ditampilkan sebesar <strong>${formatRupiah(total)}</strong>.<br>
+                        6. Konfirmasi nama rekening, masukkan PIN Livin' Mandiri Anda, dan selesai.
+                      `;
+                    } else {
+                      // QRIS GoPay
+                      vaNumberText.style.display = 'none';
+                      qrisBox.style.display = 'block';
+                      vaBankLabel.innerText = 'Scan QRIS GoPay / E-Wallet:';
+                      
+                      instructionsHtml = `
+                        <strong>Cara Pembayaran QRIS:</strong><br>
+                        1. Buka aplikasi <strong>GoPay, OVO, Dana, LinkAja</strong>, atau m-Banking Anda.<br>
+                        2. Pilih opsi <strong>Pindai QR / Scan / Bayar</strong>.<br>
+                        3. Arahkan kamera ponsel ke kode QRIS di atas.<br>
+                        4. Pastikan nominal pembayaran sesuai tagihan: <strong>${formatRupiah(total)}</strong>.<br>
+                        5. Selesaikan otentikasi PIN Anda untuk mengirim dana.<br>
+                        6. Sistem akan langsung mendeteksi pembayaran realtime dan memperbarui NIPL.
+                      `;
+                    }
+                    
+                    vaInstructionsText.innerHTML = instructionsHtml;
+                    
+                    // Setup simulation button action
+                    if (btnSimulate) {
+                      btnSimulate.onclick = function() {
+                        const currentTickets = parseInt(localStorage.getItem('nipl_tickets')) || 2;
+                        const currentBalance = parseInt(localStorage.getItem('deposit_balance')) || 6000000;
+                        
+                        const newTickets = currentTickets + qty;
+                        const newBalance = currentBalance + total;
+                        
+                        localStorage.setItem('nipl_tickets', newTickets);
+                        localStorage.setItem('deposit_balance', newBalance);
+                        
+                        alert('Simulasi Pembayaran Berhasil!\n\nDeposit sebesar ' + formatRupiah(total) + ' telah terverifikasi oleh Payment Gateway.\nJumlah tiket NIPL aktif Anda sekarang: ' + newTickets + ' tiket.');
+                        window.location.href = 'b1-dashboard.html';
+                      };
+                    }
+                  }, 1500);
+                });
+              }
+              
+              // eKYC check
+              const ekycStatus = localStorage.getItem('user_ekyc_status') || 'pending';
               if (ekycStatus !== 'verified') {
                 const mainCard = document.querySelector('.grid-2-1');
                 if (mainCard) {
                   const overlay = document.createElement('div');
-                  overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; border-radius:8px;';
+                  overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.92); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; border-radius:8px;';
                   overlay.innerHTML = `
                     <div style="font-size:3.5rem; margin-bottom:1rem;">🔒</div>
                     <h3 class="fw-bold" style="color:var(--wf-danger); margin-bottom:0.5rem;">Fitur Terkunci (e-KYC Dibutuhkan)</h3>
@@ -100,15 +329,9 @@
                   container.appendChild(overlay);
                 }
               }
-              
-              if (btnSimulate) {
-                btnSimulate.addEventListener('click', function() {
-                  alert('Simulasi: Pembayaran VA Rp 5.000.000 Berhasil! Deposit diterima, 1 tiket NIPL aktif.');
-                  window.location.href = 'b3-katalog.html';
-                });
-              }
             });
           </script>
+
         
         </div>
       </div>

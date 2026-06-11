@@ -1223,12 +1223,27 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                 alertBanner.className = 'alert alert-warning';
                 alertBanner.innerHTML = '<div><strong>⚠️ Akun Belum Terverifikasi (eKYC Pending):</strong> Anda tidak dapat membeli NIPL atau ikut serta dalam lelang sebelum melengkapi verifikasi eKYC. <a href="../auth/a6-ekyc-upload.html" class="fw-bold" style="text-decoration:underline; color:inherit; margin-left:0.5rem;">Verifikasi Sekarang</a></div>';
               }
+
+              // Update NIPL tickets and Deposit balance dynamically
+              const niplTickets = localStorage.getItem('nipl_tickets') || '2';
+              const depositBalance = localStorage.getItem('deposit_balance') || '6000000';
+              
+              const kpiNiplValue = document.getElementById('kpi-nipl-value');
+              const kpiDepositValue = document.getElementById('kpi-deposit-value');
+              
+              if (kpiNiplValue) {
+                kpiNiplValue.innerText = niplTickets + ' Tiket';
+              }
+              if (kpiDepositValue) {
+                const bal = parseInt(depositBalance) || 0;
+                kpiDepositValue.innerText = 'Rp ' + bal.toLocaleString('id-ID');
+              }
             });
           </script>
           <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-label">NIPL Aktif</div><div class="kpi-value">2 Tiket</div><div class="kpi-trend up">Mobil & Motor</div></div>
+            <div class="kpi-card"><div class="kpi-label">NIPL Aktif</div><div class="kpi-value" id="kpi-nipl-value">2 Tiket</div><div class="kpi-trend up">Mobil & Motor</div></div>
             <div class="kpi-card gold"><div class="kpi-label">Lot Diikuti</div><div class="kpi-value">3 Lot</div><div class="kpi-trend">Sedang Berjalan</div></div>
-            <div class="kpi-card success"><div class="kpi-label">Saldo Deposit</div><div class="kpi-value">Rp 6.000.000</div><div class="kpi-trend">VA Otomatis</div></div>
+            <div class="kpi-card success"><div class="kpi-label">Saldo Deposit</div><div class="kpi-value" id="kpi-deposit-value">Rp 6.000.000</div><div class="kpi-trend">VA Otomatis</div></div>
             <div class="kpi-card"><div class="kpi-label">Lot Dimenangkan</div><div class="kpi-value">1 Unit</div><div class="kpi-trend text-primary">Siap Dilunasi</div></div>
           </div>
           <div class="grid-2-1">
@@ -1443,56 +1458,285 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               <div class="card-header">Pembelian Jaminan Lelang (NIPL)</div>
               <div class="form-group">
                 <label class="form-label">Pilih Sesi Lelang</label>
-                <select class="form-select">
+                <select class="form-select" id="deposit-sesi">
                   <option selected>Lelang Mobil Penumpang Jakarta - Batch 15 (Deposit: Rp 5.000.000 / NIPL)</option>
                   <option>Lelang Sepeda Motor Bandung - Batch 22 (Deposit: Rp 1.000.000 / NIPL)</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Jumlah Tiket NIPL Yang Ingin Dibeli</label>
-                <input type="number" class="form-input" value="1" min="1">
+                <input type="number" class="form-input" id="deposit-qty" value="1" min="1">
                 <span class="form-hint">Satu tiket NIPL hanya berlaku untuk memenangkan 1 unit lot.</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Pilih Metode Pembayaran</label>
-                <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.9rem;">
-                  <label><input type="radio" name="paymethod" checked> Virtual Account BCA (Verifikasi Otomatis)</label>
-                  <label><input type="radio" name="paymethod"> Virtual Account Mandiri (Verifikasi Otomatis)</label>
-                  <label><input type="radio" name="paymethod"> GoPay / E-Wallet</label>
+                <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.9rem;">
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-bca" checked> 
+                    <span>🏦 Virtual Account BCA (Verifikasi Otomatis)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-mandiri"> 
+                    <span>🏢 Virtual Account Mandiri (Verifikasi Otomatis)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="radio" name="paymethod" id="pay-gopay"> 
+                    <span>📱 GoPay / QRIS E-Wallet (Scan Otomatis)</span>
+                  </label>
                 </div>
               </div>
-              <button class="btn btn-primary">Pesan & Dapatkan Nomor VA</button>
+              
+              <div class="form-group" style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="fs-sm text-muted">Total Pembayaran Jaminan:</span>
+                  <span class="fw-bold" style="font-size:1.3rem; color:var(--wf-gold);" id="calc-total-preview">Rp 5.000.000</span>
+                </div>
+              </div>
+              
+              <button class="btn btn-primary w-100" id="btn-get-va" style="justify-content:center; margin-top:1rem;">Pesan & Dapatkan Nomor VA</button>
             </div>
             
-            <div class="card">
-              <div class="card-header">Instruksi Virtual Account</div>
-              <div class="text-center" style="padding:1rem; background:var(--wf-bg); border-radius:6px; margin-bottom:1rem;">
-                <div class="text-muted fs-sm">Nomor VA BCA:</div>
-                <div class="fw-bold" style="font-size:1.4rem; color:var(--wf-primary);">8077708123456789</div>
-                <div class="text-muted fs-sm">Total Pembayaran: <strong>Rp 5.000.000</strong></div>
+            <div class="card" id="va-instruction-card">
+              <div class="card-header">Instruksi Pembayaran</div>
+              
+              <!-- Placeholder: Shown when no order is made -->
+              <div id="va-placeholder" style="padding: 3rem 1rem; text-align: center;">
+                <div style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.6;">💰</div>
+                <div class="fw-bold" style="margin-bottom: 0.5rem; font-size:1.1rem; color:#fff;">Belum Ada Pesanan</div>
+                <p class="text-muted fs-sm" style="line-height: 1.6; max-width: 250px; margin: 0 auto;">Silakan tentukan kuantitas tiket NIPL dan metode pembayaran di sebelah kiri, kemudian klik <strong>Pesan & Dapatkan Nomor VA</strong>.</p>
               </div>
-              <div class="fs-sm text-muted">
-                <strong>Cara Transfer:</strong><br>
-                1. Masuk ke m-BCA > Transfer > BCA Virtual Account.<br>
-                2. Masukkan nomor VA di atas.<br>
-                3. Pastikan nominal transfer sesuai tagihan.<br>
-                4. Setelah transfer, NIPL Anda akan aktif otomatis dalam 1 menit.
+              
+              <!-- Content: Shown after Order is placed -->
+              <div id="va-content" style="display: none;">
+                <div class="text-center" style="padding:1rem; background:var(--wf-bg); border-radius:6px; margin-bottom:1rem; border:1px solid rgba(255,255,255,0.05);">
+                  <div class="text-muted fs-sm" id="va-bank-label">Nomor VA BCA:</div>
+                  <div class="fw-bold" style="font-size:1.4rem; color:var(--wf-primary); letter-spacing:1px; margin: 0.5rem 0;" id="va-number-text">8077708123456789</div>
+                  
+                  <!-- QRIS Mock Box -->
+                  <div id="qris-box" style="display:none; margin: 1rem auto; text-align:center;">
+                    <div style="background:#fff; padding:0.75rem; border-radius:8px; display:inline-block; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                      <svg width="140" height="140" viewBox="0 0 100 100" style="display:block;">
+                        <rect x="0" y="0" width="100" height="100" fill="white" />
+                        <rect x="5" y="5" width="22" height="22" fill="black" />
+                        <rect x="9" y="9" width="14" height="14" fill="white" />
+                        <rect x="12" y="12" width="8" height="8" fill="black" />
+                        
+                        <rect x="73" y="5" width="22" height="22" fill="black" />
+                        <rect x="77" y="9" width="14" height="14" fill="white" />
+                        <rect x="80" y="12" width="8" height="8" fill="black" />
+                        
+                        <rect x="5" y="73" width="22" height="22" fill="black" />
+                        <rect x="9" y="77" width="14" height="14" fill="white" />
+                        <rect x="12" y="80" width="8" height="8" fill="black" />
+                        
+                        <rect x="32" y="8" width="8" height="8" fill="black" />
+                        <rect x="44" y="15" width="16" height="8" fill="black" />
+                        <rect x="15" y="38" width="8" height="18" fill="black" />
+                        <rect x="38" y="38" width="24" height="24" fill="black" />
+                        <rect x="43" y="43" width="14" height="14" fill="white" />
+                        <rect x="46" y="46" width="8" height="8" fill="black" />
+                        <rect x="72" y="38" width="18" height="8" fill="black" />
+                        <rect x="80" y="52" width="12" height="16" fill="black" />
+                        <rect x="38" y="70" width="20" height="12" fill="black" />
+                        <rect x="70" y="70" width="14" height="14" fill="black" />
+                        <rect x="80" y="80" width="15" height="15" fill="black" />
+                        <rect x="85" y="85" width="5" height="5" fill="white" />
+                        
+                        <rect x="41" y="41" width="18" height="18" fill="#e11d48" rx="2" />
+                        <text x="50" y="52" font-size="7" font-weight="900" fill="white" text-anchor="middle" font-family="sans-serif">QRIS</text>
+                      </svg>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--wf-gold); font-weight:700; margin-top:0.6rem; letter-spacing:0.5px;">PINDAI DENGAN GOPAY / E-WALLET</div>
+                  </div>
+                  
+                  <div class="text-muted fs-sm" style="margin-top:0.5rem;">Total Tagihan: <strong id="va-total-text" style="color:var(--wf-gold); font-size:1.1rem;">Rp 5.000.000</strong></div>
+                </div>
+                
+                <div class="fs-sm text-muted" id="va-instructions-text" style="line-height:1.6; margin-bottom:1.5rem;">
+                  <!-- Dynamic instructions injected here -->
+                </div>
+                <div class="separator"></div>
+                <button class="btn btn-success w-100" id="btn-simulate-dep-pay" style="justify-content:center;">⚡ Simulasikan Pembayaran Sukses</button>
               </div>
-              <div class="separator"></div>
-              <button class="btn btn-success w-100" id="btn-simulate-dep-pay" style="justify-content:center;">⚡ Simulasikan Pembayaran VA Sukses</button>
             </div>
           </div>
           
+          <style>
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .spinner-anim {
+              animation: spin 0.8s linear infinite;
+            }
+          </style>
+          
           <script>
             document.addEventListener('DOMContentLoaded', function() {
-              const btnSimulate = document.getElementById('btn-simulate-dep-pay');
-              const ekycStatus = localStorage.getItem('user_ekyc_status') || 'pending';
+              const depositSesi = document.getElementById('deposit-sesi');
+              const depositQty = document.getElementById('deposit-qty');
+              const calcTotalPreview = document.getElementById('calc-total-preview');
+              const btnGetVa = document.getElementById('btn-get-va');
               
+              const vaPlaceholder = document.getElementById('va-placeholder');
+              const vaContent = document.getElementById('va-content');
+              const vaBankLabel = document.getElementById('va-bank-label');
+              const vaNumberText = document.getElementById('va-number-text');
+              const qrisBox = document.getElementById('qris-box');
+              const vaTotalText = document.getElementById('va-total-text');
+              const vaInstructionsText = document.getElementById('va-instructions-text');
+              const btnSimulate = document.getElementById('btn-simulate-dep-pay');
+              
+              // Prices
+              const PRICES = {
+                mobil: 5000000,
+                motor: 1000000
+              };
+              
+              function getSelectedPrice() {
+                return depositSesi.selectedIndex === 0 ? PRICES.mobil : PRICES.motor;
+              }
+              
+              function formatRupiah(amount) {
+                return 'Rp ' + amount.toLocaleString('id-ID');
+              }
+              
+              function updatePrices() {
+                const price = getSelectedPrice();
+                const qty = parseInt(depositQty.value) || 1;
+                const total = price * qty;
+                calcTotalPreview.innerText = formatRupiah(total);
+              }
+              
+              if (depositSesi && depositQty && calcTotalPreview) {
+                depositSesi.addEventListener('change', updatePrices);
+                depositQty.addEventListener('input', updatePrices);
+                depositQty.addEventListener('change', updatePrices);
+              }
+              
+              if (btnGetVa) {
+                btnGetVa.addEventListener('click', function() {
+                  const price = getSelectedPrice();
+                  const qty = parseInt(depositQty.value) || 1;
+                  if (qty < 1) {
+                    alert('Jumlah tiket NIPL minimal 1.');
+                    return;
+                  }
+                  const total = price * qty;
+                  
+                  // Disable form input and button temporarily
+                  btnGetVa.disabled = true;
+                  const originalHtml = btnGetVa.innerHTML;
+                  btnGetVa.innerHTML = '<div class="spinner-anim" style="border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; width: 14px; height: 14px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;"></div> Menghubungkan...';
+                  
+                  // Show loading spinner in place of the instructions
+                  vaPlaceholder.innerHTML = \`
+                    <div style="padding: 3rem 1rem; text-align: center;">
+                      <div class="spinner-anim" style="border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--wf-gold); border-radius: 50%; width: 40px; height: 40px; margin: 0 auto 1.5rem;"></div>
+                      <div class="fw-bold" style="margin-bottom: 0.5rem; color:#fff; font-size:1.1rem;">Menghubungkan ke API Payment Gateway...</div>
+                      <p class="text-muted fs-sm" style="max-width:280px; margin:0 auto; line-height:1.6;">Mengirimkan rincian pesanan dan mengunduh detail Virtual Account dari gateway pembayaran...</p>
+                    </div>
+                  \`;
+                  vaPlaceholder.style.display = 'block';
+                  vaContent.style.display = 'none';
+                  
+                  setTimeout(function() {
+                    // Restore button state
+                    btnGetVa.disabled = false;
+                    btnGetVa.innerHTML = originalHtml;
+                    
+                    // Hide placeholder and show content
+                    vaPlaceholder.style.display = 'none';
+                    vaContent.style.display = 'block';
+                    
+                    const methodBca = document.getElementById('pay-bca').checked;
+                    const methodMandiri = document.getElementById('pay-mandiri').checked;
+                    
+                    let vaNumber = '';
+                    let instructionsHtml = '';
+                    
+                    vaTotalText.innerText = formatRupiah(total);
+                    
+                    if (methodBca) {
+                      qrisBox.style.display = 'none';
+                      vaNumberText.style.display = 'block';
+                      vaBankLabel.innerText = 'Nomor Virtual Account BCA:';
+                      const rand = Math.floor(10000000000 + Math.random() * 90000000000);
+                      vaNumber = '80777' + rand;
+                      vaNumberText.innerText = vaNumber;
+                      
+                      instructionsHtml = \`
+                        <strong>Cara Transfer BCA Virtual Account:</strong><br>
+                        1. Masuk ke aplikasi <strong>m-BCA</strong> atau KlikBCA.<br>
+                        2. Pilih menu <strong>Transfer > BCA Virtual Account</strong>.<br>
+                        3. Masukkan nomor Virtual Account: <strong style="color:var(--wf-primary); font-size:1.05rem;">\${vaNumber}</strong><br>
+                        4. Nominal transfer otomatis terisi sebesar <strong>\${formatRupiah(total)}</strong>.<br>
+                        5. Periksa nama (INDO-LELANG - BUDI SANTOSO), masukkan PIN BCA, dan kirim.<br>
+                        6. Simpan bukti transfer Anda. NIPL akan aktif secara otomatis.
+                      \`;
+                    } else if (methodMandiri) {
+                      qrisBox.style.display = 'none';
+                      vaNumberText.style.display = 'block';
+                      vaBankLabel.innerText = 'Nomor Virtual Account Mandiri:';
+                      const rand = Math.floor(10000000000 + Math.random() * 90000000000);
+                      vaNumber = '88077' + rand;
+                      vaNumberText.innerText = vaNumber;
+                      
+                      instructionsHtml = \`
+                        <strong>Cara Transfer Mandiri Virtual Account:</strong><br>
+                        1. Masuk ke aplikasi <strong>Livin' by Mandiri</strong>.<br>
+                        2. Pilih menu <strong>Bayar > Multipayment</strong>.<br>
+                        3. Cari penyedia jasa <strong>INDO-LELANG (88077)</strong>.<br>
+                        4. Masukkan nomor Virtual Account: <strong style="color:var(--wf-primary); font-size:1.05rem;">\${vaNumber}</strong>.<br>
+                        5. Nominal tagihan akan ditampilkan sebesar <strong>\${formatRupiah(total)}</strong>.<br>
+                        6. Konfirmasi nama rekening, masukkan PIN Livin' Mandiri Anda, dan selesai.
+                      \`;
+                    } else {
+                      // QRIS GoPay
+                      vaNumberText.style.display = 'none';
+                      qrisBox.style.display = 'block';
+                      vaBankLabel.innerText = 'Scan QRIS GoPay / E-Wallet:';
+                      
+                      instructionsHtml = \`
+                        <strong>Cara Pembayaran QRIS:</strong><br>
+                        1. Buka aplikasi <strong>GoPay, OVO, Dana, LinkAja</strong>, atau m-Banking Anda.<br>
+                        2. Pilih opsi <strong>Pindai QR / Scan / Bayar</strong>.<br>
+                        3. Arahkan kamera ponsel ke kode QRIS di atas.<br>
+                        4. Pastikan nominal pembayaran sesuai tagihan: <strong>\${formatRupiah(total)}</strong>.<br>
+                        5. Selesaikan otentikasi PIN Anda untuk mengirim dana.<br>
+                        6. Sistem akan langsung mendeteksi pembayaran realtime dan memperbarui NIPL.
+                      \`;
+                    }
+                    
+                    vaInstructionsText.innerHTML = instructionsHtml;
+                    
+                    // Setup simulation button action
+                    if (btnSimulate) {
+                      btnSimulate.onclick = function() {
+                        const currentTickets = parseInt(localStorage.getItem('nipl_tickets')) || 2;
+                        const currentBalance = parseInt(localStorage.getItem('deposit_balance')) || 6000000;
+                        
+                        const newTickets = currentTickets + qty;
+                        const newBalance = currentBalance + total;
+                        
+                        localStorage.setItem('nipl_tickets', newTickets);
+                        localStorage.setItem('deposit_balance', newBalance);
+                        
+                        alert('Simulasi Pembayaran Berhasil!\\n\\nDeposit sebesar ' + formatRupiah(total) + ' telah terverifikasi oleh Payment Gateway.\\nJumlah tiket NIPL aktif Anda sekarang: ' + newTickets + ' tiket.');
+                        window.location.href = 'b1-dashboard.html';
+                      };
+                    }
+                  }, 1500);
+                });
+              }
+              
+              // eKYC check
+              const ekycStatus = localStorage.getItem('user_ekyc_status') || 'pending';
               if (ekycStatus !== 'verified') {
                 const mainCard = document.querySelector('.grid-2-1');
                 if (mainCard) {
                   const overlay = document.createElement('div');
-                  overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; border-radius:8px;';
+                  overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.92); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; border-radius:8px;';
                   overlay.innerHTML = \`
                     <div style="font-size:3.5rem; margin-bottom:1rem;">🔒</div>
                     <h3 class="fw-bold" style="color:var(--wf-danger); margin-bottom:0.5rem;">Fitur Terkunci (e-KYC Dibutuhkan)</h3>
@@ -1504,15 +1748,9 @@ function generatePanelPages(area, prefix, menuItems, initial) {
                   container.appendChild(overlay);
                 }
               }
-              
-              if (btnSimulate) {
-                btnSimulate.addEventListener('click', function() {
-                  alert('Simulasi: Pembayaran VA Rp 5.000.000 Berhasil! Deposit diterima, 1 tiket NIPL aktif.');
-                  window.location.href = 'b3-katalog.html';
-                });
-              }
             });
           </script>
+
         `;
       } else if (p.id === 'b7') { // Bidding Room
         specificContent = `
@@ -2246,21 +2484,274 @@ function generatePanelPages(area, prefix, menuItems, initial) {
           <div class="grid-2" style="gap:2rem;">
             <div class="card text-center" style="padding:2rem;">
               <div style="font-size: 1.2rem; font-weight:700; margin-bottom:1rem;">Kode Tiket Serah Terima</div>
-              <div class="img-placeholder" style="width:180px; height:180px; margin: 0 auto;">QR Code Serah Terima</div>
+              <div class="img-placeholder" style="width:180px; height:180px; margin: 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <!-- Simulated high-fidelity barcode/QR code style -->
+                <svg width="120" height="120" viewBox="0 0 100 100">
+                  <rect width="100" height="100" fill="white" />
+                  <rect x="10" y="10" width="25" height="25" fill="black" />
+                  <rect x="15" y="15" width="15" height="15" fill="white" />
+                  <rect x="18" y="18" width="9" height="9" fill="black" />
+                  <rect x="65" y="10" width="25" height="25" fill="black" />
+                  <rect x="70" y="15" width="15" height="15" fill="white" />
+                  <rect x="73" y="18" width="9" height="9" fill="black" />
+                  <rect x="10" y="65" width="25" height="25" fill="black" />
+                  <rect x="15" y="70" width="15" height="15" fill="white" />
+                  <rect x="18" y="73" width="9" height="9" fill="black" />
+                  <rect x="45" y="45" width="20" height="20" fill="black" />
+                  <rect x="50" y="50" width="10" height="10" fill="white" />
+                  <rect x="40" y="15" width="10" height="10" fill="black" />
+                  <rect x="15" y="45" width="10" height="15" fill="black" />
+                  <rect x="75" y="45" width="12" height="12" fill="black" />
+                  <rect x="45" y="75" width="15" height="10" fill="black" />
+                </svg>
+                <div style="font-size:0.6rem; color:#475569; margin-top:0.4rem; font-family:monospace;">SECURE-PICKUP-ID: 1045</div>
+              </div>
               <div class="fw-bold mt-1" style="font-size:1.4rem; color:var(--wf-primary); letter-spacing:2px;">OTP: 897216</div>
               <p class="fs-sm text-muted mt-1">Tunjukkan kode QR atau OTP di atas kepada petugas gudang.</p>
             </div>
             <div class="card">
               <div class="card-header">Detail Informasi Pengambilan</div>
-              <p class="fs-sm" style="line-height:1.7;">
+              <p class="fs-sm" style="line-height:1.7; margin-bottom:1.5rem;">
                 • <strong>Barang:</strong> Toyota Avanza 1.3 G MT 2022 (Lot #1045)<br>
                 • <strong>Lokasi Gudang:</strong> Gudang Utama JKT Selatan, Jl. Gatot Subroto No. 45<br>
                 • <strong>Jam Operasional Gudang:</strong> Senin - Jumat, 09:00 - 17:00 WIB<br>
                 • <strong>Batas Waktu Pengambilan:</strong> 18 Juni 2026 (Keterlambatan dikenakan denda simpan Rp 50.000/hari)
               </p>
-              <button class="btn btn-outline w-100 mt-2">📥 Unduh Surat Jalan & BAST Digital (PDF)</button>
+              <button class="btn btn-outline w-100 mt-2" id="btn-download-bast" style="justify-content:center;">📥 Unduh Surat Jalan & BAST Digital (PDF)</button>
             </div>
           </div>
+
+          <!-- BAST Modal Preview -->
+          <div id="bast-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,13,20,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; overflow-y:auto; padding:2rem 1rem;">
+            <div class="card" style="width:100%; max-width:800px; background:#fff; color:#1e293b; padding:2.5rem; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); font-family:\'Courier New\', Courier, monospace; position:relative; border: 1px solid #cbd5e1; margin-top: auto; margin-bottom: auto;">
+              
+              <button id="close-bast-modal" style="position:absolute; top:1.5rem; right:1.5rem; background:rgba(0,0,0,0.05); border:none; width:36px; height:36px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:#64748b; font-family:sans-serif; display:flex; align-items:center; justify-content:center; hover:background:rgba(0,0,0,0.1)">&times;</button>
+              
+              <div id="printable-bast-document">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px double #1e293b; padding-bottom:1rem; margin-bottom:1.5rem; font-family:sans-serif;">
+                  <div style="text-align:left;">
+                    <div style="font-size:1.5rem; font-weight:900; color:#0f172a; letter-spacing:1px;">🏛️ INDO-LELANG</div>
+                    <div style="font-size:0.75rem; color:#475569; line-height:1.4; margin-top:0.25rem;">
+                      PT Indo Lelang Digital Tbk<br>
+                      Gedung Menara Mulia Lt. 18, Kav. 9-11, Jakarta Selatan<br>
+                      Telp: (021) 5098-8888 | Email: legal@indolelang.com
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="border:1px solid #1e293b; padding:0.4rem 0.8rem; border-radius:4px; font-weight:bold; font-size:0.8rem;">DOKUMEN UTAMA</div>
+                    <div style="font-size:0.7rem; color:#64748b; margin-top:0.25rem;">REF: BAST/2026/06/1045</div>
+                  </div>
+                </div>
+                
+                <div style="text-align:center; margin-bottom:1.5rem;">
+                  <h3 style="font-weight:bold; text-decoration:underline; margin:0; font-size:1.2rem; font-family:sans-serif; color:#0f172a;">BERITA ACARA SERAH TERIMA (BAST) & SURAT JALAN</h3>
+                  <div style="font-size:0.85rem; color:#475569; margin-top:0.25rem;">Nomor: 4882/BAST-SJ/ILD/VI/2026</div>
+                </div>
+                
+                <p style="font-size:0.85rem; line-height:1.6; text-align:justify;">
+                  Pada hari ini, <strong>Kamis</strong> tanggal <strong>11 Juni 2026</strong>, bertempat di Gudang Penampungan Balai Lelang Indo-Lelang, kami yang bertanda tangan di bawah ini:
+                </p>
+                
+                <table style="width:100%; font-size:0.85rem; border-collapse:collapse; margin-bottom:1rem;">
+                  <tr>
+                    <td style="width:25%; vertical-align:top; font-weight:bold;">1. Pihak Pertama:</td>
+                    <td style="width:75%;"><strong>PT Indo Lelang Digital (Balai Lelang)</strong>, berkedudukan di Jakarta, dalam hal ini diwakili oleh staff gudang yang sah (selanjutnya disebut "PIHAK PERTAMA").</td>
+                  </tr>
+                  <tr style="height:0.5rem;"></tr>
+                  <tr>
+                    <td style="width:25%; vertical-align:top; font-weight:bold;">2. Pihak Kedua:</td>
+                    <td style="width:75%;"><strong>Budi Santoso</strong>, beralamat di Jl. Kemang Pratama Raya No. 12, Jakarta Selatan, NIK: 327310******9003 (selanjutnya disebut "PIHAK KEDUA").</td>
+                  </tr>
+                </table>
+                
+                <p style="font-size:0.85rem; line-height:1.6; text-align:justify;">
+                  PIHAK PERTAMA menyatakan telah menyerahkan fisik aset lelang kepada PIHAK KEDUA, dan PIHAK KEDUA menyatakan telah menerima aset lelang tersebut dari PIHAK PERTAMA dalam keadaan baik, lengkap, dan sesuai dengan kondisi saat lelang dilaksanakan untuk lot berikut:
+                </p>
+                
+                <table style="width:100%; font-size:0.85rem; border:1px solid #1e293b; border-collapse:collapse; margin:1rem 0; font-family:sans-serif;">
+                  <thead>
+                    <tr style="background:#f1f5f9; border-bottom:1px solid #1e293b;">
+                      <th style="padding:0.5rem; text-align:left; border-right:1px solid #1e293b;">Deskripsi Aset</th>
+                      <th style="padding:0.5rem; text-align:center; border-right:1px solid #1e293b;">Nomor Rangka & Mesin</th>
+                      <th style="padding:0.5rem; text-align:center; border-right:1px solid #1e293b;">No. Polisi</th>
+                      <th style="padding:0.5rem; text-align:right;">Hammer Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="padding:0.5rem; border-right:1px solid #1e293b;">
+                        <strong>Toyota Avanza 1.3 G MT 2022</strong><br>
+                        Warna: Hitam Metalik | Lot ID: #1045
+                      </td>
+                      <td style="padding:0.5rem; text-align:center; border-right:1px solid #1e293b; font-size:0.75rem;">
+                        Rka: MHF11BA39NK192837<br>
+                        Msn: 1NR-FE-9876543
+                      </td>
+                      <td style="padding:0.5rem; text-align:center; border-right:1px solid #1e293b;">B 1284 PQR</td>
+                      <td style="padding:0.5rem; text-align:right; font-weight:bold;">Rp 167.500.000</td>
+                    </tr>
+                  </tbody>
+                </table>
+                
+                <p style="font-size:0.85rem; line-height:1.6; text-align:justify;">
+                  <strong>KETERANGAN DOKUMEN SURAT JALAN GUDANG:</strong><br>
+                  Dokumen ini sekaligus berfungsi sebagai Surat Jalan resmi yang sah untuk pengeluaran 1 (satu) unit kendaraan bermotor tersebut di atas dari area penampungan gudang Indo-Lelang JKT Selatan. Petugas keamanan berhak mencocokkan nomor mesin dan rangka fisik kendaraan dengan data di atas sebelum mengizinkan kendaraan keluar dari pintu utama.
+                </p>
+                
+                <div style="display:flex; justify-content:space-between; margin-top:2.5rem; font-family:sans-serif;">
+                  <div style="text-align:center; width:40%;">
+                    <div style="font-size:0.8rem; color:#475569; margin-bottom:2.5rem;">PIHAK KEDUA (Penerima)</div>
+                    <div style="font-weight:bold; font-size:0.85rem; text-decoration:underline;">Budi Santoso</div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">(Ditandatangani secara Digital)</div>
+                  </div>
+                  
+                  <div style="text-align:center; width:20%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                    <div style="border:1px solid #cbd5e1; padding:3px; background:#fff;">
+                      <svg width="50" height="50" viewBox="0 0 100 100">
+                        <rect width="100" height="100" fill="white"/>
+                        <rect x="5" y="5" width="20" height="20" fill="black"/>
+                        <rect x="75" y="5" width="20" height="20" fill="black"/>
+                        <rect x="5" y="75" width="20" height="20" fill="black"/>
+                        <rect x="30" y="30" width="40" height="40" fill="black"/>
+                        <rect x="40" y="40" width="20" height="20" fill="white"/>
+                        <rect x="45" y="45" width="10" height="10" fill="black"/>
+                        <rect x="10" y="10" width="10" height="10" fill="white"/>
+                        <rect x="80" y="10" width="10" height="10" fill="white"/>
+                        <rect x="10" y="80" width="10" height="10" fill="white"/>
+                      </svg>
+                    </div>
+                    <span style="font-size:0.55rem; color:#10b981; font-weight:bold; margin-top:0.4rem; border:1px solid #10b981; padding:1px 4px; border-radius:2px; text-transform:uppercase; font-family:sans-serif;">E-SIGN SECURE</span>
+                  </div>
+                  
+                  <div style="text-align:center; width:40%;">
+                    <div style="font-size:0.8rem; color:#475569; margin-bottom:2.5rem;">PIHAK PERTAMA (Penyerah)</div>
+                    <div style="font-weight:bold; font-size:0.85rem; text-decoration:underline;">M. Kurniawan</div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">Kepala Gudang JKT Selatan</div>
+                  </div>
+                </div>
+                
+                <div style="border-top:1px dashed #cbd5e1; margin-top:2rem; padding-top:0.5rem; text-align:center; font-size:0.65rem; color:#94a3b8; font-family:sans-serif;">
+                  Dokumen ini sah, diterbitkan secara elektronik oleh Indo-Lelang E-Sign Authority dan diakui secara hukum berdasarkan UU ITE Indonesia.
+                </div>
+              </div>
+              
+              <div style="margin-top:2rem; display:flex; justify-content:flex-end; gap:1rem; font-family:sans-serif; border-top:1px solid #e2e8f0; padding-top:1.5rem;">
+                <button id="btn-close-bast-modal-footer" class="btn btn-outline" style="border-color:#cbd5e1; color:#475569;">Batal</button>
+                <button id="btn-download-bast-pdf" class="btn btn-success" style="background:#10b981; color:#fff; font-weight:bold; justify-content:center;">📥 Cetak & Unduh Dokumen (PDF)</button>
+              </div>
+            </div>
+          </div>
+
+          <style>
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-bast-document, #printable-bast-document * {
+                visibility: visible !important;
+              }
+              #printable-bast-document {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                color: #000 !important;
+                background: #fff !important;
+              }
+            }
+          </style>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const btnDownload = document.getElementById('btn-download-bast');
+              const bastModal = document.getElementById('bast-modal');
+              const closeBtn = document.getElementById('close-bast-modal');
+              const closeBtnFooter = document.getElementById('btn-close-bast-modal-footer');
+              const btnDownloadPdf = document.getElementById('btn-download-bast-pdf');
+              
+              if (btnDownload) {
+                btnDownload.addEventListener('click', function() {
+                  const originalHtml = btnDownload.innerHTML;
+                  btnDownload.disabled = true;
+                  btnDownload.innerHTML = '<div class="spinner-anim" style="border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; width: 14px; height: 14px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;"></div> Menyiapkan Dokumen...';
+                  
+                  setTimeout(function() {
+                    btnDownload.disabled = false;
+                    btnDownload.innerHTML = originalHtml;
+                    
+                    if (bastModal) {
+                      bastModal.style.display = 'flex';
+                    }
+                  }, 1000);
+                });
+              }
+              
+              function closeModal() {
+                if (bastModal) {
+                  bastModal.style.display = 'none';
+                }
+              }
+              
+              if (closeBtn) closeBtn.addEventListener('click', closeModal);
+              if (closeBtnFooter) closeBtnFooter.addEventListener('click', closeModal);
+              
+              if (btnDownloadPdf) {
+                btnDownloadPdf.addEventListener('click', function() {
+                  const fileContent = \`========================================================================
+PT INDO LELANG DIGITAL Tbk - SURAT JALAN & BAST DIGITAL
+========================================================================
+Nomor Referensi: BAST/2026/06/1045
+Nomor Dokumen: 4882/BAST-SJ/ILD/VI/2026
+Tanggal Terbit: 11 Juni 2026
+
+Pihak Pertama (Balai Lelang):
+PT Indo Lelang Digital (Kepala Gudang JKT Selatan: M. Kurniawan)
+
+Pihak Kedua (Pemenang Lelang):
+Budi Santoso (NIK: 327310******9003)
+
+Detail Aset:
+------------------------------------------------------------------------
+Nama Barang   : Toyota Avanza 1.3 G MT 2022
+Lot ID        : #1045
+No. Rangka    : MHF11BA39NK192837
+No. Mesin     : 1NR-FE-9876543
+No. Polisi    : B 1284 PQR
+Hammer Price  : Rp 167.500.000
+
+Lokasi Pengambilan:
+Gudang Utama JKT Selatan, Jl. Gatot Subroto No. 45
+
+------------------------------------------------------------------------
+STATUS DIGITAL: VERIFIED & SIGNED SECURELY VIA INDO-LELANG E-SIGN
+------------------------------------------------------------------------
+Pihak Pertama: M. Kurniawan (Kepala Gudang JKT Selatan) [DIGITAL SIGNATURE]
+Pihak Kedua: Budi Santoso (Pemenang Lelang) [DIGITAL SIGNATURE]
+
+Dokumen ini sah secara elektronik sesuai UU ITE Republik Indonesia.
+========================================================================\`;
+                  
+                  const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'Surat_Jalan_dan_BAST_Lot_1045.pdf';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  
+                  alert('Dokumen Surat Jalan & BAST Digital PDF berhasil diunduh ke komputer Anda!');
+                  
+                  window.print();
+                  closeModal();
+                });
+              }
+            });
+          </script>
+
         `;
       } else if (p.id === 'b12') { // Riwayat Lelang
         specificContent = `

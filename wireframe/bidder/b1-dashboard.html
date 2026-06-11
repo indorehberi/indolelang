@@ -55,12 +55,27 @@
                 alertBanner.className = 'alert alert-warning';
                 alertBanner.innerHTML = '<div><strong>⚠️ Akun Belum Terverifikasi (eKYC Pending):</strong> Anda tidak dapat membeli NIPL atau ikut serta dalam lelang sebelum melengkapi verifikasi eKYC. <a href="../auth/a6-ekyc-upload.html" class="fw-bold" style="text-decoration:underline; color:inherit; margin-left:0.5rem;">Verifikasi Sekarang</a></div>';
               }
+
+              // Update NIPL tickets and Deposit balance dynamically
+              const niplTickets = localStorage.getItem('nipl_tickets') || '2';
+              const depositBalance = localStorage.getItem('deposit_balance') || '6000000';
+              
+              const kpiNiplValue = document.getElementById('kpi-nipl-value');
+              const kpiDepositValue = document.getElementById('kpi-deposit-value');
+              
+              if (kpiNiplValue) {
+                kpiNiplValue.innerText = niplTickets + ' Tiket';
+              }
+              if (kpiDepositValue) {
+                const bal = parseInt(depositBalance) || 0;
+                kpiDepositValue.innerText = 'Rp ' + bal.toLocaleString('id-ID');
+              }
             });
           </script>
           <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-label">NIPL Aktif</div><div class="kpi-value">2 Tiket</div><div class="kpi-trend up">Mobil & Motor</div></div>
+            <div class="kpi-card"><div class="kpi-label">NIPL Aktif</div><div class="kpi-value" id="kpi-nipl-value">2 Tiket</div><div class="kpi-trend up">Mobil & Motor</div></div>
             <div class="kpi-card gold"><div class="kpi-label">Lot Diikuti</div><div class="kpi-value">3 Lot</div><div class="kpi-trend">Sedang Berjalan</div></div>
-            <div class="kpi-card success"><div class="kpi-label">Saldo Deposit</div><div class="kpi-value">Rp 6.000.000</div><div class="kpi-trend">VA Otomatis</div></div>
+            <div class="kpi-card success"><div class="kpi-label">Saldo Deposit</div><div class="kpi-value" id="kpi-deposit-value">Rp 6.000.000</div><div class="kpi-trend">VA Otomatis</div></div>
             <div class="kpi-card"><div class="kpi-label">Lot Dimenangkan</div><div class="kpi-value">1 Unit</div><div class="kpi-trend text-primary">Siap Dilunasi</div></div>
           </div>
           <div class="grid-2-1">
