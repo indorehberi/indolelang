@@ -1721,7 +1721,7 @@ function generatePanelPages(area, prefix, menuItems, initial) {
               <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; background:#000;">
                 <iframe 
                   style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" 
-                  src="https://www.youtube.com/embed/e1fXk0e-q5A?autoplay=1&mute=1&loop=1&playlist=e1fXk0e-q5A&controls=1&showinfo=0&rel=0&modestbranding=1" 
+                  src="https://www.youtube.com/embed/wOJTw2Xm0qk?autoplay=1&mute=1&loop=1&playlist=wOJTw2Xm0qk&controls=1&showinfo=0&rel=0&modestbranding=1" 
                   title="Live Auction Stream" 
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowfullscreen>
