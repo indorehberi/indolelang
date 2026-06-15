@@ -9,12 +9,12 @@ Dokumen ini disusun sebagai panduan perencanaan anggaran untuk kebutuhan infrast
 
 Beban server lelang dibagi menjadi dua skenario pengembangan berdasarkan fase bisnis:
 
-### Opsi A: Fase Awal (Go-Live & Uji Pasar) — Single Server Premium
+### Opsi A: Fase Awal (Go-Live & Uji Pasar) — Single Server Premium (Rekomendasi Utama)
 Direkomendasikan untuk peluncuran awal guna meminimalkan biaya overhead operasional. Seluruh *service* (API Backend, WebSocket, Database Postgres, dan Redis) dijalankan di dalam satu server fisik/VM menggunakan Docker Compose.
 
-*   **Spesifikasi:** 1 Unit VPS (4 vCPU, 8GB atau 16GB RAM, SSD Storage).
-*   **Estimasi Kapasitas:** Mampu melayani **100 s.d. 200 bidder aktif** dalam satu sesi lelang secara bersamaan.
-*   **Estimasi Biaya Bulanan:** **Rp 600.000 s.d. Rp 1.200.000 / bulan** (contoh: AWS Lightsail, DigitalOcean Premium Droplet, atau Biznet GIO).
+*   **Spesifikasi:** 1 Unit VPS (2 vCPU Cores, 8 GB RAM, 60 GB NVMe Disk, 8 TB Bandwidth).
+*   **Estimasi Kapasitas:** Mampu melayani **250 s.d. 400 bidder aktif** secara bersamaan dalam satu sesi lelang (*Bidding Room*), dan **1.500 s.d. 2.000 pengguna browsing** secara bersamaan.
+*   **Estimasi Biaya Bulanan:** **Rp 350.000 s.d. Rp 500.000 / bulan** (contoh: DigitalOcean Droplet, AWS Lightsail, atau provider VPS lokal).
 *   **Keamanan Data:** Tim developer wajib menyetel backup database otomatis harian ke penyimpanan luar (seperti AWS S3 atau Cloudflare R2).
 
 ### Opsi B: Fase Lanjutan (Scale-up Enterprise) — Multi-Server (High Availability)
@@ -100,13 +100,13 @@ Digunakan untuk memproses pembayaran jaminan NIPL lelang dan pelunasan transaksi
 
 | Kategori Pengeluaran | Opsi Fase Awal (Single Server) | Opsi Fase Lanjutan (Multi-Server - AWS) | Sifat Biaya |
 | :--- | :--- | :--- | :--- |
-| **Infrastruktur Server** | Rp 1.000.000 | Rp 2.840.000 | Bulanan |
+| **Infrastruktur Server** | Rp 450.000 | Rp 2.840.000 | Bulanan |
 | **Agora Video Streaming** | Rp 3.877.000 | Rp 3.877.000 | Berbasis Pemakaian |
 | **Verifikasi eKYC Pendaftar** | Rp 2.000.000 | Rp 2.000.000 | Berbasis Pemakaian |
 | **API WA, SMS, & Email** | Rp 500.000 | Rp 500.000 | Bulanan |
 | **Lisensi Apple & Google Play Store** | Rp 135.000 | Rp 135.000 | Tahunan (Rata-rata/bulan) |
 | **Domain & SSL** | Rp 25.000 | Rp 25.000 | Tahunan (Rata-rata/bulan) |
-| **ESTIMASI TOTAL BULANAN** | **~Rp 7.537.000 / bulan** | **~Rp 9.377.000 / bulan** | *Di luar potongan transaksi Payment Gateway.* |
+| **ESTIMASI TOTAL BULANAN** | **~Rp 6.987.000 / bulan** | **~Rp 9.377.000 / bulan** | *Di luar potongan transaksi Payment Gateway.* |
 
 > [!TIP]
 > Biaya **Agora Video Streaming** dan **eKYC** bersifat sangat elastis. Jika jumlah lelang lebih sedikit atau pendaftar baru berkurang pada bulan tertentu, maka biaya tersebut akan menurun secara otomatis.
