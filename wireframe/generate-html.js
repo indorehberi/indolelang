@@ -4772,81 +4772,662 @@ Dokumen ini sah secara elektronik sesuai UU ITE Republik Indonesia.
             <button class="btn btn-primary">Kirim Broadcast Sekarang</button>
           </div>
         `;
-      } else if (p.id === 'ad25') { // Settings
+      } else if (p.id === 'ad25') { // Settings — Full Feature Toggle + API Key Management
         specificContent = `
-          <div class="card" style="max-width:800px; margin:0 auto;">
-            <div class="card-header">Konfigurasi Aturan Bisnis Platform</div>
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label">Komisi Default Balai Lelang (%)</label>
-                <input type="number" class="form-input" value="3.0">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Pajak Pertambahan Nilai (PPN %)</label>
-                <input type="number" class="form-input" value="1.1">
-              </div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label">Deposit NIPL Jaminan Mobil (Rp)</label>
-                <input type="text" class="form-input" value="5.000.000">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Deposit NIPL Jaminan Motor (Rp)</label>
-                <input type="text" class="form-input" value="1.000.000">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Batas Waktu Pelunasan Invoice (Hari Kerja)</label>
-              <input type="number" class="form-input" value="5">
-            </div>
-            
-            <div class="separator" style="margin: 1.5rem 0;"></div>
-            
-            <div class="form-group">
-              <label class="form-label" style="font-weight:bold; font-size:1.05rem;">⚙️ Integrasi Sistem & e-KYC</label>
-              <p class="fs-sm text-muted mb-2">Tentukan bagaimana platform memproses verifikasi e-KYC untuk akun pendaftar baru.</p>
-              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
-                <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
-                  <input type="radio" name="ekyc_mode" value="manual" id="settings-ekyc-manual" style="margin-top:0.25rem;">
-                  <div>
-                    <strong>Verifikasi Manual (Queue Review)</strong>
-                    <div class="fs-sm text-muted">Staf admin harus mencocokkan dokumen KTP & selfie secara manual di antrean KYC sebelum menyetujui akun.</div>
-                  </div>
-                </label>
-                <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
-                  <input type="radio" name="ekyc_mode" value="otomatis" id="settings-ekyc-otomatis" style="margin-top:0.25rem;">
-                  <div>
-                    <strong>Verifikasi Otomatis (Instant e-KYC SDK)</strong>
-                    <div class="fs-sm text-muted">Sistem terintegrasi dengan pihak ketiga (Privy/Verihubs) untuk mengecek liveness & Dukcapil instan (3 detik).</div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            
-            <button class="btn btn-primary" id="btn-save-settings">Simpan Aturan & Konfigurasi</button>
+          <!-- Settings Tabs Navigation -->
+          <style>
+            .settings-tabs { display:flex; gap:0; border-bottom:2px solid var(--wf-border); margin-bottom:1.5rem; }
+            .settings-tab { padding:0.75rem 1.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:var(--wf-muted); border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.2s; }
+            .settings-tab.active { color:var(--wf-accent); border-bottom-color:var(--wf-accent); }
+            .settings-tab:hover:not(.active) { color:var(--wf-text); background:var(--wf-bg); }
+            .settings-panel { display:none; }
+            .settings-panel.active { display:block; }
+            .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-radius:8px; border:1px solid var(--wf-border); margin-bottom:0.75rem; background:var(--wf-white); transition:background 0.2s; }
+            .toggle-row:hover { background:var(--wf-bg); }
+            .toggle-info { flex:1; }
+            .toggle-info strong { display:block; font-size:0.9rem; margin-bottom:0.2rem; }
+            .toggle-info span { font-size:0.78rem; color:var(--wf-muted); }
+            .toggle-badge { font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:20px; font-weight:700; margin-left:0.5rem; }
+            .badge-advance { background:#fef3cd; color:#856404; }
+            .badge-core { background:#d1ecf1; color:#0c5460; }
+            /* iOS-style toggle switch */
+            .switch { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
+            .switch input { opacity:0; width:0; height:0; }
+            .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:26px; transition:.3s; }
+            .slider:before { position:absolute; content:""; height:20px; width:20px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+            input:checked + .slider { background:var(--wf-accent); }
+            input:checked + .slider:before { transform:translateX(20px); }
+            .api-group { margin-bottom:1.5rem; }
+            .api-group-title { font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--wf-muted); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; }
+            .api-key-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+            .api-key-row label { font-size:0.82rem; font-weight:600; min-width:200px; color:var(--wf-text); }
+            .api-key-input { flex:1; font-family:monospace; font-size:0.82rem; letter-spacing:0.5px; }
+            .btn-eye { background:none; border:1px solid var(--wf-border); border-radius:4px; padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; color:var(--wf-muted); }
+            .btn-test { background:none; border:1px solid var(--wf-accent); border-radius:4px; padding:0.35rem 0.7rem; cursor:pointer; font-size:0.78rem; color:var(--wf-accent); font-weight:600; }
+            .btn-test:hover { background:var(--wf-accent); color:white; }
+            .save-bar { position:sticky; bottom:0; background:rgba(255,255,255,0.95); backdrop-filter:blur(8px); padding:1rem 1.25rem; border-top:1px solid var(--wf-border); display:flex; align-items:center; justify-content:space-between; gap:1rem; border-radius:0 0 8px 8px; margin-top:1rem; }
+            .save-status { font-size:0.82rem; color:var(--wf-success); font-weight:600; display:none; }
+          </style>
+
+          <!-- Tab Nav -->
+          <div class="settings-tabs" id="settings-tabs">
+            <div class="settings-tab active" data-tab="bisnis">⚙️ Aturan Bisnis</div>
+            <div class="settings-tab" data-tab="fitur">🚀 Fitur Advance</div>
+            <div class="settings-tab" data-tab="api">🔑 Integrasi API</div>
           </div>
-          
+
+          <!-- ======================== TAB 1: ATURAN BISNIS ======================== -->
+          <div class="settings-panel active" id="panel-bisnis">
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">💼 Komisi & Pajak</div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Komisi Balai Lelang (%)</label>
+                  <input type="number" class="form-input" id="cfg-komisi" value="3.0" step="0.1" min="0" max="20">
+                  <div class="fs-sm text-muted mt-1">Default 3% dari harga hammer</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">PPN (Pajak Pertambahan Nilai %)</label>
+                  <input type="number" class="form-input" id="cfg-ppn" value="11" step="0.1" min="0" max="30">
+                  <div class="fs-sm text-muted mt-1">Saat ini 11% sesuai regulasi</div>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Buyer's Premium / Admin Fee (%)</label>
+                  <input type="number" class="form-input" id="cfg-premium" value="1.5" step="0.1" min="0">
+                  <div class="fs-sm text-muted mt-1">Biaya tambahan dari pemenang</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Biaya Titip Jual Provider (%)</label>
+                  <input type="number" class="form-input" id="cfg-titip" value="2.0" step="0.1" min="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">🎫 Deposit & NIPL</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                  <label class="form-label">Jaminan NIPL — Kendaraan (Rp)</label>
+                  <input type="text" class="form-input" id="cfg-nipl-mobil" value="5.000.000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Jaminan NIPL — Motor (Rp)</label>
+                  <input type="text" class="form-input" id="cfg-nipl-motor" value="1.000.000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Jaminan NIPL — Properti (Rp)</label>
+                  <input type="text" class="form-input" id="cfg-nipl-properti" value="10.000.000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Durasi Kedaluwarsa VA (menit)</label>
+                <input type="number" class="form-input" id="cfg-va-exp" value="60" min="15" max="1440" style="max-width:200px;">
+                <div class="fs-sm text-muted mt-1">Nomor Virtual Account aktif selama N menit setelah dibuat</div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">⏰ Batas Waktu & Lelang</div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Batas Pelunasan Invoice (Hari Kerja)</label>
+                  <input type="number" class="form-input" id="cfg-deadline-invoice" value="5" min="1" max="30">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Batas Pengambilan Barang (Hari Kalender)</label>
+                  <input type="number" class="form-input" id="cfg-deadline-pickup" value="14" min="3" max="60">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Anti-Sniping — Threshold (detik)</label>
+                  <input type="number" class="form-input" id="cfg-snipe-threshold" value="30" min="10" max="120">
+                  <div class="fs-sm text-muted mt-1">Bid di detik terakhir → timer diperpanjang</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Anti-Sniping — Perpanjangan (detik)</label>
+                  <input type="number" class="form-input" id="cfg-snipe-extend" value="120" min="30" max="600">
+                  <div class="fs-sm text-muted mt-1">Max 3x perpanjangan per lot</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mode Verifikasi e-KYC</label>
+                <div style="display:flex; flex-direction:column; gap:0.6rem; margin-top:0.5rem;">
+                  <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.75rem; border:1px solid var(--wf-border); border-radius:6px;">
+                    <input type="radio" name="ekyc_mode" value="manual" id="settings-ekyc-manual" style="margin-top:0.2rem;">
+                    <div>
+                      <strong style="font-size:0.88rem;">Verifikasi Manual (Queue Review)</strong>
+                      <div class="fs-sm text-muted">Staf admin verifikasi KTP & selfie secara manual di antrean.</div>
+                    </div>
+                  </label>
+                  <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.75rem; border:1px solid var(--wf-border); border-radius:6px;">
+                    <input type="radio" name="ekyc_mode" value="otomatis" id="settings-ekyc-otomatis" style="margin-top:0.2rem;">
+                    <div>
+                      <strong style="font-size:0.88rem;">Verifikasi Otomatis — e-KYC SDK <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                      <div class="fs-sm text-muted">Terintegrasi Privy.ID / Verihubs: liveness check + Dukcapil otomatis (±3 detik).</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <span class="save-status" id="save-status-bisnis">✅ Pengaturan tersimpan!</span>
+              <button class="btn btn-primary" id="btn-save-bisnis" style="min-width:180px;">💾 Simpan Aturan Bisnis</button>
+            </div>
+          </div>
+
+          <!-- ======================== TAB 2: FITUR ADVANCE ======================== -->
+          <div class="settings-panel" id="panel-fitur">
+            <div class="alert alert-info" style="margin-bottom:1rem; font-size:0.85rem;">
+              ℹ️ Aktifkan atau nonaktifkan fitur advance sesuai kebutuhan. Fitur yang dinonaktifkan tidak akan tampil di aplikasi dan tidak akan ditagihkan oleh penyedia layanan pihak ketiga.
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">🔄 Fitur Real-Time & Bidding</div>
+              
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>🏛️ Live Bidding Engine (WebSocket) <span class="toggle-badge badge-core">CORE</span></strong>
+                  <span>Engine lelang real-time via WebSocket/Socket.io. Wajib aktif untuk proses lelang online.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-live-bidding" checked disabled>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>🛡️ Anti-Sniping System <span class="toggle-badge badge-core">CORE</span></strong>
+                  <span>Perpanjang timer otomatis jika bid masuk di detik-detik terakhir. Mencegah bid curang.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-anti-sniping" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📺 Live Streaming Sesi Lelang <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Siarkan video live operator ke peserta via Agora.io / Zoom SDK. Membutuhkan konfigurasi API Agora.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-live-streaming">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">🔔 Notifikasi & Komunikasi</div>
+              
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📲 Push Notification Mobile <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Kirim notif real-time ke app Android & iOS via Firebase FCM. Butuh konfigurasi Firebase Project.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-push-notification">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📧 Email Transaksional Otomatis <span class="toggle-badge badge-core">CORE</span></strong>
+                  <span>Kirim email konfirmasi registrasi, invoice, notif refund via SendGrid / Mailgun.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-email-notif" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📱 SMS OTP Verifikasi <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Kirim kode OTP via SMS (Twilio/Vonage) untuk verifikasi nomor HP saat registrasi dan login.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-sms-otp">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>🔔 Price Alert Watchlist <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Bidder mendapat notifikasi saat harga lot yang di-watchlist berubah atau sesi akan dimulai.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-price-alert">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">💳 Pembayaran & Keuangan</div>
+              
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>🏦 Virtual Account (Multi-Bank) <span class="toggle-badge badge-core">CORE</span></strong>
+                  <span>Generate VA otomatis BCA, Mandiri, BNI, BRI via Midtrans/Xendit. Wajib untuk deposit NIPL.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-va-payment" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📲 QRIS / E-Wallet Payment <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Terima pembayaran via QRIS, GoPay, ShopeePay, OVO. Butuh merchant QRIS aktif.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-qris">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>⚡ Auto-Refund Deposit (BI-FAST) <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Refund deposit bidder yang kalah secara otomatis via BI-FAST/RTGS setelah sesi selesai.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-auto-refund">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:1rem;">
+              <div class="card-header">📄 Dokumen & Legalitas</div>
+              
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📄 Generate Dokumen PDF Otomatis <span class="toggle-badge badge-core">CORE</span></strong>
+                  <span>Generate Invoice, Surat Jalan, dan BAST Digital PDF secara otomatis via Puppeteer.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-pdf-gen" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>✍️ e-Signature BAST Digital <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Tandatangan digital berkekuatan hukum pada BAST via Privy.ID. Perlu akun Privy Enterprise.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-esign">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>🏢 Multi-Cabang Management <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Kelola beberapa kantor cabang dengan data sesi, operator, dan laporan terpisah per cabang.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-multi-branch" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <strong>📊 Dashboard Analitik & BI <span class="toggle-badge badge-advance">ADVANCE</span></strong>
+                  <span>Dashboard GMV, tren konversi, performa per cabang, dan export laporan Excel/PDF.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="feat-analytics" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <span class="save-status" id="save-status-fitur">✅ Konfigurasi fitur tersimpan!</span>
+              <button class="btn btn-primary" id="btn-save-fitur" style="min-width:180px;">💾 Simpan Konfigurasi Fitur</button>
+            </div>
+          </div>
+
+          <!-- ======================== TAB 3: INTEGRASI API ======================== -->
+          <div class="settings-panel" id="panel-api">
+            <div class="alert" style="background:#fff3cd; border-color:#ffc107; color:#856404; margin-bottom:1rem; font-size:0.83rem;">
+              🔒 <strong>Perhatian Keamanan:</strong> Semua API Key disimpan terenkripsi (AES-256). Jangan bagikan key ini kepada siapapun. Akses halaman ini tercatat di Audit Trail.
+            </div>
+
+            <!-- Payment Gateway -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">💳 Payment Gateway — Midtrans</div>
+              <div class="api-key-row">
+                <label>Server Key (Production)</label>
+                <input type="password" class="form-input api-key-input" id="midtrans-server-key" placeholder="Mid-server-xxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('midtrans-server-key', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Midtrans')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Client Key (Production)</label>
+                <input type="password" class="form-input api-key-input" id="midtrans-client-key" placeholder="Mid-client-xxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('midtrans-client-key', this)">👁️</button>
+              </div>
+              <div class="api-key-row">
+                <label>Merchant ID</label>
+                <input type="text" class="form-input api-key-input" id="midtrans-merchant-id" placeholder="Gxxxxxxxxxxxxxxxx">
+              </div>
+              <div class="form-group" style="margin-top:0.75rem;">
+                <label class="form-label" style="font-size:0.82rem;">Mode Transaksi</label>
+                <select class="form-select" id="midtrans-env" style="max-width:200px; font-size:0.85rem;">
+                  <option value="sandbox">Sandbox (Testing)</option>
+                  <option value="production">Production (Live)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Xendit (Disbursement) -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">💸 Disbursement — Xendit</div>
+              <div class="api-key-row">
+                <label>Secret Key</label>
+                <input type="password" class="form-input api-key-input" id="xendit-secret" placeholder="xnd_production_xxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('xendit-secret', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Xendit')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Webhook Verification Token</label>
+                <input type="password" class="form-input api-key-input" id="xendit-webhook" placeholder="Token verifikasi webhook Xendit">
+                <button class="btn-eye" onclick="toggleKey('xendit-webhook', this)">👁️</button>
+              </div>
+            </div>
+
+            <!-- eKYC -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">🛡️ e-KYC Provider — Verihubs</div>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label" style="font-size:0.82rem;">Provider Aktif</label>
+                <select class="form-select" id="ekyc-provider" style="max-width:200px; font-size:0.85rem;">
+                  <option value="manual">Manual (Tidak Ada SDK)</option>
+                  <option value="verihubs">Verihubs</option>
+                  <option value="privy">Privy.ID</option>
+                </select>
+              </div>
+              <div class="api-key-row">
+                <label>Verihubs API Key</label>
+                <input type="password" class="form-input api-key-input" id="verihubs-api-key" placeholder="vh_live_xxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('verihubs-api-key', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Verihubs')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Verihubs API URL</label>
+                <input type="text" class="form-input api-key-input" id="verihubs-api-url" placeholder="https://api.verihubs.com/v1">
+              </div>
+              <div class="api-key-row">
+                <label>Privy API Key (Opsional)</label>
+                <input type="password" class="form-input api-key-input" id="privy-api-key" placeholder="privy_xxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('privy-api-key', this)">👁️</button>
+              </div>
+            </div>
+
+            <!-- Firebase / Push Notification -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">🔔 Push Notification — Firebase FCM</div>
+              <div class="api-key-row">
+                <label>Firebase Project ID</label>
+                <input type="text" class="form-input api-key-input" id="firebase-project-id" placeholder="indolelang-prod">
+              </div>
+              <div class="api-key-row">
+                <label>FCM Server Key (Legacy)</label>
+                <input type="password" class="form-input api-key-input" id="firebase-server-key" placeholder="AAAAxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('firebase-server-key', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Firebase FCM')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Service Account JSON</label>
+                <input type="text" class="form-input api-key-input" id="firebase-service-account" placeholder="(Upload file JSON atau paste konten)">
+              </div>
+            </div>
+
+            <!-- Email & SMS -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">📧 Email & SMS</div>
+              <div class="api-key-row">
+                <label>SendGrid API Key</label>
+                <input type="password" class="form-input api-key-input" id="sendgrid-api-key" placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('sendgrid-api-key', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('SendGrid')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Email Pengirim (From)</label>
+                <input type="email" class="form-input api-key-input" id="sendgrid-from" placeholder="noreply@indolelang.com">
+              </div>
+              <div class="api-key-row">
+                <label>Twilio Account SID</label>
+                <input type="password" class="form-input api-key-input" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('twilio-sid', this)">👁️</button>
+              </div>
+              <div class="api-key-row">
+                <label>Twilio Auth Token</label>
+                <input type="password" class="form-input api-key-input" id="twilio-token" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('twilio-token', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Twilio SMS')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Twilio Phone Number</label>
+                <input type="text" class="form-input api-key-input" id="twilio-phone" placeholder="+1415xxxxxxx">
+              </div>
+            </div>
+
+            <!-- Live Streaming -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">📺 Live Streaming — Agora.io</div>
+              <div class="api-key-row">
+                <label>Agora App ID</label>
+                <input type="password" class="form-input api-key-input" id="agora-app-id" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('agora-app-id', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('Agora RTC')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>Agora App Certificate</label>
+                <input type="password" class="form-input api-key-input" id="agora-certificate" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('agora-certificate', this)">👁️</button>
+              </div>
+              <div class="api-key-row">
+                <label>Zoom API Key (Opsional)</label>
+                <input type="password" class="form-input api-key-input" id="zoom-api-key" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx">
+                <button class="btn-eye" onclick="toggleKey('zoom-api-key', this)">👁️</button>
+              </div>
+            </div>
+
+            <!-- Cloud Storage -->
+            <div class="card api-group" style="margin-bottom:1rem;">
+              <div class="card-header">☁️ Cloud Storage — AWS S3</div>
+              <div class="api-key-row">
+                <label>AWS Access Key ID</label>
+                <input type="password" class="form-input api-key-input" id="aws-access-key" placeholder="AKIAIOSFODNN7EXAMPLE">
+                <button class="btn-eye" onclick="toggleKey('aws-access-key', this)">👁️</button>
+                <button class="btn-test" onclick="testConn('AWS S3')">Test</button>
+              </div>
+              <div class="api-key-row">
+                <label>AWS Secret Access Key</label>
+                <input type="password" class="form-input api-key-input" id="aws-secret-key" placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+                <button class="btn-eye" onclick="toggleKey('aws-secret-key', this)">👁️</button>
+              </div>
+              <div class="api-key-row">
+                <label>S3 Bucket Name</label>
+                <input type="text" class="form-input api-key-input" id="aws-bucket" placeholder="indolelang-production">
+              </div>
+              <div class="api-key-row">
+                <label>AWS Region</label>
+                <input type="text" class="form-input api-key-input" id="aws-region" placeholder="ap-southeast-1">
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <span class="save-status" id="save-status-api">✅ API Key tersimpan & terenkripsi!</span>
+              <div style="display:flex; gap:0.75rem;">
+                <button class="btn btn-outline" id="btn-verify-all">🔍 Verifikasi Semua Koneksi</button>
+                <button class="btn btn-primary" id="btn-save-api" style="min-width:180px;">🔒 Simpan & Enkripsi Key</button>
+              </div>
+            </div>
+          </div>
+
           <script>
             document.addEventListener('DOMContentLoaded', function() {
+              // ======================== TABS ========================
+              const tabs = document.querySelectorAll('.settings-tab');
+              const panels = document.querySelectorAll('.settings-panel');
+              tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                  const target = this.dataset.tab;
+                  tabs.forEach(t => t.classList.remove('active'));
+                  panels.forEach(p => p.classList.remove('active'));
+                  this.classList.add('active');
+                  document.getElementById('panel-' + target).classList.add('active');
+                });
+              });
+
+              // ======================== LOAD SETTINGS FROM LOCALSTORAGE ========================
+              // Feature Toggles
+              const featureDefaults = {
+                'feat-live-bidding': true, 'feat-anti-sniping': true, 'feat-live-streaming': false,
+                'feat-push-notification': false, 'feat-email-notif': true, 'feat-sms-otp': false,
+                'feat-price-alert': false, 'feat-va-payment': true, 'feat-qris': false,
+                'feat-auto-refund': false, 'feat-pdf-gen': true, 'feat-esign': false,
+                'feat-multi-branch': true, 'feat-analytics': true
+              };
+              Object.keys(featureDefaults).forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.disabled) {
+                  const saved = localStorage.getItem('setting_' + id);
+                  el.checked = saved !== null ? saved === 'true' : featureDefaults[id];
+                }
+              });
+
+              // eKYC Mode
+              const ekycMode = localStorage.getItem('ekyc_mode') || 'manual';
               const ekycManual = document.getElementById('settings-ekyc-manual');
               const ekycOtomatis = document.getElementById('settings-ekyc-otomatis');
-              const btnSave = document.getElementById('btn-save-settings');
-              
-              // Load active setting
-              const currentMode = localStorage.getItem('ekyc_mode') || 'manual';
-              if (currentMode === 'otomatis') {
-                ekycOtomatis.checked = true;
-              } else {
-                ekycManual.checked = true;
-              }
-              
-              btnSave.addEventListener('click', function() {
-                const selectedMode = ekycManual.checked ? 'manual' : 'otomatis';
-                localStorage.setItem('ekyc_mode', selectedMode);
-                alert('Pengaturan berhasil disimpan! Mode Verifikasi e-KYC diubah menjadi: ' + selectedMode.toUpperCase());
+              if (ekycMode === 'otomatis' && ekycOtomatis) ekycOtomatis.checked = true;
+              else if (ekycManual) ekycManual.checked = true;
+
+              // ======================== SAVE BISNIS ========================
+              document.getElementById('btn-save-bisnis').addEventListener('click', function() {
+                localStorage.setItem('cfg_komisi', document.getElementById('cfg-komisi').value);
+                localStorage.setItem('cfg_ppn', document.getElementById('cfg-ppn').value);
+                localStorage.setItem('cfg_nipl_mobil', document.getElementById('cfg-nipl-mobil').value);
+                localStorage.setItem('cfg_nipl_motor', document.getElementById('cfg-nipl-motor').value);
+                const ekycSelected = document.querySelector('input[name="ekyc_mode"]:checked');
+                if (ekycSelected) localStorage.setItem('ekyc_mode', ekycSelected.value);
+                const statusEl = document.getElementById('save-status-bisnis');
+                statusEl.style.display = 'block';
+                setTimeout(() => statusEl.style.display = 'none', 3000);
+              });
+
+              // ======================== SAVE FITUR TOGGLES ========================
+              document.getElementById('btn-save-fitur').addEventListener('click', function() {
+                document.querySelectorAll('.switch input[type=checkbox]').forEach(el => {
+                  if (!el.disabled) localStorage.setItem('setting_' + el.id, el.checked);
+                });
+                const statusEl = document.getElementById('save-status-fitur');
+                statusEl.style.display = 'block';
+                setTimeout(() => statusEl.style.display = 'none', 3000);
+              });
+
+              // ======================== SAVE API KEYS ========================
+              document.getElementById('btn-save-api').addEventListener('click', function() {
+                // In production: keys would be encrypted before saving
+                // Here we just simulate saving to localStorage with note
+                const fields = ['midtrans-server-key','midtrans-client-key','midtrans-merchant-id',
+                  'xendit-secret','xendit-webhook','verihubs-api-key','verihubs-api-url',
+                  'firebase-project-id','firebase-server-key','sendgrid-api-key','sendgrid-from',
+                  'twilio-sid','twilio-token','twilio-phone','agora-app-id','agora-certificate',
+                  'aws-access-key','aws-secret-key','aws-bucket','aws-region'];
+                fields.forEach(id => {
+                  const el = document.getElementById(id);
+                  if (el && el.value) {
+                    // Simulate encryption: prefix with [ENC]
+                    localStorage.setItem('apikey_' + id, '[ENC]' + btoa(el.value));
+                  }
+                });
+                const ekyc = document.getElementById('ekyc-provider');
+                if (ekyc) localStorage.setItem('ekyc_provider', ekyc.value);
+                const midEnv = document.getElementById('midtrans-env');
+                if (midEnv) localStorage.setItem('midtrans_env', midEnv.value);
+
+                const statusEl = document.getElementById('save-status-api');
+                statusEl.style.display = 'block';
+                setTimeout(() => statusEl.style.display = 'none', 4000);
+              });
+
+              // Load saved API keys (decrypt simulation)
+              ['midtrans-server-key','verihubs-api-key','firebase-server-key','sendgrid-api-key',
+               'twilio-sid','agora-app-id','aws-access-key','aws-bucket','aws-region','sendgrid-from'].forEach(id => {
+                const saved = localStorage.getItem('apikey_' + id);
+                const el = document.getElementById(id);
+                if (saved && el && saved.startsWith('[ENC]')) {
+                  try { el.value = atob(saved.replace('[ENC]', '')); } catch(e) {}
+                }
+              });
+
+              // ======================== VERIFY ALL ========================
+              document.getElementById('btn-verify-all').addEventListener('click', function() {
+                this.textContent = '⏳ Memverifikasi...';
+                this.disabled = true;
+                setTimeout(() => {
+                  this.textContent = '✅ Semua Koneksi Aktif';
+                  this.style.color = 'var(--wf-success)';
+                  this.style.borderColor = 'var(--wf-success)';
+                  setTimeout(() => {
+                    this.textContent = '🔍 Verifikasi Semua Koneksi';
+                    this.style.color = '';
+                    this.style.borderColor = '';
+                    this.disabled = false;
+                  }, 3000);
+                }, 2000);
               });
             });
+
+            // ======================== GLOBAL HELPERS ========================
+            function toggleKey(inputId, btn) {
+              const input = document.getElementById(inputId);
+              if (!input) return;
+              if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+              } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+              }
+            }
+
+            function testConn(serviceName) {
+              const btn = event.target;
+              const orig = btn.textContent;
+              btn.textContent = '⏳';
+              btn.disabled = true;
+              setTimeout(() => {
+                const success = Math.random() > 0.15;
+                btn.textContent = success ? '✅' : '❌';
+                btn.style.color = success ? 'var(--wf-success)' : 'var(--wf-danger)';
+                btn.style.borderColor = success ? 'var(--wf-success)' : 'var(--wf-danger)';
+                setTimeout(() => {
+                  btn.textContent = orig;
+                  btn.style.color = '';
+                  btn.style.borderColor = '';
+                  btn.disabled = false;
+                }, 2500);
+              }, 1500);
+            }
           </script>
         `;
       } else if (p.id === 'ad26') { // Audit Trail
