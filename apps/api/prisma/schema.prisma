@@ -1,0 +1,266 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- Models ---
+
+model users {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String    @unique
+  password_hash String
+  full_name     String
+  role          String
+  status        String    @default("pending")
+  company_name  String?
+  npwp          String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+
+  kyc_document  kyc_documents?
+  assets        assets[]
+  lots_won      lots[]          @relation("LotWinner")
+  bids          bids[]
+  deposits      deposits[]
+  invoices      invoices[]
+  settlements   settlements[]
+  notifications notifications[]
+  audit_logs    audit_logs[]
+  blog_posts    blog_posts[]
+  testimonials  testimonials[]
+}
+
+model kyc_documents {
+  id               String    @id @default(uuid())
+  user_id          String    @unique
+  ktp_url          String?
+  selfie_url       String?
+  ktp_selfie_url   String?
+  status           String    @default("pending")
+  reviewer_id      String?
+  reviewed_at      DateTime?
+  rejection_reason String?
+  provider_ref_id  String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model branches {
+  id               String             @id @default(uuid())
+  tenant_id        String
+  name             String
+  city             String
+  address          String
+  phone            String
+  pic_name         String
+  is_active        Boolean            @default(true)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  auction_sessions auction_sessions[]
+}
+
+model auction_sessions {
+  id           String   @id @default(uuid())
+  branch_id    String
+  title        String
+  description  String?
+  scheduled_at DateTime
+  status       String   @default("draft")
+  operator_id  String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  branch   branches   @relation(fields: [branch_id], references: [id])
+  lots     lots[]
+  deposits deposits[]
+}
+
+model assets {
+  id          String   @id @default(uuid())
+  provider_id String
+  category    String
+  title       String
+  description String?
+  base_price  Decimal
+  images      String?
+  status      String   @default("pending")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  provider users  @relation(fields: [provider_id], references: [id])
+  lots     lots[]
+}
+
+model lots {
+  id             String   @id @default(uuid())
+  session_id     String
+  asset_id       String
+  lot_number     Int
+  starting_price Decimal
+  hammer_price   Decimal?
+  winner_id      String?
+  status         String   @default("pending")
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  session     auction_sessions @relation(fields: [session_id], references: [id])
+  asset       assets           @relation(fields: [asset_id], references: [id])
+  winner      users?           @relation("LotWinner", fields: [winner_id], references: [id])
+  bids        bids[]
+  invoices    invoices[]
+  settlements settlements[]
+}
+
+model bids {
+  id         String   @id @default(uuid())
+  lot_id     String
+  bidder_id  String
+  amount     Decimal
+  is_winning Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  lot    lots  @relation(fields: [lot_id], references: [id], onDelete: Cascade)
+  bidder users @relation(fields: [bidder_id], references: [id])
+}
+
+model deposits {
+  id             String    @id @default(uuid())
+  user_id        String
+  session_id     String
+  amount         Decimal
+  va_number      String?
+  va_bank        String?
+  payment_method String?
+  status         String    @default("pending")
+  paid_at        DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  user    users            @relation(fields: [user_id], references: [id])
+  session auction_sessions @relation(fields: [session_id], references: [id])
+}
+
+model invoices {
+  id           String    @id @default(uuid())
+  lot_id       String
+  bidder_id    String
+  hammer_price Decimal
+  commission   Decimal
+  tax          Decimal
+  total        Decimal
+  due_date     DateTime
+  status       String    @default("unpaid")
+  paid_at      DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  lot       lots        @relation(fields: [lot_id], references: [id])
+  bidder    users       @relation(fields: [bidder_id], references: [id])
+  documents documents[]
+}
+
+model settlements {
+  id                  String    @id @default(uuid())
+  lot_id              String
+  provider_id         String
+  gross_amount        Decimal
+  commission_deducted Decimal
+  net_amount          Decimal
+  status              String    @default("pending")
+  transferred_at      DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  lot      lots  @relation(fields: [lot_id], references: [id])
+  provider users @relation(fields: [provider_id], references: [id])
+}
+
+model documents {
+  id           String   @id @default(uuid())
+  invoice_id   String
+  type         String
+  file_url     String
+  generated_at DateTime @default(now())
+  qr_hash      String   @unique
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  invoice invoices @relation(fields: [invoice_id], references: [id])
+}
+
+model notifications {
+  id         String   @id @default(uuid())
+  user_id    String
+  type       String
+  title      String
+  body       String
+  deep_link  String?
+  is_read    Boolean  @default(false)
+  sent_at    DateTime @default(now())
+  created_at DateTime @default(now())
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model platform_settings {
+  id           String   @id @default(uuid())
+  tenant_id    String
+  key          String
+  value        String
+  is_encrypted Boolean  @default(false)
+  updated_by   String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model audit_logs {
+  id            String   @id @default(uuid())
+  user_id       String?
+  action        String
+  resource_type String
+  resource_id   String?
+  old_value     String?
+  new_value     String?
+  ip_address    String?
+  created_at    DateTime @default(now())
+
+  user users? @relation(fields: [user_id], references: [id])
+}
+
+model blog_posts {
+  id           String    @id @default(uuid())
+  title        String
+  slug         String    @unique
+  content      String
+  image_url    String?
+  author_id    String
+  status       String    @default("draft")
+  published_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  author       users     @relation(fields: [author_id], references: [id])
+}
+
+model testimonials {
+  id           String    @id @default(uuid())
+  user_id      String
+  rating       Int
+  content      String
+  status       String    @default("pending")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  user         users     @relation(fields: [user_id], references: [id])
+}
+

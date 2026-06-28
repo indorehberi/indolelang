@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BIDKU - Tentang Kami</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF9800",
+                        "primary-fixed": "#FFE0B2",
+                        "primary-fixed-dim": "#FFCC80",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#E65100",
+                        "on-primary-fixed-variant": "#F57C00",
+                        "secondary": "#8BC34A",
+                        "secondary-fixed": "#DCEDC8",
+                        "secondary-fixed-dim": "#C5E1A5",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#1B5E20",
+                        "on-secondary-fixed-variant": "#33691E",
+                        "background": "#f7f9ff",
+                        "surface": "#f7f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f1f4f9",
+                        "surface-container": "#ebeef3",
+                        "surface-container-high": "#e5e8ee",
+                        "surface-container-highest": "#e0e3e8",
+                        "surface-bright": "#f7f9ff",
+                        "surface-dim": "#d7dadf",
+                        "on-surface": "#181c20",
+                        "on-surface-variant": "#4f434e",
+                        "outline": "#81737f",
+                        "outline-variant": "#d3c1cf",
+                        "inverse-surface": "#2d3135",
+                        "inverse-on-surface": "#eef1f6",
+                        "inverse-primary": "#FFCC80",
+                        "surface-tint": "#FF9800",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "text-secondary": "rgba(33, 37, 41, 0.7)",
+                        "glass-border": "rgba(255, 255, 255, 0.15)",
+                        "accent-gold": "#F39C12",
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.25rem",
+                        full: "9999px",
+                    },
+                    spacing: {
+                        "margin-page": "1.5rem",
+                        "container-max": "1280px",
+                        "gutter": "1.5rem",
+                        "stack-lg": "4rem",
+                        "stack-sm": "0.5rem",
+                        "stack-md": "1.5rem",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    fontSize: {
+                        "heading-3xl": ["2.5rem", { lineHeight: "1.1", fontWeight: "800" }],
+                        "heading-2xl": ["2rem", { lineHeight: "1.15", fontWeight: "700" }],
+                        "heading-xl": ["1.5rem", { lineHeight: "1.2", fontWeight: "700" }],
+                        "heading-lg": ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
+                        "heading-md": ["1.125rem", { lineHeight: "1.4", fontWeight: "600" }],
+                        "body-lg": ["1rem", { lineHeight: "1.6", fontWeight: "400" }],
+                        "body-md": ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
+                        "body-sm": ["0.75rem", { lineHeight: "1.4", fontWeight: "400" }],
+                        "label-sm": ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
+                        "badge-text": ["0.625rem", { lineHeight: "1", fontWeight: "700" }],
+                    },
+                    animation: {
+                        "fade-in-up": "fadeInUp 0.6s ease-out forwards",
+                        "pulse-soft": "pulseSoft 2s ease-in-out infinite",
+                        "countdown-pulse": "countdownPulse 1s ease-in-out infinite",
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            "0%": { opacity: "0", transform: "translateY(20px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" },
+                        },
+                        pulseSoft: {
+                            "0%, 100%": { opacity: "1" },
+                            "50%": { opacity: "0.6" },
+                        },
+                        countdownPulse: {
+                            "0%, 100%": { transform: "scale(1)" },
+                            "50%": { transform: "scale(1.05)" },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f7f9ff;
+            color: #181c20;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-flex;
+            vertical-align: middle;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .hero-gradient {
+            background:
+                radial-gradient(ellipse at 0% 20%, rgba(255, 152, 0, 0.08) 0%, transparent 58%),
+                radial-gradient(ellipse at 100% 70%, rgba(139, 195, 74, 0.10) 0%, transparent 56%),
+                #f7f9ff;
+        }
+
+        .sticky-cta {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sticky-cta.visible {
+            transform: translateY(0);
+        }
+
+        .btn-press:active {
+            transform: scale(0.96);
+        }
+
+        .value-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .value-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 42px rgba(24, 28, 32, 0.10);
+            border-color: rgba(255, 152, 0, 0.32);
+        }
+
+        .about-hero-panel {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.76) 100%),
+                radial-gradient(circle at top right, rgba(255, 204, 128, 0.38) 0%, transparent 42%),
+                radial-gradient(circle at bottom left, rgba(139, 195, 74, 0.28) 0%, transparent 40%);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 1.25rem;
+            top: 3rem;
+            bottom: -1rem;
+            width: 2px;
+            background: rgba(211, 193, 207, 0.42);
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        .final-cta-luxury {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 28%),
+                radial-gradient(circle at 84% 10%, rgba(255, 204, 128, 0.58) 0%, rgba(255, 204, 128, 0) 30%),
+                linear-gradient(135deg, #6FAF32 0%, #8BC34A 42%, #CFEF82 68%, #FFCC80 100%);
+        }
+
+        .final-cta-luxury::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(120deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
+                linear-gradient(315deg, rgba(27, 94, 32, 0.22) 0%, rgba(27, 94, 32, 0) 42%);
+            pointer-events: none;
+        }
+
+        .final-cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        *:focus-visible {
+            outline: 2px solid #FF9800;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== STICKY MOBILE CTA ========== -->
+    <div id="stickyCta" class="sticky-cta fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/20 px-4 py-3 md:hidden shadow-lg">
+        <div class="flex items-center gap-3 max-w-container-max mx-auto">
+            <button class="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-sm btn-press transition-all hover:bg-primary/90 text-center">
+                Daftar Sekarang
+            </button>
+            <button class="flex-1 px-4 py-2.5 bg-secondary text-on-secondary rounded-xl font-bold text-sm btn-press transition-all hover:bg-secondary/90 text-center">
+                Lihat Lelang Aktif
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== HEADER ========== -->
+    <header class="sticky top-0 z-40 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm">
+        <div class="max-w-container-max mx-auto px-margin-page py-3 flex items-center justify-between gap-4">
+            <!-- Logo -->
+            <a href="#" class="flex-shrink-0">
+                <img alt="BIDKU" class="h-9 md:h-10 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX">
+            </a>
+
+            <!-- Search - hidden on mobile, shown on desktop -->
+            <div class="hidden lg:flex flex-1 max-w-md relative">
+                <input class="w-full border border-outline-variant/30 rounded-xl px-4 py-2 text-body-md focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none bg-surface-container-lowest transition-all" placeholder="Cari merk, model, atau lokasi..." type="text">
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
+            </div>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center gap-6">
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#catalog">Katalog</a>
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#schedule">Jadwal Lelang</a>
+                <a class="text-body-md font-medium text-primary transition-colors" href="#about">Tentang Kami</a>
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#faq">FAQ</a>
+            </nav>
+
+            <!-- Auth Buttons -->
+            <div class="flex items-center gap-3">
+                <a class="hidden sm:inline-block text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#">Daftar</a>
+                <button class="px-5 py-2 text-body-md font-semibold text-on-primary bg-primary rounded-full shadow-sm hover:bg-primary/90 btn-press transition-all">
+                    Masuk
+                </button>
+                <!-- Mobile menu toggle -->
+                <button class="lg:hidden w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors" aria-label="Menu">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ========== ABOUT HERO ========== -->
+        <section id="about" class="hero-gradient relative overflow-hidden pt-10 pb-10 md:pt-14 md:pb-14">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="about-hero-panel rounded-3xl border border-white/80 shadow-xl shadow-black/5 p-6 md:p-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-center">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed rounded-full text-badge-text font-bold">
+                                <span class="material-symbols-outlined text-sm filled">verified</span>
+                                Platform lelang digital terintegrasi
+                            </div>
+                            <h1 class="text-heading-3xl md:text-[3.25rem] md:leading-[1.08] font-extrabold text-on-surface tracking-tight mt-5">
+                                Mengenal
+                                <span class="text-primary">BIDKU</span>
+                            </h1>
+                            <p class="text-body-lg text-on-surface-variant max-w-2xl mt-4 leading-relaxed">
+                                BIDKU menghadirkan pengalaman lelang yang transparan, aman, dan mudah diakses untuk bidder, provider, dan partner korporasi di seluruh Indonesia.
+                            </p>
+                            <div class="mt-6 flex flex-wrap gap-3">
+                                <a href="#values" class="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg">flag</span>
+                                    Nilai Kami
+                                </a>
+                                <a href="#milestones" class="px-6 py-3 border-2 border-outline-variant/30 text-on-surface rounded-xl font-bold text-body-md btn-press transition-all hover:border-primary hover:text-primary flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg">timeline</span>
+                                    Perjalanan BIDKU
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <div class="rounded-3xl overflow-hidden border-4 border-white shadow-2xl shadow-black/10">
+                                <img class="w-full aspect-[4/3] object-cover" alt="Aktivitas lelang digital BIDKU" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM">
+                            </div>
+                            <div class="absolute bottom-4 left-4 bg-white rounded-2xl shadow-xl border border-outline-variant/20 p-4 flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+                                    <span class="material-symbols-outlined filled">shield</span>
+                                </div>
+                                <div>
+                                    <p class="text-body-sm text-outline">Komitmen utama</p>
+                                    <p class="text-heading-md font-bold text-on-surface">Transparansi Lelang</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== STATS ========== -->
+        <section class="py-10 md:py-14 bg-surface">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5">
+                        <p class="text-heading-2xl font-extrabold text-primary">128K+</p>
+                        <p class="text-body-md text-on-surface-variant mt-2">Bidder terdaftar</p>
+                    </div>
+                    <div class="bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5">
+                        <p class="text-heading-2xl font-extrabold text-secondary">34K+</p>
+                        <p class="text-body-md text-on-surface-variant mt-2">Lot berhasil dilelang</p>
+                    </div>
+                    <div class="bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5">
+                        <p class="text-heading-2xl font-extrabold text-primary">48</p>
+                        <p class="text-body-md text-on-surface-variant mt-2">Kota jangkauan</p>
+                    </div>
+                    <div class="bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5">
+                        <p class="text-heading-2xl font-extrabold text-secondary">250+</p>
+                        <p class="text-body-md text-on-surface-variant mt-2">Provider aktif</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== STORY ========== -->
+        <section class="py-10 md:py-14 bg-surface-container-lowest">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-8 items-start">
+                    <div>
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-fixed text-on-primary-fixed rounded-full text-badge-text font-bold">
+                            <span class="material-symbols-outlined text-sm">domain</span>
+                            Tentang perusahaan
+                        </span>
+                        <h2 class="text-heading-2xl font-extrabold text-on-surface mt-4">Membangun ekosistem lelang yang lebih terbuka</h2>
+                    </div>
+                    <div class="space-y-4 text-body-lg text-on-surface-variant leading-relaxed">
+                        <p>
+                            BIDKU adalah Platform lelang digital terintegrasi di Indonesia yang mempertemukan bidder dan provider aset dalam proses lelang yang lebih cepat, transparan, dan terdokumentasi.
+                        </p>
+                        <p>
+                            Melalui teknologi verifikasi, katalog digital, jadwal sesi real-time, dan dukungan operasional, BIDKU membantu peserta mengambil keputusan dengan informasi yang lebih jelas sejak tahap pencarian lot hingga proses settlement.
+                        </p>
+                        <p>
+                            Fokus kami adalah menciptakan pengalaman lelang yang modern tanpa menghilangkan prinsip utama industri lelang: kepercayaan, kepastian, dan akuntabilitas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== VALUES ========== -->
+        <section id="values" class="py-12 md:py-16 bg-surface">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="text-center max-w-2xl mx-auto mb-8">
+                    <h2 class="text-heading-2xl font-extrabold text-on-surface">Nilai Utama BIDKU</h2>
+                    <p class="text-body-lg text-on-surface-variant mt-3">Prinsip yang menjaga setiap proses lelang tetap jelas, aman, dan dapat dipercaya.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="value-card bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-6">
+                        <div class="w-12 h-12 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined filled">visibility</span>
+                        </div>
+                        <h3 class="text-heading-md font-bold text-on-surface mt-4">Transparan</h3>
+                        <p class="text-body-md text-on-surface-variant mt-2">Informasi lot, jadwal, deposit, dan histori bid dibuat mudah dipahami.</p>
+                    </div>
+                    <div class="value-card bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-6">
+                        <div class="w-12 h-12 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined filled">verified_user</span>
+                        </div>
+                        <h3 class="text-heading-md font-bold text-on-surface mt-4">Aman</h3>
+                        <p class="text-body-md text-on-surface-variant mt-2">Verifikasi akun, dokumen, dan provider menjaga proses tetap akuntabel.</p>
+                    </div>
+                    <div class="value-card bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-6">
+                        <div class="w-12 h-12 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined">bolt</span>
+                        </div>
+                        <h3 class="text-heading-md font-bold text-on-surface mt-4">Cepat</h3>
+                        <p class="text-body-md text-on-surface-variant mt-2">Alur digital membantu registrasi, bidding, dan settlement lebih efisien.</p>
+                    </div>
+                    <div class="value-card bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-6">
+                        <div class="w-12 h-12 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined">groups</span>
+                        </div>
+                        <h3 class="text-heading-md font-bold text-on-surface mt-4">Kolaboratif</h3>
+                        <p class="text-body-md text-on-surface-variant mt-2">Kami membangun layanan untuk bidder, provider, dan partner korporasi.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== ECOSYSTEM ========== -->
+        <section class="py-12 md:py-16 bg-surface-container-lowest">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-center">
+                    <div class="rounded-3xl overflow-hidden border-4 border-white shadow-2xl shadow-black/10">
+                        <img class="w-full aspect-[4/3] object-cover" alt="Ekosistem aset lelang BIDKU" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB">
+                    </div>
+                    <div>
+                        <h2 class="text-heading-2xl font-extrabold text-on-surface">Satu platform untuk banyak kebutuhan aset</h2>
+                        <p class="text-body-lg text-on-surface-variant mt-4 leading-relaxed">
+                            BIDKU dirancang untuk menangani berbagai kategori aset, mulai dari kendaraan penumpang, kendaraan niaga, motor, properti, hingga alat berat.
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                            <div class="rounded-2xl bg-white border border-outline-variant/10 p-4 flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+                                    <span class="material-symbols-outlined">directions_car</span>
+                                </span>
+                                <span class="text-body-md font-bold text-on-surface">Otomotif</span>
+                            </div>
+                            <div class="rounded-2xl bg-white border border-outline-variant/10 p-4 flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+                                    <span class="material-symbols-outlined">apartment</span>
+                                </span>
+                                <span class="text-body-md font-bold text-on-surface">Properti</span>
+                            </div>
+                            <div class="rounded-2xl bg-white border border-outline-variant/10 p-4 flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+                                    <span class="material-symbols-outlined">construction</span>
+                                </span>
+                                <span class="text-body-md font-bold text-on-surface">Alat Berat</span>
+                            </div>
+                            <div class="rounded-2xl bg-white border border-outline-variant/10 p-4 flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+                                    <span class="material-symbols-outlined">business_center</span>
+                                </span>
+                                <span class="text-body-md font-bold text-on-surface">Aset Korporasi</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== MILESTONES ========== -->
+        <section id="milestones" class="py-12 md:py-16 bg-surface">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr] gap-8">
+                    <div>
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed rounded-full text-badge-text font-bold">
+                            <span class="material-symbols-outlined text-sm">timeline</span>
+                            Perjalanan
+                        </span>
+                        <h2 class="text-heading-2xl font-extrabold text-on-surface mt-4">Dibangun untuk bertumbuh bersama ekosistem lelang</h2>
+                        <p class="text-body-lg text-on-surface-variant mt-3">Setiap tahap pengembangan BIDKU berfokus pada kemudahan akses, data yang lebih jelas, dan layanan yang lebih tepercaya.</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="timeline-item relative bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5 pl-16">
+                            <span class="absolute left-5 top-5 w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">1</span>
+                            <p class="text-body-sm font-bold text-primary">Fondasi digital</p>
+                            <h3 class="text-heading-md font-bold text-on-surface mt-1">Katalog dan jadwal lelang terpusat</h3>
+                            <p class="text-body-md text-on-surface-variant mt-2">Peserta dapat melihat daftar lot, jadwal sesi, lokasi, dan informasi deposit dari satu platform.</p>
+                        </div>
+                        <div class="timeline-item relative bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5 pl-16">
+                            <span class="absolute left-5 top-5 w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold">2</span>
+                            <p class="text-body-sm font-bold text-secondary">Kepercayaan</p>
+                            <h3 class="text-heading-md font-bold text-on-surface mt-1">Verifikasi bidder dan provider</h3>
+                            <p class="text-body-md text-on-surface-variant mt-2">Proses eKYC, validasi dokumen, dan pengelolaan provider membantu mengurangi risiko transaksi.</p>
+                        </div>
+                        <div class="timeline-item relative bg-white rounded-3xl border border-outline-variant/10 shadow-sm p-5 pl-16">
+                            <span class="absolute left-5 top-5 w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">3</span>
+                            <p class="text-body-sm font-bold text-primary">Skala nasional</p>
+                            <h3 class="text-heading-md font-bold text-on-surface mt-1">Ekspansi kategori dan lokasi</h3>
+                            <p class="text-body-md text-on-surface-variant mt-2">BIDKU mendukung lebih banyak jenis aset dan pool lelang untuk menjangkau kebutuhan pasar yang lebih luas.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== CTA ========== -->
+        <section class="final-cta-luxury py-14 md:py-16">
+            <div class="final-cta-content max-w-container-max mx-auto px-margin-page text-center">
+                <h2 class="text-heading-2xl md:text-[2.75rem] md:leading-tight font-extrabold text-black/70">Siap menjadi bagian dari ekosistem BIDKU?</h2>
+                <p class="text-body-lg text-black/70 max-w-2xl mx-auto mt-3">Mulai sebagai bidder atau daftarkan aset perusahaan Anda sebagai provider terpercaya.</p>
+                <div class="flex flex-wrap justify-center gap-4 mt-8">
+                    <button class="px-8 py-4 bg-primary text-white rounded-xl font-bold text-body-md btn-press transition-all hover:bg-white/90 hover:text-secondary shadow-xl shadow-black/10 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">person_add</span>
+                        Daftar Bidder
+                    </button>
+                    <button class="px-8 py-4 border-2 border-black/30 text-black/70 rounded-xl font-bold text-body-md btn-press transition-all hover:bg-black/10 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">storefront</span>
+                        Portal Provider
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-surface-container-lowest border-t border-outline-variant/20">
+        <div class="max-w-container-max mx-auto px-margin-page py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand -->
+                <div class="flex flex-col gap-4">
+                    <img alt="BIDKU" class="h-10 w-auto self-start object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX">
+                    <p class="text-body-md text-on-surface-variant leading-relaxed">BIDKU adalah Platform lelang digital terintegrasi di Indonesia. Transparan, aman, cepat, dan terpercaya untuk mobil, motor, properti, dan alat berat.
+                    </p>
+                    <div class="text-body-md text-on-surface-variant space-y-1">
+                        <p class="font-bold text-primary">Hubungi Kami:</p>
+                        <p>&#9993;&#65039; support@indolelang.com</p>
+                        <p>&#128222; (021) 5098-8888</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">share</span>
+                        </a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">public</span>
+                        </a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">mail</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Public Links -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Tautan Publik</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Katalog Lelang</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Jadwal Sesi Lelang</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Tentang Kami</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">FAQ &amp; Pusat Bantuan</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kontak &amp; Alamat</a></li>
+                    </ul>
+                </div>
+
+                <!-- Bidder Guide -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Panduan Bidder</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Registrasi Bidder</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Aturan &amp; Syarat Bidding</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Verifikasi Akun (eKYC)</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kebijakan Deposit &amp; Refund</a></li>
+                    </ul>
+                </div>
+
+                <!-- Provider -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Provider</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Portal Provider</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Daftar Sebagai Provider</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Ketentuan Titip Jual</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Skema Settlement Dana</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kerjasama Korporasi</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-outline-variant/10 text-center">
+                <p class="text-body-sm text-outline">&copy; 2024 PT INDO LELANG SEJAHTERA. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        const stickyCta = document.getElementById('stickyCta');
+        let lastScrollY = window.scrollY;
+        let ticking = false;
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                window.requestAnimationFrame(function() {
+                    const currentScrollY = window.scrollY;
+                    const heroHeight = document.querySelector('.hero-gradient')?.offsetHeight || 560;
+
+                    if (currentScrollY > heroHeight - 100) {
+                        stickyCta.classList.add('visible');
+                    } else {
+                        stickyCta.classList.remove('visible');
+                    }
+
+                    lastScrollY = currentScrollY;
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        window.addEventListener('load', function() {
+            const heroHeight = document.querySelector('.hero-gradient')?.offsetHeight || 560;
+            if (window.scrollY > heroHeight - 100) {
+                stickyCta.classList.add('visible');
+            }
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const target = document.querySelector(targetId);
+                if (target) {
+                    e.preventDefault();
+                    const headerOffset = 80;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        const mobileMenuBtn = document.querySelector('button[aria-label="Menu"]');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', function() {
+                alert('Menu navigasi tersedia di layar desktop. Untuk mobile, silakan gunakan tombol aksi di bawah.');
+            });
+        }
+    </script>
+
+</body>
+</html>

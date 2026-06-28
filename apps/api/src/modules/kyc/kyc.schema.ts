@@ -1,0 +1,24 @@
+import { z } from 'zod';
+import { KycStatus } from '@indo-lelang/shared-types';
+
+export const uploadKycSchema = z.object({
+  body: z.object({
+    ktp_url: z.string().url('URL KTP tidak valid').optional(),
+    selfie_url: z.string().url('URL Selfie tidak valid').optional(),
+    ktp_selfie_url: z.string().url('URL KTP Selfie tidak valid').optional(),
+  }),
+});
+
+export const rejectKycSchema = z.object({
+  body: z.object({
+    rejection_reason: z.string().min(5, 'Alasan penolakan minimal 5 karakter'),
+  }),
+});
+
+export const kycQueueQuerySchema = z.object({
+  query: z.object({
+    page: z.string().transform((val) => parseInt(val, 10)).default('1'),
+    per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
+    status: z.enum([KycStatus.PENDING, KycStatus.APPROVED, KycStatus.REJECTED]).default(KycStatus.PENDING),
+  }),
+});

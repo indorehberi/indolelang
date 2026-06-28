@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BIDKU - Lelang Digital Terpercaya</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF9800",
+                        "primary-fixed": "#FFE0B2",
+                        "primary-fixed-dim": "#FFCC80",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#E65100",
+                        "on-primary-fixed-variant": "#F57C00",
+                        "secondary": "#8BC34A",
+                        "secondary-fixed": "#DCEDC8",
+                        "secondary-fixed-dim": "#C5E1A5",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#1B5E20",
+                        "on-secondary-fixed-variant": "#33691E",
+                        "background": "#f7f9ff",
+                        "surface": "#f7f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f1f4f9",
+                        "surface-container": "#ebeef3",
+                        "surface-container-high": "#e5e8ee",
+                        "surface-container-highest": "#e0e3e8",
+                        "surface-bright": "#f7f9ff",
+                        "surface-dim": "#d7dadf",
+                        "on-surface": "#181c20",
+                        "on-surface-variant": "#4f434e",
+                        "outline": "#81737f",
+                        "outline-variant": "#d3c1cf",
+                        "inverse-surface": "#2d3135",
+                        "inverse-on-surface": "#eef1f6",
+                        "inverse-primary": "#FFCC80",
+                        "surface-tint": "#FF9800",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "text-secondary": "rgba(33, 37, 41, 0.7)",
+                        "glass-border": "rgba(255, 255, 255, 0.15)",
+                        "accent-gold": "#F39C12",
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.25rem",
+                        full: "9999px",
+                    },
+                    spacing: {
+                        "margin-page": "1.5rem",
+                        "container-max": "1280px",
+                        "gutter": "1.5rem",
+                        "stack-lg": "4rem",
+                        "stack-sm": "0.5rem",
+                        "stack-md": "1.5rem",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    fontSize: {
+                        "heading-3xl": ["2.5rem", { lineHeight: "1.1", fontWeight: "800" }],
+                        "heading-2xl": ["2rem", { lineHeight: "1.15", fontWeight: "700" }],
+                        "heading-xl": ["1.5rem", { lineHeight: "1.2", fontWeight: "700" }],
+                        "heading-lg": ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
+                        "heading-md": ["1.125rem", { lineHeight: "1.4", fontWeight: "600" }],
+                        "body-lg": ["1rem", { lineHeight: "1.6", fontWeight: "400" }],
+                        "body-md": ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
+                        "body-sm": ["0.75rem", { lineHeight: "1.4", fontWeight: "400" }],
+                        "label-sm": ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
+                        "badge-text": ["0.625rem", { lineHeight: "1", fontWeight: "700" }],
+                    },
+                    animation: {
+                        "fade-in-up": "fadeInUp 0.6s ease-out forwards",
+                        "pulse-soft": "pulseSoft 2s ease-in-out infinite",
+                        "countdown-pulse": "countdownPulse 1s ease-in-out infinite",
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            "0%": { opacity: "0", transform: "translateY(20px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" },
+                        },
+                        pulseSoft: {
+                            "0%, 100%": { opacity: "1" },
+                            "50%": { opacity: "0.6" },
+                        },
+                        countdownPulse: {
+                            "0%, 100%": { transform: "scale(1)" },
+                            "50%": { transform: "scale(1.05)" },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f7f9ff;
+            color: #181c20;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-flex;
+            vertical-align: middle;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .hero-gradient {
+            background:
+                radial-gradient(ellipse at 0% 20%, rgba(255, 152, 0, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 100% 80%, rgba(139, 195, 74, 0.05) 0%, transparent 60%),
+                #f7f9ff;
+        }
+
+        .auction-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .auction-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .stat-number {
+            font-size: 2.25rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        @media (min-width: 768px) {
+            .stat-number {
+                font-size: 2.25rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .stat-number {
+                font-size: 2.25rem;
+            }
+        }
+
+        .step-connector {
+            position: relative;
+        }
+
+        .step-connector::after {
+            content: '';
+            position: absolute;
+            top: 2.5rem;
+            left: 100%;
+            width: calc(100% - 1rem);
+            height: 2px;
+            background: linear-gradient(to right, #FF9800, #8BC34A);
+            opacity: 0.3;
+        }
+
+        .step-connector:last-child::after {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .step-connector::after {
+                display: none;
+            }
+        }
+
+        .faq-toggle {
+            transition: transform 0.3s ease;
+        }
+
+        .faq-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .faq-answer.open {
+            max-height: 300px;
+            opacity: 1;
+        }
+
+        .sticky-cta {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sticky-cta.visible {
+            transform: translateY(0);
+        }
+
+        .countdown-badge {
+            animation: countdownPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes countdownPulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Focus styles */
+        *:focus-visible {
+            outline: 2px solid #FF9800;
+            outline-offset: 2px;
+        }
+
+        /* Button press effect */
+        .btn-press:active {
+            transform: scale(0.96);
+        }
+
+        /* Image placeholder shimmer */
+        .image-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Category card hover */
+        .category-card .category-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .category-card:hover .category-icon {
+            transform: scale(1.1) rotate(-4deg);
+        }
+
+        /* Testimonial card */
+        .testimonial-card {
+            transition: all 0.3s ease;
+        }
+
+        .testimonial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .final-cta-luxury {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 28%),
+                radial-gradient(circle at 84% 10%, rgba(255, 204, 128, 0.58) 0%, rgba(255, 204, 128, 0) 30%),
+                linear-gradient(135deg, #6FAF32 0%, #8BC34A 42%, #CFEF82 68%, #FFCC80 100%);
+        }
+
+        .final-cta-luxury::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(120deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
+                linear-gradient(315deg, rgba(27, 94, 32, 0.22) 0%, rgba(27, 94, 32, 0) 42%);
+            pointer-events: none;
+        }
+
+        .final-cta-content {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== STICKY MOBILE CTA ========== -->
+    <div id="stickyCta" class="sticky-cta fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/20 px-4 py-3 md:hidden shadow-lg">
+        <div class="flex items-center gap-3 max-w-container-max mx-auto">
+            <button class="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-sm btn-press transition-all hover:bg-primary/90 text-center">
+                Daftar Sekarang
+            </button>
+            <button class="flex-1 px-4 py-2.5 bg-secondary text-on-secondary rounded-xl font-bold text-sm btn-press transition-all hover:bg-secondary/90 text-center">
+                Lihat Lelang Aktif
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== HEADER ========== -->
+    <header class="sticky top-0 z-40 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm">
+        <div class="max-w-container-max mx-auto px-margin-page py-3 flex items-center justify-between gap-4">
+            <!-- Logo -->
+            <a href="#" class="flex-shrink-0">
+                <img alt="BIDKU" class="h-9 md:h-10 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX">
+            </a>
+
+            <!-- Search - hidden on mobile, shown on desktop -->
+            <div class="hidden lg:flex flex-1 max-w-md relative">
+                <input class="w-full border border-outline-variant/30 rounded-xl px-4 py-2 text-body-md focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none bg-surface-container-lowest transition-all" placeholder="Cari merk, model, atau lokasi..." type="text">
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
+            </div>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center gap-6">
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#live-auctions">Katalog</a>
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#categories">Jadwal Lelang</a>
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#how-it-works">Tentang Kami</a>
+                <a class="text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#faq">FAQ</a>
+            </nav>
+
+            <!-- Auth Buttons -->
+            <div class="flex items-center gap-3">
+                <a class="hidden sm:inline-block text-body-md font-medium text-on-surface hover:text-primary transition-colors" href="#">Daftar</a>
+                <button class="px-5 py-2 text-body-md font-semibold text-on-primary bg-primary rounded-full shadow-sm hover:bg-primary/90 btn-press transition-all">
+                    Masuk
+                </button>
+                <!-- Mobile menu toggle -->
+                <button class="lg:hidden w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors" aria-label="Menu">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- ========== HERO SECTION ========== -->
+        <section class="hero-gradient relative overflow-hidden pt-10 pb-20 md:pb-28 lg:pb-32">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                    <!-- Left Content -->
+                    <div class="flex flex-col gap-5 animate-fade-in-up">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed rounded-full text-badge-text font-bold w-fit">
+                            <span class="material-symbols-outlined text-sm filled">verified</span>
+                            #1 Digital Auction di Indonesia
+                        </div>
+
+                        <h1 class="text-heading-3xl md:text-[3.25rem] md:leading-[1.08] font-extrabold text-on-background tracking-tight">
+                            Lelang Digital
+                            <span class="text-primary">Terpercaya</span>,
+                            <br class="hidden sm:block">Cepat &amp; Transparan
+                        </h1>
+
+                        <p class="text-body-lg text-on-surface-variant max-w-md leading-relaxed">
+                            Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.
+                        </p>
+
+                        <div class="flex flex-wrap gap-3 pt-2">
+                            <button class="px-7 py-3.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">gavel</span>
+                                Lihat Lelang Aktif
+                            </button>
+                            <button class="px-7 py-3.5 border-2 border-outline-variant/30 text-on-surface rounded-xl font-bold text-body-md btn-press transition-all hover:border-primary hover:text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">play_circle</span>
+                                Cara Kerja
+                            </button>
+                        </div>
+
+                        <!-- Trust badges - inline -->
+                        <div class="flex flex-wrap items-center gap-4 pt-4">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm text-primary filled">verified</span>
+                                <span class="text-body-sm font-medium text-on-surface-variant">Aman &amp; Terpercaya</span>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/30"></div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm text-secondary filled">bolt</span>
+                                <span class="text-body-sm font-medium text-on-surface-variant">Proses Cepat</span>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/30 hidden sm:block"></div>
+                            <div class="flex items-center gap-1.5 hidden sm:flex">
+                                <span class="material-symbols-outlined text-sm text-primary filled">support_agent</span>
+                                <span class="text-body-sm font-medium text-on-surface-variant">Dukungan 24/7</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right - Hero Image -->
+                    <div class="relative lg:block">
+                        <div class="rounded-2xl overflow-hidden shadow-2xl border-4 border-white/80 relative">
+                            <img class="w-full h-auto object-cover aspect-[4/3] lg:aspect-[4/3]" alt="Modern digital auction environment with luxury cars" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM">
+                            <!-- Floating badge -->
+                            <div class="absolute bottom-4 left-4 bg-white rounded-xl shadow-xl border border-outline-variant/20 p-3 flex items-center gap-3 animate-pulse-soft">
+                                <div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-on-secondary-fixed filled">bolt</span>
+                                </div>
+                                <div>
+                                    <p class="text-body-sm font-medium text-outline">Live Auction</p>
+                                    <p class="text-heading-md font-bold text-secondary">Sedang Berlangsung</p>
+                                </div>
+                            </div>
+                            <!-- Participant count badge -->
+                            <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg flex items-center gap-1.5 text-body-sm font-medium">
+                                <span class="material-symbols-outlined text-primary text-sm filled">group</span>
+                                1.240+ Peserta
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== STATISTICS SECTION ========== -->
+        <section class="py-6 md:py-8 bg-white border-b border-outline-variant/10">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <div class="text-center p-4 rounded-xl bg-surface-container-low/90">
+                        <p class="stat-number text-primary">1.200+</p>
+                        <p class="text-body-sm font-medium text-outline mt-0.5">Lot Terjual / Bulan</p>
+                    </div>
+                    <div class="text-center p-4 rounded-xl bg-surface-container-low/90">
+                        <p class="stat-number text-primary">3.400+</p>
+                        <p class="text-body-sm font-medium text-outline mt-0.5">Peserta Aktif</p>
+                    </div>
+                    <div class="text-center p-4 rounded-xl bg-surface-container-low/90">
+                        <p class="stat-number text-primary">Rp 120M+</p>
+                        <p class="text-body-sm font-medium text-outline mt-0.5">Nilai Transaksi</p>
+                    </div>
+                    <div class="text-center p-4 rounded-xl bg-surface-container-low/90">
+                        <p class="stat-number text-primary">30+</p>
+                        <p class="text-body-sm font-medium text-outline mt-0.5">Kota Terlayani</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== TRUST INDICATORS ========== -->
+        <section class="py-10 md:py-14 bg-surface-container-low/30">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="text-center mb-10">
+                    <h2 class="text-heading-2xl font-bold text-on-background">Mengapa Memilih BIDKU?</h2>
+                    <p class="text-body-lg text-on-surface-variant mt-2">Keamanan dan kenyamanan Anda adalah prioritas kami</p>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <div class="bg-white p-5 md:p-6 rounded-2xl border border-outline-variant/10 text-center hover:border-primary/30 transition-all">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-fixed/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl text-primary filled">shield</span>
+                        </div>
+                        <h4 class="font-bold text-body-md">Transaksi Aman</h4>
+                        <p class="text-body-sm text-on-surface-variant mt-1">Sistem terenkripsi &amp; verifikasi eKYC</p>
+                    </div>
+                    <div class="bg-white p-5 md:p-6 rounded-2xl border border-outline-variant/10 text-center hover:border-primary/30 transition-all">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-secondary-fixed/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl text-secondary filled">verified</span>
+                        </div>
+                        <h4 class="font-bold text-body-md">Penjual Terverifikasi</h4>
+                        <p class="text-body-sm text-on-surface-variant mt-1">Semua unit melalui inspeksi ketat</p>
+                    </div>
+                    <div class="bg-white p-5 md:p-6 rounded-2xl border border-outline-variant/10 text-center hover:border-primary/30 transition-all">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-fixed/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl text-primary filled">visibility</span>
+                        </div>
+                        <h4 class="font-bold text-body-md">Proses Transparan</h4>
+                        <p class="text-body-sm text-on-surface-variant mt-1">Semua bid &amp; harga terbuka untuk umum</p>
+                    </div>
+                    <div class="bg-white p-5 md:p-6 rounded-2xl border border-outline-variant/10 text-center hover:border-primary/30 transition-all">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-secondary-fixed/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl text-secondary filled">headset_mic</span>
+                        </div>
+                        <h4 class="font-bold text-body-md">Dukungan 24/7</h4>
+                        <p class="text-body-sm text-on-surface-variant mt-1">Tim siap membantu Anda setiap saat</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== LIVE AUCTION SECTION ========== -->
+        <section id="live-auctions" class="py-12 md:py-16 bg-white">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-error-container/20 text-error rounded-full text-badge-text font-bold mb-2">
+                            <span class="material-symbols-outlined text-sm filled text-error">circle</span>
+                            LIVE NOW
+                        </div>
+                        <h2 class="text-heading-2xl font-bold text-on-background">Lelang Aktif</h2>
+                        <p class="text-body-lg text-on-surface-variant mt-1">Penawaran terbaik dari berbagai kategori</p>
+                    </div>
+                    <a href="#" class="text-primary font-bold flex items-center gap-1 hover:underline text-body-md">
+                        Lihat Semua
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                </div>
+
+                <!-- Auction Cards - Horizontal scroll on mobile, grid on desktop -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- Card 1 -->
+                    <div class="auction-card bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Toyota Avanza" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-secondary text-on-secondary text-badge-text font-bold rounded-full">Live</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span class="countdown-badge">12:34:56</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    47
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Toyota Avanza 1.3 G</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">B</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Jakarta Selatan
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 135.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 bg-secondary text-on-secondary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-secondary/90">
+                                    Tawar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="auction-card bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Honda CR-V" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-primary text-on-primary text-badge-text font-bold rounded-full">Akan Datang</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span>2 Hari</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    89
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Honda CR-V 1.5 Turbo</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">A</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Surabaya
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 310.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 border-2 border-primary/30 text-primary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-primary hover:text-white">
+                                    Ingatkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="auction-card bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Toyota Hilux" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-secondary text-on-secondary text-badge-text font-bold rounded-full">Live</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span class="countdown-badge">08:15:22</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    34
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Toyota Hilux 2.4 V</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">B</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Medan
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 285.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 bg-secondary text-on-secondary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-secondary/90">
+                                    Tawar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div class="auction-card bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Honda Brio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-secondary text-on-secondary text-badge-text font-bold rounded-full">Live</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span class="countdown-badge">04:45:10</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    56
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Honda Brio 1.2 RS</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">A</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Semarang
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 98.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 bg-secondary text-on-secondary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-secondary/90">
+                                    Tawar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== CATEGORIES ========== -->
+        <section id="categories" class="py-12 md:py-16 bg-surface-container-low/30">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+                    <div>
+                        <h2 class="text-heading-2xl font-bold text-on-background">Kategori Lelang</h2>
+                        <p class="text-body-lg text-on-surface-variant mt-1">Pilih kategori aset yang Anda cari</p>
+                    </div>
+                    <a href="#" class="text-primary font-bold flex items-center gap-1 hover:underline text-body-md">
+                        Lihat Semua
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Mobil -->
+                    <a href="#" class="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md">
+                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Mobil" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <h4 class="font-bold text-white text-body-lg">Mobil Penumpang</h4>
+                            <p class="text-white/80 text-body-sm">842 Unit Tersedia</p>
+                        </div>
+                    </a>
+                    <!-- Motor -->
+                    <a href="#" class="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md">
+                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Motor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <h4 class="font-bold text-white text-body-lg">Sepeda Motor</h4>
+                            <p class="text-white/80 text-body-sm">1.120 Unit Tersedia</p>
+                        </div>
+                    </a>
+                    <!-- Komersial -->
+                    <a href="#" class="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md">
+                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Alat Berat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <h4 class="font-bold text-white text-body-lg">Alat Berat</h4>
+                            <p class="text-white/80 text-body-sm">145 Unit Tersedia</p>
+                        </div>
+                    </a>
+                    <!-- Properti -->
+                    <a href="#" class="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md">
+                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Properti" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAKe_8vmxw29JLRtQYJu9kIj9SSxejc7c-x8FZ9yvwAcraOjYJQWtAun90V_9mWhx5Fc0yj7qi226wff8XoO-B8zS94kC8jRdGIB8O9bsH7Nhr0u4sJZGBdX9R6-JALgUiUFbI_NW_vN-QiNbVb_WGRUuassF6O_AjU9RuREtTqPZI9hvaWxO6IxqUzevGmKDWDbe9XRHS-qXcH0eH4c1lTgfR2ZHLmTZvUQbPf2dM8WY2ksd1kXL4JpiipvA98Fs_rPDJFniNHLto">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <h4 class="font-bold text-white text-body-lg">Properti</h4>
+                            <p class="text-white/80 text-body-sm">52 Unit Tersedia</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== FEATURED AUCTIONS ========== -->
+        <section class="py-12 md:py-16 bg-white">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+                    <div>
+                        <h2 class="text-heading-2xl font-bold text-on-background">Lelang Unggulan</h2>
+                        <p class="text-body-lg text-on-surface-variant mt-1">Rekomendasi terbaik untuk Anda</p>
+                    </div>
+                    <a href="#" class="text-primary font-bold flex items-center gap-1 hover:underline text-body-md">
+                        Lihat Semua
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- Featured 1 -->
+                    <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Mitsubishi Pajero" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-accent-gold/90 text-white text-badge-text font-bold rounded-full">⭐ Terbaik</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span class="countdown-badge">06:12:33</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    72
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Mitsubishi Pajero Sport</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">A</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Jakarta Pusat
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 425.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 bg-secondary text-on-secondary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-secondary/90">
+                                    Tawar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Featured 2 -->
+                    <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="BMW X5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-secondary text-on-secondary text-badge-text font-bold rounded-full">Premium</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span>3 Hari</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    104
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">BMW X5 xDrive30d</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">A</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Tangerang
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 1.150.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 border-2 border-primary/30 text-primary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-primary hover:text-white">
+                                    Ingatkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Featured 3 -->
+                    <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Daihatsu Xenia" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-secondary text-on-secondary text-badge-text font-bold rounded-full">Live</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span class="countdown-badge">02:30:45</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    38
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Daihatsu Xenia 1.5 R</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">B</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Bandung
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 165.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 bg-secondary text-on-secondary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-secondary/90">
+                                    Tawar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Featured 4 -->
+                    <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                        <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            <img class="w-full h-full object-cover" alt="Yamaha NMAX" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6">
+                            <div class="absolute top-2 left-2 px-2.5 py-1 bg-primary text-on-primary text-badge-text font-bold rounded-full">Akan Datang</div>
+                            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">timer</span>
+                                    <span>5 Hari</span>
+                                </span>
+                                <span class="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                                    <span class="material-symbols-outlined text-sm">group</span>
+                                    28
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-body-md truncate">Yamaha NMAX 155</h4>
+                                <span class="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">A</span>
+                            </div>
+                            <p class="text-body-sm text-outline flex items-center gap-1 mb-3">
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Yogyakarta
+                            </p>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-body-sm text-outline">Harga Dasar</p>
+                                    <p class="text-heading-lg font-bold text-primary">Rp 28.000.000</p>
+                                </div>
+                                <button class="px-4 py-2 border-2 border-primary/30 text-primary rounded-xl font-bold text-body-sm btn-press transition-all hover:bg-primary hover:text-white">
+                                    Ingatkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+<!-- ========== HOW IT WORKS - 7 STEPS ========== -->
+<section id="how-it-works" class="py-12 md:py-16 bg-surface-container-low/30">
+    <div class="max-w-container-max mx-auto px-margin-page">
+        <div class="text-center mb-12">
+            <h2 class="text-heading-2xl font-bold text-on-background">Cara Mudah Ikut Lelang</h2>
+            <p class="text-body-lg text-on-surface-variant mt-2 max-w-2xl mx-auto">Hanya dengan 7 langkah mudah, unit impian Anda bisa segera dibawa pulang</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <!-- Step 1: Register -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-primary">person_add</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">1. Daftar Akun</h4>
+                <p class="text-body-sm text-on-surface-variant">Buat akun BIDKU dengan email dan nomor telepon aktif Anda</p>
+            </div>
+
+            <!-- Step 2: Verification -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-secondary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-secondary">verified</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">2. Verifikasi Identitas</h4>
+                <p class="text-body-sm text-on-surface-variant">Lengkapi verifikasi eKYC resmi untuk keamanan akun Anda</p>
+            </div>
+
+            <!-- Step 3: Deposit -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-primary">payments</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">3. Deposit Dana</h4>
+                <p class="text-body-sm text-on-surface-variant">Siapkan deposit sebagai jaminan untuk mengikuti sesi lelang</p>
+            </div>
+
+            <!-- Step 4: Bid -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-secondary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-secondary">gavel</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">4. Mulai Bidding</h4>
+                <p class="text-body-sm text-on-surface-variant">Lakukan penawaran secara real-time pada unit yang Anda incar</p>
+            </div>
+
+            <!-- Step 5: Win -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-primary">emoji_events</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">5. Menang Lelang</h4>
+                <p class="text-body-sm text-on-surface-variant">Dapatkan notifikasi kemenangan dan informasi tagihan</p>
+            </div>
+
+            <!-- Step 6: Payment -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-secondary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-secondary">account_balance_wallet</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">6. Pelunasan</h4>
+                <p class="text-body-sm text-on-surface-variant">Selesaikan pembayaran via Virtual Account (VA) dengan cepat</p>
+            </div>
+
+            <!-- Step 7: Item Collection -->
+            <div class="bg-white p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/30 sm:col-span-2 lg:col-span-1 xl:col-span-1">
+                <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-fixed/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl text-primary">inventory_2</span>
+                </div>
+                <h4 class="font-bold text-body-md mb-2">7. Ambil Unit</h4>
+                <p class="text-body-sm text-on-surface-variant">Ambil unit di lokasi balai lelang atau gunakan layanan pengiriman</p>
+            </div>
+        </div>
+
+        <!-- Optional: CTA below steps -->
+        <div class="text-center mt-10">
+            <p class="text-body-md text-on-surface-variant mb-4">Siap memulai perjalanan lelang Anda?</p>
+            <button class="px-8 py-3.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 inline-flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">person_add</span>
+                Daftar Sekarang
+            </button>
+        </div>
+    </div>
+</section>
+
+        <!-- ========== TESTIMONIALS ========== -->
+        <section class="py-12 md:py-16 bg-white">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="text-center mb-10">
+                    <h2 class="text-heading-2xl font-bold text-on-background">Apa Kata Mereka?</h2>
+                    <p class="text-body-lg text-on-surface-variant mt-2">Pengalaman nyata dari para pemenang lelang BIDKU</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Testimonial 1 -->
+                    <div class="testimonial-card bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-11 h-11 rounded-full bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">BS</div>
+                            <div>
+                                <h4 class="font-bold text-body-md">Bambang Susilo</h4>
+                                <p class="text-body-sm text-outline">Pemenang Toyota Avanza</p>
+                            </div>
+                        </div>
+                        <div class="flex text-primary mb-2">
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                        </div>
+                        <p class="text-body-md text-on-surface-variant italic leading-relaxed">"Proses bidding di BIDKU sangat transparan dan mudah diikuti. Saya mendapatkan mobil idaman dengan harga yang jauh lebih kompetitif."</p>
+                    </div>
+                    <!-- Testimonial 2 -->
+                    <div class="testimonial-card bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center font-bold text-on-primary-fixed text-body-md">RM</div>
+                            <div>
+                                <h4 class="font-bold text-body-md">Ratna Mutia</h4>
+                                <p class="text-body-sm text-outline">Pemenang Honda Brio</p>
+                            </div>
+                        </div>
+                        <div class="flex text-primary mb-2">
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                        </div>
+                        <p class="text-body-md text-on-surface-variant italic leading-relaxed">"Awalnya ragu lelang online, tapi setelah coba di BIDKU ternyata aman banget. Verifikasi datanya ketat, tidak khawatir ada penipuan."</p>
+                    </div>
+                    <!-- Testimonial 3 -->
+                    <div class="testimonial-card bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-11 h-11 rounded-full bg-tertiary-fixed flex items-center justify-center font-bold text-on-tertiary-fixed text-body-md">AP</div>
+                            <div>
+                                <h4 class="font-bold text-body-md">Aditya Pratama</h4>
+                                <p class="text-body-sm text-outline">Pemenang Alat Berat</p>
+                            </div>
+                        </div>
+                        <div class="flex text-primary mb-2">
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                            <span class="material-symbols-outlined text-sm filled">star</span>
+                        </div>
+                        <p class="text-body-md text-on-surface-variant italic leading-relaxed">"Sangat terbantu untuk pengadaan unit usaha kami. Deskripsi unit jujur sesuai grade, memudahkan estimasi sebelum bidding."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+<!-- ========== BLOG & TIPS SECTION ========== -->
+<section class="py-12 md:py-16 bg-white">
+    <div class="max-w-container-max mx-auto px-margin-page">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+            <div>
+                <h2 class="text-heading-2xl font-bold text-on-background">Blog &amp; Tips</h2>
+                <p class="text-body-lg text-on-surface-variant mt-1">Informasi terbaru seputar dunia lelang dan otomotif</p>
+            </div>
+            <a href="#" class="text-primary font-bold flex items-center gap-1 hover:underline text-body-md">
+                Lihat Semua
+                <span class="material-symbols-outlined text-sm">chevron_right</span>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Article 1 -->
+            <article class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/10 overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                <div class="aspect-video overflow-hidden bg-surface-container-low">
+                    <img alt="Tips Membeli Mobil Bekas Lewat Lelang" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB">
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center gap-2 text-body-sm text-outline mb-3">
+                        <span class="material-symbols-outlined text-sm">calendar_today</span>
+                        <span>12 Juni 2024</span>
+                        <span class="w-px h-3 bg-outline-variant/30"></span>
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span>5 menit baca</span>
+                    </div>
+                    <h4 class="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">Tips Membeli Mobil Bekas Lewat Lelang</h4>
+                    <p class="text-body-md text-on-surface-variant mb-4 line-clamp-2">Pelajari cara memeriksa kondisi mesin dan dokumen kendaraan agar tidak salah pilih saat mengikuti lelang online.</p>
+                    <a href="#" class="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all">
+                        Baca Selengkapnya
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Article 2 -->
+            <article class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/10 overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                <div class="aspect-video overflow-hidden bg-surface-container-low">
+                    <img alt="Panduan Lengkap Lelang Digital 2024" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM">
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center gap-2 text-body-sm text-outline mb-3">
+                        <span class="material-symbols-outlined text-sm">calendar_today</span>
+                        <span>8 Juni 2024</span>
+                        <span class="w-px h-3 bg-outline-variant/30"></span>
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span>8 menit baca</span>
+                    </div>
+                    <h4 class="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">Panduan Lengkap Lelang Digital 2024</h4>
+                    <p class="text-body-md text-on-surface-variant mb-4 line-clamp-2">Langkah demi langkah mengikuti lelang mulai dari pendaftaran akun hingga pengambilan unit untuk pemula.</p>
+                    <a href="#" class="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all">
+                        Baca Selengkapnya
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Article 3 -->
+            <article class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/10 overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                <div class="aspect-video overflow-hidden bg-surface-container-low">
+                    <img alt="Keunggulan Grade Kendaraan di IBID" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl">
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center gap-2 text-body-sm text-outline mb-3">
+                        <span class="material-symbols-outlined text-sm">calendar_today</span>
+                        <span>3 Juni 2024</span>
+                        <span class="w-px h-3 bg-outline-variant/30"></span>
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span>6 menit baca</span>
+                    </div>
+                    <h4 class="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">Keunggulan Grade Kendaraan di BIDKU</h4>
+                    <p class="text-body-md text-on-surface-variant mb-4 line-clamp-2">Memahami sistem penilaian grade A hingga E pada unit lelang untuk menjamin kepuasan pembeli.</p>
+                    <a href="#" class="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all">
+                        Baca Selengkapnya
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+        <!-- ========== FAQ SECTION ========== -->
+        <section id="faq" class="py-12 md:py-16 bg-surface-container-low/30">
+            <div class="max-w-container-max mx-auto px-margin-page">
+                <div class="text-center mb-10">
+                    <h2 class="text-heading-2xl font-bold text-on-background">Pertanyaan Umum</h2>
+                    <p class="text-body-lg text-on-surface-variant mt-2">Temukan jawaban atas pertanyaan yang sering diajukan seputar lelang BIDKU</p>
+                </div>
+
+                <div class="max-w-3xl mx-auto space-y-3">
+                    <!-- FAQ 1 -->
+                    <div class="bg-white rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                        <button class="faq-trigger w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-container-low/30 transition-colors" aria-expanded="false">
+                            <span class="font-bold text-body-md">Apakah item yang dilelang asli dan terjamin keasliannya?</span>
+                            <span class="material-symbols-outlined faq-toggle text-outline transition-transform">expand_more</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-4">
+                            <p class="text-body-md text-on-surface-variant leading-relaxed">Ya, semua item yang dilelang di BIDKU telah melalui proses inspeksi dan verifikasi ketat oleh tim ahli kami. Setiap unit dilengkapi dengan dokumen keaslian dan grade yang jelas, sehingga Anda dapat memastikan keaslian dan kondisi barang sebelum melakukan penawaran.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="bg-white rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                        <button class="faq-trigger w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-container-low/30 transition-colors" aria-expanded="false">
+                            <span class="font-bold text-body-md">Apakah saya bisa melakukan inspeksi fisik sebelum bidding?</span>
+                            <span class="material-symbols-outlined faq-toggle text-outline transition-transform">expand_more</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-4">
+                            <p class="text-body-md text-on-surface-variant leading-relaxed">Tentu saja! BIDKU menyediakan jadwal inspeksi fisik di setiap lokasi balai lelang. Anda dapat datang langsung untuk memeriksa kondisi unit secara detail. Informasi jadwal inspeksi tersedia di halaman detail setiap lelang.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="bg-white rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                        <button class="faq-trigger w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-container-low/30 transition-colors" aria-expanded="false">
+                            <span class="font-bold text-body-md">Bagaimana sistem pembayaran setelah saya memenangkan lelang?</span>
+                            <span class="material-symbols-outlined faq-toggle text-outline transition-transform">expand_more</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-4">
+                            <p class="text-body-md text-on-surface-variant leading-relaxed">Setelah memenangkan lelang, Anda akan menerima notifikasi dan instruksi pembayaran melalui email dan dashboard. Pembayaran dilakukan melalui Virtual Account (VA) yang terintegrasi dengan bank-bank terkemuka. Prosesnya cepat, aman, dan dilengkapi dengan jaminan pengembalian dana jika terjadi kendala.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="bg-white rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                        <button class="faq-trigger w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-container-low/30 transition-colors" aria-expanded="false">
+                            <span class="font-bold text-body-md">Apakah ada biaya tambahan selain harga akhir lelang?</span>
+                            <span class="material-symbols-outlined faq-toggle text-outline transition-transform">expand_more</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-4">
+                            <p class="text-body-md text-on-surface-variant leading-relaxed">Selain harga akhir lelang, terdapat biaya administrasi dan lelang yang besarnya transparan dan telah diinformasikan sebelum bidding dimulai. Tidak ada biaya tersembunyi. Semua rincian biaya dapat Anda lihat di halaman detail lelang dan syarat &amp; ketentuan yang berlaku.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="bg-white rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                        <button class="faq-trigger w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-container-low/30 transition-colors" aria-expanded="false">
+                            <span class="font-bold text-body-md">Bagaimana jika saya tidak bisa mengambil unit langsung?</span>
+                            <span class="material-symbols-outlined faq-toggle text-outline transition-transform">expand_more</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-4">
+                            <p class="text-body-md text-on-surface-variant leading-relaxed">BIDKU menyediakan layanan pengiriman unit ke lokasi Anda dengan biaya yang kompetitif. Anda juga dapat menunjuk perwakilan untuk mengambil unit atas nama Anda. Informasi lebih lanjut mengenai opsi pengiriman akan diberikan setelah proses pelunasan selesai.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== FINAL CTA ========== -->
+        <!-- ========== FINAL CTA - LUXURY GRADIENT BACKGROUND, BLACK TEXT ========== -->
+<section class="final-cta-luxury py-16 md:py-20">
+    <div class="final-cta-content max-w-container-max mx-auto px-margin-page text-center">
+        <h2 class="text-heading-3xl md:text-[3rem] font-extrabold text-black/70">Siap Menemukan Penawaran Terbaik?</h2>
+        <p class="text-body-lg text-black/70 max-w-xl mx-auto mt-3">Bergabung sekarang dan ikuti berbagai lelang menarik dari seluruh Indonesia</p>
+        <div class="flex flex-wrap justify-center gap-4 mt-8">
+            <button class="px-8 py-4 bg-primary text-white rounded-xl font-bold text-body-md btn-press transition-all hover:bg-white/90 hover:text-secondary shadow-xl shadow-black/10 flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">person_add</span>
+                Daftar Sekarang
+            </button>
+            <button class="px-8 py-4 border-2 border-black/30 text-black/70 rounded-xl font-bold text-body-md btn-press transition-all hover:bg-black/10 flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">visibility</span>
+                Lihat Lelang Aktif
+            </button>
+        </div>
+        <p class="text-black/50 text-body-sm mt-6">*Gratis mendaftar. Tanpa komitmen.</p>
+    </div>
+</section>
+
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-surface-container-lowest border-t border-outline-variant/20">
+        <div class="max-w-container-max mx-auto px-margin-page py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand -->
+                <div class="flex flex-col gap-4">
+                    <img alt="BIDKU" class="h-10 w-auto self-start object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX">
+                    <p class="text-body-md text-on-surface-variant leading-relaxed">BIDKU adalah Platform lelang digital terintegrasi di Indonesia. Transparan, aman, cepat, dan terpercaya untuk mobil, motor, properti, dan alat berat.
+                    </p>
+                    <div class="text-body-md text-on-surface-variant space-y-1">
+                        <p class="font-bold text-primary">Hubungi Kami:</p>
+                        <p>&#9993;&#65039; support@indolelang.com</p>
+                        <p>&#128222; (021) 5098-8888</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">share</span>
+                        </a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">public</span>
+                        </a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">mail</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Public Links -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Tautan Publik</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Katalog Lelang</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Jadwal Sesi Lelang</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Tentang Kami</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">FAQ &amp; Pusat Bantuan</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kontak &amp; Alamat</a></li>
+                    </ul>
+                </div>
+
+                <!-- Bidder Guide -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Panduan Bidder</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Registrasi Bidder</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Aturan &amp; Syarat Bidding</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Verifikasi Akun (eKYC)</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kebijakan Deposit &amp; Refund</a></li>
+                    </ul>
+                </div>
+
+                <!-- Provider -->
+                <div>
+                    <h5 class="font-bold text-body-md text-primary mb-4">Provider</h5>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Portal Provider</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Daftar Sebagai Provider</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Ketentuan Titip Jual</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Skema Settlement Dana</a></li>
+                        <li><a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors">Kerjasama Korporasi</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-outline-variant/10 text-center">
+                <p class="text-body-sm text-outline">© 2024 PT INDO LELANG SEJAHTERA. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        // ============================================================
+        // FAQ Accordion
+        // ============================================================
+        document.querySelectorAll('.faq-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const icon = this.querySelector('.faq-toggle');
+                const isOpen = answer.classList.contains('open');
+
+                // Close all others
+                document.querySelectorAll('.faq-answer').forEach(a => {
+                    if (a !== answer) {
+                        a.classList.remove('open');
+                        a.style.maxHeight = '0';
+                        a.style.opacity = '0';
+                        const prevIcon = a.previousElementSibling.querySelector('.faq-toggle');
+                        if (prevIcon) prevIcon.classList.remove('open');
+                    }
+                });
+
+                // Toggle this one
+                if (isOpen) {
+                    answer.classList.remove('open');
+                    answer.style.maxHeight = '0';
+                    answer.style.opacity = '0';
+                    icon.classList.remove('open');
+                } else {
+                    answer.classList.add('open');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                    answer.style.opacity = '1';
+                    icon.classList.add('open');
+                }
+            });
+        });
+
+        // ============================================================
+        // Sticky Mobile CTA
+        // ============================================================
+        const stickyCta = document.getElementById('stickyCta');
+        let lastScrollY = window.scrollY;
+        let ticking = false;
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                window.requestAnimationFrame(function() {
+                    const currentScrollY = window.scrollY;
+                    const heroHeight = document.querySelector('.hero-gradient')?.offsetHeight || 600;
+
+                    if (currentScrollY > heroHeight - 100) {
+                        stickyCta.classList.add('visible');
+                    } else {
+                        stickyCta.classList.remove('visible');
+                    }
+
+                    // Hide on scroll down, show on scroll up (optional refinement)
+                    if (currentScrollY > lastScrollY && currentScrollY > 200) {
+                        // Scrolling down - keep visible but we could add hide logic
+                    } else {
+                        // Scrolling up
+                    }
+
+                    lastScrollY = currentScrollY;
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // Ensure it shows after load if already scrolled
+        window.addEventListener('load', function() {
+            const heroHeight = document.querySelector('.hero-gradient')?.offsetHeight || 600;
+            if (window.scrollY > heroHeight - 100) {
+                stickyCta.classList.add('visible');
+            }
+        });
+
+        // ============================================================
+        // Smooth scroll for anchor links
+        // ============================================================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const target = document.querySelector(targetId);
+                if (target) {
+                    e.preventDefault();
+                    const headerOffset = 80;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // ============================================================
+        // Intersection Observer for fade animations
+        // ============================================================
+        const observerOptions = {
+            threshold: 0.08,
+            rootMargin: '0px 0px -40px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-fade-in-up');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-fade-in-up').forEach(el => {
+            // If already visible, we don't want to re-observe
+            el.classList.remove('animate-fade-in-up');
+            observer.observe(el);
+        });
+
+        // ============================================================
+        // Mobile menu toggle (basic)
+        // ============================================================
+        const mobileMenuBtn = document.querySelector('button[aria-label="Menu"]');
+        if (mobileMenuBtn) {
+            // Simple toggle - we're just showing a placeholder since the design is mobile-first
+            // and the nav is already visible on desktop
+            mobileMenuBtn.addEventListener('click', function() {
+                // This is a placeholder for a full mobile menu
+                // For this redesign, we keep it minimal as the main nav is already accessible
+                alert('Menu navigasi tersedia di layar desktop. Untuk mobile, silakan gunakan tombol aksi di bawah.');
+            });
+        }
+
+        console.log('🚗 BIDKU — Lelang Digital Terpercaya');
+        console.log('💡 Redesigned with modern UX best practices');
+    </script>
+
+</body>
+</html>

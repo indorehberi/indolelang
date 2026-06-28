@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: indolelang_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: indolelang
+      POSTGRES_PASSWORD: indolelang
+      POSTGRES_DB: indolelang_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indolelang -d indolelang_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: indolelang_redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: indolelang_mailhog
+    restart: always
+    ports:
+      - '1025:1025' # SMTP port
+      - '8025:8025' # Web UI port
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

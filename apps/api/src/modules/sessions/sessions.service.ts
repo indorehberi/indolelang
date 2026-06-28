@@ -1,0 +1,221 @@
+import { prisma } from '../../config/database';
+import { AppError } from '../../lib/appError';
+import { ErrorCode } from '@indo-lelang/utils';
+import { AuctionSessionDTO, PaginationMeta, SessionStatus } from '@indo-lelang/shared-types';
+import { Prisma } from '@prisma/client';
+
+export class SessionsService {
+  /**
+   * Get list of auction sessions (paginated, filtered, searched)
+   */
+  async getSessions(
+    page: number,
+    perPage: number,
+    status?: string,
+    branchId?: string,
+    search?: string
+  ): Promise<{ sessions: AuctionSessionDTO[]; meta: PaginationMeta }> {
+    const where: Prisma.auction_sessionsWhereInput = {};
+
+    if (status) {
+      where.status = status;
+    }
+    if (branchId) {
+      where.branch_id = branchId;
+    }
+    if (search) {
+      where.title = { contains: search };
+    }
+
+    const skip = (page - 1) * perPage;
+
+    const [total, records] = await Promise.all([
+      prisma.auction_sessions.count({ where }),
+      prisma.auction_sessions.findMany({
+        where,
+        skip,
+        take: perPage,
+        orderBy: { scheduled_at: 'asc' },
+        include: { branch: true },
+      }),
+    ]);
+
+    const sessions: AuctionSessionDTO[] = records.map((s) => ({
+      id: s.id,
+      branch_id: s.branch_id,
+      title: s.title,
+      description: s.description || undefined,
+      scheduled_at: s.scheduled_at.toISOString(),
+      status: s.status,
+      operator_id: s.operator_id || undefined,
+      branch: {
+        id: s.branch.id,
+        tenant_id: s.branch.tenant_id,
+        name: s.branch.name,
+        city: s.branch.city,
+        address: s.branch.address,
+        phone: s.branch.phone,
+        pic_name: s.branch.pic_name,
+        is_active: s.branch.is_active,
+        created_at: s.branch.created_at.toISOString(),
+        updated_at: s.branch.updated_at.toISOString(),
+      },
+      created_at: s.created_at.toISOString(),
+      updated_at: s.updated_at.toISOString(),
+    }));
+
+    const totalPages = Math.ceil(total / perPage);
+
+    return {
+      sessions,
+      meta: {
+        page,
+        per_page: perPage,
+        total,
+        total_pages: totalPages,
+      },
+    };
+  }
+
+  /**
+   * Get auction session details
+   */
+  async getSessionById(id: string): Promise<AuctionSessionDTO> {
+    const s = await prisma.auction_sessions.findUnique({
+      where: { id },
+      include: { branch: true },
+    });
+
+    if (!s) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
+    }
+
+    return {
+      id: s.id,
+      branch_id: s.branch_id,
+      title: s.title,
+      description: s.description || undefined,
+      scheduled_at: s.scheduled_at.toISOString(),
+      status: s.status,
+      operator_id: s.operator_id || undefined,
+      branch: {
+        id: s.branch.id,
+        tenant_id: s.branch.tenant_id,
+        name: s.branch.name,
+        city: s.branch.city,
+        address: s.branch.address,
+        phone: s.branch.phone,
+        pic_name: s.branch.pic_name,
+        is_active: s.branch.is_active,
+        created_at: s.branch.created_at.toISOString(),
+        updated_at: s.branch.updated_at.toISOString(),
+      },
+      created_at: s.created_at.toISOString(),
+      updated_at: s.updated_at.toISOString(),
+    };
+  }
+
+  /**
+   * Create a new auction session (Admin/Operator only)
+   */
+  async createSession(data: any, operatorId: string): Promise<AuctionSessionDTO> {
+    // Verify branch exists
+    const branch = await prisma.branches.findUnique({ where: { id: data.branch_id } });
+    if (!branch) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Cabang tidak ditemukan');
+    }
+
+    const s = await prisma.auction_sessions.create({
+      data: {
+        branch_id: data.branch_id,
+        title: data.title,
+        description: data.description || null,
+        scheduled_at: new Date(data.scheduled_at),
+        status: SessionStatus.DRAFT,
+        operator_id: operatorId,
+      },
+      include: { branch: true },
+    });
+
+    return {
+      id: s.id,
+      branch_id: s.branch_id,
+      title: s.title,
+      description: s.description || undefined,
+      scheduled_at: s.scheduled_at.toISOString(),
+      status: s.status,
+      operator_id: s.operator_id || undefined,
+      branch: {
+        id: s.branch.id,
+        tenant_id: s.branch.tenant_id,
+        name: s.branch.name,
+        city: s.branch.city,
+        address: s.branch.address,
+        phone: s.branch.phone,
+        pic_name: s.branch.pic_name,
+        is_active: s.branch.is_active,
+        created_at: s.branch.created_at.toISOString(),
+        updated_at: s.branch.updated_at.toISOString(),
+      },
+      created_at: s.created_at.toISOString(),
+      updated_at: s.updated_at.toISOString(),
+    };
+  }
+
+  /**
+   * Update auction session (Admin/Operator only)
+   */
+  async updateSession(id: string, data: any, operatorId: string): Promise<AuctionSessionDTO> {
+    const session = await prisma.auction_sessions.findUnique({
+      where: { id },
+    });
+
+    if (!session) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
+    }
+
+    if (data.branch_id) {
+      const branch = await prisma.branches.findUnique({ where: { id: data.branch_id } });
+      if (!branch) {
+        throw new AppError(404, ErrorCode.NOT_FOUND, 'Cabang tidak ditemukan');
+      }
+    }
+
+    const updated = await prisma.auction_sessions.update({
+      where: { id },
+      data: {
+        branch_id: data.branch_id ?? undefined,
+        title: data.title ?? undefined,
+        description: data.description !== undefined ? data.description : undefined,
+        scheduled_at: data.scheduled_at ? new Date(data.scheduled_at) : undefined,
+        status: data.status ?? undefined,
+        operator_id: operatorId,
+      },
+      include: { branch: true },
+    });
+
+    return {
+      id: updated.id,
+      branch_id: updated.branch_id,
+      title: updated.title,
+      description: updated.description || undefined,
+      scheduled_at: updated.scheduled_at.toISOString(),
+      status: updated.status,
+      operator_id: updated.operator_id || undefined,
+      branch: {
+        id: updated.branch.id,
+        tenant_id: updated.branch.tenant_id,
+        name: updated.branch.name,
+        city: updated.branch.city,
+        address: updated.branch.address,
+        phone: updated.branch.phone,
+        pic_name: updated.branch.pic_name,
+        is_active: updated.branch.is_active,
+        created_at: updated.branch.created_at.toISOString(),
+        updated_at: updated.branch.updated_at.toISOString(),
+      },
+      created_at: updated.created_at.toISOString(),
+      updated_at: updated.updated_at.toISOString(),
+    };
+  }
+}
