@@ -52,6 +52,8 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgrespassword}@postgres:5432/${DB_NAME:-indolelang_prod}?schema=public
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-your_super_production_secret_key}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your_super_production_refresh_secret_key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
       - JWT_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=30d
       - API_PREFIX=/api/v1
@@ -71,6 +73,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8000}
 
   landing:
@@ -87,6 +90,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8000}
       - NEXT_PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL:-http://localhost:3001}
 

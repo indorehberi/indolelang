@@ -40,12 +40,12 @@ app.use(
       if (!origin) return callback(null, true);
       
       const allowedOrigins = [
-        env.CORS_ORIGIN,
         'http://localhost:3000',
         'http://localhost:3001',
+        ...env.CORS_ORIGIN.split(',').map((o) => o.trim()),
       ];
       
-      if (allowedOrigins.indexOf(origin) !== -1 || env.NODE_ENV === 'development') {
+      if (allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));

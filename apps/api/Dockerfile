@@ -47,4 +47,4 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 EXPOSE 8000
 ENV NODE_ENV=production
 WORKDIR /app/apps/api
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
