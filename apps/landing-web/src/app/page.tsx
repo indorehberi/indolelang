@@ -139,7 +139,7 @@ export default function Home() {
                   <span className="material-symbols-outlined text-sm filled">
                     verified
                   </span>
-                  #1 Digital Auction di Indonesia
+                  Trusted Digital Auction di Indonesia
                 </div>
 
                 <h1 className="text-heading-3xl md:text-[3.25rem] md:leading-[1.08] font-extrabold text-on-background tracking-tight">
