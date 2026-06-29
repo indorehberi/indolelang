@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "npx -y concurrently \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:web\"",
+    "dev:frontend": "npx -y concurrently \"npm run dev:admin\" \"npm run dev:web\"",
     "dev:api": "npm run dev -w apps/api",
     "dev:admin": "npm run dev -w apps/admin-panel",
     "dev:web": "npm run dev -w apps/landing-web",
