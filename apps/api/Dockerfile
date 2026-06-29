@@ -1,5 +1,6 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy root configurations
@@ -34,6 +35,7 @@ RUN npm run build -w apps/api
 
 # Stage 2: Runner
 FROM node:20-alpine
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy built package artifacts
