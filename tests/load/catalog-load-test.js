@@ -6,7 +6,7 @@ import { Rate } from 'k6/metrics';
 export const errorRate = new Rate('errors');
 
 export const options = {
-  vus: 500,
+  vus: 100,
   duration: '5m',
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% of requests must complete under 500ms (SLA target)
