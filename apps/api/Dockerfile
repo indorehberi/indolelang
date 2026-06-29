@@ -19,15 +19,18 @@ COPY apps/api/tsconfig*.json ./apps/api/
 COPY apps/api/prisma/ ./apps/api/prisma/
 COPY apps/api/src/ ./apps/api/src/
 
-# Install dependencies and build shared packages & api
+# Install dependencies
 RUN npm ci
-RUN npm run build -w packages/shared-types
-RUN npm run build -w packages/utils
-RUN npm run build -w apps/api
 
 # Generate prisma client
 WORKDIR /app/apps/api
 RUN npx prisma generate
+WORKDIR /app
+
+# Build shared packages & api
+RUN npm run build -w packages/shared-types
+RUN npm run build -w packages/utils
+RUN npm run build -w apps/api
 
 # Stage 2: Runner
 FROM node:20-alpine

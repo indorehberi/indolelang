@@ -19,6 +19,9 @@ COPY apps/admin-panel/src/ ./apps/admin-panel/src/
 COPY apps/admin-panel/public/ ./apps/admin-panel/public/
 
 # Install dependencies and build workspaces
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN npm ci
 RUN npm run build -w packages/shared-types
 RUN npm run build -w apps/admin-panel
