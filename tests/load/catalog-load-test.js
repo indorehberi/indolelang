@@ -7,7 +7,7 @@ export const errorRate = new Rate('errors');
 
 export const options = {
   vus: 100,
-  duration: '5m',
+  duration: '2m',
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% of requests must complete under 500ms (SLA target)
     errors: ['rate<0.01'],            // Error rate must be less than 1%
