@@ -70,3 +70,10 @@ infrastructure/docker/data/
 # Misc
 .cache/
 tmp/
+
+# User exclusions
+/Panduan UI/
+/wireframe/
+/desktop_auction_dashboard.png
+/estimasi_biaya_infrastruktur.md
+

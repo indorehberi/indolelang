@@ -21,7 +21,7 @@ COPY apps/api/src/ ./apps/api/src/
 
 # Install dependencies and build shared packages & api
 RUN npm ci
-RUN npm run build --workspaces --if-present
+RUN npm run build -w packages/shared-types -w packages/utils -w apps/api
 
 # Generate prisma client
 WORKDIR /app/apps/api
