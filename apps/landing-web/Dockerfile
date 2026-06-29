@@ -20,7 +20,8 @@ COPY apps/landing-web/public/ ./apps/landing-web/public/
 
 # Install dependencies and build workspaces
 RUN npm ci
-RUN npm run build -w packages/shared-types -w apps/landing-web
+RUN npm run build -w packages/shared-types
+RUN npm run build -w apps/landing-web
 
 # Stage 2: Runner
 FROM node:20-alpine

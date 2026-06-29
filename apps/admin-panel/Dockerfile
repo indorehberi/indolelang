@@ -20,7 +20,8 @@ COPY apps/admin-panel/public/ ./apps/admin-panel/public/
 
 # Install dependencies and build workspaces
 RUN npm ci
-RUN npm run build -w packages/shared-types -w apps/admin-panel
+RUN npm run build -w packages/shared-types
+RUN npm run build -w apps/admin-panel
 
 # Stage 2: Runner
 FROM node:20-alpine
