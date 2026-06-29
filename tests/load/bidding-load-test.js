@@ -6,10 +6,19 @@ import { Trend } from 'k6/metrics';
 const broadcastDelayTrend = new Trend('websocket_broadcast_delay');
 
 export const options = {
-  vus: 30, // 30 concurrent users
-  duration: '1m',
+  vus: 100,
+  duration: '5m',
   thresholds: {
     websocket_broadcast_delay: ['p(95)<200'], // Broadcast delay under 200ms (SLA target)
+  },
+  ext: {
+    loadimpact: {
+      distribution: {
+        'amazon:us:ashburn':   { loadZone: 'amazon:us:ashburn',   percent: 34 },
+        'amazon:sg:singapore': { loadZone: 'amazon:sg:singapore', percent: 33 },
+        'amazon:eu:frankfurt': { loadZone: 'amazon:eu:frankfurt', percent: 33 },
+      },
+    },
   },
 };
 

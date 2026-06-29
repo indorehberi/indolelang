@@ -6,14 +6,20 @@ import { Rate } from 'k6/metrics';
 export const errorRate = new Rate('errors');
 
 export const options = {
-  stages: [
-    { duration: '30s', target: 10 },  // Ramp up to 10 VUs
-    { duration: '1m', target: 30 },   // Ramp up to 30 VUs
-    { duration: '30s', target: 0 },   // Ramp down
-  ],
+  vus: 100,
+  duration: '5m',
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% of requests must complete under 500ms (SLA target)
     errors: ['rate<0.01'],            // Error rate must be less than 1%
+  },
+  ext: {
+    loadimpact: {
+      distribution: {
+        'amazon:us:ashburn':   { loadZone: 'amazon:us:ashburn',   percent: 34 },
+        'amazon:sg:singapore': { loadZone: 'amazon:sg:singapore', percent: 33 },
+        'amazon:eu:frankfurt': { loadZone: 'amazon:eu:frankfurt', percent: 33 },
+      },
+    },
   },
 };
 
