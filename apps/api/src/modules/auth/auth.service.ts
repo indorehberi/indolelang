@@ -213,10 +213,12 @@ export class AuthService {
 			await redis.expire(rateLimitKey, 900); // 15 minutes window
 		}
 
-		if (failures >= 5) {
-			await redis.set(blockKey, 'blocked', { EX: 900 }); // Block for 15 minutes
+		const maxFailures = process.env.NODE_ENV === 'production' ? 5 : 1000;
+		if (failures >= maxFailures) {
+			const blockDuration = process.env.NODE_ENV === 'production' ? 900 : 1;
+			await redis.set(blockKey, 'blocked', { EX: blockDuration }); // Block for 15 minutes or 1 second in dev
 			await redis.del(rateLimitKey);
-			logger.warn({ email, clientIp }, 'User blocked for 15 minutes due to 5 failed login attempts');
+			logger.warn({ email, clientIp }, `User blocked for ${blockDuration} seconds due to ${failures} failed login attempts`);
 		}
 	}
 
