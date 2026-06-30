@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,26 +12,54 @@ export default function LoginPage() {
     password: "",
     rememberMe: false,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleLogin = (e: React.FormEvent, role: string) => {
+  const handleLogin = async (e: React.FormEvent, role: string) => {
     e.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", "simulated-token-12345");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          full_name: role === "Bidder" ? "Budi Santoso" : "PT Astra Mitra",
-          email: formData.identifier || (role === "Bidder" ? "budi.santoso@gmail.com" : "astra.mitra@astra.com"),
-          phone: "081234567890",
-          role: role.toLowerCase(),
-        })
-      );
-    }
+    setErrors({});
 
-    if (role === "Bidder") {
-      router.push("/bidder/dashboard");
-    } else if (role === "Provider") {
-      router.push("/provider/dashboard");
+    try {
+      const response = await fetch(apiUrl("/auth/login"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.identifier,
+          password: formData.password,
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        const user = resData.data.user;
+        const tokens = resData.data.tokens;
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem("accessToken", tokens.accessToken);
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+
+        if (user.role === "bidder") {
+          router.push("/bidder/dashboard");
+        } else if (user.role === "provider") {
+          router.push("/provider/dashboard");
+        } else {
+          alert("Role akun Anda tidak didukung pada halaman ini.");
+        }
+      } else {
+        if (resData.error?.details) {
+          const newErrors: Record<string, string> = {};
+          Object.entries(resData.error.details).forEach(([field, err]) => {
+            const cleanField = field.replace("body.", "");
+            newErrors[cleanField] = err as string;
+          });
+          setErrors(newErrors);
+        }
+        alert(resData.error?.message || "Login gagal, silakan coba lagi.");
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan koneksi. Pastikan API Server sedang aktif.");
     }
   };
 
@@ -64,8 +93,15 @@ export default function LoginPage() {
               value={formData.identifier}
               onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
               placeholder="Masukkan email atau no HP"
-              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              className={`w-full px-4 py-3 bg-surface border rounded-xl text-body-md text-on-surface placeholder-outline focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner ${
+                errors.identifier || errors.email || errors.phone ? "border-error focus:border-error" : "border-outline-variant/60 focus:border-premium"
+              }`}
             />
+            {(errors.identifier || errors.email || errors.phone) && (
+              <p className="text-error text-xs mt-1 font-semibold">
+                {errors.identifier || errors.email || errors.phone}
+              </p>
+            )}
           </div>
 
           <div>
@@ -78,8 +114,13 @@ export default function LoginPage() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="Masukkan password"
-              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              className={`w-full px-4 py-3 bg-surface border rounded-xl text-body-md text-on-surface placeholder-outline focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner ${
+                errors.password ? "border-error focus:border-error" : "border-outline-variant/60 focus:border-premium"
+              }`}
             />
+            {errors.password && (
+              <p className="text-error text-xs mt-1 font-semibold">{errors.password}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-body-sm font-medium">
