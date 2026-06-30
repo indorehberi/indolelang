@@ -21,7 +21,7 @@ export default function TentangPage() {
           {/* Left Column: About & Vision */}
           <div className="lg:col-span-7 space-y-8">
             <div>
-              <h1 className="text-heading-xl font-black text-on-surface leading-tight">
+              <h1 className="text-heading-xl font-black text-on-surface leading-tight font-serif">
                 Tentang BIDKU / IndoLelang
               </h1>
               <p className="text-body-lg text-on-surface-variant leading-relaxed mt-4">
@@ -65,20 +65,20 @@ export default function TentangPage() {
               <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-surface-variant/20">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_R8j18nKSwK80H9f7yZ5_mE1R5P0L-KjX6l_eF1qYgG4N4a5m_2kLp-h1zQ5yvM8_1rFj6xO0V1N_4zTfL8v9M_2jV4v8R-FmZ-v5L8k7z-Fm9jV8mZ-Tf0v7K-L2z"
+                  src="/Kantor_bidku.png"
                   alt="Kantor Pusat IndoLelang Jakarta"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-5">
                   <div>
-                    <span className="bg-primary text-on-primary px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider mb-2 inline-block">
+                    <span className="bg-premium text-on-premium px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider mb-2 inline-block">
                       KANTOR PUSAT
                     </span>
                     <h3 className="text-white text-body-lg font-bold">
-                      Gedung IndoLelang Tower
+                      Unibang Building 8th floor
                     </h3>
                     <p className="text-white/80 text-body-sm mt-0.5">
-                      Kuningan, Jakarta Selatan
+                      Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151
                     </p>
                   </div>
                 </div>
@@ -87,16 +87,16 @@ export default function TentangPage() {
 
             {/* Branch Network */}
             <div className="space-y-4">
-              <h3 className="text-heading-md font-bold text-on-surface">
+              <h3 className="text-heading-md font-bold text-on-surface font-serif">
                 Jaringan Cabang Utama
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {branches.map((branch, idx) => (
                   <div
                     key={idx}
-                    className="bg-white rounded-2xl p-4 border border-outline-variant/20 shadow-sm flex items-start gap-3 hover:border-primary transition-all group"
+                    className="bg-white rounded-2xl p-4 border border-outline-variant/20 shadow-sm flex items-start gap-3 hover:border-premium transition-all group"
                   >
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors mt-0.5">
+                    <span className="material-symbols-outlined text-outline group-hover:text-premium transition-colors mt-0.5">
                       {branch.icon}
                     </span>
                     <div>

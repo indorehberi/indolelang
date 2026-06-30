@@ -6,30 +6,33 @@
 
 @theme {
   /* Color Palette */
-  --color-primary: #FF9800;
+  --color-primary: #f67904;
   --color-primary-fixed: #FFE0B2;
   --color-primary-fixed-dim: #FFCC80;
   --color-on-primary: #ffffff;
   --color-on-primary-fixed: #E65100;
   --color-on-primary-fixed-variant: #F57C00;
 
-  --color-secondary: #8BC34A;
+  --color-secondary: #178630;
   --color-secondary-fixed: #DCEDC8;
   --color-secondary-fixed-dim: #C5E1A5;
   --color-on-secondary: #ffffff;
   --color-on-secondary-fixed: #1B5E20;
   --color-on-secondary-fixed-variant: #33691E;
 
-  --color-background: #f7f9ff;
-  --color-surface: #f7f9ff;
+  --color-background: #F9F8F3;
+  --color-surface: #F9F8F3;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f1f4f9;
-  --color-surface-container: #ebeef3;
-  --color-surface-container-high: #e5e8ee;
-  --color-surface-container-highest: #e0e3e8;
-  --color-surface-bright: #f7f9ff;
-  --color-surface-dim: #d7dadf;
-  --color-surface-tint: #FF9800;
+  --color-surface-container-low: #F4F1EB;
+  --color-surface-container: #EFECE5;
+  --color-surface-container-high: #E9E6DF;
+  --color-surface-container-highest: #E3E0D9;
+  --color-surface-bright: #F9F8F3;
+  --color-surface-dim: #D5D2CB;
+  --color-surface-tint: #f67904;
+
+  --color-premium: #1D2128;
+  --color-on-premium: #ffffff;
 
   --color-on-surface: #181c20;
   --color-on-surface-variant: #4f434e;
@@ -49,7 +52,7 @@
 
   --color-text-secondary: rgba(33, 37, 41, 0.7);
   --color-glass-border: rgba(255, 255, 255, 0.15);
-  --color-accent-gold: #F39C12;
+  --color-accent-gold: #f67904;
 
   /* Border Radius */
   --radius-lg: 0.5rem;
@@ -67,6 +70,7 @@
 
   /* Font Family */
   --font-sans: "Inter", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
 
   /* Font Size */
   --text-heading-3xl: 2.5rem;
@@ -178,8 +182,8 @@
 
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f7f9ff;
-  color: #181c20;
+  background: #F9F8F3;
+  color: #1D2128;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -199,16 +203,25 @@ body {
 
 /* Glass Navigation */
 .glass-nav {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
 
 /* Hero Gradient */
 .hero-gradient {
   background:
-    radial-gradient(ellipse at 0% 20%, rgba(255, 152, 0, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse at 100% 80%, rgba(139, 195, 74, 0.05) 0%, transparent 60%),
-    #f7f9ff;
+    radial-gradient(ellipse at 20% 50%, rgba(246, 121, 4, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(23, 134, 48, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(59, 100, 180, 0.03) 0%, transparent 50%),
+    #F9F8F3;
+  background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  animation: auroraShift 20s ease-in-out infinite alternate;
+}
+
+@keyframes auroraShift {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%, 0% 0%; }
+  50% { background-position: 100% 50%, 0% 100%, 80% 20%, 0% 0%; }
+  100% { background-position: 50% 100%, 50% 0%, 20% 80%, 0% 0%; }
 }
 
 /* Auction Card */
@@ -240,7 +253,7 @@ body {
   left: 100%;
   width: calc(100% - 1rem);
   height: 2px;
-  background: linear-gradient(to right, #FF9800, #8BC34A);
+  background: linear-gradient(to right, #f67904, #178630);
   opacity: 0.3;
 }
 
@@ -307,13 +320,65 @@ html {
 
 /* Focus Styles */
 *:focus-visible {
-  outline: 2px solid #FF9800;
+  outline: 2px solid #f67904;
   outline-offset: 2px;
 }
 
 /* Button Press Effect */
 .btn-press:active {
   transform: scale(0.96);
+}
+
+/* Button Shine Effect */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  transform: rotate(25deg);
+  transition: left 0.6s ease;
+}
+
+.btn-shine:hover::after {
+  left: 120%;
+}
+
+/* Scroll Reveal */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: revealUp 0.5s ease-out both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 30%;
+}
+
+/* Price Display — tabular numbers */
+.price-display {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up { animation: none; opacity: 1; transform: none; }
+  .btn-shine::after { display: none; }
+  .hero-gradient { animation: none; }
 }
 
 /* Image Shimmer */
@@ -351,10 +416,7 @@ html {
 .final-cta-luxury {
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 28%),
-    radial-gradient(circle at 84% 10%, rgba(255, 204, 128, 0.58) 0%, rgba(255, 204, 128, 0) 30%),
-    linear-gradient(135deg, #6FAF32 0%, #8BC34A 42%, #CFEF82 68%, #FFCC80 100%);
+  background: linear-gradient(135deg, #1D2128 0%, #2C3441 60%, #1D2128 100%);
 }
 
 .final-cta-luxury::before {
@@ -362,8 +424,8 @@ html {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
-    linear-gradient(315deg, rgba(27, 94, 32, 0.22) 0%, rgba(27, 94, 32, 0) 42%);
+    radial-gradient(circle at 20% 80%, rgba(246, 121, 4, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(23, 134, 48, 0.04) 0%, transparent 40%);
   pointer-events: none;
 }
 

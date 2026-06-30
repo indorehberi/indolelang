@@ -38,7 +38,7 @@ export default function SyaratPage() {
 
       <main className="max-w-[800px] mx-auto px-6 py-12">
         <div className="text-center mb-10">
-          <h1 className="text-heading-xl font-black text-on-surface leading-tight">
+          <h1 className="text-heading-xl font-black text-on-surface leading-tight font-serif">
             Syarat &amp; Ketentuan Umum Lelang
           </h1>
           <p className="text-body-lg text-on-surface-variant mt-2">
@@ -54,7 +54,7 @@ export default function SyaratPage() {
                 <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
                   {section.icon}
                 </span>
-                <h3 className="text-heading-md font-bold text-on-surface">
+                <h3 className="text-heading-md font-bold text-on-surface font-serif">
                   {section.title}
                 </h3>
               </div>

@@ -14,7 +14,7 @@ export default function Footer() {
               <img
                 alt="BIDKU"
                 className="h-9 md:h-10 w-auto"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX"
+                src="/logo-bidku.png"
               />
             </Link>
             <p className="text-body-md text-on-surface-variant leading-relaxed">
@@ -47,11 +47,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
-                  FAQ &amp; Pusat Bantuan
-                </Link>
-              </li>
-              <li>
                 <Link href="/kontak" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
                   Hubungi Kami
                 </Link>
@@ -78,11 +73,6 @@ export default function Footer() {
                   Verifikasi Akun (eKYC)
                 </Link>
               </li>
-              <li>
-                <Link href="/faq" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
-                  Kebijakan Deposit &amp; Refund
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -103,11 +93,6 @@ export default function Footer() {
               <li>
                 <Link href="/register/provider" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
                   Ketentuan Titip Jual
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
-                  Skema Settlement Dana
                 </Link>
               </li>
             </ul>

@@ -13,12 +13,12 @@ import {
 const router = Router();
 const controller = new AuthController();
 
-// 1. Register - limit 3 requests per hour
+// 1. Register - limit 3 requests per hour (1000 in development for testing)
 router.post(
   '/register',
   rateLimiter({
     windowSeconds: 3600,
-    maxRequests: 3,
+    maxRequests: process.env.NODE_ENV === 'production' ? 3 : 1000,
     keyPrefix: 'rl:register',
     errorMessage: 'Batas pendaftaran akun terlampaui. Silakan coba lagi dalam satu jam.',
   }),
@@ -26,12 +26,12 @@ router.post(
   controller.register
 );
 
-// 2. Login - limit 5 requests per 15 minutes (also handled internally for IP lock)
+// 2. Login - limit 5 requests per 15 minutes (1000 in development for testing)
 router.post(
   '/login',
   rateLimiter({
     windowSeconds: 900,
-    maxRequests: 5,
+    maxRequests: process.env.NODE_ENV === 'production' ? 5 : 1000,
     keyPrefix: 'rl:login',
     errorMessage: 'Batas percobaan login terlampaui. Silakan coba lagi dalam 15 menit.',
   }),

@@ -31,7 +31,7 @@ export default function KontakPage() {
           {/* Left Column: Form */}
           <div className="lg:col-span-7 space-y-6">
             <div>
-              <h1 className="text-heading-xl font-black text-on-surface leading-tight">
+              <h1 className="text-heading-xl font-black text-on-surface leading-tight font-serif">
                 Hubungi Kami
               </h1>
               <p className="text-body-lg text-on-surface-variant leading-relaxed mt-3">
@@ -63,7 +63,7 @@ export default function KontakPage() {
                   value={formData.nama}
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
                   placeholder="Masukkan nama Anda"
-                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
                 />
               </div>
 
@@ -77,7 +77,7 @@ export default function KontakPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Masukkan email Anda"
-                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
                 />
               </div>
 
@@ -91,7 +91,7 @@ export default function KontakPage() {
                   value={formData.subjek}
                   onChange={(e) => setFormData({ ...formData, subjek: e.target.value })}
                   placeholder="Misal: Kerjasama Provider, Error Bayar"
-                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
                 />
               </div>
 
@@ -105,13 +105,13 @@ export default function KontakPage() {
                   value={formData.pesan}
                   onChange={(e) => setFormData({ ...formData, pesan: e.target.value })}
                   placeholder="Tuliskan detail pertanyaan atau keluhan Anda..."
-                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner resize-none"
+                  className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-4 bg-primary text-on-primary rounded-xl text-body-md font-bold hover:bg-primary/90 transition-all btn-press shadow-md"
+                className="w-full py-4 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md shadow-premium/15"
               >
                 Kirim Pesan
               </button>
@@ -120,24 +120,29 @@ export default function KontakPage() {
 
           {/* Right Column: Info & Maps */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-primary rounded-3xl p-6 border border-outline-variant/10 shadow-md text-on-primary text-left">
-              <h3 className="text-heading-md font-bold text-secondary flex items-center gap-2 mb-4">
+            <div className="bg-premium rounded-3xl p-6 border border-outline-variant/10 shadow-md text-on-premium text-left">
+              <h3 className="text-heading-md font-bold text-primary flex items-center gap-2 mb-4">
                 <span className="material-symbols-outlined">info</span>
                 Informasi Kantor Pusat
               </h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined mt-0.5 text-secondary">location_on</span>
-                  <p className="text-body-md leading-relaxed">
-                    <strong>Gedung IndoLelang Tower</strong>
+                  <span className="material-symbols-outlined mt-0.5 text-primary">location_on</span>
+                  <a
+                    href="https://maps.app.goo.gl/TTfvM1o9M852AFKfA"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-body-sm leading-relaxed hover:text-primary transition-colors hover:underline"
+                  >
+                    <strong>Unibang Building 8th Floor</strong>
                     <br />
-                    Jl. Kuningan Mulia Blok X-5 No. 18, Jakarta Selatan, DKI Jakarta 12940.
-                  </p>
+                    Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151
+                  </a>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined mt-0.5 text-secondary">mail</span>
-                  <p className="text-body-md">
+                  <span className="material-symbols-outlined mt-0.5 text-primary">mail</span>
+                  <p className="text-body-sm">
                     <strong>Email Resmi:</strong>
                     <br />
                     info@indolelang.com / support@indolelang.com
@@ -145,8 +150,8 @@ export default function KontakPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined mt-0.5 text-secondary">phone</span>
-                  <p className="text-body-md">
+                  <span className="material-symbols-outlined mt-0.5 text-primary">phone</span>
+                  <p className="text-body-sm">
                     <strong>Telepon Kantor:</strong>
                     <br />
                     (021) 5098-8888
@@ -154,8 +159,8 @@ export default function KontakPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined mt-0.5 text-secondary">sms</span>
-                  <p className="text-body-md">
+                  <span className="material-symbols-outlined mt-0.5 text-primary">sms</span>
+                  <p className="text-body-sm">
                     <strong>WhatsApp CS (24/7):</strong>
                     <br />
                     +62-811-9988-7766
@@ -164,23 +169,28 @@ export default function KontakPage() {
               </div>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="bg-white rounded-3xl p-4 border border-outline-variant/20 shadow-sm relative">
-              <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-surface-variant/20 border border-outline-variant/10 relative flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_R8j18nKSwK80H9f7yZ5_mE1R5P0L-KjX6l_eF1qYgG4N4a5m_2kLp-h1zQ5yvM8_1rFj6xO0V1N_4zTfL8v9M_2jV4v8R-FmZ-v5L8k7z-Fm9jV8mZ-Tf0v7K-L2z"
-                  className="absolute inset-0 w-full h-full object-cover filter brightness-75 grayscale"
-                  alt="Map mockup"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4">
-                  <span className="text-white text-body-sm font-bold flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm">map</span>
-                    Buka di Google Maps
+            <a
+              href="https://maps.app.goo.gl/TTfvM1o9M852AFKfA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white rounded-3xl p-4 border border-outline-variant/20 shadow-sm relative block hover:border-premium transition-all group"
+            >
+              <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-surface-variant/20 border border-outline-variant/10 relative">
+                <iframe
+                  src="https://maps.google.com/maps?q=Jl.+Raden+Patah+Jl.+Lembang+II+Lama+No.62,+Ciledug,+Kota+Tangerang,+Banten+15151&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  className="absolute inset-0 w-full h-full border-none pointer-events-none"
+                  allowFullScreen
+                  loading="lazy"
+                  title="Google Map Kantor Bidku"
+                ></iframe>
+                <div className="absolute inset-0 bg-black/5 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+                  <span className="bg-premium text-on-premium px-4 py-2 rounded-xl text-body-sm font-bold shadow-md flex items-center gap-1.5 transform scale-100 group-hover:scale-105 transition-transform duration-300">
+                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                    Buka Google Maps
                   </span>
                 </div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </main>

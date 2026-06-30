@@ -32,7 +32,6 @@ export default function Header() {
     { name: "Katalog", href: "/katalog" },
     { name: "Jadwal Lelang", href: "/jadwal" },
     { name: "Tentang Kami", href: "/tentang" },
-    { name: "FAQ", href: "/faq" },
     { name: "Kontak", href: "/kontak" },
   ];
 
@@ -49,7 +48,7 @@ export default function Header() {
           <img
             alt="BIDKU"
             className="h-9 md:h-10 w-auto"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0kX0b4x1hdXkkqGpcBK7k-VnMmbQ2p1bkWBtILPPPJfUDTrrzXV41suiELbl45C5eJa-92rW3ocXp6GEZfuPOem7Cho3kMufwZ7_xWyysCIcFE83KLlI1VlF8kxqtxMUDolFpfozQOH32Fymj2pDOAUlgE1rw2M7G27XYXnRy0KL_9-LC41QcJkmlAk-OwbVaeQMEzhhNLaVZhZj1X3h0FpSJKc4gbVES42m-Yw8iDAlmusXoVmEoi8wQrRUqC9qEfnxkg2yTFzTX"
+            src="/logo-bidku.png"
           />
         </Link>
 
@@ -75,7 +74,7 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className={`text-body-md font-semibold transition-colors ${
+              className={`text-body-md transition-colors ${
                 isActive(link.href)
                   ? "text-primary font-bold"
                   : "text-on-surface hover:text-primary"
@@ -89,14 +88,14 @@ export default function Header() {
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
           <Link
-            className="hidden sm:inline-block text-body-md font-semibold text-on-surface hover:text-primary transition-colors"
+            className="hidden sm:inline-block text-body-md font-extrabold text-on-surface hover:text-primary transition-colors"
             href="/register/bidder"
           >
             Daftar
           </Link>
           <Link
             href="/login"
-            className="px-5 py-2 text-body-md font-bold text-on-primary bg-primary rounded-full shadow-sm hover:bg-primary/90 btn-press transition-all text-center"
+            className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press btn-shine transition-all text-center"
           >
             Masuk
           </Link>

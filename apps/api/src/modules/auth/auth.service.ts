@@ -26,7 +26,12 @@ export class AuthService {
 			where: { email: data.email },
 		});
 		if (existingEmail) {
-			throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Email sudah terdaftar');
+			if (existingEmail.status === UserStatus.PENDING) {
+				// Delete the pending user so they can register again
+				await prisma.users.delete({ where: { id: existingEmail.id } }).catch(() => {});
+			} else {
+				throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Email sudah terdaftar');
+			}
 		}
 
 		// 2. Check if phone exists
@@ -34,7 +39,12 @@ export class AuthService {
 			where: { phone: data.phone },
 		});
 		if (existingPhone) {
-			throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
+			if (existingPhone.status === UserStatus.PENDING) {
+				// Delete the pending user so they can register again
+				await prisma.users.delete({ where: { id: existingPhone.id } }).catch(() => {});
+			} else {
+				throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
+			}
 		}
 
 		// 3. Hash password
@@ -54,28 +64,39 @@ export class AuthService {
 			},
 		});
 
-		// 5. Generate and store OTP in Redis
-		const otpCode = env.NODE_ENV === 'production'
-			? Math.floor(100000 + Math.random() * 900000).toString()
-			: '123456';
+		try {
+			// 5. Generate and store OTP in Redis
+			const otpCode = env.NODE_ENV === 'production'
+				? Math.floor(100000 + Math.random() * 900000).toString()
+				: '123456';
 
-		const otpData = {
-			code: otpCode,
-			attempts: 0,
-			userId: user.id,
-		};
+			const otpData = {
+				code: otpCode,
+				attempts: 0,
+				userId: user.id,
+			};
 
-		if (redis.isOpen) {
-			await redis.set(`otp:${data.phone}`, JSON.stringify(otpData), {
-				EX: 300, // 5 minutes
+			if (redis.isOpen) {
+				await redis.set(`otp:${data.phone}`, JSON.stringify(otpData), {
+					EX: 300, // 5 minutes
+				});
+			}
+
+			logger.info({ phone: data.phone, otpCode }, 'OTP generated for registration');
+
+			// Send OTP to email
+			await sendEmail({
+				to: data.email,
+				subject: 'Kode OTP Registrasi Indo-Lelang',
+				text: `Halo ${data.full_name},\n\nKode OTP Anda untuk pendaftaran di Indo-Lelang adalah: ${otpCode}.\nKode ini berlaku selama 5 menit.\n\nTerima kasih.`,
+				html: `<p>Halo <strong>${data.full_name}</strong>,</p><p>Kode OTP Anda untuk pendaftaran di Indo-Lelang adalah: <strong>${otpCode}</strong>.</p><p>Kode ini berlaku selama 5 menit.</p><p>Terima kasih.</p>`,
 			});
-		}
-
-		logger.info({ phone: data.phone, otpCode }, 'OTP generated for registration');
-
-		// Simulate sending SMS/Email in dev by logging it
-		if (env.NODE_ENV === 'production') {
-			// In prod, send real OTP (e.g. SMS via Verihubs)
+		} catch (error) {
+			// Rollback user creation if subsequent steps (Redis or Email) fail
+			await prisma.users.delete({ where: { id: user.id } }).catch((delErr) => {
+				logger.error({ delErr, userId: user.id }, 'Failed to delete user during registration rollback');
+			});
+			throw error;
 		}
 
 		const kyc = await prisma.kyc_documents.findUnique({ where: { user_id: user.id } });

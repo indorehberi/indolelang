@@ -60,21 +60,21 @@ function VerifikasiOtpContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-tr from-primary/90 via-primary to-primary-container">
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl w-full max-w-[480px]">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#F9F8F3] hero-gradient">
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-2xl w-full max-w-[480px]">
         {/* Title */}
         <div className="text-center mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-lg filled">gavel</span>
-            </div>
-            <span className="font-black text-on-surface text-xl tracking-tight">
-              BIDKU
-            </span>
+          <Link href="/" className="inline-block mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="BIDKU"
+              className="h-10 w-auto mx-auto"
+              src="/logo-bidku.png"
+            />
           </Link>
-          <p className="text-body-md text-on-surface-variant font-medium">
+          <h2 className="text-heading-md font-bold text-on-surface font-serif mt-2">
             Verifikasi Kode OTP
-          </p>
+          </h2>
         </div>
 
         <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-6">
@@ -95,14 +95,14 @@ function VerifikasiOtpContent() {
                 value={digit}
                 onChange={(e) => handleChange(e.target.value, idx)}
                 onKeyDown={(e) => handleKeyDown(e, idx)}
-                className="w-12 h-14 text-center bg-surface border border-outline-variant/60 rounded-xl text-heading-md font-bold text-on-surface focus:border-primary focus:outline-none transition-all shadow-inner"
+                className="w-12 h-14 text-center bg-surface border border-outline-variant/60 rounded-xl text-heading-md font-bold text-on-surface focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
               />
             ))}
           </div>
 
           <button
             type="submit"
-            className="w-full py-4 bg-primary text-on-primary rounded-xl text-body-md font-bold hover:bg-primary/90 transition-all btn-press shadow-md"
+            className="w-full py-4 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md"
           >
             Verifikasi OTP
           </button>
@@ -132,7 +132,7 @@ function VerifikasiOtpContent() {
 export default function VerifikasiOtpPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-primary text-white text-heading-md font-bold">
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient text-premium text-heading-md font-bold font-serif">
         Memuat verifikasi...
       </div>
     }>

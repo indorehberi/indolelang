@@ -35,21 +35,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-tr from-primary/90 via-primary to-primary-container">
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl w-full max-w-[480px]">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#F9F8F3] hero-gradient">
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-2xl w-full max-w-[480px]">
         {/* Title */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-lg filled">gavel</span>
-            </div>
-            <span className="font-black text-on-surface text-xl tracking-tight">
-              BIDKU
-            </span>
+          <Link href="/" className="inline-block mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="BIDKU"
+              className="h-10 w-auto mx-auto"
+              src="/logo-bidku.png"
+            />
           </Link>
-          <p className="text-body-md text-on-surface-variant font-medium">
+          <h2 className="text-heading-md font-bold text-on-surface font-serif mt-2">
             Masuk ke Akun Anda
-          </p>
+          </h2>
         </div>
 
         {/* Form */}
@@ -64,7 +64,7 @@ export default function LoginPage() {
               value={formData.identifier}
               onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
               placeholder="Masukkan email atau no HP"
-              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
             />
           </div>
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="Masukkan password"
-              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
             />
           </div>
 
@@ -88,7 +88,7 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={formData.rememberMe}
                 onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                className="w-4 h-4 accent-primary rounded border-outline-variant focus:ring-primary"
+                className="w-4 h-4 accent-premium rounded border-outline-variant focus:ring-premium"
               />
               Ingat Saya
             </label>
@@ -105,14 +105,14 @@ export default function LoginPage() {
             <button
               onClick={(e) => handleLogin(e, "Bidder")}
               type="submit"
-              className="w-full py-3.5 bg-primary text-on-primary rounded-xl text-body-md font-bold hover:bg-primary/90 transition-all btn-press shadow-md"
+              className="w-full py-3.5 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-lg shadow-premium/15"
             >
               Masuk Sebagai Bidder
             </button>
             <button
               onClick={(e) => handleLogin(e, "Provider")}
               type="button"
-              className="w-full py-3.5 bg-secondary text-on-secondary rounded-xl text-body-md font-bold hover:bg-secondary/90 transition-all btn-press shadow-md"
+              className="w-full py-3.5 border-2 border-premium/20 text-premium rounded-xl text-body-md font-bold hover:bg-premium hover:text-on-premium transition-all btn-press"
             >
               Masuk Sebagai Provider
             </button>

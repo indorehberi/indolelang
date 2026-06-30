@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export default function DetailLotPage() {
+  const router = useRouter();
   const [selectedThumb, setSelectedThumb] = useState(0);
   const [bidAmount, setBidAmount] = useState(145000000);
   const [wishlisted, setWishlisted] = useState(false);
@@ -87,10 +89,10 @@ export default function DetailLotPage() {
         className="sticky-cta visible fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-outline-variant/20 px-6 py-3 md:hidden shadow-lg"
       >
         <div className="flex items-center gap-3 max-w-container-max mx-auto">
-          <button className="flex-1 px-4 py-3 bg-primary text-on-primary rounded-xl font-bold text-sm btn-press transition-all hover:bg-primary/90 text-center shadow-md">
+          <button className="flex-1 px-4 py-3 bg-premium text-on-premium rounded-xl font-bold text-sm btn-press btn-shine transition-all hover:bg-premium/85 text-center shadow-md">
             Daftar Sekarang
           </button>
-          <button className="flex-1 px-4 py-3 bg-secondary text-on-secondary rounded-xl font-bold text-sm btn-press transition-all hover:bg-secondary/90 text-center shadow-md">
+          <button className="flex-1 px-4 py-3 border-2 border-premium/20 text-premium rounded-xl font-bold text-sm btn-press transition-all hover:bg-premium hover:text-on-premium text-center shadow-md">
             Lihat Lelang Aktif
           </button>
         </div>
@@ -171,10 +173,10 @@ export default function DetailLotPage() {
                         key={idx}
                         className="border-b border-outline-variant/15 last:border-0 hover:bg-surface/30 transition-colors"
                       >
-                        <td className="py-4 pr-4 font-semibold text-body-md text-on-surface-variant w-[35%]">
+                        <td className="py-2 pr-4 text-body-sm text-on-surface-variant w-[35%]">
                           {spec.label}
                         </td>
-                        <td className="py-4 text-body-md text-on-surface font-medium">
+                        <td className="py-2 text-body-sm text-on-surface font-medium">
                           {spec.value}
                         </td>
                       </tr>
@@ -192,25 +194,31 @@ export default function DetailLotPage() {
               </h2>
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-bold text-body-lg text-on-surface">Gudang Utama JKT Selatan</h3>
-                  <p className="text-body-md text-on-surface-variant leading-relaxed mt-1">
-                    Jl. Gatot Subroto No. 45, Jakarta Selatan. Terbuka untuk Open House / Cek Fisik pada 10-11 Juni 2026, pukul 09:00 - 16:00 WIB.
+                  <h3 className="font-bold text-body-lg text-on-surface">Pool Kantor Pusat Bidku</h3>
+                  <p className="text-body-sm text-on-surface-variant leading-relaxed mt-1">
+                    Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151. Terbuka untuk Open House / Cek Fisik pada 10-11 Juni 2026, pukul 09:00 - 16:00 WIB.
                   </p>
                 </div>
-                <div className="aspect-[21/9] w-full rounded-2xl overflow-hidden bg-surface-variant/20 border border-outline-variant/10 relative flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_R8j18nKSwK80H9f7yZ5_mE1R5P0L-KjX6l_eF1qYgG4N4a5m_2kLp-h1zQ5yvM8_1rFj6xO0V1N_4zTfL8v9M_2jV4v8R-FmZ-v5L8k7z-Fm9jV8mZ-Tf0v7K-L2z"
-                    className="absolute inset-0 w-full h-full object-cover filter brightness-75 grayscale"
-                    alt="Map mockup"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4">
-                    <span className="text-white text-body-sm font-bold flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">map</span>
+                <a
+                  href="https://maps.app.goo.gl/TTfvM1o9M852AFKfA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block aspect-[21/9] w-full rounded-2xl overflow-hidden bg-surface-variant/20 border border-outline-variant/10 relative group hover:border-premium transition-all"
+                >
+                  <iframe
+                    src="https://maps.google.com/maps?q=Jl.+Raden+Patah+Jl.+Lembang+II+Lama+No.62,+Ciledug,+Kota+Tangerang,+Banten+15151&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                    className="absolute inset-0 w-full h-full border-none pointer-events-none"
+                    allowFullScreen
+                    loading="lazy"
+                    title="Google Map Gudang Penampungan"
+                  ></iframe>
+                  <div className="absolute inset-0 bg-black/5 group-hover:bg-black/15 transition-colors flex items-end p-4">
+                    <span className="bg-premium text-on-premium px-3 py-1.5 rounded-xl text-body-sm font-bold shadow-md flex items-center gap-1.5 transform scale-100 group-hover:scale-105 transition-transform duration-300">
+                      <span className="material-symbols-outlined text-sm">open_in_new</span>
                       Lihat di Google Maps
                     </span>
                   </div>
-                </div>
+                </a>
               </div>
             </div>
           </div>
@@ -254,10 +262,10 @@ export default function DetailLotPage() {
                   </div>
 
                   {/* Timer Alert Info */}
-                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-start gap-3">
-                    <span className="material-symbols-outlined text-primary mt-0.5">schedule</span>
+                  <div className="bg-premium/5 border border-premium/20 rounded-2xl p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-premium mt-0.5">schedule</span>
                     <div>
-                      <span className="text-body-sm font-bold text-primary block">
+                      <span className="text-body-sm font-bold text-premium block">
                         Jadwal Sesi Live Online:
                       </span>
                       <span className="text-body-md text-on-surface-variant block mt-0.5">
@@ -268,62 +276,25 @@ export default function DetailLotPage() {
 
                   {/* Bid Interaction */}
                   <div className="space-y-3.5">
-                    <div>
-                      <label className="text-body-sm font-bold text-on-surface block mb-2">
-                        Masukkan Nominal Bid Anda:
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-heading-md font-bold text-on-surface-variant ml-2">Rp</span>
-                        <input
-                          type="text"
-                          value={bidAmount.toLocaleString("id-ID")}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value.replace(/\D/g, "")) || 0;
-                            setBidAmount(val);
-                          }}
-                          className="flex-1 px-4 py-3 bg-white border border-outline-variant rounded-xl text-body-lg font-bold text-on-surface focus:border-primary focus:outline-none transition-all shadow-inner"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Quick Bid Increments */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => handleQuickBid(1000000)}
-                        className="py-2.5 px-3 bg-white border border-outline-variant/30 hover:border-primary hover:text-primary rounded-xl text-body-sm font-bold btn-press transition-all text-center shadow-sm"
-                      >
-                        +1 Juta
-                      </button>
-                      <button
-                        onClick={() => handleQuickBid(2000000)}
-                        className="py-2.5 px-3 bg-white border border-outline-variant/30 hover:border-primary hover:text-primary rounded-xl text-body-sm font-bold btn-press transition-all text-center shadow-sm"
-                      >
-                        +2 Juta
-                      </button>
-                      <button
-                        onClick={() => handleQuickBid(5000000)}
-                        className="py-2.5 px-3 bg-white border border-outline-variant/30 hover:border-primary hover:text-primary rounded-xl text-body-sm font-bold btn-press transition-all text-center shadow-sm"
-                      >
-                        +5 Juta
-                      </button>
-                    </div>
-
                     {/* Action buttons */}
                     <div className="space-y-2.5 pt-2">
-                      <button className="w-full py-4 bg-primary text-on-primary rounded-2xl text-body-md font-bold hover:bg-primary/90 transition-all btn-press shadow-md flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => router.push("/bidder/bidding-room")}
+                        className="w-full py-4 bg-premium text-on-premium rounded-2xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md flex items-center justify-center gap-2"
+                      >
                         <span className="material-symbols-outlined font-bold">gavel</span>
-                        Ajukan Bid Sekarang
+                        Ikut Bid Sekarang
                       </button>
 
                       <button
                         onClick={() => setWishlisted(!wishlisted)}
                         className={`w-full py-3.5 border rounded-2xl text-body-md font-bold transition-all btn-press flex items-center justify-center gap-2 shadow-sm ${
                           wishlisted
-                            ? "bg-primary/10 border-primary text-primary"
+                            ? "bg-premium/10 border-premium text-premium"
                             : "bg-white border-outline-variant hover:bg-surface/40 text-on-surface"
                         }`}
                       >
-                        <span className={`material-symbols-outlined ${wishlisted ? "filled text-primary" : ""}`}>
+                        <span className={`material-symbols-outlined ${wishlisted ? "filled text-premium" : ""}`}>
                           star
                         </span>
                         {wishlisted ? "Tersimpan di Watchlist" : "Tambah ke Watchlist"}
@@ -336,31 +307,31 @@ export default function DetailLotPage() {
               {/* Download Documents Card */}
               <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm space-y-4">
                 <h3 className="font-bold text-body-lg text-on-surface flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-primary">download</span>
+                  <span className="material-symbols-outlined text-premium">download</span>
                   Dokumen Lot &amp; Unduhan
                 </h3>
                 <div className="grid grid-cols-1 gap-2.5">
                   <a
                     href="#"
-                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-primary hover:bg-primary/5 transition-all group"
+                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-premium hover:bg-premium/5 transition-all group"
                   >
-                    <span className="flex items-center gap-2.5 text-body-md font-semibold text-on-surface">
-                      <span className="material-symbols-outlined text-primary">picture_as_pdf</span>
+                    <span className="flex items-center gap-2.5 text-body-md text-on-surface">
+                      <span className="material-symbols-outlined text-premium">picture_as_pdf</span>
                       Laporan Hasil Inspeksi.pdf
                     </span>
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">
+                    <span className="material-symbols-outlined text-outline group-hover:text-premium transition-colors">
                       download
                     </span>
                   </a>
                   <a
                     href="#"
-                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-primary hover:bg-primary/5 transition-all group"
+                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-premium hover:bg-premium/5 transition-all group"
                   >
-                    <span className="flex items-center gap-2.5 text-body-md font-semibold text-on-surface">
-                      <span className="material-symbols-outlined text-primary">picture_as_pdf</span>
+                    <span className="flex items-center gap-2.5 text-body-md text-on-surface">
+                      <span className="material-symbols-outlined text-premium">picture_as_pdf</span>
                       Syarat Ketentuan Khusus.pdf
                     </span>
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">
+                    <span className="material-symbols-outlined text-outline group-hover:text-premium transition-colors">
                       download
                     </span>
                   </a>
@@ -372,8 +343,8 @@ export default function DetailLotPage() {
 
         {/* Similar Lots Grid */}
         <div className="mt-16">
-          <h2 className="text-heading-lg font-bold text-on-surface mb-6 flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary">grid_view</span>
+          <h2 className="text-heading-lg font-bold text-on-surface mb-6 flex items-center gap-2.5 font-serif">
+            <span className="material-symbols-outlined text-premium">grid_view</span>
             Rekomendasi Lot Serupa
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -400,7 +371,7 @@ export default function DetailLotPage() {
                 {/* Body */}
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-body-lg text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                    <h3 className="font-bold text-body-lg text-on-surface line-clamp-1 group-hover:text-premium transition-colors">
                       {lot.title}
                     </h3>
                     <div className="flex justify-between items-center mt-3 text-body-sm text-on-surface-variant">
@@ -424,7 +395,7 @@ export default function DetailLotPage() {
                     </span>
                     <Link
                       href={`/katalog/${lot.id}`}
-                      className="px-4 py-2 bg-primary/10 text-primary font-bold text-body-sm rounded-xl hover:bg-primary hover:text-on-primary transition-all btn-press"
+                      className="px-4 py-2 bg-premium/10 text-premium font-bold text-body-sm rounded-xl hover:bg-premium hover:text-on-premium transition-all btn-press"
                     >
                       Detail Lot
                     </Link>

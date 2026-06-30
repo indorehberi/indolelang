@@ -56,7 +56,7 @@ export default function JadwalPage() {
       <Header />
 
       <main className="max-w-container-max mx-auto px-6 py-10">
-        <h1 className="text-heading-xl font-black text-on-surface leading-tight">
+        <h1 className="text-heading-xl font-black text-on-surface leading-tight font-serif">
           Jadwal Sesi Lelang Aktif
         </h1>
         <p className="text-body-lg text-on-surface-variant mt-2 max-w-2xl">
@@ -76,14 +76,14 @@ export default function JadwalPage() {
                   placeholder="Cari nama sesi..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-primary focus:outline-none transition-all shadow-inner"
+                  className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
                 />
               </div>
               <div className="relative">
                 <select
                   value={selectedRegion}
                   onChange={(e) => setSelectedRegion(e.target.value)}
-                  className="w-full sm:w-[200px] pl-4 pr-10 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md font-medium text-on-surface appearance-none focus:border-primary focus:outline-none transition-all shadow-sm cursor-pointer"
+                  className="w-full sm:w-[200px] pl-4 pr-10 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md font-medium text-on-surface appearance-none focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-sm cursor-pointer"
                 >
                   <option>Semua Wilayah</option>
                   <option>Jakarta</option>
@@ -103,25 +103,25 @@ export default function JadwalPage() {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-surface-variant/20 border-b border-outline-variant/15">
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     ID Sesi
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Nama Sesi Lelang
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Tanggal &amp; Waktu
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Jumlah Lot
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Uang Jaminan
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Status
                   </th>
-                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-right">
+                  <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     Aksi
                   </th>
                 </tr>
@@ -131,37 +131,37 @@ export default function JadwalPage() {
                   filteredSessions.map((session, idx) => (
                     <tr
                       key={idx}
-                      className="border-b border-outline-variant/10 hover:bg-surface/30 transition-all"
+                      className="border-b border-outline-variant/10 hover:bg-surface/30 transition-all text-center"
                     >
-                      <td className="py-4.5 px-5 text-body-md font-bold text-on-surface-variant">
+                      <td className="py-4.5 px-5 text-body-sm text-on-surface-variant">
                         {session.id}
                       </td>
-                      <td className="py-4.5 px-5 text-body-md font-extrabold text-on-surface hover:text-primary transition-colors">
+                      <td className="py-4.5 px-5 text-body-sm text-on-surface hover:text-primary transition-colors text-left font-medium">
                         {session.name}
                       </td>
-                      <td className="py-4.5 px-5 text-body-md text-on-surface-variant font-medium">
+                      <td className="py-4.5 px-5 text-body-sm text-on-surface-variant">
                         {session.dateTime}
                       </td>
-                      <td className="py-4.5 px-5 text-body-md text-on-surface font-semibold">
+                      <td className="py-4.5 px-5 text-body-sm text-on-surface">
                         {session.lotCount}
                       </td>
-                      <td className="py-4.5 px-5 text-body-md text-on-surface-variant font-medium">
+                      <td className="py-4.5 px-5 text-body-sm text-on-surface-variant">
                         {session.deposit}
                       </td>
                       <td className="py-4.5 px-5">
                         <span
-                          className={`px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider ${session.statusStyle}`}
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${session.statusStyle}`}
                         >
                           {session.status}
                         </span>
                       </td>
-                      <td className="py-4.5 px-5 text-right">
+                      <td className="py-4.5 px-5">
                         <Link
                           href="/katalog"
-                          className={`px-4 py-2 text-body-sm font-bold rounded-xl transition-all btn-press inline-block ${
+                          className={`text-body-sm font-bold transition-all hover:underline ${
                             session.status === "Segera Hadir"
-                              ? "border border-outline-variant hover:bg-surface text-on-surface-variant"
-                              : "bg-primary text-on-primary hover:bg-primary/90 shadow-sm"
+                              ? "text-outline pointer-events-none"
+                              : "text-premium"
                           }`}
                         >
                           Lihat Katalog Sesi
@@ -173,7 +173,7 @@ export default function JadwalPage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="py-10 text-center text-body-md text-on-surface-variant"
+                      className="py-10 text-center text-body-sm text-on-surface-variant"
                     >
                       Tidak ada sesi lelang yang cocok dengan pencarian Anda.
                     </td>

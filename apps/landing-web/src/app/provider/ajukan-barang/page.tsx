@@ -12,6 +12,31 @@ export default function ProviderAjukanBarang() {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [auctionType, setAuctionType] = useState("English Auction");
+  const [enabledTypes, setEnabledTypes] = useState<string[]>(["English Auction", "Dutch Auction", "Sealed-Bid", "Timed Auction", "Buy Now + Auction", "Group/Bundle"]);
+
+  React.useEffect(() => {
+    if (typeof document !== "undefined") {
+      const cookieMap: Record<string, string> = {};
+      document.cookie.split(";").forEach((c) => {
+        const parts = c.trim().split("=");
+        if (parts[0]) cookieMap[parts[0]] = parts[1] || "";
+      });
+
+      const list = [];
+      if (cookieMap["feat_auction_english"] !== "false") list.push("English Auction");
+      if (cookieMap["feat_auction_dutch"] !== "false") list.push("Dutch Auction");
+      if (cookieMap["feat_auction_sealed"] !== "false") list.push("Sealed-Bid");
+      if (cookieMap["feat_auction_timed"] !== "false") list.push("Timed Auction");
+      if (cookieMap["feat_auction_buynow"] !== "false") list.push("Buy Now + Auction");
+      if (cookieMap["feat_auction_group"] !== "false") list.push("Group/Bundle");
+
+      if (list.length > 0) {
+        setEnabledTypes(list);
+        setAuctionType(list[0]);
+      }
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +60,7 @@ export default function ProviderAjukanBarang() {
             limitPrice,
             status: "pending",
             date: "Baru saja",
+            jenisLelang: auctionType,
           });
           localStorage.setItem("provider_assets", JSON.stringify(list));
         } catch (e) {}
@@ -120,6 +146,21 @@ export default function ProviderAjukanBarang() {
                   className="panel-form-input"
                   required
                 />
+              </div>
+
+              <div className="panel-form-group">
+                <label className="panel-form-label">Jenis Lelang</label>
+                <select
+                  value={auctionType}
+                  onChange={(e) => setAuctionType(e.target.value)}
+                  className="panel-form-select"
+                >
+                  {enabledTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="panel-form-group">
