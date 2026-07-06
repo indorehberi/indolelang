@@ -13,12 +13,12 @@ git pull origin main
 
 # 2. Build and restart Docker services
 echo "Building production Docker containers..."
-docker compose -f infrastructure/docker/docker-compose.prod.yml down
-docker compose -f infrastructure/docker/docker-compose.prod.yml up --build -d
+docker compose --env-file .env -f infrastructure/docker/docker-compose.prod.yml down
+docker compose --env-file .env -f infrastructure/docker/docker-compose.prod.yml up --build -d
 
 # 3. Run database migrations
 echo "Running Prisma migrations dev-deploy in api container..."
-docker compose -f infrastructure/docker/docker-compose.prod.yml exec -T api npx prisma migrate deploy
+docker compose --env-file .env -f infrastructure/docker/docker-compose.prod.yml exec -T api npx prisma migrate deploy
 
 # 4. Verify service health
 echo "Verifying server health checks..."
