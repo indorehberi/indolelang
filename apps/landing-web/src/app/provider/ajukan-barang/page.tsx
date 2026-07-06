@@ -197,12 +197,12 @@ export default function ProviderAjukanBarang() {
     }
   };
 
-  const renderCheckbox = (field: string, label: string) => (
+  const renderCheckbox = (field: keyof typeof formData, label: string) => (
     <label className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-slate-50 p-2 rounded-md border border-transparent hover:border-slate-200 transition-colors">
       <input
         type="checkbox"
-        checked={formData[field]}
-        onChange={(e) => handleChange(field, e.target.checked)}
+        checked={!!formData[field]}
+        onChange={(e) => handleChange(field as string, e.target.checked)}
         className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
       />
       <span className="text-slate-700">{label}</span>
