@@ -67,6 +67,7 @@ services:
       - JWT_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=30d
       - API_PREFIX=/api/v1
+      - GOOGLE_CLIENT_ID=${PUBLIC_GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
     volumes:
       - uploads_prod:/app/apps/api/uploads
     deploy:
