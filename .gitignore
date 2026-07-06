@@ -82,3 +82,5 @@ tmp/
 /apps/api/uploads/
 .agents/
 .gemini/
+/test-results/
+/reports/
