@@ -173,6 +173,91 @@ export class TestimonialsService {
     logger.info({ testimonialId: id }, 'Testimonial soft deleted successfully');
     return true;
   }
+
+  /**
+   * Admin: Get single testimonial by ID
+   */
+  async getTestimonialByIdAdmin(id: string) {
+    const testimonial = await prisma.testimonials.findFirst({
+      where: { id, deleted_at: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            role: true,
+          }
+        }
+      }
+    });
+
+    if (!testimonial) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Testimoni tidak ditemukan');
+    }
+
+    return testimonial;
+  }
+
+  /**
+   * Admin: Create a new testimonial on behalf of user
+   */
+  async createTestimonialAdmin(data: { user_id: string; rating: number; content: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
+    const user = await prisma.users.findUnique({ where: { id: data.user_id } });
+    if (!user) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'User tidak ditemukan');
+    }
+
+    const testimonial = await prisma.testimonials.create({
+      data: {
+        user_id: data.user_id,
+        rating: data.rating,
+        content: data.content,
+        image_url: data.image_url,
+        status: data.status || 'approved',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+          },
+        },
+      },
+    });
+
+    logger.info({ testimonialId: testimonial.id, adminCreated: true }, 'Testimonial created successfully by admin');
+    return testimonial;
+  }
+
+  /**
+   * Admin: Update an existing testimonial
+   */
+  async updateTestimonialAdmin(id: string, data: { rating?: number; content?: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
+    const testimonial = await prisma.testimonials.findFirst({
+      where: { id, deleted_at: null },
+    });
+
+    if (!testimonial) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Testimoni tidak ditemukan');
+    }
+
+    const updatedTestimonial = await prisma.testimonials.update({
+      where: { id },
+      data,
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+          },
+        },
+      },
+    });
+
+    logger.info({ testimonialId: id, adminUpdated: true }, 'Testimonial updated successfully by admin');
+    return updatedTestimonial;
+  }
 }
 
 export const testimonialsService = new TestimonialsService();

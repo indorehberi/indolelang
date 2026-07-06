@@ -66,6 +66,44 @@ export class TestimonialsController {
       next(error);
     }
   }
+
+  /**
+   * GET /admin/testimonials/:id — Get single testimonial (Admin/Operator only)
+   */
+  async getByIdAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const testimonial = await testimonialsService.getTestimonialByIdAdmin(id);
+      return sendSuccess(res, testimonial, 'Data testimoni berhasil dimuat');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /admin/testimonials — Create testimonial (Admin/Operator only)
+   */
+  async createAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const testimonial = await testimonialsService.createTestimonialAdmin(req.body);
+      return sendSuccess(res, testimonial, 'Testimoni berhasil ditambahkan oleh admin', undefined, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PUT /admin/testimonials/:id — Update testimonial (Admin/Operator only)
+   */
+  async updateAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const testimonial = await testimonialsService.updateTestimonialAdmin(id, req.body);
+      return sendSuccess(res, testimonial, 'Testimoni berhasil diperbarui');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const testimonialsController = new TestimonialsController();

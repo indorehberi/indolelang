@@ -9,6 +9,8 @@ import {
   createTestimonialBody,
   moderateTestimonialBody,
   listTestimonialsQuery,
+  adminCreateTestimonialBody,
+  adminUpdateTestimonialBody
 } from './testimonials.validator';
 
 const router = Router();
@@ -36,6 +38,30 @@ router.get(
   ...adminOrOperator,
   validate(z.object({ query: listTestimonialsQuery })),
   testimonialsController.listAdmin
+);
+
+router.get(
+  '/admin/testimonials/:id',
+  ...adminOrOperator,
+  validate(z.object({ params: z.object({ id: z.string().uuid('ID harus berupa UUID') }) })),
+  testimonialsController.getByIdAdmin
+);
+
+router.post(
+  '/admin/testimonials',
+  ...adminOrOperator,
+  validate(z.object({ body: adminCreateTestimonialBody })),
+  testimonialsController.createAdmin
+);
+
+router.put(
+  '/admin/testimonials/:id',
+  ...adminOrOperator,
+  validate(z.object({
+    params: z.object({ id: z.string().uuid('ID harus berupa UUID') }),
+    body: adminUpdateTestimonialBody
+  })),
+  testimonialsController.updateAdmin
 );
 
 router.put(

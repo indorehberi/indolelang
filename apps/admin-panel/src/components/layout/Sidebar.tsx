@@ -239,6 +239,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ].filter(Boolean) as NavItem[],
     },
     {
+      title: 'Konten Publik',
+      items: [
+        { href: '/blog', icon: 'article', iconColor: '#6366f1', label: 'Blog & Artikel' },
+        { href: '/testimoni', icon: 'reviews', iconColor: '#f59e0b', label: 'Testimoni' },
+      ],
+    },
+    {
       title: 'Pengaturan',
       items: [
         { href: '/settings/platform', icon: 'settings', iconColor: '#6b7280', label: 'Pengaturan Platform' },

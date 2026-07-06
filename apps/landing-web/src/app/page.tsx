@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions } from "@/hooks/usePublicData";
+import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials } from "@/hooks/usePublicData";
 
 function AnimatedCounter({
   target,
@@ -149,6 +149,8 @@ export default function Home() {
   const { data: dbSessions = [] } = usePublicSessions();
   const { data: platformStats } = usePlatformStats();
   const { data: categoryStats } = useCategoryStats();
+  const { data: publicBlogs = [] } = usePublicBlogs();
+  const { data: publicTestimonials = [] } = usePublicTestimonials();
 
   const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const isLiveAuctionRunning = lotsList.some((lot) => lot.status === "Live");
@@ -1235,90 +1237,41 @@ export default function Home() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* Testimonial 1 */}
-              <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=120&h=120&fit=crop"
-                      alt="Bambang Susilo"
-                      className="w-full h-full object-cover"
-                    />
+              {publicTestimonials && publicTestimonials.length > 0 ? (
+                publicTestimonials.slice(0, 3).map((testimoni: any) => (
+                  <div key={testimoni.id} className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center font-bold text-on-primary-fixed text-body-md">
+                        {testimoni.image_url ? (
+                          <img
+                            src={testimoni.image_url}
+                            alt={testimoni.user?.full_name || 'User'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-on-primary-fixed">person</span>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-body-md">{testimoni.user?.full_name || 'Pengguna Anonim'}</h4>
+                        <p className="text-body-sm text-outline">Pengguna BIDKU</p>
+                      </div>
+                    </div>
+                    <div className="flex text-primary mb-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={`material-symbols-outlined text-sm ${i < testimoni.rating ? 'filled' : ''}`}>star</span>
+                      ))}
+                    </div>
+                    <p className="text-body-md text-on-surface-variant italic leading-relaxed">
+                      "{testimoni.content}"
+                    </p>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-body-md">Bambang Susilo</h4>
-                    <p className="text-body-sm text-outline">Pemenang Toyota Avanza</p>
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-1 md:col-span-3 text-center py-10 text-outline">
+                  Belum ada testimoni.
                 </div>
-                <div className="flex text-primary mb-2">
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                </div>
-                <p className="text-body-md text-on-surface-variant italic leading-relaxed">
-                  "Proses bidding di BIDKU sangat transparan dan mudah diikuti. Saya
-                  mendapatkan mobil idaman dengan harga yang jauh lebih kompetitif."
-                </p>
-              </div>
-              {/* Testimonial 2 */}
-              <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center font-bold text-on-primary-fixed text-body-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120&h=120&fit=crop"
-                      alt="Ratna Mutia"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-body-md">Ratna Mutia</h4>
-                    <p className="text-body-sm text-outline">Pemenang Honda Brio</p>
-                  </div>
-                </div>
-                <div className="flex text-primary mb-2">
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                </div>
-                <p className="text-body-md text-on-surface-variant italic leading-relaxed">
-                  "Awalnya ragu lelang online, tapi setelah coba di BIDKU ternyata aman
-                  banget. Verifikasi datanya ketat, tidak khawatir ada penipuan."
-                </p>
-              </div>
-              {/* Testimonial 3 */}
-              <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=120&h=120&fit=crop"
-                      alt="Aditya Pratama"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-body-md">Aditya Pratama</h4>
-                    <p className="text-body-sm text-outline">Pemenang Alat Berat</p>
-                  </div>
-                </div>
-                <div className="flex text-primary mb-2">
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                  <span className="material-symbols-outlined text-sm filled">star</span>
-                </div>
-                <p className="text-body-md text-on-surface-variant italic leading-relaxed">
-                  "Sangat terbantu untuk pengadaan unit usaha kami. Deskripsi unit jujur
-                  sesuai grade, memudahkan estimasi sebelum bidding."
-                </p>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -1349,122 +1302,59 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Article 1 */}
-              <article className="group bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
-                <div className="aspect-video overflow-hidden bg-surface-container-low">
-                  <img
-                    alt="Tips Membeli Mobil Bekas Lewat Lelang"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB"
-                  />
+              {publicBlogs && publicBlogs.length > 0 ? (
+                publicBlogs.slice(0, 3).map((blog: any) => (
+                  <Link href={`/blog/${blog.slug}`} key={blog.id}>
+                    <article className="group bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all h-full flex flex-col">
+                      <div className="aspect-video overflow-hidden bg-surface-container-low relative">
+                        {blog.image_url ? (
+                          <img
+                            alt={blog.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            src={blog.image_url}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                            <span className="material-symbols-outlined text-4xl text-primary/50">image</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5 flex-grow flex flex-col">
+                        <div className="flex items-center gap-2 text-body-sm text-outline mb-3">
+                          <span className="material-symbols-outlined text-sm">
+                            calendar_today
+                          </span>
+                          <span>
+                            {blog.published_at
+                              ? new Date(blog.published_at).toLocaleDateString('id-ID', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })
+                              : 'Belum dipublikasi'}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                          {blog.title}
+                        </h4>
+                        <p className="text-body-md text-on-surface-variant mb-4 line-clamp-2 flex-grow">
+                          {blog.content.replace(/<[^>]+>/g, '').substring(0, 100)}...
+                        </p>
+                        <div className="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all mt-auto">
+                          Baca Selengkapnya
+                          <span className="material-symbols-outlined text-sm">
+                            arrow_forward
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-1 md:col-span-3 text-center py-10 text-outline">
+                  Belum ada artikel.
                 </div>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 text-body-sm text-outline mb-3">
-                    <span className="material-symbols-outlined text-sm">
-                      calendar_today
-                    </span>
-                    <span>12 Juni 2024</span>
-                  </div>
-                  <h4 className="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">
-                    Tips Membeli Mobil Bekas Lewat Lelang
-                  </h4>
-                  <p className="text-body-md text-on-surface-variant mb-4 line-clamp-2">
-                    Pelajari cara memeriksa kondisi dokumen kendaraan agar tidak salah pilih
-                    saat mengikuti lelang online.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("Baca Artikel 1");
-                    }}
-                    className="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all"
-                  >
-                    Baca Selengkapnya
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </a>
-                </div>
-              </article>
-
-              {/* Article 2 */}
-              <article className="group bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
-                <div className="aspect-video overflow-hidden bg-surface-container-low">
-                  <img
-                    alt="Panduan Lengkap Lelang Digital 2024"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM"
-                  />
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 text-body-sm text-outline mb-3">
-                    <span className="material-symbols-outlined text-sm">
-                      calendar_today
-                    </span>
-                    <span>8 Juni 2024</span>
-                  </div>
-                  <h4 className="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">
-                    Panduan Lengkap Lelang Digital 2024
-                  </h4>
-                  <p className="text-body-md text-on-surface-variant mb-4 line-clamp-2">
-                    Langkah demi langkah mengikuti lelang mulai dari pendaftaran akun hingga
-                    pengambilan unit untuk pemula.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("Baca Artikel 2");
-                    }}
-                    className="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all"
-                  >
-                    Baca Selengkapnya
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </a>
-                </div>
-              </article>
-
-              {/* Article 3 */}
-              <article className="group bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
-                <div className="aspect-video overflow-hidden bg-surface-container-low">
-                  <img
-                    alt="Keunggulan Grade Kendaraan di IBID"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl"
-                  />
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 text-body-sm text-outline mb-3">
-                    <span className="material-symbols-outlined text-sm">
-                      calendar_today
-                    </span>
-                    <span>3 Juni 2024</span>
-                  </div>
-                  <h4 className="font-bold text-heading-md mb-2 group-hover:text-primary transition-colors">
-                    Keunggulan Grade Kendaraan di BIDKU
-                  </h4>
-                  <p className="text-body-md text-on-surface-variant mb-4 line-clamp-2">
-                    Memahami sistem penilaian grade A hingga E pada unit lelang untuk
-                    menjamin kepuasan pembeli.
-                  </p>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleActionClick("Baca Artikel 3");
-                    }}
-                    className="inline-flex items-center gap-1 text-primary font-bold text-body-sm hover:gap-2 transition-all"
-                  >
-                    Baca Selengkapnya
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </a>
-                </div>
-              </article>
+              )}
             </div>
           </div>
         </section>

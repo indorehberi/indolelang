@@ -46,3 +46,17 @@ export function usePlatformStats() {
     queryFn: () => fetchJson(apiUrl('/public/stats')),
   });
 }
+
+export function usePublicBlogs() {
+  return useQuery({
+    queryKey: ['public-blogs'],
+    queryFn: () => fetchJson(apiUrl('/blogs')),
+  });
+}
+
+export function usePublicTestimonials() {
+  return useQuery({
+    queryKey: ['public-testimonials'],
+    queryFn: () => fetchJson(apiUrl('/testimonials')),
+  });
+}

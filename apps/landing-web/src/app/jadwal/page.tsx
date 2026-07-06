@@ -89,10 +89,10 @@ export default function JadwalPage() {
           </div>
 
           {/* Table Wrapper */}
-          <div className="overflow-x-auto rounded-2xl border border-outline-variant/15">
+          <div className="overflow-x-auto rounded-2xl border border-outline-variant/60">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="bg-surface-variant/20 border-b border-outline-variant/15">
+                <tr className="bg-surface-container-low border-b border-outline-variant/60">
                   <th className="py-4 px-5 text-body-sm font-bold text-on-surface uppercase tracking-wider text-center">
                     ID Sesi
                   </th>
@@ -121,7 +121,7 @@ export default function JadwalPage() {
                   filteredSessions.map((session, idx) => (
                     <tr
                       key={idx}
-                      className="border-b border-outline-variant/10 hover:bg-surface/30 transition-all text-center"
+                      className="border-b border-outline-variant/40 hover:bg-surface-container-low transition-all text-center"
                     >
                       <td className="py-4.5 px-5 text-body-sm text-on-surface-variant">
                         {session.id}

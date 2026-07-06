@@ -11,6 +11,17 @@ export const API_PREFIX = '/api/v1';
  */
 export function apiUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+      let dynamicBase = API_BASE_URL.replace('localhost', window.location.hostname).replace('127.0.0.1', window.location.hostname);
+      if (window.location.protocol === 'https:' && dynamicBase.startsWith('http://')) {
+        dynamicBase = dynamicBase.replace('http://', 'https://');
+      }
+      return `${dynamicBase}${API_PREFIX}${cleanPath}`;
+    }
+  }
+  
   return `${API_BASE_URL}${API_PREFIX}${cleanPath}`;
 }
 

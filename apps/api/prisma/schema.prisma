@@ -323,6 +323,7 @@ model testimonials {
   user_id      String
   rating       Int
   content      String
+  image_url    String?
   status       String    @default("pending")
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt

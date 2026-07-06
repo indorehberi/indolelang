@@ -247,7 +247,7 @@ body {
 
 /* Stat Number */
 .stat-number {
-  font-size: min(2.75rem, 15cqi);
+  font-size: min(2rem, 10cqi);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;

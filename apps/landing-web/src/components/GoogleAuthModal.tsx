@@ -34,6 +34,11 @@ export default function GoogleAuthModal({
       try {
         const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
         
+        if (client_id === "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+          console.error("Google Client ID belum diatur. Harap set NEXT_PUBLIC_GOOGLE_CLIENT_ID di .env");
+          // Optionally notify user
+        }
+        
         // Initialize Google One Tap / Sign In
         (window as any).google?.accounts.id.initialize({
           client_id: client_id,
@@ -48,7 +53,6 @@ export default function GoogleAuthModal({
           (window as any).google?.accounts.id.renderButton(btnContainer, {
             theme: "outline",
             size: "large",
-            width: "380",
             text: "signin_with",
             shape: "pill",
           });
