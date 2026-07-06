@@ -16,6 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://bidku.co.id"),
   title: "BIDKU - Platform Lelang Digital Terpercaya",
   description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
   keywords: ["lelang", "lelang mobil", "lelang motor", "bidku", "indo lelang", "lelang digital"],
@@ -26,10 +27,10 @@ export const metadata: Metadata = {
     siteName: "BIDKU",
     images: [
       {
-        url: "/hero_cars_row.png",
+        url: "/Kantor_bidku.png",
         width: 1200,
         height: 630,
-        alt: "BIDKU Lelang Digital",
+        alt: "Kantor BIDKU Lelang Digital",
       },
     ],
     locale: "id_ID",
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "BIDKU - Platform Lelang Digital Terpercaya",
     description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
-    images: ["/hero_cars_row.png"],
+    images: ["/Kantor_bidku.png"],
   },
 };
 
