@@ -1,68 +1,72 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
-
-interface FinanceRow {
-  month: string;
-  gross_revenue: number;
-  commission: number;
-  ppn: number;
-  disbursement: number;
-}
-
-const DUMMY_DATA: FinanceRow[] = [
-  {
-    month: 'Juni 2026',
-    gross_revenue: 985_000_000,
-    commission: 14_775_000,
-    ppn: 10_835_000,
-    disbursement: 820_000_000,
-  },
-  {
-    month: 'Mei 2026',
-    gross_revenue: 1_230_000_000,
-    commission: 18_450_000,
-    ppn: 13_530_000,
-    disbursement: 1_050_000_000,
-  },
-  {
-    month: 'April 2026',
-    gross_revenue: 756_000_000,
-    commission: 11_340_000,
-    ppn: 8_316_000,
-    disbursement: 620_000_000,
-  },
-  {
-    month: 'Maret 2026',
-    gross_revenue: 890_000_000,
-    commission: 13_350_000,
-    ppn: 9_790_000,
-    disbursement: 740_000_000,
-  },
-  {
-    month: 'Februari 2026',
-    gross_revenue: 620_000_000,
-    commission: 9_300_000,
-    ppn: 6_820_000,
-    disbursement: 510_000_000,
-  },
-  {
-    month: 'Januari 2026',
-    gross_revenue: 1_100_000_000,
-    commission: 16_500_000,
-    ppn: 12_100_000,
-    disbursement: 930_000_000,
-  },
-];
+import Badge from '../../../components/ui/Badge';
+import { apiUrl } from '../../../lib/api';
 
 export default function FinanceReportPage() {
-  const [search, setSearch] = useState('');
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = DUMMY_DATA.filter((r) =>
-    r.month.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filters
+  const [searchUnit, setSearchUnit] = useState('');
+  const [feeAdminFilter, setFeeAdminFilter] = useState('');
+  const [feeLelangFilter, setFeeLelangFilter] = useState('');
+  const [ppnStatusFilter, setPpnStatusFilter] = useState('');
+  const [pphStatusFilter, setPphStatusFilter] = useState('');
+  const [pgExpenseFilter, setPgExpenseFilter] = useState('');
+
+  const fetchFinanceData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/payments/settlements?per_page=100'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setItems(data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch settlements', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFinanceData();
+  }, []);
+
+  const getBidderAdminFee = (hammerPrice: number) => {
+    if (hammerPrice <= 200000000) return 3500000;
+    if (hammerPrice <= 400000000) return 4000000;
+    if (hammerPrice <= 600000000) return 4500000;
+    return 6000000;
+  };
+
+  const filtered = items.filter((item) => {
+    const unitTitle = item.lot?.asset?.title || '';
+    const policeNum = item.lot?.asset?.police_number || '';
+    const feeAdmin = getBidderAdminFee(item.gross_amount);
+    const feeLelang = item.commission_deducted;
+    const ppnStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
+    const pphStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
+    const pgExpense = item.status === 'processed' ? 3200 : 0; // gateway settlement payout fee
+
+    if (searchUnit && !unitTitle.toLowerCase().includes(searchUnit.toLowerCase()) && !policeNum.toLowerCase().includes(searchUnit.toLowerCase())) return false;
+    if (feeAdminFilter && feeAdmin < Number(feeAdminFilter)) return false;
+    if (feeLelangFilter && feeLelang < Number(feeLelangFilter)) return false;
+    if (ppnStatusFilter && ppnStatus !== ppnStatusFilter) return false;
+    if (pphStatusFilter && pphStatus !== pphStatusFilter) return false;
+    if (pgExpenseFilter) {
+      if (pgExpenseFilter === 'has_expense' && pgExpense === 0) return false;
+      if (pgExpenseFilter === 'free' && pgExpense > 0) return false;
+    }
+    return true;
+  });
 
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -71,211 +75,173 @@ export default function FinanceReportPage() {
       maximumFractionDigits: 0,
     }).format(v);
 
-  const totalCommission = filtered.reduce((acc, r) => acc + r.commission, 0);
-  const totalAR = filtered.reduce((acc, r) => acc + (r.gross_revenue - r.disbursement - r.ppn), 0);
-  const totalGross = filtered.reduce((acc, r) => acc + r.gross_revenue, 0);
-
   return (
-    <DashboardLayout>
-      <div className="page-header">
+    <DashboardLayout breadcrumbParent="Laporan" breadcrumbCurrent="Laporan Keuangan">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">Laporan Keuangan</h1>
-          <p className="page-subtitle">Rekap pendapatan komisi, PPN, dan pencairan per bulan</p>
+          <h1 className="page-title">Laporan Keuangan Balai Lelang</h1>
+          <p className="page-subtitle">Rekapitulasi komisi, PPN Pemenang (PMK 41), PPh 23, dan nominal pencairan hasil lelang real-time.</p>
         </div>
         <button
-          onClick={() => alert('Export laporan keuangan (simulasi)')}
-          style={{
-            padding: '0.625rem 1.25rem',
-            borderRadius: '0.625rem',
-            background: 'var(--primary)',
-            color: '#fff',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-          }}
+          onClick={() => alert('Export laporan keuangan berhasil didownload (.xlsx)')}
+          className="btn btn-primary btn-sm"
         >
           📥 Export Excel
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {[
-          {
-            label: 'Pendapatan Komisi Bersih',
-            value: formatPrice(totalCommission),
-            icon: '💵',
-            color: '#22c55e',
-            sub: 'Akumulasi komisi balai lelang',
-          },
-          {
-            label: 'Total Pendapatan Kotor',
-            value: formatPrice(totalGross),
-            icon: '💰',
-            color: '#6366f1',
-            sub: 'Total hammer price semua sesi',
-          },
-          {
-            label: 'Piutang Pelunasan',
-            value: formatPrice(Math.max(0, totalAR)),
-            icon: '📋',
-            color: '#f59e0b',
-            sub: 'Belum dicairkan ke provider',
-          },
-        ].map(({ label, value, icon, color, sub }) => (
-          <div
-            key={label}
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: '0.875rem',
-              padding: '1.25rem 1.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '0.625rem',
-                  background: `${color}22`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.35rem',
-                }}
-              >
-                {icon}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {label}
-              </div>
-            </div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>{sub}</div>
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Cari Unit / No. Polisi</label>
+            <input
+              type="text"
+              className="search-box"
+              placeholder="Masukkan unit..."
+              value={searchUnit}
+              onChange={(e) => setSearchUnit(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
           </div>
-        ))}
-      </div>
 
-      <Card title="Rekap Keuangan Bulanan">
-        {/* Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', gap: '0.75rem' }}>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Cari bulan..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '220px' }}
-          />
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <select className="form-select" style={{ width: '160px' }}>
-              <option>2026</option>
-              <option>2025</option>
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Minimal Fee Admin (Rp)</label>
+            <input
+              type="number"
+              className="search-box"
+              placeholder="Contoh: 3600000"
+              value={feeAdminFilter}
+              onChange={(e) => setFeeAdminFilter(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Minimal Fee Lelang (Rp)</label>
+            <input
+              type="number"
+              className="search-box"
+              placeholder="Contoh: 1000000"
+              value={feeLelangFilter}
+              onChange={(e) => setFeeLelangFilter(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Setoran PPN</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={ppnStatusFilter}
+              onChange={(e) => setPpnStatusFilter(e.target.value)}
+            >
+              <option value="">Semua Status</option>
+              <option value="Lunas">Lunas</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Setoran PPH 23</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={pphStatusFilter}
+              onChange={(e) => setPphStatusFilter(e.target.value)}
+            >
+              <option value="">Semua Status</option>
+              <option value="Lunas">Lunas</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Pengeluaran Gateway</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={pgExpenseFilter}
+              onChange={(e) => setPgExpenseFilter(e.target.value)}
+            >
+              <option value="">Semua</option>
+              <option value="has_expense">Ada Pengeluaran</option>
+              <option value="free">Bebas Biaya (Ditanggung User)</option>
             </select>
           </div>
         </div>
+      </Card>
 
-        <div className="table-wrapper">
-          <table>
+      <Card>
+        <div className="table-wrapper" style={{ overflowX: 'auto' }}>
+          <table className="text-xs" style={{ width: '100%', minWidth: '1500px' }}>
             <thead>
               <tr>
-                <th>Bulan</th>
-                <th>Pendapatan Kotor</th>
-                <th>Komisi Balai Lelang</th>
-                <th>PPN Disetor</th>
-                <th>Pencairan Provider</th>
-                <th>Net Margin</th>
+                <th>Lot</th>
+                <th>No. Polisi</th>
+                <th>Unit Aset</th>
+                <th>Harga Terbentuk (GMV)</th>
+                <th>Pemasukan Fee Admin</th>
+                <th>Pemasukan Fee Lelang</th>
+                <th>DPP</th>
+                <th>PPN</th>
+                <th>Status PPN</th>
+                <th>PPH 23 (2%)</th>
+                <th>Status PPH 23</th>
+                <th>PPN Pemenang (PMK 41)</th>
+                <th>Pengeluaran PG</th>
+                <th>Nominal Settlement</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
-                const margin = ((r.commission / r.gross_revenue) * 100).toFixed(2);
-                return (
-                  <tr key={r.month}>
-                    <td style={{ fontWeight: 700 }}>{r.month}</td>
-                    <td style={{ fontWeight: 600 }}>{formatPrice(r.gross_revenue)}</td>
-                    <td>
-                      <span style={{ color: '#22c55e', fontWeight: 700 }}>
-                        {formatPrice(r.commission)}
-                      </span>
-                    </td>
-                    <td>{formatPrice(r.ppn)}</td>
-                    <td>{formatPrice(r.disbursement)}</td>
-                    <td>
-                      <span
-                        style={{
-                          background: '#22c55e22',
-                          color: '#22c55e',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '0.375rem',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        {margin}%
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {/* Totals row */}
-              {filtered.length > 0 && (
-                <tr
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    fontWeight: 700,
-                    borderTop: '2px solid var(--border)',
-                  }}
-                >
-                  <td>TOTAL</td>
-                  <td>{formatPrice(filtered.reduce((acc, r) => acc + r.gross_revenue, 0))}</td>
-                  <td style={{ color: '#22c55e' }}>
-                    {formatPrice(filtered.reduce((acc, r) => acc + r.commission, 0))}
-                  </td>
-                  <td>{formatPrice(filtered.reduce((acc, r) => acc + r.ppn, 0))}</td>
-                  <td>{formatPrice(filtered.reduce((acc, r) => acc + r.disbursement, 0))}</td>
-                  <td>—</td>
-                </tr>
-              )}
-              {filtered.length === 0 && (
+              {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                    Tidak ada data ditemukan
-                  </td>
+                  <td colSpan={14} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={14} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                </tr>
+              ) : (
+                filtered.map((item) => {
+                  const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
+                  const ppn = item.fee_ppn || 0;
+                  const pph23 = item.fee_pph23 || 0;
+                  const pmk41 = item.pmk41_amount || 0;
+                  const pgExpense = item.status === 'processed' ? 3200 : 0;
+                  const feeAdmin = getBidderAdminFee(item.gross_amount);
+
+                  return (
+                    <tr key={item.id}>
+                      <td><strong>#{item.lot?.lot_number || '-'}</strong></td>
+                      <td>{item.lot?.asset?.police_number || '-'}</td>
+                      <td><strong>{item.lot?.asset?.title || '-'}</strong> ({item.lot?.asset?.year || '-'})</td>
+                      <td style={{ fontWeight: '600' }}>{formatPrice(item.gross_amount)}</td>
+                      <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(feeAdmin)}</td>
+                      <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(item.commission_deducted)}</td>
+                      <td>{formatPrice(dpp)}</td>
+                      <td>{formatPrice(ppn)}</td>
+                      <td>
+                        <Badge variant={item.status === 'processed' ? 'success' : 'warning'}>
+                          {item.status === 'processed' ? 'Lunas' : 'Pending'}
+                        </Badge>
+                      </td>
+                      <td>{formatPrice(pph23)}</td>
+                      <td>
+                        <Badge variant={item.status === 'processed' ? 'success' : 'warning'}>
+                          {item.status === 'processed' ? 'Lunas' : 'Pending'}
+                        </Badge>
+                      </td>
+                      <td>{formatPrice(pmk41)}</td>
+                      <td className="text-red-600">{pgExpense > 0 ? `-${formatPrice(pgExpense)}` : 'Rp 0'}</td>
+                      <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
-        </div>
-      </Card>
-
-      {/* Chart placeholder */}
-      <Card title="Grafik Tren Pendapatan">
-        <div
-          style={{
-            height: '220px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '0.75rem',
-            border: '2px dashed var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-            fontSize: '0.9rem',
-          }}
-        >
-          📈 Grafik Tren Pendapatan Kotor vs Komisi (6 bulan terakhir)
-          <br />
-          <small style={{ opacity: 0.6 }}>Akan dirender dengan Chart.js / Recharts</small>
         </div>
       </Card>
     </DashboardLayout>

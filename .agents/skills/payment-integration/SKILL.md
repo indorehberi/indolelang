@@ -229,7 +229,7 @@ Subtotal:      Rp 156.750.000
 PPN (11%):     Rp  17.242.500
 ─────────────────────────────
 TOTAL:         Rp 173.992.500
-Due Date:      5 hari kerja dari SOLD
+Due Date:      3 hari kerja dari SOLD
 ```
 
 ## Refund Deposit

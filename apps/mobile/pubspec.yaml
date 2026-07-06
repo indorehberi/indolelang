@@ -1,0 +1,40 @@
+name: mobile
+description: Indo-Lelang Mobile Application Client.
+version: 1.0.0+1
+
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Networking
+  dio: ^5.5.0
+
+  # Real-time WebSocket
+  socket_io_client: ^3.0.2
+
+  # UI Helper
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+  shared_preferences: ^2.2.3
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
+  webview_flutter: ^4.8.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

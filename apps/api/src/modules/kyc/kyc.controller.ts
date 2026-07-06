@@ -52,9 +52,12 @@ export class KycController {
   async getQueue(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, per_page, status } = req.query as any;
+      const pageNum = Number(page) || 1;
+      const perPageNum = Number(per_page) || 20;
+      
       const { queue, meta } = await kycService.getQueue(
-        page,
-        per_page,
+        pageNum,
+        perPageNum,
         status as KycStatus
       );
       sendSuccess(res, queue, 'Antrean KYC berhasil dimuat', meta);

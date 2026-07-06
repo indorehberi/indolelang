@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, fetchWithRetry } from "@/lib/api";
+import GoogleAuthModal from "@/components/GoogleAuthModal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,13 +14,15 @@ export default function LoginPage() {
     rememberMe: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [googleDefaultRole, setGoogleDefaultRole] = useState<"bidder" | "provider">("bidder");
 
-  const handleLogin = async (e: React.FormEvent, role: string) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
     try {
-      const response = await fetch(apiUrl("/auth/login"), {
+      const response = await fetchWithRetry(apiUrl("/auth/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,10 +36,10 @@ export default function LoginPage() {
       const resData = await response.json();
       if (response.ok && resData.success) {
         const user = resData.data.user;
-        const tokens = resData.data.tokens;
+        const accessToken = resData.data.accessToken || resData.data.tokens?.accessToken;
 
         if (typeof window !== "undefined") {
-          localStorage.setItem("accessToken", tokens.accessToken);
+          localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("user", JSON.stringify(user));
         }
 
@@ -44,6 +47,9 @@ export default function LoginPage() {
           router.push("/bidder/dashboard");
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
+        } else if (["admin", "operator", "superadmin"].includes(user.role)) {
+          const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+          window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
         } else {
           alert("Role akun Anda tidak didukung pada halaman ini.");
         }
@@ -82,7 +88,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
               Email / Nomor Handphone <span className="text-error">*</span>
@@ -144,28 +150,48 @@ export default function LoginPage() {
           {/* Login CTAs */}
           <div className="flex flex-col gap-2.5 pt-4">
             <button
-              onClick={(e) => handleLogin(e, "Bidder")}
               type="submit"
               className="w-full py-3.5 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-lg shadow-premium/15"
             >
-              Masuk Sebagai Bidder
+              Masuk
             </button>
-            <button
-              onClick={(e) => handleLogin(e, "Provider")}
-              type="button"
-              className="w-full py-3.5 border-2 border-premium/20 text-premium rounded-xl text-body-md font-bold hover:bg-premium hover:text-on-premium transition-all btn-press"
-            >
-              Masuk Sebagai Provider
-            </button>
+
+            {/* Divider */}
+            <div className="relative my-2.5 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-outline-variant/60"></div>
+              </div>
+              <span className="relative px-3 bg-white text-body-xs text-on-surface-variant font-medium">atau masuk menggunakan</span>
+            </div>
+
+            {/* Google Login Button */}
             <button
               onClick={() => {
-                const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001/login';
-                window.location.href = adminUrl;
+                setGoogleDefaultRole("bidder");
+                setIsGoogleModalOpen(true);
               }}
               type="button"
-              className="w-full py-3.5 border border-outline-variant hover:bg-surface/50 text-on-surface rounded-xl text-body-md font-bold transition-all btn-press shadow-sm"
+              className="w-full py-3.5 flex items-center justify-center gap-3 bg-white border border-outline-variant/80 hover:bg-surface-variant/10 text-on-surface rounded-xl text-body-md font-bold transition-all btn-press shadow-sm"
             >
-              Masuk Sebagai Admin
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.85 2.99c.9-2.7 3.42-4.51 6.76-4.51z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.73 2.89c2.18-2.01 3.7-4.97 3.7-8.62z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.24 14.55c-.24-.72-.38-1.5-.38-2.3s.14-1.58.38-2.3L1.39 7.56C.5 9.36 0 11.38 0 13.5s.5 4.14 1.39 5.94l3.85-2.99z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.73-2.89c-1.04.7-2.38 1.11-4.23 1.11-3.34 0-5.86-1.81-6.76-4.51L1.39 16.8C3.37 20.33 7.35 23 12 23z"
+                />
+              </svg>
+              Masuk dengan Google
             </button>
           </div>
         </form>
@@ -174,20 +200,20 @@ export default function LoginPage() {
         <div className="text-center mt-8 text-body-sm text-on-surface-variant">
           Belum punya akun?{" "}
           <Link
-            href="/register/bidder"
+            href="/register"
             className="text-primary hover:underline font-semibold"
           >
-            Daftar Bidder
-          </Link>{" "}
-          atau{" "}
-          <Link
-            href="/register/provider"
-            className="text-primary hover:underline font-semibold"
-          >
-            Daftar Provider
+            Daftar Sekarang
           </Link>
         </div>
       </div>
+
+      <GoogleAuthModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        defaultRole={googleDefaultRole}
+        action="login"
+      />
     </div>
   );
 }

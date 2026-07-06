@@ -1,10 +1,86 @@
 "use client";
 
 import Link from "next/link";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 function EkycStatusContent() {
-  const [status] = useState("pending"); // Default to pending (under review by admin)
+  const router = useRouter();
+  const [status, setStatus] = useState("loading"); // loading, unverified, pending, approved (verified), rejected
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const fetchKycStatus = async () => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // 1. Fetch user profile for name
+      const resUser = await fetch(apiUrl("/users/profile"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resUserData = await resUser.json();
+      if (resUser.ok && resUserData.success) {
+        setUserName(resUserData.data.full_name || "Peserta Lelang");
+      }
+
+      // 2. Fetch KYC status
+      const resKyc = await fetch(apiUrl("/kyc/status"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resKycData = await resKyc.json();
+      
+      if (resKyc.ok && resKycData.success) {
+        const kyc = resKycData.data;
+        setStatus(kyc.status || "pending");
+      } else if (resKyc.status === 404) {
+        // Document has not been uploaded yet, redirect to upload page
+        setStatus("unverified");
+        router.push("/ekyc/upload");
+      }
+    } catch (err) {
+      console.error("Failed to load ekyc status", err);
+      setStatus("unverified");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchKycStatus();
+  }, []);
+
+  if (loading || status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
+          <p className="text-body-md text-on-surface-variant font-medium">Memuat status eKYC...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "unverified") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
+          <p className="text-body-md text-on-surface-variant font-medium">Mengarahkan ke halaman unggah dokumen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isVerified = status === "verified" || status === "approved";
+  const isRejected = status === "rejected";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#F9F8F3] hero-gradient">
@@ -26,38 +102,65 @@ function EkycStatusContent() {
 
         {/* Ekyc Status Card */}
         <div className="space-y-6">
-          <div className="text-center p-6 bg-warning/5 border border-warning/20 rounded-2xl">
-            <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning mb-3">
+          <div className={`text-center p-6 border rounded-2xl ${
+            isVerified 
+              ? "bg-success/5 border-success/20" 
+              : isRejected 
+              ? "bg-error/5 border-error/20" 
+              : "bg-warning/5 border-warning/20"
+          }`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${
+              isVerified 
+                ? "bg-success/10 text-success" 
+                : isRejected 
+                ? "bg-error/10 text-error" 
+                : "bg-warning/10 text-warning"
+            }`}>
               <span className="material-symbols-outlined text-3xl">
-                {status === "verified" ? "verified" : "schedule"}
+                {isVerified ? "verified" : isRejected ? "report" : "schedule"}
               </span>
             </div>
             <h3 className="font-bold text-body-lg text-on-surface font-serif">
-              {status === "verified" ? "Akun Terverifikasi" : "Dokumen Sedang Diverifikasi"}
+              {isVerified 
+                ? "Akun Terverifikasi" 
+                : isRejected 
+                ? "Verifikasi Dokumen Ditolak" 
+                : "Dokumen Sedang Diverifikasi"}
             </h3>
             <p className="text-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
-              {status === "verified"
+              {isVerified
                 ? "Selamat! Tim Admin Indo-Lelang telah memverifikasi dokumen eKYC Anda. Akun Anda kini aktif."
+                : isRejected
+                ? "Dokumen eKYC Anda ditolak oleh Admin. Silakan periksa kembali dan unggah ulang dokumen yang sesuai."
                 : "Dokumen identitas Anda sedang diverifikasi secara manual oleh Tim Admin Indo-Lelang. Estimasi verifikasi selesai dalam 5-10 menit."}
             </p>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 border border-outline-variant/15 text-body-sm space-y-2 text-on-surface-variant">
             <p className="font-bold text-on-surface">Detail Dokumen Terkirim:</p>
-            <p>• NIK: 327310******9003</p>
-            <p>• Nama: Budi Santoso</p>
+            <p>• Nama: {userName}</p>
             <p>• Metode: Verifikasi Manual Admin</p>
+            <p>• Status Saat Ini: <span className={`font-bold capitalize ${
+              isVerified ? "text-success" : isRejected ? "text-error" : "text-warning"
+            }`}>{status}</span></p>
           </div>
         </div>
 
         {/* Action Button */}
-        <div className="pt-6">
-          {status === "verified" ? (
+        <div className="pt-6 space-y-3">
+          {isVerified ? (
             <Link
-              href="/"
+              href="/bidder/dashboard"
               className="w-full py-4 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md flex items-center justify-center gap-1.5"
             >
               Lanjut ke Dashboard (Akun Aktif) 🚀
+            </Link>
+          ) : isRejected ? (
+            <Link
+              href="/ekyc/upload"
+              className="w-full py-4 bg-error text-white rounded-xl text-body-md font-bold hover:bg-error/90 transition-all text-center block"
+            >
+              Unggah Ulang Dokumen eKYC
             </Link>
           ) : (
             <button
@@ -67,6 +170,15 @@ function EkycStatusContent() {
               Menunggu Verifikasi Admin...
             </button>
           )}
+
+          <div className="text-center pt-2">
+            <Link
+              href="/bidder/dashboard"
+              className="text-xs font-bold text-primary hover:text-primary/80 transition-all hover:underline"
+            >
+              ← Kembali ke Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -76,7 +188,7 @@ function EkycStatusContent() {
 export default function EkycStatusPage() {
   return (
     <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient text-premium text-heading-md font-bold font-serif">
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient text-premium text-heading-md font-bold font-serif">
         Memuat status eKYC...
       </div>
     }>

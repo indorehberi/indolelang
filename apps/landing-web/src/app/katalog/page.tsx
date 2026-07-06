@@ -5,189 +5,13 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { useFeaturedLots } from "@/hooks/usePublicData";
 
 /* -------------------------------------------------------------------------- */
 /* Data                                                                         */
 /* -------------------------------------------------------------------------- */
 
-const initialLots = [
-  {
-    id: 1,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp",
-    alt: "Toyota Avanza",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Jakarta Timur",
-    title: "Toyota Avanza 1.5 G 2021",
-    hargaAwal: "Rp 155 Juta",
-    hargaValue: 155000000,
-    deposit: "Rp 5 Juta",
-    timer: "Berakhir 02:14:32",
-    action: "Bid",
-    category: "Mobil",
-    jenisLelang: "English Auction",
-  },
-  {
-    id: 2,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-    alt: "Honda CR-V",
-    badge: "OPEN",
-    badgeStyle: "bg-secondary text-on-secondary",
-    location: "Bandung",
-    title: "Honda CR-V Prestige 2020",
-    hargaAwal: "Rp 325 Juta",
-    hargaValue: 325000000,
-    deposit: "Rp 10 Juta",
-    timer: "Mulai 15:30 WIB",
-    action: "Detail",
-    category: "Mobil",
-    jenisLelang: "English Auction",
-  },
-  {
-    id: 3,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW",
-    alt: "Toyota Hilux",
-    badge: "INSPEKSI",
-    badgeStyle: "bg-primary text-on-primary",
-    location: "Surabaya",
-    title: "Toyota Hilux Double Cabin 2019",
-    hargaAwal: "Rp 278 Juta",
-    hargaValue: 278000000,
-    deposit: "Rp 10 Juta",
-    timer: "Besok, 10:00 WIB",
-    action: "Detail",
-    category: "Mobil",
-    jenisLelang: "English Auction",
-  },
-  {
-    id: 4,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl",
-    alt: "Honda Brio",
-    badge: "OPEN",
-    badgeStyle: "bg-secondary text-on-secondary",
-    location: "Semarang",
-    title: "Honda Brio RS CVT 2022",
-    hargaAwal: "Rp 142 Juta",
-    hargaValue: 142000000,
-    deposit: "Rp 5 Juta",
-    timer: "Jumat, 09:30 WIB",
-    action: "Detail",
-    category: "Mobil",
-    jenisLelang: "Sealed-Bid",
-  },
-  {
-    id: 5,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6",
-    alt: "Yamaha NMAX",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Yogyakarta",
-    title: "Yamaha NMAX Connected 2023",
-    hargaAwal: "Rp 24 Juta",
-    hargaValue: 24000000,
-    deposit: "Rp 1 Juta",
-    timer: "Berakhir 00:42:18",
-    action: "Bid",
-    category: "Motor",
-    jenisLelang: "English Auction",
-  },
-  {
-    id: 6,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDAKe_8vmxw29JLRtQYJu9kIj9SSxejc7c-x8FZ9yvwAcraOjYJQWtAun90V_9mWhx5Fc0yj7qi226wff8XoO-B8zS94kC8jRdGIB8O9bsH7Nhr0u4sJZGBdX9R6-JALgUiUFbI_NW_vN-QiNbVb_WGRUuassF6O_AjU9RuREtTqPZI9hvaWxO6IxqUzevGmKDWDbe9XRHS-qXcH0eH4c1lTgfR2ZHLmTZvUQbPf2dM8WY2ksd1kXL4JpiipvA98Fs_rPDJFniNHLto",
-    alt: "Rumah Cluster",
-    badge: "PROPERTI",
-    badgeStyle: "bg-primary text-on-primary",
-    location: "Bekasi",
-    title: "Rumah 2 Lantai Cluster Selatan",
-    hargaAwal: "Rp 780 Juta",
-    hargaValue: 780000000,
-    deposit: "Rp 25 Juta",
-    timer: "Sabtu, 13:00 WIB",
-    action: "Detail",
-    category: "Properti",
-    jenisLelang: "Sealed-Bid",
-  },
-  {
-    id: 7,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB",
-    alt: "Suzuki Swift",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Tangerang Selatan",
-    title: "Suzuki Swift 1.2 GS 2021",
-    hargaAwal: "Rp 112 Juta",
-    hargaValue: 112000000,
-    deposit: "Rp 5 Juta",
-    timer: "Berakhir 00:15:30",
-    action: "Bid",
-    category: "Mobil",
-    jenisLelang: "Dutch Auction",
-  },
-  {
-    id: 8,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6",
-    alt: "Vespa Sprint",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Jakarta Barat",
-    title: "Vespa Sprint S 150 2022",
-    hargaAwal: "Rp 42 Juta",
-    hargaValue: 42000000,
-    deposit: "Rp 2 Juta",
-    timer: "Berakhir 00:25:10",
-    action: "Bid",
-    category: "Motor",
-    jenisLelang: "Dutch Auction",
-  },
-  {
-    id: 9,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-    alt: "iPhone 15 Bundle",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Bandung",
-    title: "iPhone 15 Pro Max Bundle",
-    hargaAwal: "Rp 18 Juta",
-    hargaValue: 18000000,
-    deposit: "Rp 1 Juta",
-    timer: "Berakhir 01:30:15",
-    action: "Bid",
-    category: "Alat Berat",
-    jenisLelang: "Timed Auction",
-  },
-  {
-    id: 10,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM",
-    alt: "Toyota Raize",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Jakarta Barat",
-    title: "Toyota Raize 1.0T CVT 2022",
-    hargaAwal: "Rp 210 Juta",
-    hargaValue: 210000000,
-    deposit: "Rp 5 Juta",
-    timer: "Berakhir 02:15:00",
-    action: "Bid",
-    category: "Mobil",
-    jenisLelang: "Buy Now + Auction",
-  },
-  {
-    id: 11,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64",
-    alt: "PT ABC Bundle",
-    badge: "LIVE",
-    badgeStyle: "countdown-badge bg-error text-white",
-    location: "Surabaya",
-    title: "Paket Alat Kantor PT ABC",
-    hargaAwal: "Rp 45 Juta",
-    hargaValue: 45000000,
-    deposit: "Rp 3 Juta",
-    timer: "Berakhir 03:10:00",
-    action: "Bid",
-    category: "Alat Berat",
-    jenisLelang: "Group/Bundle",
-  },
-];
+const initialLots: any[] = [];
 
 const categories = ["Semua Lot", "Mobil", "Motor", "Properti", "Alat Berat"];
 
@@ -207,26 +31,92 @@ function KatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSearch = searchParams ? searchParams.get("search") || "" : "";
+  const initialCategory = searchParams ? (searchParams.get("category") === "MOBIL" ? "Mobil" : "Semua Lot") : "Semua Lot";
+
+  const { data: dbFeaturedLots = [] } = useFeaturedLots();
 
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [activeCategory, setActiveCategory] = useState("Semua Lot");
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [lokasi, setLokasi] = useState("Semua Lokasi");
   const [status, setStatus] = useState("Semua Status");
   const [jenisLelangFilter, setJenisLelangFilter] = useState("Semua Jenis Lelang");
   const [urutan, setUrutan] = useState("Urutkan Terbaru");
   const [minHarga, setMinHarga] = useState("");
   const [maxHarga, setMaxHarga] = useState("");
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
-  const [lotsList, setLotsList] = useState(initialLots);
-  const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: true, heavy: true });
+  const [lotsList, setLotsList] = useState<any[]>(initialLots);
+  const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
 
   useEffect(() => {
     if (searchParams) {
       setSearchQuery(searchParams.get("search") || "");
+      const cat = searchParams.get("category");
+      if (cat === "MOBIL") {
+        setActiveCategory("Mobil");
+      }
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (dbFeaturedLots && dbFeaturedLots.length > 0) {
+      const mapped = dbFeaturedLots.map((dbLot: any) => {
+        let images = [];
+        try {
+          images = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
+        } catch (e) {
+          images = [];
+        }
+        const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const isLiveRaw = dbLot.status === "active";
+        let isLive = isLiveRaw;
+        let timerText = "Akan Datang";
+        
+        if (dbLot.session) {
+          const now = new Date();
+          const start = new Date(dbLot.session.start_time);
+          const end = new Date(dbLot.session.end_time);
+
+          if (now >= start && now <= end) {
+            isLive = true;
+            const endTimeString = end.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            timerText = `Hari ini, ${endTimeString} WIB`;
+          } else if (now < start) {
+            isLive = false;
+            const dateString = start.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+            const timeString = start.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            timerText = `${dateString}, ${timeString} WIB`;
+          } else {
+            isLive = false;
+            timerText = "Selesai";
+          }
+        } else {
+          timerText = isLive ? "Berakhir Hari Ini" : "Akan Datang";
+        }
+        
+        return {
+          id: dbLot.id,
+          image,
+          alt: dbLot.asset.title,
+          badge: isLive ? "LIVE" : "OPEN",
+          badgeStyle: isLive ? "countdown-badge bg-error text-white" : "bg-secondary text-on-secondary",
+          location: dbLot.session?.branch?.city || "Jakarta",
+          title: dbLot.asset.title,
+          hargaAwal: `Rp ${(Number(dbLot.starting_price) / 1000000).toFixed(0)} Juta`,
+          hargaValue: Number(dbLot.starting_price),
+          deposit: "Rp 5 Juta",
+          timer: timerText,
+          action: isLive ? "Bid" : "Detail",
+          category: dbLot.asset.category === "MOBIL" ? "Mobil" : (dbLot.asset.category === "MOTOR" ? "Motor" : (dbLot.asset.category === "PROPERTI" ? "Properti" : "Alat Berat")),
+          jenisLelang: "English Auction",
+        };
+      });
+      setLotsList(mapped);
+    }
+  }, [dbFeaturedLots]);
+
+  const uniqueLocations = Array.from(new Set(lotsList.map((l) => l.location))).filter(Boolean);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -240,40 +130,34 @@ function KatalogContent() {
       setEnabledCategories({
         mobil: cookieMap["feat_category_mobil"] !== "false",
         motor: cookieMap["feat_category_motor"] !== "false",
-        properti: cookieMap["feat_category_properti"] !== "false",
-        heavy: cookieMap["feat_category_heavy"] !== "false",
+        properti: cookieMap["feat_category_properti"] === "true",
+        heavy: cookieMap["feat_category_heavy"] === "true",
       });
 
-      const stored = localStorage.getItem("provider_assets");
-      if (stored) {
-        try {
-          const list = JSON.parse(stored);
-          const parsed = list.map((item: any, index: number) => ({
-            id: 100 + index,
-            image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp",
-            alt: item.name,
-            badge: "LIVE",
-            badgeStyle: "countdown-badge bg-error text-white",
-            location: "Jakarta Barat",
-            title: item.name,
-            hargaAwal: `Rp ${(item.limitPrice / 1000000).toFixed(0)} Juta`,
-            hargaValue: item.limitPrice,
-            deposit: "Rp 5 Juta",
-            timer: "Mulai Baru",
-            action: "Bid",
-            category: item.category === "mobil" ? "Mobil" : item.category === "motor" ? "Motor" : item.category === "properti" ? "Properti" : "Alat Berat",
-            jenisLelang: item.jenisLelang || "English Auction",
-          }));
-          setLotsList([...initialLots, ...parsed]);
-        } catch (e) {}
+      // Load watchlist
+      try {
+        const stored = localStorage.getItem("watchlist");
+        if (stored) {
+          setWishlist(JSON.parse(stored));
+        }
+      } catch (e) {
+        // ignore
       }
     }
   }, []);
 
-  const toggleWishlist = (id: number) => {
-    setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const toggleWishlist = (id: string) => {
+    let nextWishlist: string[];
+    if (wishlist.includes(id)) {
+      nextWishlist = wishlist.filter((x) => x !== id);
+    } else {
+      nextWishlist = [...wishlist, id];
+    }
+    setWishlist(nextWishlist);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("watchlist", JSON.stringify(nextWishlist));
+      window.dispatchEvent(new Event("watchlist-updated"));
+    }
   };
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
@@ -307,11 +191,23 @@ function KatalogContent() {
     return matchesSearch && matchesCategory && matchesLokasi && matchesStatus && matchesJenisLelang && matchesPrice;
   });
 
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(filteredLots.length / itemsPerPage) || 1;
+  const validCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedLots = filteredLots.slice((validCurrentPage - 1) * itemsPerPage, validCurrentPage * itemsPerPage);
+
   const totalLots = lotsList.length;
   const totalSesi = Array.from(new Set(lotsList.map((l) => l.jenisLelang))).length;
   const totalKota = Array.from(new Set(lotsList.map((l) => l.location))).length;
   const upcomingLot = lotsList.find((l) => l.badge === "LIVE" && l.timer && l.timer.includes(":"));
-  const sesiTerdekatText = upcomingLot ? `Hari ini, ${upcomingLot.timer}` : "Besok, 10:00 WIB";
+  const futureLot = lotsList.find((l) => l.badge === "OPEN" && l.timer && l.timer.includes(":"));
+  
+  let sesiTerdekatText = "Belum Ada Jadwal";
+  if (upcomingLot) {
+    sesiTerdekatText = upcomingLot.timer;
+  } else if (futureLot) {
+    sesiTerdekatText = futureLot.timer;
+  }
 
   return (
     <div className="min-h-screen bg-surface">
@@ -441,12 +337,9 @@ function KatalogContent() {
                     className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-body-md px-3 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                   >
                     <option>Semua Lokasi</option>
-                    <option>Jakarta</option>
-                    <option>Bandung</option>
-                    <option>Surabaya</option>
-                    <option>Semarang</option>
-                    <option>Yogyakarta</option>
-                    <option>Bekasi</option>
+                    {uniqueLocations.map((loc) => (
+                      <option key={loc as string} value={loc as string}>{loc as string}</option>
+                    ))}
                   </select>
                   <select
                     value={status}
@@ -465,11 +358,6 @@ function KatalogContent() {
                   >
                     <option>Semua Jenis Lelang</option>
                     <option>English Auction</option>
-                    <option>Dutch Auction</option>
-                    <option>Sealed-Bid</option>
-                    <option>Timed Auction</option>
-                    <option>Buy Now + Auction</option>
-                    <option>Group/Bundle</option>
                   </select>
                   <select
                     value={urutan}
@@ -605,7 +493,7 @@ function KatalogContent() {
 
                 {/* Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {filteredLots.map((lot) => (
+                  {paginatedLots.map((lot) => (
                     <article
                       key={lot.id}
                       className="auction-card bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/60 shadow-sm group"
@@ -687,36 +575,55 @@ function KatalogContent() {
                       </div>
                     </article>
                   ))}
+                  {filteredLots.length === 0 && (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 py-16 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-white/60">
+                      <span className="material-symbols-outlined text-6xl text-outline mb-4">inventory_2</span>
+                      <h3 className="text-heading-md font-bold text-on-surface">Tidak ada lelang yang ditemukan</h3>
+                      <p className="text-body-md text-on-surface-variant mt-2">Belum ada data unit lelang yang tersedia untuk saat ini.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pagination */}
-                <div className="mt-8 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="w-10 h-10 rounded-full bg-white border border-outline-variant/20 text-outline flex items-center justify-center hover:text-primary hover:border-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  {[1, 2, 3].map((p) => (
+                {filteredLots.length > 0 && totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
                     <button
-                      key={p}
-                      onClick={() => setCurrentPage(p)}
-                      className={`w-10 h-10 rounded-full font-bold transition-colors ${
-                        currentPage === p
-                          ? "bg-premium text-on-premium shadow-sm"
-                          : "bg-white border border-outline-variant/20 text-on-surface hover:text-premium hover:border-premium"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={validCurrentPage === 1}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                        validCurrentPage === 1 
+                          ? "bg-surface-container text-outline/50 cursor-not-allowed" 
+                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary hover:border-primary"
                       }`}
                     >
-                      {p}
+                      <span className="material-symbols-outlined">chevron_left</span>
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
-                    className="w-10 h-10 rounded-full bg-white border border-outline-variant/20 text-outline flex items-center justify-center hover:text-primary hover:border-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
-                </div>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-10 h-10 rounded-full font-bold transition-colors ${
+                          validCurrentPage === p
+                            ? "bg-premium text-on-premium shadow-sm"
+                            : "bg-white border border-outline-variant/20 text-on-surface hover:text-premium hover:border-premium"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={validCurrentPage === totalPages}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                        validCurrentPage === totalPages 
+                          ? "bg-surface-container text-outline/50 cursor-not-allowed" 
+                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary hover:border-primary"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined">chevron_right</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

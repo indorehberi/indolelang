@@ -25,7 +25,8 @@ const envSchema = z.object({
 
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  AWS_REGION: z.string().default('ap-southeast-3'),
+  AWS_REGION: z.string().default('auto'),
+  AWS_ENDPOINT: z.string().optional(),
   AWS_S3_BUCKET: z.string().default('indo-lelang-assets-dev'),
 
   VERIHUBS_API_KEY: z.string().optional(),
@@ -36,6 +37,7 @@ const envSchema = z.object({
   MIDTRANS_IS_PRODUCTION: z.string().transform((val) => val === 'true').default('false'),
   MIDTRANS_NOTIFICATION_URL: z.string().optional(),
   XENDIT_API_KEY: z.string().optional().default('dummy-xendit-api-key'),
+  GOOGLE_CLIENT_ID: z.string().optional().default('YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'),
 });
 
 let envParsed;

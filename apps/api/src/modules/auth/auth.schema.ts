@@ -7,12 +7,35 @@ import { Role } from '@indo-lelang/shared-types';
 export const registerSchema = z.object({
 	body: z.object({
 		email: z.string().email('Email tidak valid'),
-		phone: z.string().regex(/^(\+62|62|0)[0-9]{9,12}$/, 'Nomor telepon tidak valid'),
+		phone: z.string().regex(/^(\+62|62|0)[0-9]{9,12}$/, 'Nomor telepon tidak valid').optional(),
 		password: z.string().min(8, 'Password minimal 8 karakter'),
+		confirm_password: z.string().min(1, 'Konfirmasi password harus diisi'),
 		full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
 		role: z.enum([Role.BIDDER, Role.PROVIDER], {
 			errorMap: () => ({ message: 'Role harus bidder atau provider' }),
 		}),
+		company_name: z.string().optional(),
+		npwp: z.string().optional(),
+	}).refine((data) => data.password === data.confirm_password, {
+		message: 'Konfirmasi password tidak cocok',
+		path: ['confirm_password'],
+	}),
+});
+
+/**
+ * Google Auth schema
+ */
+export const googleAuthSchema = z.object({
+	body: z.object({
+		email: z.string().email('Email tidak valid').optional(),
+		full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter').optional(),
+		google_id: z.string().optional(),
+		idToken: z.string().optional(),
+		phone: z.string().regex(/^(\+62|62|0)[0-9]{9,12}$/, 'Nomor telepon tidak valid').optional(),
+		role: z.enum([Role.BIDDER, Role.PROVIDER], {
+			errorMap: () => ({ message: 'Role harus bidder atau provider' }),
+		}).optional(),
+		action: z.enum(['login', 'register']).optional(),
 		company_name: z.string().optional(),
 		npwp: z.string().optional(),
 	}),

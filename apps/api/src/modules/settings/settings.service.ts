@@ -2,6 +2,16 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { PlatformSettingDTO } from '@indo-lelang/shared-types';
+import { encrypt, decrypt } from '../../lib/encryption';
+
+const SENSITIVE_KEYS = [
+  'midtrans_server_key',
+  'midtrans_client_key',
+  'aws_secret_key',
+  'smtp_password',
+  'xendit_api_key',
+  'verihubs_api_key',
+];
 
 export class SettingsService {
   /**
@@ -17,7 +27,7 @@ export class SettingsService {
       id: s.id,
       tenant_id: s.tenant_id,
       key: s.key,
-      value: s.value,
+      value: s.is_encrypted ? '********' : s.value,
       is_encrypted: s.is_encrypted,
       updated_by: s.updated_by || undefined,
       updated_at: s.updated_at.toISOString(),
@@ -25,7 +35,7 @@ export class SettingsService {
   }
 
   /**
-   * Get a single setting by key
+   * Get a single setting by key (masks if encrypted)
    */
   async getSettingByKey(key: string, tenantId = 'default'): Promise<PlatformSettingDTO> {
     const setting = await prisma.platform_settings.findFirst({
@@ -40,11 +50,30 @@ export class SettingsService {
       id: setting.id,
       tenant_id: setting.tenant_id,
       key: setting.key,
-      value: setting.value,
+      value: setting.is_encrypted ? '********' : setting.value,
       is_encrypted: setting.is_encrypted,
       updated_by: setting.updated_by || undefined,
       updated_at: setting.updated_at.toISOString(),
     };
+  }
+
+  /**
+   * Get a decrypted setting value for internal backend use only
+   */
+  async getDecryptedSetting(key: string, tenantId = 'default'): Promise<string | null> {
+    const setting = await prisma.platform_settings.findFirst({
+      where: { tenant_id: tenantId, key },
+    });
+
+    if (!setting) {
+      return null;
+    }
+
+    if (setting.is_encrypted) {
+      return decrypt(setting.value);
+    }
+
+    return setting.value;
   }
 
   /**
@@ -55,12 +84,22 @@ export class SettingsService {
       where: { tenant_id: tenantId, key },
     });
 
+    const isSensitive = SENSITIVE_KEYS.includes(key);
+
+    // If it's sensitive and the frontend passes the mask back, ignore the update
+    if (isSensitive && value === '********') {
+      return this.getSettingByKey(key, tenantId);
+    }
+
+    const finalValue = isSensitive ? encrypt(value) : value;
+
     let updated;
     if (setting) {
       updated = await prisma.platform_settings.update({
         where: { id: setting.id },
         data: {
-          value,
+          value: finalValue,
+          is_encrypted: isSensitive,
           updated_by: userId,
         },
       });
@@ -69,8 +108,8 @@ export class SettingsService {
         data: {
           tenant_id: tenantId,
           key,
-          value,
-          is_encrypted: false,
+          value: finalValue,
+          is_encrypted: isSensitive,
           updated_by: userId,
         },
       });
@@ -80,7 +119,7 @@ export class SettingsService {
       id: updated.id,
       tenant_id: updated.tenant_id,
       key: updated.key,
-      value: updated.value,
+      value: updated.is_encrypted ? '********' : updated.value,
       is_encrypted: updated.is_encrypted,
       updated_by: updated.updated_by || undefined,
       updated_at: updated.updated_at.toISOString(),

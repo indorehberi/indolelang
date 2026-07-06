@@ -16,9 +16,10 @@ const BRANCHES = [
 ];
 
 const ROLES = [
-  { value: 'super_admin', label: 'Superadmin' },
+  { value: 'superadmin', label: 'Superadmin' },
   { value: 'admin', label: 'Admin Keuangan' },
   { value: 'operator', label: 'Operator Lelang' },
+  { value: 'inspector', label: 'Inspector' },
 ];
 
 export default function NewStaffPage() {
@@ -59,7 +60,7 @@ export default function NewStaffPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(apiUrl('/admin/users'), {
         method: 'POST',
         headers: {

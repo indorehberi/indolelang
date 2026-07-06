@@ -21,9 +21,18 @@ router.get('/assets/:id', authenticate, controller.getAssetById);
 router.post(
   '/assets',
   authenticate,
-  authorize(Role.PROVIDER),
+  authorize(Role.PROVIDER, Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
   validate(createAssetSchema),
   controller.createAsset
+);
+
+// Edit asset
+router.put(
+  '/assets/:id',
+  authenticate,
+  authorize(Role.PROVIDER, Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN, Role.OPERATOR),
+  validate(updateAssetSchema),
+  controller.updateAsset
 );
 
 // Admin & Operator approval endpoints
@@ -41,4 +50,27 @@ router.put(
   controller.rejectAsset
 );
 
+
+router.delete(
+  '/assets/:id',
+  authenticate,
+  authorize(Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
+  controller.deleteAsset
+);
+
+router.put(
+  '/assets/:id/review',
+  authenticate,
+  authorize(Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
+  controller.reviewAsset
+);
+
+router.put(
+  '/admin/assets/:id/cancel',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.cancelApproval
+);
+
 export default router;
+

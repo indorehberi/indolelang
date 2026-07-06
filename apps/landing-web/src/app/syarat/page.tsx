@@ -27,7 +27,7 @@ export default function SyaratPage() {
     {
       title: "4. Pembatalan Sepihak & Wanprestasi",
       content:
-        "Apabila Pemenang Lelang tidak melakukan pelunasan sisa biaya pembelian dalam waktu maksimal 5 hari kerja setelah lelang selesai, pemenang dinyatakan Wanprestasi. Seluruh uang jaminan (deposit NIPL) akan hangus secara otomatis dan dialokasikan ke biaya administrasi platform.",
+        "Apabila Pemenang Lelang tidak melakukan pelunasan sisa biaya pembelian dalam waktu maksimal 3 hari kerja setelah lelang selesai, pemenang dinyatakan Wanprestasi. Seluruh uang jaminan (deposit NIPL) akan hangus secara otomatis dan dialokasikan ke biaya administrasi platform.",
       icon: "gpp_bad",
     },
   ];

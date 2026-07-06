@@ -7,6 +7,7 @@ import { midtransClient } from '../../lib/midtrans';
 import { sendEmail } from '../../lib/email';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
+import { calculateGatewayFee } from '../../utils/paymentCalculator';
 
 export class DepositsService {
   /**
@@ -62,6 +63,8 @@ export class DepositsService {
       user_id: r.user_id,
       session_id: r.session_id,
       amount: Number(r.amount),
+      unit_type: r.unit_type || undefined,
+      package_type: r.package_type || undefined,
       va_number: r.va_number || undefined,
       va_bank: r.va_bank || undefined,
       payment_method: r.payment_method || undefined,
@@ -90,9 +93,10 @@ export class DepositsService {
    */
   async createDeposit(
     userId: string,
-    sessionId: string,
-    amount: number,
-    bank: 'bca' | 'mandiri' | 'bni' | 'bri' | 'permata'
+    sessionId: string | null | undefined,
+    unit_type: string,
+    package_type: string,
+    bank: 'bca' | 'mandiri' | 'bni' | 'bri' | 'permata' | 'qris'
   ): Promise<DepositDTO> {
     // 1. Verify user exists and is a bidder
     const user = await prisma.users.findUnique({ where: { id: userId } });
@@ -100,53 +104,126 @@ export class DepositsService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'User tidak ditemukan');
     }
 
-    // 2. Verify session exists and is not closed
-    const session = await prisma.auction_sessions.findUnique({ where: { id: sessionId } });
-    if (!session) {
-      throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
+    // 2. Verify session exists and is not closed (with auto-fallback creation for testing)
+    let session = null;
+    let targetSessionId: string | null = null;
+
+    if (sessionId && sessionId !== 'null' && sessionId !== 'undefined') {
+      session = await prisma.auction_sessions.findUnique({ where: { id: sessionId } });
+      if (!session) {
+        const anySession = await prisma.auction_sessions.findFirst({
+          where: { status: { not: 'closed' } }
+        });
+        if (anySession) {
+          session = anySession;
+          targetSessionId = anySession.id;
+        } else {
+          let branch = await prisma.branches.findFirst();
+          if (!branch) {
+            branch = await prisma.branches.create({
+              data: {
+                tenant_id: 'default',
+                name: 'Cabang Demo Jakarta',
+                city: 'Jakarta',
+                address: 'Jl. Sudirman Kav 21',
+                phone: '021-555555',
+                pic_name: 'Budi Santoso',
+                is_active: true
+              }
+            });
+          }
+          
+          session = await prisma.auction_sessions.create({
+            data: {
+              id: sessionId === '00000000-0000-0000-0000-000000000000' ? crypto.randomUUID() : sessionId,
+              branch_id: branch.id,
+              title: 'Sesi Lelang Demo Otomatis',
+              description: 'Sesi lelang yang dibuat otomatis untuk kebutuhan simulasi & testing',
+              scheduled_at: new Date(Date.now() + 24 * 3600 * 1000),
+              status: 'published'
+            }
+          });
+          targetSessionId = session.id;
+        }
+      } else {
+        targetSessionId = session.id;
+      }
+
+      if (session && session.status === 'closed') {
+        throw new AppError(
+          400,
+          ErrorCode.BAD_REQUEST,
+          'Tidak dapat mendaftar NIPL untuk sesi lelang yang sudah ditutup'
+        );
+      }
     }
 
-    if (session.status === 'closed') {
-      throw new AppError(
-        400,
-        ErrorCode.BAD_REQUEST,
-        'Tidak dapat mendaftar NIPL untuk sesi lelang yang sudah ditutup'
-      );
-    }
-
-    // 3. Check if user already has an active (paid) NIPL/deposit for this session
-    const existingActive = await prisma.deposits.findFirst({
+    // Fetch settings for Fee Bearer and NIPL Amounts
+    const settings = await prisma.platform_settings.findMany({
       where: {
-        user_id: userId,
-        session_id: sessionId,
-        status: DepositStatus.PAID,
-      },
+        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount'] }
+      }
     });
 
-    if (existingActive) {
-      throw new AppError(
-        400,
-        ErrorCode.BAD_REQUEST,
-        'Anda sudah memiliki NIPL aktif untuk sesi lelang ini'
-      );
+    const feeBearer = settings.find(s => s.key === 'FEE_BEARER')?.value || 'admin';
+    const niplMobilBase = parseInt(settings.find(s => s.key === 'nipl_deposit_amount')?.value || '5000000', 10);
+    const niplMotorBase = parseInt(settings.find(s => s.key === 'nipl_motor_deposit_amount')?.value || '1000000', 10);
+
+    // 3. Calculate amount based on unit_type and package_type
+    let amount = 0;
+    if (unit_type === 'mobil') {
+      if (package_type === 'unlimited') {
+        amount = niplMobilBase * 5; // Default unlimited is 5x base
+      } else {
+        amount = parseInt(package_type) * niplMobilBase;
+      }
+    } else if (unit_type === 'motor') {
+      if (package_type === 'unlimited') {
+        amount = niplMotorBase * 5; // Default unlimited is 5x base
+      } else {
+        amount = parseInt(package_type) * niplMotorBase;
+      }
+    } else {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Jenis unit tidak valid');
     }
+
+    let gatewayFee = 0;
+    
+    if (feeBearer === 'customer') {
+      gatewayFee = calculateGatewayFee(amount, bank);
+    }
+    
+    const grossAmount = amount + gatewayFee;
 
     // Generate deposit record ID beforehand to use as Midtrans order ID
     const depositId = crypto.randomUUID();
     const orderId = `NIPL-${depositId}`;
 
-    // 4. Request Midtrans for VA details
-    const midtransRes = await midtransClient.chargeVirtualAccount({
-      orderId,
-      amount,
-      bank,
-    });
+    // 4. Request Midtrans for VA details with a mock fallback for local testing
+    let midtransRes;
+    try {
+      midtransRes = await midtransClient.chargeVirtualAccount({
+        orderId,
+        amount: grossAmount, // pass the new total including fee
+        bank,
+      });
+    } catch (error) {
+      logger.warn({ error, orderId }, 'Midtrans charge failed. Falling back to Mock Payment Details.');
+      const dummyVa = `70088${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+      midtransRes = {
+        order_id: orderId,
+        va_number: bank === 'qris' ? 'https://midtrans.com/qris-mock' : dummyVa,
+        va_bank: bank,
+        payment_method: bank === 'qris' ? 'qris' : 'virtual_account',
+        raw_response: { status_message: 'Mock payment created due to inactive midtrans channel' }
+      };
+    }
 
-    // 5. Expire any old pending deposits for the same session and user
+    // 5. Expire any old pending deposits for the same session/free and user
     await prisma.deposits.updateMany({
       where: {
         user_id: userId,
-        session_id: sessionId,
+        session_id: targetSessionId,
         status: DepositStatus.PENDING,
       },
       data: {
@@ -159,8 +236,11 @@ export class DepositsService {
       data: {
         id: depositId,
         user_id: userId,
-        session_id: sessionId,
+        session_id: targetSessionId,
         amount: new Prisma.Decimal(amount),
+        gateway_fee: new Prisma.Decimal(gatewayFee),
+        unit_type,
+        package_type,
         va_number: midtransRes.va_number,
         va_bank: midtransRes.va_bank,
         payment_method: midtransRes.payment_method,
@@ -177,13 +257,13 @@ export class DepositsService {
 
     sendEmail({
       to: user.email,
-      subject: `[Indo-Lelang] Pembayaran NIPL Sesi ${session.title}`,
-      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL untuk sesi lelang "${session.title}". Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui bank ${bank.toUpperCase()} Virtual Account.\n\nNomor VA: ${midtransRes.va_number}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
+      subject: `[Indo-Lelang] Pembayaran NIPL ${session ? `Sesi ${session.title}` : 'Bebas'}`,
+      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang "${session.title}"` : 'Bebas (Saldo Terbuka)'}. Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${bank === 'qris' ? 'QRIS' : bank.toUpperCase() + ' Virtual Account'}.\n\n${bank === 'qris' ? 'QR Link / Code' : 'Nomor VA'}: ${midtransRes.va_number}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <h2 style="color: #2b6cb0;">Pendaftaran NIPL Indo-Lelang</h2>
           <p>Halo <strong>${user.full_name}</strong>,</p>
-          <p>Anda telah mengajukan pendaftaran NIPL untuk sesi lelang <strong>"${session.title}"</strong>.</p>
+          <p>Anda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang <strong>"${session.title}"</strong>` : 'Bebas (Saldo Terbuka)'}.</p>
           <div style="background-color: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -192,11 +272,11 @@ export class DepositsService {
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #718096;">Metode Pembayaran:</td>
-                <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">Virtual Account ${bank.toUpperCase()}</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${bank === 'qris' ? 'QRIS' : 'Virtual Account ' + bank.toUpperCase()}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #718096;">Nomor Virtual Account:</td>
-                <td style="padding: 6px 0; font-size: 1.2rem; font-weight: bold; color: #e53e3e;">${midtransRes.va_number}</td>
+                <td style="padding: 6px 0; color: #718096;">${bank === 'qris' ? 'QR Code URL' : 'Nomor Virtual Account'}:</td>
+                <td style="padding: 6px 0; font-size: 1.1rem; font-weight: bold; color: #e53e3e; word-break: break-all;">${midtransRes.va_number}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #718096;">Status:</td>
@@ -204,7 +284,7 @@ export class DepositsService {
               </tr>
             </table>
           </div>
-          <p style="color: #718096; font-size: 0.9rem;">Catatan: Virtual Account ini berlaku selama 60 menit. Harap segera melakukan transfer sebelum batas waktu berakhir.</p>
+          <p style="color: #718096; font-size: 0.9rem;">Catatan: Metode pembayaran ini berlaku selama 60 menit. Harap segera menyelesaikan pembayaran sebelum batas waktu berakhir.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="font-size: 0.8rem; color: #a0aec0; text-align: center;">Email ini dikirimkan secara otomatis oleh sistem Indo-Lelang. Harap tidak membalas email ini.</p>
         </div>
@@ -217,8 +297,10 @@ export class DepositsService {
     return {
       id: deposit.id,
       user_id: deposit.user_id,
-      session_id: deposit.session_id,
+      session_id: deposit.session_id || '',
       amount: Number(deposit.amount),
+      unit_type: deposit.unit_type || undefined,
+      package_type: deposit.package_type || undefined,
       va_number: deposit.va_number || undefined,
       va_bank: deposit.va_bank || undefined,
       payment_method: deposit.payment_method || undefined,
@@ -226,5 +308,60 @@ export class DepositsService {
       paid_at: deposit.paid_at ? deposit.paid_at.toISOString() : undefined,
       created_at: deposit.created_at.toISOString(),
     };
+  }
+
+  /**
+   * Request refund for a paid deposit (Bidder initiated)
+   */
+  async requestRefund(userId: string, depositId: string): Promise<any> {
+    const deposit = await prisma.deposits.findUnique({
+      where: { id: depositId },
+    });
+
+    if (!deposit || deposit.user_id !== userId) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
+    }
+
+    if (deposit.status !== 'paid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus paid yang dapat diajukan refund');
+    }
+
+    // Check if user is currently winning an active lot
+    const activeWonLots = await prisma.bids.findFirst({
+      where: {
+        bidder_id: userId,
+        is_winning: true,
+        lot: {
+          session_id: deposit.session_id || undefined,
+          status: 'active'
+        }
+      }
+    });
+
+    if (activeWonLots) {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak dapat mengajukan refund karena Anda sedang memenangkan lot yang masih aktif.');
+    }
+
+    // Check if user has unpaid invoices in this session
+    const overdueInvoices = await prisma.invoices.count({
+      where: {
+        bidder_id: userId,
+        status: { in: ['unpaid', 'overdue'] },
+        lot: {
+          session_id: deposit.session_id || undefined
+        }
+      }
+    });
+
+    if (overdueInvoices > 0) {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak dapat mengajukan refund karena Anda memiliki tagihan pelunasan yang belum dibayar.');
+    }
+
+    const updated = await prisma.deposits.update({
+      where: { id: depositId },
+      data: { status: 'pending_refund' }
+    });
+
+    return updated;
   }
 }

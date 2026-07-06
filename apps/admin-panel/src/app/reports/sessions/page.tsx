@@ -16,58 +16,7 @@ interface SessionReport {
   status: string;
 }
 
-const DUMMY_REPORTS: SessionReport[] = [
-  {
-    id: 'ses-001',
-    name: 'Sesi Mobil Penumpang Jakarta - Batch 15',
-    date: '12 Jun 2026',
-    total_lots: 30,
-    sold_lots: 28,
-    total_value: 985_000_000,
-    sell_rate: 93.3,
-    status: 'completed',
-  },
-  {
-    id: 'ses-002',
-    name: 'Sesi Kendaraan Komersial Bandung - Batch 8',
-    date: '5 Jun 2026',
-    total_lots: 20,
-    sold_lots: 18,
-    total_value: 642_000_000,
-    sell_rate: 90.0,
-    status: 'completed',
-  },
-  {
-    id: 'ses-003',
-    name: 'Sesi Alat Berat Surabaya - Batch 3',
-    date: '28 Mei 2026',
-    total_lots: 15,
-    sold_lots: 12,
-    total_value: 1_230_000_000,
-    sell_rate: 80.0,
-    status: 'completed',
-  },
-  {
-    id: 'ses-004',
-    name: 'Sesi Motor Sport Jakarta - Batch 6',
-    date: '20 Mei 2026',
-    total_lots: 25,
-    sold_lots: 25,
-    total_value: 375_000_000,
-    sell_rate: 100.0,
-    status: 'completed',
-  },
-  {
-    id: 'ses-005',
-    name: 'Sesi Elektronik & Gadget - Batch 2',
-    date: '12 Mei 2026',
-    total_lots: 50,
-    sold_lots: 41,
-    total_value: 198_500_000,
-    sell_rate: 82.0,
-    status: 'completed',
-  },
-];
+const DUMMY_REPORTS: SessionReport[] = [];
 
 export default function SessionReportsPage() {
   const [search, setSearch] = useState('');

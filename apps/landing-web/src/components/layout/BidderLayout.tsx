@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import SessionTimeout from "./SessionTimeout";
 
 interface BidderLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userName, setUserName] = useState("Budi Santoso");
   const [userInitial, setUserInitial] = useState("BS");
+  const [watchlistCount, setWatchlistCount] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -37,6 +39,28 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
         }
       }
     }
+
+    const updateWatchlistCount = () => {
+      if (typeof window !== "undefined") {
+        try {
+          const stored = localStorage.getItem("watchlist");
+          if (stored) {
+            const list = JSON.parse(stored);
+            setWatchlistCount(Array.isArray(list) ? list.length : 0);
+          } else {
+            setWatchlistCount(0);
+          }
+        } catch (e) {
+          setWatchlistCount(0);
+        }
+      }
+    };
+
+    updateWatchlistCount();
+    window.addEventListener("watchlist-updated", updateWatchlistCount);
+    return () => {
+      window.removeEventListener("watchlist-updated", updateWatchlistCount);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -50,7 +74,7 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
   const menuItems = [
     { name: "Dashboard", href: "/bidder/dashboard", icon: "dashboard" },
     { name: "Katalog Lelang", href: "/katalog", icon: "gavel" },
-    { name: "Watchlist Aset", href: "/bidder/watchlist", icon: "star", badge: "2" },
+    { name: "Watchlist Aset", href: "/bidder/watchlist", icon: "star", badge: watchlistCount > 0 ? String(watchlistCount) : undefined },
     { name: "Ruang Lelang Live", href: "/bidder/bidding-room", icon: "play_circle", isLive: true },
     { name: "Beli Deposit NIPL", href: "/bidder/deposit", icon: "payments" },
     { name: "Riwayat Lelang", href: "/bidder/riwayat-lelang", icon: "history" },
@@ -60,17 +84,21 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="min-h-screen bg-surface flex">
+    <div className="min-h-screen bg-surface flex flex-col font-sans">
+      <SessionTimeout timeoutMinutes={10} />
+      
       {/* ====== DESKTOP SIDEBAR ====== */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl">
         {/* Brand Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="material-symbols-outlined text-white text-base filled">gavel</span>
-          </div>
-          <span className="font-black text-white text-lg tracking-tight">
-            BIDKU
-          </span>
+        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start">
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="BIDKU"
+              className="h-12 w-auto"
+              src="/logo-bidku.png"
+            />
+          </Link>
         </div>
 
         {/* User Role Tag */}
@@ -115,9 +143,9 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error/10 transition-all w-full text-left"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all w-full shadow-md shadow-red-900/20"
           >
-            <span className="material-symbols-outlined text-base">logout</span>
+            <span className="material-symbols-outlined text-lg">logout</span>
             Keluar Akun
           </button>
         </div>
@@ -169,14 +197,15 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
           {/* Drawer menu */}
           <div className="relative w-64 bg-slate-900 text-white flex flex-col h-full shadow-2xl z-10 animate-fade-in-up">
             <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white text-base filled">gavel</span>
-                </div>
-                <span className="font-black text-white text-lg tracking-tight">
-                  BIDKU
-                </span>
-              </div>
+              {/* Mobile Logo */}
+              <Link href="/" className="flex items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt="BIDKU"
+                  className="h-10 w-auto"
+                  src="/logo-bidku.png"
+                />
+              </Link>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-white"
@@ -225,9 +254,9 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error/10 transition-all w-full text-left"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all w-full shadow-md shadow-red-900/20"
               >
-                <span className="material-symbols-outlined text-base">logout</span>
+                <span className="material-symbols-outlined text-lg">logout</span>
                 Keluar Akun
               </button>
             </div>

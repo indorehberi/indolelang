@@ -1,46 +1,59 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-
-interface SessionResult {
-  id: string;
-  title: string;
-  closed_at: string;
-  total_lots: number;
-  lots_sold: number;
-  lots_unsold: number;
-  total_gmv: number;
-  operator_name: string;
-}
+import { apiUrl } from '../../../lib/api';
 
 export default function AuctionResultsPage() {
-  const [loading] = useState(false);
+  const [lots, setLots] = useState<any[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const dummyResults: SessionResult[] = [
-    {
-      id: 'res-1',
-      title: 'Lelang Mobil Bekas Avanza & Xenia Cabang Jakarta',
-      closed_at: '2026-06-23T16:00:00.000Z',
-      total_lots: 15,
-      lots_sold: 12,
-      lots_unsold: 3,
-      total_gmv: 1450000000,
-      operator_name: 'Andi Operator JKT',
-    },
-    {
-      id: 'res-2',
-      title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-      closed_at: '2026-06-22T17:30:00.000Z',
-      total_lots: 28,
-      lots_sold: 22,
-      lots_unsold: 6,
-      total_gmv: 480000000,
-      operator_name: 'Siti Rahma PIC',
-    },
-  ];
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchBidder, setSearchBidder] = useState('');
+
+  const fetchProviders = async () => {
+    try {
+      const response = await fetch(apiUrl('/admin/users?role=provider&provider_status=approved&per_page=100'), {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setProviders(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchLots = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/lots?per_page=200&status=sold,unsold'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setLots(data.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLots();
+    fetchProviders();
+  }, []);
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -50,50 +63,158 @@ export default function AuctionResultsPage() {
     }).format(val);
   };
 
+  const filteredLots = lots.filter((lot) => {
+    if (categoryFilter && lot.asset?.category !== categoryFilter) return false;
+    if (providerFilter && lot.asset?.provider_id !== providerFilter) return false;
+    if (dateFilter) {
+      const scheduledDate = lot.session?.scheduled_at?.split('T')[0];
+      if (scheduledDate !== dateFilter) return false;
+    }
+    if (statusFilter && lot.status !== statusFilter) return false;
+    if (searchBidder) {
+      const query = searchBidder.toLowerCase();
+      const matchesName = lot.winner?.full_name?.toLowerCase().includes(query);
+      const matchesEmail = lot.winner?.email?.toLowerCase().includes(query);
+      if (!matchesName && !matchesEmail) return false;
+    }
+    return true;
+  });
+
   return (
     <DashboardLayout breadcrumbParent="Lelang" breadcrumbCurrent="Hasil Sesi">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Rekapitulasi Hasil Sesi Lelang</h1>
-          <p className="page-subtitle">Daftar laporan hasil penutupan sesi lelang, rincian unit terjual (sold), dan nilai total transaksi terbentuk (GMV).</p>
+          <h1 className="page-title">Rekapitulasi Hasil Lelang</h1>
+          <p className="page-subtitle">Daftar laporan hasil penutupan lot lelang, rincian unit terjual (sold) dan tidak laku (unsold).</p>
         </div>
       </div>
+
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Bidder Pemenang</label>
+            <input
+              type="text"
+              className="search-box"
+              placeholder="Nama atau Email..."
+              value={searchBidder}
+              onChange={(e) => setSearchBidder(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Kategori</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">Semua Kategori</option>
+              <option value="mobil">Mobil</option>
+              <option value="motor">Motor</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={providerFilter}
+              onChange={(e) => setProviderFilter(e.target.value)}
+            >
+              <option value="">Semua Provider</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tanggal</label>
+            <input
+              type="date"
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">Semua Status</option>
+              <option value="sold">Terjual (Sold)</option>
+              <option value="unsold">Tidak Laku (Unsold)</option>
+            </select>
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Waktu Selesai</th>
-                <th>Judul Sesi Lelang</th>
-                <th style={{ textAlign: 'center' }}>Total Lot</th>
-                <th style={{ textAlign: 'center' }}>Terjual (Sold)</th>
-                <th style={{ textAlign: 'center' }}>Tidak Laku</th>
-                <th>Nilai Terbentuk (GMV)</th>
-                <th>Operator Penanggung</th>
-                <th style={{ textAlign: 'center' }}>Laporan</th>
+                <th>Lot</th>
+                <th>Tgl Lelang</th>
+                <th>Jam Lelang</th>
+                <th>Lokasi</th>
+                <th>Kendaraan (merk, tipe, tahun, no)</th>
+                <th>Harga Limit</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat data hasil sesi...</td></tr>
-              ) : dummyResults.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Belum ada sesi lelang yang selesai ditutup.</td></tr>
+                <tr><td colSpan={7} className="text-center">Memuat data hasil lelang...</td></tr>
+              ) : filteredLots.length === 0 ? (
+                <tr><td colSpan={7} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
               ) : (
-                dummyResults.map((res) => (
-                  <tr key={res.id}>
-                    <td>{new Date(res.closed_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td><strong>{res.title}</strong></td>
-                    <td style={{ textAlign: 'center' }}>{res.total_lots} unit</td>
-                    <td style={{ textAlign: 'center' }}><span className="text-success" style={{ fontWeight: 'bold' }}>{res.lots_sold} unit</span></td>
-                    <td style={{ textAlign: 'center' }}><span className="text-danger">{res.lots_unsold} unit</span></td>
-                    <td><strong className="text-primary">{formatRupiah(res.total_gmv)}</strong></td>
-                    <td>{res.operator_name}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button className="btn btn-xs btn-primary">Cetak Rekap</button>
-                    </td>
-                  </tr>
-                ))
+                filteredLots.map((lot) => {
+                  const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'}) - ${lot.asset.police_number || '-'}` : '-';
+
+                  return (
+                    <tr key={lot.id}>
+                      <td><strong>#{lot.lot_number}</strong></td>
+                      <td>
+                        {lot.session ? new Date(lot.session.scheduled_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }) : '-'}
+                      </td>
+                      <td>
+                        {lot.session ? new Date(lot.session.scheduled_at).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '-'}
+                      </td>
+                      <td>
+                        {lot.session?.branch ? `${lot.session.branch.name}, ${lot.session.branch.city}` : '-'}
+                      </td>
+                      <td>
+                        <div><strong>{lot.asset?.title || '-'}</strong></div>
+                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>{assetInfo}</div>
+                      </td>
+                      <td>{formatRupiah(lot.starting_price)}</td>
+                      <td>
+                        <Badge variant={lot.status === 'sold' ? 'success' : 'default'}>
+                          {lot.status === 'sold' ? 'Sold' : 'Unsold'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -50,6 +50,16 @@
   --color-on-error: #ffffff;
   --color-on-error-container: #93000a;
 
+  --color-success: #198754;
+  --color-success-container: #d1e7dd;
+  --color-on-success: #ffffff;
+  --color-on-success-container: #0f5132;
+
+  --color-warning: #ffc107;
+  --color-warning-container: #fff3cd;
+  --color-on-warning: #000000;
+  --color-on-warning-container: #664d03;
+
   --color-text-secondary: rgba(33, 37, 41, 0.7);
   --color-glass-border: rgba(255, 255, 255, 0.15);
   --color-accent-gold: #f67904;
@@ -118,6 +128,8 @@
   --animate-pulse-soft: pulseSoft 2s ease-in-out infinite;
   --animate-countdown-pulse: countdownPulse 1s ease-in-out infinite;
 }
+
+
 
 @keyframes fadeInUp {
   0% { opacity: 0; transform: translateY(20px); }
@@ -235,10 +247,14 @@ body {
 
 /* Stat Number */
 .stat-number {
-  font-size: 2.25rem;
+  font-size: min(2.75rem, 15cqi);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.stat-card {
+  container-type: inline-size;
 }
 
 /* Step Connector */

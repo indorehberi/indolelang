@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
 
+import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
+
 interface Settlement {
   id: string;
   assetName: string;
@@ -14,27 +17,75 @@ interface Settlement {
   date: string;
 }
 
-const settlements: Settlement[] = [
-  { id: "STL-203", assetName: "Honda Civic Hatchback RS 2020", hammerPrice: 320000000, commission: 8000000, netAmount: 312000000, status: "settled", date: "24 Juni 2026" },
-  { id: "STL-202", assetName: "Yamaha NMAX ABS 2021", hammerPrice: 24500000, commission: 735000, netAmount: 23765000, status: "pending", date: "22 Juni 2026" },
-  { id: "STL-201", assetName: "Toyota Avanza Veloz 1.5 AT 2021", hammerPrice: 142000000, commission: 4260000, netAmount: 137740000, status: "settled", date: "18 Juni 2026" },
-];
+interface Asset {
+  id: string;
+  title: string;
+  status: string;
+  base_price: number;
+}
 
 export default function ProviderDashboard() {
-  const [providerName, setProviderName] = useState<string>("PT Astra Mitra");
+  const router = useRouter();
+  const [providerName, setProviderName] = useState<string>("Loading...");
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [settlementsData, setSettlementsData] = useState<Settlement[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [pendingAmount, setPendingAmount] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          if (user.full_name || user.name) {
-            setProviderName(user.full_name || user.name);
-          }
-        } catch (e) {}
-      }
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push("/login");
+      return;
     }
+
+    const fetchData = async () => {
+      try {
+        const [resProfile, resAssets, resSettlements, resNotifications] = await Promise.all([
+          fetch(apiUrl("/users/profile"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(apiUrl("/assets?per_page=100"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(apiUrl("/payments/settlements?per_page=100"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(apiUrl("/notifications?is_read=false"), { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
+        if (resProfile.ok) {
+          const data = await resProfile.json();
+          setProviderName(data.data?.company_name || data.data?.full_name || "Provider");
+        }
+
+        if (resAssets.ok) {
+          const data = await resAssets.json();
+          setAssets(data.data || []);
+        }
+
+        if (resSettlements.ok) {
+          const data = await resSettlements.json();
+          const items = data.data || [];
+          const formatted = items.map((s: any) => ({
+            id: s.id,
+            assetName: s.invoice?.lot?.asset?.title || "Asset",
+            hammerPrice: s.invoice?.amount || 0,
+            commission: s.platform_fee || 0,
+            netAmount: s.net_amount || 0,
+            status: s.status === "processed" ? "settled" : "pending",
+            date: new Date(s.created_at).toLocaleDateString("id-ID")
+          }));
+          setSettlementsData(formatted);
+          
+          const pending = formatted.filter((s: any) => s.status === "pending").reduce((acc: number, s: any) => acc + s.netAmount, 0);
+          setPendingAmount(pending);
+        }
+
+        if (resNotifications.ok) {
+          const data = await resNotifications.json();
+          setNotifications(data.data || []);
+        }
+      } catch (e) {
+        console.error("Failed to load dashboard data");
+      }
+    };
+    
+    fetchData();
   }, []);
 
   const formatRupiah = (value: number) => {
@@ -50,31 +101,73 @@ export default function ProviderDashboard() {
     return <span className="badge-ui warning">Proses</span>;
   };
 
+  const handleCloseNotification = async (id: string) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(apiUrl(`/notifications/${id}/read`), {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to dismiss notification", err);
+    }
+  };
+
+  const rejectedCount = assets.filter(a => a.status === 'returned').length;
+
   return (
     <ProviderLayout pageTitle="Dashboard Mitra">
-      <p className="page-subtitle">Panel Area Provider &bull; PT Indo-Lelang Sejahtera</p>
+      <p className="page-subtitle font-medium text-slate-500 mb-4">Panel Area Provider &bull; PT Indo-Lelang Sejahtera</p>
+
+      {/* Notifications Section */}
+      {notifications.length > 0 && (
+        <div className="space-y-2 mb-4 text-left">
+          {notifications.map((notif) => (
+            <div key={notif.id} className="alert-box info flex items-center justify-between" style={{ padding: '1rem', borderRadius: '1rem', background: '#e0f2fe', border: '1px solid #bae6fd', color: '#0369a1' }}>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sky-600">notifications</span>
+                <div>
+                  <strong className="block text-sm font-semibold">{notif.title}</strong>
+                  <p className="text-xs text-sky-800 mt-0.5">{notif.message}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCloseNotification(notif.id)}
+                className="text-sky-600 hover:text-sky-800 p-1 hover:bg-sky-200/50 rounded-full transition-all"
+                title="Tutup Notifikasi"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI Grid */}
       <div className="kpi-grid">
         <div className="kpi-card success">
           <div className="kpi-label">Nilai Penjualan (GMV)</div>
-          <div className="kpi-value">{formatRupiah(486500000)}</div>
+          <div className="kpi-value">{formatRupiah(settlementsData.reduce((acc, s) => acc + s.hammerPrice, 0))}</div>
           <div className="kpi-trend up">Total Unit Terjual</div>
         </div>
         <div className="kpi-card gold">
           <div className="kpi-label">Aset Aktif / Listed</div>
-          <div className="kpi-value">3 Unit</div>
+          <div className="kpi-value">{assets.filter(a => a.status === 'listed' || a.status === 'approved').length} Unit</div>
           <div className="kpi-trend up">Siap Lelang Batch Depan</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Menunggu Pencairan</div>
-          <div className="kpi-value">{formatRupiah(23765000)}</div>
+          <div className="kpi-value">{formatRupiah(pendingAmount)}</div>
           <div className="kpi-trend text-slate-500">Pencairan Dana Proses VA</div>
         </div>
         <div className="kpi-card danger">
           <div className="kpi-label">Pengajuan Aset Ditolak</div>
-          <div className="kpi-value">0 Unit</div>
-          <div className="kpi-trend text-slate-500">Semua Dokumen Valid</div>
+          <div className="kpi-value">{rejectedCount} Unit</div>
+          <div className="kpi-trend text-slate-500">{rejectedCount > 0 ? "Silakan ajukan kembali" : "Semua Dokumen Valid"}</div>
         </div>
       </div>
 
@@ -86,58 +179,27 @@ export default function ProviderDashboard() {
           <div className="card">
             <div className="card-header">Inventori Aset Terdaftar</div>
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center p-3 bg-slate-50 border border-outline-variant/20 rounded-xl">
-                <div>
-                  <div className="font-bold text-slate-800">Toyota Kijang Innova Reborn 2.4 G 2019</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Status: Approved - Siap Jadwal</div>
-                </div>
-                <div className="font-bold text-slate-900">Limit: Rp 260jt</div>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-50 border border-outline-variant/20 rounded-xl">
-                <div>
-                  <div className="font-bold text-slate-800">Mitsubishi Pajero Sport Dakar 2018</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Status: Pending Verification</div>
-                </div>
-                <div className="font-bold text-slate-900">Limit: Rp 380jt</div>
-              </div>
+              {assets.length === 0 ? (
+                <div className="p-4 text-center text-slate-500">Belum ada aset didaftarkan</div>
+              ) : (
+                assets.slice(0, 5).map(asset => (
+                  <div key={asset.id} className="flex justify-between items-center p-3 bg-slate-50 border border-outline-variant/20 rounded-xl">
+                    <div>
+                      <div className="font-bold text-slate-800">{asset.title}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Status: {asset.status.toUpperCase()}</div>
+                    </div>
+                    <div className="font-bold text-slate-900">Limit: {formatRupiah(asset.base_price)}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* SVG Monthly Sales Performance */}
+          {/* Monthly Sales Performance */}
           <div className="card">
             <div className="card-header">Grafik Penjualan Bulanan (Net Pendapatan)</div>
-            <div className="py-4">
-              <svg viewBox="0 0 400 160" className="w-full h-auto block overflow-visible">
-                <line x1="50" y1="20" x2="380" y2="20" stroke="#f1f2f6" strokeWidth="1" />
-                <line x1="50" y1="70" x2="380" y2="70" stroke="#f1f2f6" strokeWidth="1" />
-                <line x1="50" y1="120" x2="380" y2="120" stroke="#dcdde1" strokeWidth="1" />
-
-                {/* Bars */}
-                <g>
-                  <rect x="90" y="70" width="30" height="50" rx="3" fill="var(--wf-accent)" />
-                  <text x="105" y="62" fill="var(--wf-text)" fontSize="9" fontWeight="bold" textAnchor="middle">137jt</text>
-                  <text x="105" y="138" fill="var(--wf-text-muted)" fontSize="9" textAnchor="middle">April</text>
-                </g>
-                <g>
-                  <rect x="170" y="30" width="30" height="90" rx="3" fill="var(--wf-success)" />
-                  <text x="185" y="22" fill="var(--wf-text)" fontSize="9" fontWeight="bold" textAnchor="middle">312jt</text>
-                  <text x="185" y="138" fill="var(--wf-text-muted)" fontSize="9" textAnchor="middle">Mei</text>
-                </g>
-                <g>
-                  <rect x="250" y="100" width="30" height="20" rx="3" fill="var(--wf-accent)" />
-                  <text x="265" y="92" fill="var(--wf-text)" fontSize="9" fontWeight="bold" textAnchor="middle">24jt</text>
-                  <text x="265" y="138" fill="var(--wf-text-muted)" fontSize="9" textAnchor="middle">Juni</text>
-                </g>
-                <g>
-                  <rect x="330" y="120" width="30" height="0" rx="3" fill="var(--wf-accent)" />
-                  <text x="345" y="112" fill="var(--wf-text)" fontSize="9" fontWeight="bold" textAnchor="middle">0</text>
-                  <text x="345" y="138" fill="var(--wf-text-muted)" fontSize="9" textAnchor="middle">Juli</text>
-                </g>
-
-                <text x="45" y="23" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">400jt</text>
-                <text x="45" y="73" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">200jt</text>
-                <text x="45" y="123" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">0</text>
-              </svg>
+            <div className="py-12 text-center text-slate-500 text-sm">
+              Belum ada data penjualan yang cukup untuk menampilkan grafik.
             </div>
           </div>
         </div>
@@ -178,17 +240,23 @@ export default function ProviderDashboard() {
               </tr>
             </thead>
             <tbody>
-              {settlements.map((item) => (
-                <tr key={item.id}>
-                  <td>#{item.id}</td>
-                  <td className="font-bold text-slate-800">{item.assetName}</td>
-                  <td>{formatRupiah(item.hammerPrice)}</td>
-                  <td className="text-error">{formatRupiah(item.commission)}</td>
-                  <td className="font-bold text-success">{formatRupiah(item.netAmount)}</td>
-                  <td>{getStatusBadge(item.status)}</td>
-                  <td>{item.date}</td>
+              {settlementsData.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-slate-500">Belum ada data pencairan</td>
                 </tr>
-              ))}
+              ) : (
+                settlementsData.map((item) => (
+                  <tr key={item.id}>
+                    <td>#{item.id.substring(0,8).toUpperCase()}</td>
+                    <td className="font-bold text-slate-800">{item.assetName}</td>
+                    <td>{formatRupiah(item.hammerPrice)}</td>
+                    <td className="text-error">{formatRupiah(item.commission)}</td>
+                    <td className="font-bold text-success">{formatRupiah(item.netAmount)}</td>
+                    <td>{getStatusBadge(item.status)}</td>
+                    <td>{item.date}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

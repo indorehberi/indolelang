@@ -11,6 +11,9 @@ export enum Role {
   OPERATOR = 'operator',
   PROVIDER = 'provider',
   BIDDER = 'bidder',
+  INSPECTOR = 'inspector',
+  USER = 'user',
+  FINANCE = 'finance',
 }
 
 export enum UserStatus {

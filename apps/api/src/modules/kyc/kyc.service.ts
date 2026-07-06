@@ -5,6 +5,7 @@ import { KycDocumentDTO, PaginationMeta, KycStatus, UserStatus } from '@indo-lel
 import { isFeatureEnabled } from '../../lib/featureToggle';
 import { logger } from '../../lib/logger';
 import { FeatureToggle } from '@indo-lelang/shared-types';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class KycService {
   /**
@@ -138,9 +139,12 @@ export class KycService {
   async getQueue(
     page: number,
     perPage: number,
-    status: KycStatus
+    status: KycStatus | 'all'
   ): Promise<{ queue: KycDocumentDTO[]; meta: PaginationMeta }> {
-    const where = { status };
+    const where: any = {};
+    if (status && status !== 'all') {
+      where.status = status;
+    }
     const skip = (page - 1) * perPage;
 
     const [total, records] = await Promise.all([
@@ -195,6 +199,13 @@ export class KycService {
       }),
     ]);
 
+    await notificationsService.createNotification({
+      userId: doc.user_id,
+      type: 'kyc_approved',
+      title: 'Verifikasi KYC Disetujui',
+      body: 'Selamat, verifikasi dokumen KYC Anda telah disetujui oleh admin. Sekarang Anda dapat menggunakan fitur platform secara penuh.',
+    });
+
     return this.mapToDTO(updatedDoc);
   }
 
@@ -220,6 +231,13 @@ export class KycService {
       },
     });
 
+    await notificationsService.createNotification({
+      userId: doc.user_id,
+      type: 'kyc_rejected',
+      title: 'Verifikasi KYC Ditolak',
+      body: `Mohon maaf, verifikasi dokumen KYC Anda ditolak. Alasan: ${reason}. Silakan ajukan kembali.`,
+    });
+
     return this.mapToDTO(updatedDoc);
   }
 
@@ -236,6 +254,19 @@ export class KycService {
       rejection_reason: doc.rejection_reason || undefined,
       provider_ref_id: doc.provider_ref_id || undefined,
       created_at: doc.created_at.toISOString(),
+      user: doc.user ? {
+        id: doc.user.id,
+        email: doc.user.email,
+        phone: doc.user.phone,
+        full_name: doc.user.full_name,
+        role: doc.user.role,
+        status: doc.user.status,
+        company_name: doc.user.company_name,
+        npwp: doc.user.npwp,
+        provider_status: doc.user.provider_status,
+        created_at: doc.user.created_at.toISOString(),
+        updated_at: doc.user.updated_at.toISOString(),
+      } : undefined,
     };
   }
 }

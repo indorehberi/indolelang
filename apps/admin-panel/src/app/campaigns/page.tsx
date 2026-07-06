@@ -1,66 +1,83 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Modal from '../../components/ui/Modal';
+import { apiFetch } from '../../lib/api';
 
 interface Campaign {
   id: string;
   title: string;
-  message_preview: string;
-  type: 'email' | 'push_notif' | 'sms';
+  message: string;
   target_role: string;
   sent_count: number;
   status: 'sent' | 'draft';
   sent_at?: string;
+  created_at: string;
 }
 
 export default function CampaignsPage() {
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const dummyCampaigns: Campaign[] = [
-    {
-      id: 'cmp-1',
-      title: 'Reminder Sesi Lelang Mobil Jakarta',
-      message_preview: 'Halo Bidder, jangan lewatkan lelang mobil besok jam 10:00 WIB!',
-      type: 'push_notif',
-      target_role: 'bidder',
-      sent_count: 148,
-      status: 'sent',
-      sent_at: '2026-06-23T08:00:00.000Z',
-    },
-    {
-      id: 'cmp-2',
-      title: 'Pemberitahuan Akun Aktif KYC Approved',
-      message_preview: 'Akun Anda berhasil diverifikasi oleh tim peninjau KYC Indo-Lelang.',
-      type: 'email',
-      target_role: 'bidder',
-      sent_count: 45,
-      status: 'sent',
-      sent_at: '2026-06-22T10:00:00.000Z',
-    },
-    {
-      id: 'cmp-3',
-      title: 'Broadcast Promosi Komisi Baru Provider',
-      message_preview: 'Dapatkan diskon biaya admin lelang sebesar 1.5% untuk unit motor.',
-      type: 'email',
-      target_role: 'provider',
-      sent_count: 12,
-      status: 'draft',
-    },
-  ];
+  // Form State
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [targetRole, setTargetRole] = useState('all');
 
-  const getTypeBadge = (type: Campaign['type']) => {
-    switch (type) {
-      case 'push_notif':
-        return <Badge variant="info">📱 Push Notification</Badge>;
-      case 'email':
-        return <Badge variant="success">✉️ Email Broadcast</Badge>;
-      case 'sms':
-        return <Badge variant="warning">💬 SMS Broadcast</Badge>;
-      default:
-        return <Badge variant="default">{type}</Badge>;
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch('/admin/campaigns');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCampaigns(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch campaigns', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await apiFetch('/admin/campaigns', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          message,
+          target_role: targetRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsModalOpen(false);
+        setTitle('');
+        setMessage('');
+        setTargetRole('all');
+        fetchCampaigns();
+      } else {
+        setErrorMsg(data.error?.message || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Koneksi gagal');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,15 +89,22 @@ export default function CampaignsPage() {
     );
   };
 
+  const getTargetBadge = (role: string) => {
+    if (role === 'all') return <Badge variant="info">Semua Pengguna</Badge>;
+    if (role === 'bidder') return <Badge variant="success">Bidder Saja</Badge>;
+    if (role === 'provider') return <Badge variant="warning">Provider Saja</Badge>;
+    return <Badge variant="default">{role}</Badge>;
+  };
+
   return (
-    <DashboardLayout breadcrumbParent="Laporan" breadcrumbCurrent="Campaign">
+    <DashboardLayout breadcrumbParent="Komunikasi" breadcrumbCurrent="Broadcast">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Broadcast Campaign & Notifikasi</h1>
-          <p className="page-subtitle">Kirim email massal, notifikasi push FCM, atau SMS blast ke seluruh kelompok pengguna bidder / provider.</p>
+          <h1 className="page-title">Broadcast Informasi</h1>
+          <p className="page-subtitle">Kirim informasi massal ke dashboard kelompok pengguna secara riil.</p>
         </div>
         <div className="toolbar-right">
-          <button className="btn btn-primary btn-sm">+ Buat Campaign Baru</button>
+          <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>+ Buat Broadcast Baru</button>
         </div>
       </div>
 
@@ -90,36 +114,27 @@ export default function CampaignsPage() {
             <thead>
               <tr>
                 <th>Tanggal Kirim</th>
-                <th>Judul Pengumuman</th>
-                <th>Isi Pesan Singkat</th>
-                <th>Metode Pengiriman</th>
+                <th>Judul Informasi</th>
+                <th>Isi Informasi</th>
                 <th>Target Penerima</th>
                 <th style={{ textAlign: 'center' }}>Total Penerima</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'center' }}>Tindakan</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat data campaign...</td></tr>
-              ) : dummyCampaigns.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Belum ada campaign broadcast dikirim.</td></tr>
+                <tr><td colSpan={6} className="text-center">Memuat data broadcast...</td></tr>
+              ) : campaigns.length === 0 ? (
+                <tr><td colSpan={6} className="text-center text-muted">Belum ada broadcast informasi dikirim.</td></tr>
               ) : (
-                dummyCampaigns.map((cmp) => (
-                  <tr key={cmp.id}>
-                    <td>{cmp.sent_at ? new Date(cmp.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
-                    <td><strong>{cmp.title}</strong></td>
-                    <td style={{ maxWidth: '240px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={cmp.message_preview}>{cmp.message_preview}</td>
-                    <td>{getTypeBadge(cmp.type)}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{cmp.target_role}</td>
-                    <td style={{ textAlign: 'center' }}><strong className="text-primary">{cmp.sent_count} user</strong></td>
-                    <td>{getStatusBadge(cmp.status)}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="d-flex gap-1 justify-content-center">
-                        <button className="btn btn-xs btn-outline">Lihat Detail</button>
-                        {cmp.status === 'draft' && <button className="btn btn-xs btn-success">Kirim Sekarang</button>}
-                      </div>
-                    </td>
+                campaigns.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.sent_at ? new Date(c.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                    <td className="font-medium text-slate-800">{c.title}</td>
+                    <td><div className="truncate w-64 text-sm text-slate-500">{c.message.length > 50 ? c.message.substring(0, 50) + '...' : c.message}</div></td>
+                    <td>{getTargetBadge(c.target_role)}</td>
+                    <td className="text-center font-bold text-slate-700">{c.sent_count}</td>
+                    <td>{getStatusBadge(c.status)}</td>
                   </tr>
                 ))
               )}
@@ -127,6 +142,55 @@ export default function CampaignsPage() {
           </table>
         </div>
       </Card>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Buat Broadcast Informasi Baru">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {errorMsg && <div className="p-3 bg-error/10 text-error text-sm rounded-lg border border-error/20">{errorMsg}</div>}
+          
+          <div className="form-group">
+            <label className="form-label">Judul Informasi</label>
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Contoh: Pengumuman Sesi Lelang Baru" 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Isi Informasi</label>
+            <textarea 
+              className="form-control" 
+              rows={5} 
+              placeholder="Tulis informasi lengkap di sini..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+            ></textarea>
+            <p className="text-xs text-slate-500 mt-1">Gunakan enter untuk membuat paragraf baru. Informasi akan dikirim langsung ke dashboard target penerima.</p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Target Penerima</label>
+            <select className="form-select" value={targetRole} onChange={(e) => setTargetRole(e.target.value)}>
+              <option value="all">Semua Pengguna Aktif</option>
+              <option value="bidder">Hanya Bidder</option>
+              <option value="provider">Hanya Provider (Penjual)</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
+              Batal
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Mengirim...' : 'Kirim Sekarang'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </DashboardLayout>
   );
 }

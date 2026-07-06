@@ -26,45 +26,34 @@ export default function AssetsApprovalPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
-  const dummyPendingAssets: Asset[] = [
-    {
-      id: 'asset-3',
-      provider_id: 'provider-2',
-      category: 'alat_berat',
-      title: 'Excavator Caterpillar 320 GC',
-      description: 'Hour meter 4500 jam, siap kerja keras, lokasi Jakarta Utara. Pompa hidrolik baru.',
-      base_price: 850000000,
-      status: 'pending',
-      created_at: '2026-06-23T11:00:00.000Z',
-    },
-    {
-      id: 'asset-5',
-      provider_id: 'provider-1',
-      category: 'mobil',
-      title: 'Honda Civic Turbo 1.5 Hatchback 2019',
-      description: 'Kondisi full orisinil, tangan pertama, cat asli mulus, velg racing bawaan.',
-      base_price: 380000000,
-      status: 'pending',
-      created_at: '2026-06-23T06:15:00.000Z',
-    },
-    {
-      id: 'asset-6',
-      provider_id: 'provider-3',
-      category: 'properti',
-      title: 'Tanah Kavling BSD City Cluster Foresta',
-      description: 'Luas tanah 240m2, lokasi hook, dekat club house, sertifikat PPJB siap SHM.',
-      base_price: 3600000000,
-      status: 'pending',
-      created_at: '2026-06-22T08:30:00.000Z',
-    },
-  ];
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [providers, setProviders] = useState<any[]>([]);
 
-  const fetchPendingAssets = async () => {
+  const fetchProviders = async () => {
+    try {
+      const response = await fetch(apiUrl('/admin/users?role=provider&provider_status=approved&per_page=100'), {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setProviders(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchApprovedAssets = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
-      // Fetch only pending assets
-      const response = await fetch(apiUrl(`/assets?status=pending`), {
+      let query = `?status=approved&per_page=100`;
+      if (categoryFilter) query += `&category=${categoryFilter}`;
+      if (providerFilter) query += `&provider_id=${providerFilter}`;
+
+      const response = await fetch(apiUrl(`/assets${query}`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -73,27 +62,32 @@ export default function AssetsApprovalPage() {
       if (response.ok && data.success) {
         setAssets(data.data);
       } else {
-        setAssets(dummyPendingAssets);
+        setAssets([]);
       }
     } catch (err) {
-      setAssets(dummyPendingAssets);
+      setAssets([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingAssets();
+    fetchApprovedAssets();
+  }, [categoryFilter, providerFilter]);
+
+  useEffect(() => {
+    fetchProviders();
   }, []);
 
-  const handleApprove = async (id: string) => {
-    if (!confirm('Apakah Anda yakin menyetujui barang ini untuk masuk lelang?')) return;
+  
+  const handleCancel = async (id: string) => {
+    if (!confirm('Apakah Anda yakin membatalkan persetujuan barang ini? Barang akan kembali ke status pending.')) return;
     setProcessingId(id);
     setToast(null);
 
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${id}/approve`), {
+      const response = await fetch(apiUrl(`/admin/assets/${id}/cancel`), {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -103,11 +97,11 @@ export default function AssetsApprovalPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Gagal menyetujui barang');
+        throw new Error(data.error?.message || 'Gagal membatalkan persetujuan');
       }
 
-      setToast({ message: 'Barang berhasil disetujui untuk dilelang', variant: 'success' });
-      fetchPendingAssets();
+      setToast({ message: 'Persetujuan dibatalkan. Barang kembali ke Daftar Barang.', variant: 'success' });
+      fetchApprovedAssets();
     } catch (err: any) {
       setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
     } finally {
@@ -116,7 +110,7 @@ export default function AssetsApprovalPage() {
   };
 
   const handleReject = async (id: string) => {
-    if (!confirm('Apakah Anda yakin menolak dan mengembalikan barang ini ke provider?')) return;
+    if (!confirm('Apakah Anda yakin menolak barang ini? Barang akan dikembalikan ke daftar barang dengan status dikembalikan.')) return;
     setProcessingId(id);
     setToast(null);
 
@@ -135,8 +129,8 @@ export default function AssetsApprovalPage() {
         throw new Error(data.error?.message || 'Gagal menolak barang');
       }
 
-      setToast({ message: 'Barang berhasil ditolak dan dikembalikan', variant: 'success' });
-      fetchPendingAssets();
+      setToast({ message: 'Barang ditolak dan dikembalikan ke Daftar Barang dengan status dikembalikan.', variant: 'success' });
+      fetchApprovedAssets();
     } catch (err: any) {
       setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
     } finally {
@@ -153,7 +147,7 @@ export default function AssetsApprovalPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Approval Barang">
+    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Approved Barang">
       {toast && (
         <Toast
           message={toast.message}
@@ -164,10 +158,43 @@ export default function AssetsApprovalPage() {
 
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Approval Pendaftaran Barang Titip Lelang</h1>
-          <p className="page-subtitle">Review pengajuan aset barang baru yang didaftarkan oleh Provider sebelum masuk ke penyusunan Lot.</p>
+          <h1 className="page-title">Daftar Approved Barang</h1>
+          <p className="page-subtitle">Daftar aset barang yang telah disetujui oleh Admin dan siap dimasukkan ke dalam Lot lelang.</p>
         </div>
       </div>
+
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Kategori</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">Semua Kategori</option>
+              <option value="mobil">Mobil</option>
+              <option value="motor">Motor</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={providerFilter}
+              onChange={(e) => setProviderFilter(e.target.value)}
+            >
+              <option value="">Semua Provider</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">
@@ -189,7 +216,7 @@ export default function AssetsApprovalPage() {
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted">Tidak ada pengajuan barang baru yang menunggu persetujuan.</td>
+                  <td colSpan={6} className="text-center text-muted">Tidak ada barang yang berstatus approved.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
@@ -220,17 +247,17 @@ export default function AssetsApprovalPage() {
                       <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
                     </td>
                     <td>
-                      <Badge variant="warning">Pending Review</Badge>
+                      <Badge variant="success">Approved</Badge>
                     </td>
                     <td>
                       <div className="d-flex gap-1">
                         <Button
-                          variant="success"
+                          variant="outline"
                           size="sm"
                           disabled={processingId === asset.id}
-                          onClick={() => handleApprove(asset.id)}
+                          onClick={() => handleCancel(asset.id)}
                         >
-                          {processingId === asset.id ? 'Memproses...' : 'Setujui'}
+                          {processingId === asset.id ? 'Memproses...' : 'Batal Approve'}
                         </Button>
                         <Button
                           variant="danger"
@@ -238,7 +265,7 @@ export default function AssetsApprovalPage() {
                           disabled={processingId === asset.id}
                           onClick={() => handleReject(asset.id)}
                         >
-                          Tolak
+                          {processingId === asset.id ? 'Memproses...' : 'Tolak'}
                         </Button>
                       </div>
                     </td>

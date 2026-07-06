@@ -12,15 +12,23 @@ export class LotsService {
     page: number,
     perPage: number,
     sessionId?: string,
-    status?: string
-  ): Promise<{ lots: LotDTO[]; meta: PaginationMeta }> {
+    status?: string,
+    providerId?: string
+  ): Promise<{ lots: any[]; meta: PaginationMeta }> {
     const where: Prisma.lotsWhereInput = {};
 
     if (status) {
-      where.status = status;
+      if (status.includes(',')) {
+        where.status = { in: status.split(',') as any };
+      } else {
+        where.status = status as any;
+      }
     }
     if (sessionId) {
       where.session_id = sessionId;
+    }
+    if (providerId) {
+      where.asset = { provider_id: providerId };
     }
 
     const skip = (page - 1) * perPage;
@@ -32,11 +40,25 @@ export class LotsService {
         skip,
         take: perPage,
         orderBy: { lot_number: 'asc' },
-        include: { asset: true },
+        include: {
+          asset: true,
+          session: {
+            include: {
+              branch: true,
+            },
+          },
+          winner: {
+            select: {
+              full_name: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
       }),
     ]);
 
-    const lots: LotDTO[] = records.map((l) => ({
+    const lots = records.map((l: any) => ({
       id: l.id,
       session_id: l.session_id,
       asset_id: l.asset_id,
@@ -54,9 +76,28 @@ export class LotsService {
         base_price: Number(l.asset.base_price),
         images: l.asset.images ? JSON.parse(l.asset.images as string) : undefined,
         status: l.asset.status,
+        brand: l.asset.brand || undefined,
+        model: l.asset.model || undefined,
+        year: l.asset.year ? Number(l.asset.year) : undefined,
+        police_number: l.asset.police_number || undefined,
         created_at: l.asset.created_at.toISOString(),
         updated_at: l.asset.updated_at.toISOString(),
       },
+      session: l.session ? {
+        id: l.session.id,
+        title: l.session.title,
+        scheduled_at: l.session.scheduled_at.toISOString(),
+        status: l.session.status,
+        branch: l.session.branch ? {
+          name: l.session.branch.name,
+          city: l.session.branch.city,
+        } : undefined,
+      } : undefined,
+      winner: l.winner ? {
+        full_name: l.winner.full_name,
+        email: l.winner.email,
+        phone: l.winner.phone,
+      } : undefined,
       created_at: l.created_at.toISOString(),
       updated_at: l.updated_at.toISOString(),
     }));

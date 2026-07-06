@@ -71,7 +71,7 @@ export interface AuthTokens {
 export interface AuthUser {
   id: string;
   email: string;
-  phone: string;
+  phone: string | null;
   full_name: string;
   role: string;
   status: string;
@@ -104,12 +104,22 @@ export interface VerifyOtpRequest {
 export interface UserDTO {
   id: string;
   email: string;
-  phone: string;
+  phone: string | null;
   full_name: string;
   role: string;
   status: string;
   company_name?: string;
   npwp?: string;
+  provider_status?: string;
+  active_nipl_count?: number;
+  pks_number?: string;
+  provider_type?: string;
+  address?: string;
+  npwp_url?: string;
+  occupation?: string;
+  bank_name?: string;
+  bank_account_no?: string;
+  bank_account_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +136,7 @@ export interface KycDocumentDTO {
   rejection_reason?: string;
   provider_ref_id?: string;
   created_at: string;
+  user?: UserDTO;
 }
 
 export interface BranchDTO {
@@ -195,6 +206,8 @@ export interface DepositDTO {
   user_id: string;
   session_id: string;
   amount: number;
+  unit_type?: string;
+  package_type?: string;
   va_number?: string;
   va_bank?: string;
   payment_method?: string;

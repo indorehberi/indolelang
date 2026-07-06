@@ -12,13 +12,28 @@ generator client {
 model users {
   id            String    @id @default(uuid())
   email         String    @unique
-  phone         String    @unique
+  phone         String?   @unique
   password_hash String
   full_name     String
   role          String
   status        String    @default("pending")
   company_name  String?
   npwp          String?
+  provider_status String?
+  provider_fee_type String?
+  provider_fee_amount Decimal?
+  pmk41_paid_by_provider Boolean @default(false)
+  pks_number    String?
+  provider_type String?
+  
+  // Profile Fields (Bidder & Provider)
+  address           String?
+  occupation        String?
+  bank_name         String?
+  bank_account_no   String?
+  bank_account_name String?
+  npwp_url          String?
+  
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
   deleted_at    DateTime?
@@ -34,6 +49,7 @@ model users {
   audit_logs    audit_logs[]
   blog_posts    blog_posts[]
   testimonials  testimonials[]
+  nipl_allocations nipl_allocations[]
 }
 
 model kyc_documents {
@@ -81,6 +97,7 @@ model auction_sessions {
   branch   branches   @relation(fields: [branch_id], references: [id])
   lots     lots[]
   deposits deposits[]
+  nipl_allocations nipl_allocations[]
 }
 
 model assets {
@@ -91,9 +108,47 @@ model assets {
   description String?
   base_price  Decimal
   images      String?
-  status      String   @default("pending")
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  status          String    @default("pending")
+  
+  // Detail Kendaraan / Inspeksi
+  inspector_id    String?
+  inspection_date DateTime?
+  grade_interior  String?
+  grade_exterior  String?
+  brand           String?
+  model           String?
+  color           String?
+  fuel_type       String?
+  transmission    String?
+  body_type       String?
+  year            Int?
+  police_number   String?
+  bpkb_number     String?
+  frame_number    String?
+  cylinder        Int?
+  odometer        Int?
+
+  // --- NEW FIELDS FOR PROVIDER FORM ---
+  is_recommended  Boolean?  @default(false)
+  engine_number   String?
+  
+  // Data Dokumen (Tanggal)
+  stnk_date       DateTime?
+  stnk_tax_date   DateTime?
+  keur_date       DateTime?
+  
+  // Data Dokumen (Status: Ada/Tidak Ada)
+  doc_stnk        Boolean?  @default(false)
+  doc_bpkb        Boolean?  @default(false)
+  doc_faktur      Boolean?  @default(false)
+  doc_kwitansi    Boolean?  @default(false)
+  doc_form_a      Boolean?  @default(false)
+  doc_copy_ktp    Boolean?  @default(false)
+  doc_keur        Boolean?  @default(false)
+  doc_sph         Boolean?  @default(false)
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
   provider users  @relation(fields: [provider_id], references: [id])
   lots     lots[]
@@ -134,18 +189,21 @@ model bids {
 model deposits {
   id             String    @id @default(uuid())
   user_id        String
-  session_id     String
+  session_id     String?
   amount         Decimal
+  unit_type      String?
+  package_type   String?
   va_number      String?
   va_bank        String?
   payment_method String?
+  gateway_fee    Decimal?  @default(0)
   status         String    @default("pending")
   paid_at        DateTime?
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
 
-  user    users            @relation(fields: [user_id], references: [id])
-  session auction_sessions @relation(fields: [session_id], references: [id])
+  user    users             @relation(fields: [user_id], references: [id])
+  session auction_sessions? @relation(fields: [session_id], references: [id])
 }
 
 model invoices {
@@ -156,6 +214,9 @@ model invoices {
   commission   Decimal
   tax          Decimal
   total        Decimal
+  admin_fee    Decimal?  @default(0)
+  pmk41_amount Decimal?  @default(0)
+  gateway_fee  Decimal?  @default(0)
   due_date     DateTime
   status       String    @default("unpaid")
   paid_at      DateTime?
@@ -174,6 +235,12 @@ model settlements {
   gross_amount        Decimal
   commission_deducted Decimal
   net_amount          Decimal
+  fee_dpp             Decimal?  @default(0)
+  fee_dpp_lain        Decimal?  @default(0)
+  fee_ppn             Decimal?  @default(0)
+  fee_pph23           Decimal?  @default(0)
+  pmk41_amount        Decimal?  @default(0)
+  gateway_fee         Decimal?  @default(0)
   status              String    @default("pending")
   transferred_at      DateTime?
   created_at          DateTime  @default(now())
@@ -264,3 +331,41 @@ model testimonials {
   user         users     @relation(fields: [user_id], references: [id])
 }
 
+model nipl_allocations {
+  id                 String   @id @default(uuid())
+  user_id            String
+  session_id         String
+  unit_type          String   @default("mobil")
+  allocated_quantity Int      @default(1)
+  used_quantity      Int      @default(0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  user    users            @relation(fields: [user_id], references: [id])
+  session auction_sessions @relation(fields: [session_id], references: [id])
+
+  @@unique([user_id, session_id, unit_type])
+}
+
+model campaigns {
+  id           String    @id @default(uuid())
+  title        String
+  message      String    @db.Text
+  target_role  String
+  status       String    @default("draft")
+  sent_count   Int       @default(0)
+  sent_at      DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+model contact_messages {
+  id         String   @id @default(uuid())
+  nama       String
+  email      String
+  subjek     String
+  pesan      String   @db.Text
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

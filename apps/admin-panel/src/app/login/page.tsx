@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiUrl } from '../../lib/api';
 
@@ -10,6 +10,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlToken = searchParams.get('token');
+      const urlUser = searchParams.get('user');
+
+      if (urlToken && urlToken !== 'undefined' && urlToken !== 'null') {
+        localStorage.setItem('accessToken', urlToken);
+        if (urlUser) {
+          localStorage.setItem('user', decodeURIComponent(urlUser));
+        }
+        router.replace('/dashboard');
+        return;
+      }
+
+      const token = localStorage.getItem('accessToken');
+      if (token && token !== 'undefined' && token !== 'null') {
+        router.replace('/dashboard');
+        return;
+      } else {
+        localStorage.removeItem('accessToken');
+      }
+      setCheckingAuth(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,9 +56,10 @@ export default function LoginPage() {
 
       if (response.ok && data.success) {
         // Store token and user data
-        localStorage.setItem('accessToken', data.data.access_token);
-        if (data.data.refresh_token) {
-          localStorage.setItem('refreshToken', data.data.refresh_token);
+        const token = data.data.accessToken || data.data.access_token;
+        localStorage.setItem('accessToken', token);
+        if (data.data.refreshToken || data.data.refresh_token) {
+          localStorage.setItem('refreshToken', data.data.refreshToken || data.data.refresh_token);
         }
         localStorage.setItem('user', JSON.stringify(data.data.user));
 
@@ -63,11 +91,29 @@ export default function LoginPage() {
     router.replace('/dashboard');
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--wf-bg)' }}>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/logo-bidku.png?v=2" alt="BIDKU" style={{ height: '48px', marginBottom: '1.5rem', opacity: 0.8 }} />
+          <div style={{ border: '3px solid rgba(0,0,0,0.1)', borderTop: '3px solid var(--wf-accent, #2e86c1)', borderRadius: '50%', width: '24px', height: '24px', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+          <p className="page-subtitle" style={{ margin: 0, fontSize: '0.9rem' }}>Menghubungkan ke dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--wf-bg)' }}>
       <div className="card" style={{ maxWidth: '420px', width: '100%', margin: '1rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 className="page-title" style={{ marginBottom: '0.5rem' }}>Indo-Lelang</h1>
+        <div style={{ textAlign: 'center', marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/logo-bidku.png?v=2" alt="BIDKU" style={{ height: '48px', marginBottom: '0.5rem' }} />
           <p className="page-subtitle" style={{ marginBottom: 0 }}>Admin Panel</p>
         </div>
 

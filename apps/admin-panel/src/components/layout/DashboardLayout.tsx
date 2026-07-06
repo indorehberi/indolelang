@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
@@ -29,13 +29,53 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   hasLiveSession,
   onLogout,
 }) => {
+  const handleLogout = React.useCallback(() => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+  }, [onLogout]);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      // 10 minutes = 600000 ms
+      timeoutId = setTimeout(handleLogout, 10 * 60 * 1000);
+    };
+
+    const events = ['mousemove', 'keydown', 'wheel', 'mousedown', 'touchstart', 'touchmove'];
+    
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer, false);
+    });
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(event => {
+        window.removeEventListener(event, resetTimer, false);
+      });
+    };
+  }, [handleLogout]);
+
   return (
-    <div className="layout-panel">
+    <div className={`layout-panel ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />
       <Sidebar
         role={role}
         kycPendingCount={kycPendingCount}
         assetPendingCount={assetPendingCount}
         hasLiveSession={hasLiveSession}
+        onLogout={handleLogout}
       />
       <div className="main-content">
         <Topbar
@@ -43,7 +83,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           breadcrumbCurrent={breadcrumbCurrent}
           userName={userName}
           userInitial={userInitial}
-          onLogout={onLogout}
+          onLogout={handleLogout}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
         <main className="page-content">{children}</main>
       </div>

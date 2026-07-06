@@ -1,41 +1,60 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
+import { apiUrl, fetchWithRetry } from "@/lib/api";
 
 interface Asset {
   id: string;
   name: string;
   category: string;
   limitPrice: number;
-  status: "draft" | "pending" | "approved" | "listed" | "sold";
+  status: "draft" | "pending" | "approved" | "listed" | "sold" | string;
   date: string;
 }
 
-const initialAssets: Asset[] = [
-  { id: "AST-8821", name: "Toyota Kijang Innova Reborn 2.4 G 2019", category: "Mobil", limitPrice: 260000000, status: "approved", date: "15 Juni 2026" },
-  { id: "AST-8819", name: "Mitsubishi Pajero Sport Dakar 2018", category: "Mobil", limitPrice: 380000000, status: "pending", date: "12 Juni 2026" },
-  { id: "AST-8711", name: "Honda Civic Hatchback RS 2020", category: "Mobil", limitPrice: 320000000, status: "sold", date: "10 Juni 2026" },
-  { id: "AST-8692", name: "Yamaha NMAX ABS 2021", category: "Motor", limitPrice: 24500000, status: "listed", date: "08 Juni 2026" },
-];
-
 export default function ProviderDaftarBarang() {
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
+  const router = useRouter();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("provider_assets");
-      if (stored) {
-        try {
-          const list = JSON.parse(stored);
-          // Combine initial static list with dynamic submissions
-          setAssets([...list, ...initialAssets]);
-        } catch (e) {}
-      } else {
-        localStorage.setItem("provider_assets", JSON.stringify([]));
+    const fetchAssets = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+
+        const res = await fetchWithRetry(apiUrl("/assets?per_page=100"), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const resData = await res.json();
+        
+        if (res.ok && resData.success) {
+          const fetched = (resData.data || []).map((a: any) => ({
+            id: a.id,
+            name: a.title,
+            category: a.category,
+            limitPrice: a.base_price,
+            status: a.status,
+            date: new Date(a.created_at).toLocaleDateString("id-ID", {
+              day: 'numeric', month: 'long', year: 'numeric'
+            })
+          }));
+          setAssets(fetched);
+        }
+      } catch (err) {
+        console.error("Failed to fetch assets", err);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
+    
+    fetchAssets();
+  }, [router]);
 
   const formatRupiah = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -76,7 +95,15 @@ export default function ProviderDaftarBarang() {
               </tr>
             </thead>
             <tbody>
-              {assets.map((asset) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-slate-500 font-medium">Memuat data aset...</td>
+                </tr>
+              ) : assets.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-slate-500 font-medium">Belum ada aset terdaftar.</td>
+                </tr>
+              ) : assets.map((asset) => (
                 <tr key={asset.id}>
                   <td>#{asset.id}</td>
                   <td className="font-bold text-slate-800">{asset.name}</td>

@@ -35,12 +35,7 @@ export const getLotsQuerySchema = z.object({
     page: z.string().transform((val) => parseInt(val, 10)).default('1'),
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
     session_id: z.string().uuid('ID Sesi Lelang tidak valid').optional(),
-    status: z.enum([
-      LotStatus.PENDING,
-      LotStatus.ACTIVE,
-      LotStatus.SOLD,
-      LotStatus.UNSOLD,
-      LotStatus.CANCELLED,
-    ]).optional(),
+    status: z.string().optional(),
+    provider_id: z.string().uuid().optional(),
   }),
 });

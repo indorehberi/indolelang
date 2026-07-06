@@ -1,12 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
-import { apiUrl } from '../../lib/api';
+import { apiUrl, apiFetch } from '../../lib/api';
+import { AssetCategory } from '@indo-lelang/shared-types';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  [AssetCategory.MOBIL]: '🚗 Mobil Penumpang',
+  [AssetCategory.MOTOR]: '🏍️ Sepeda Motor',
+  [AssetCategory.ALAT_BERAT]: '🏗️ Komersial & Alat Berat',
+  [AssetCategory.PROPERTI]: '🏢 Properti',
+};
 
 interface Asset {
   id: string;
@@ -20,63 +28,365 @@ interface Asset {
   created_at: string;
 }
 
+interface Provider {
+  id: string;
+  full_name: string;
+  company_name?: string;
+}
+
+const parseJwt = (token: string) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (err) {
+    console.error('Failed to parse JWT', err);
+    return null;
+  }
+};
+
 export default function AssetsPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('pending,returned');
+  
+  const [userRole, setUserRole] = useState<string>('');
 
-  const dummyAssets: Asset[] = [
-    {
-      id: 'asset-1',
-      provider_id: 'provider-1',
-      category: 'mobil',
-      title: 'Toyota Avanza 1.3 G M/T 2021',
-      description: 'Kondisi mulus, KM rendah 30.000, surat-surat lengkap pajak hidup.',
-      base_price: 155000000,
-      status: 'listed',
-      created_at: '2026-06-20T08:00:00.000Z',
-    },
-    {
-      id: 'asset-2',
-      provider_id: 'provider-1',
-      category: 'motor',
-      title: 'Honda Vario 150 Keyless 2020',
-      description: 'Warna hitam doff, ban tebal baru diganti, servis rutin Astra.',
-      base_price: 18500000,
-      status: 'approved',
-      created_at: '2026-06-21T09:00:00.000Z',
-    },
-    {
-      id: 'asset-3',
-      provider_id: 'provider-2',
-      category: 'alat_berat',
-      title: 'Excavator Caterpillar 320 GC',
-      description: 'Hour meter 4500 jam, siap kerja keras, lokasi Jakarta Utara.',
-      base_price: 850000000,
-      status: 'pending',
-      created_at: '2026-06-23T11:00:00.000Z',
-    },
-    {
-      id: 'asset-4',
-      provider_id: 'provider-2',
-      category: 'properti',
-      title: 'Ruko Margonda Raya Depok 3 Lantai',
-      description: 'Luas bangunan 150m2, lokasi sangat strategis dekat kampus UI.',
-      base_price: 2400000000,
-      status: 'sold',
-      created_at: '2026-06-10T04:00:00.000Z',
-    },
-  ];
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
-  const fetchAssets = async () => {
+  const initialFormState = {
+    provider_id: '',
+    category: 'mobil',
+    title: '',
+    description: 'WAJIB CEK UNIT, TIDAK TERIMA KOMPLAIN, NO. RANGKA NO. MESIN TIDAK DI GESEK, BPKB 5 HK SETELAH PELUNASAN, COPY DOKUMEN T/A',
+    base_price: '',
+    is_recommended: 'false',
+    
+    // Inspeksi & Spec
+    grade_interior: '',
+    grade_exterior: '',
+    brand: '',
+    model: '',
+    color: '',
+    fuel_type: '',
+    transmission: '',
+    body_type: '',
+    year: '',
+    police_number: '',
+    bpkb_number: '',
+    frame_number: '',
+    engine_number: '',
+    cylinder: '',
+    odometer: '',
+    
+    // Dates
+    stnk_date: '',
+    stnk_tax_date: '',
+    keur_date: '',
+    
+    // Booleans
+    doc_stnk: 'false',
+    doc_bpkb: 'false',
+    doc_faktur: 'false',
+    doc_kwitansi: 'false',
+    doc_form_a: 'false',
+    doc_copy_ktp: 'false',
+    doc_keur: 'false',
+    doc_sph: 'false',
+    
+    // Images
+    img_depan: '',
+    img_belakang: '',
+    img_kanan: '',
+    img_kiri: '',
+    img_mesin: '',
+    img_interior: '',
+    img_stnk: '',
+  };
+  const [formData, setFormData] = useState<any>(initialFormState);
+
+  
+  
+  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz'];
+  const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
+  
+  const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
+    Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
+    Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
+    Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
+    Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
+    Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
+    Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
+    Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
+    Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Stargazer'],
+    Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
+    Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV'],
+    BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
+    'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE']
+  };
+
+  const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
+    Honda: ['Beat', 'Vario', 'Scoopy', 'PCX', 'ADV', 'CBR', 'Supra', 'Revo', 'CB150R', 'CRF150L'],
+    Yamaha: ['NMAX', 'Aerox', 'Lexi', 'Mio', 'Fino', 'Vixion', 'R15', 'R25', 'MT-15', 'WR155R', 'Jupiter', 'Vega'],
+    Suzuki: ['Satria', 'GSX-R150', 'GSX-S150', 'Nex', 'Address', 'Smash'],
+    Kawasaki: ['Ninja 250', 'Ninja ZX-25R', 'KLX 150', 'W175', 'D-Tracker'],
+    Vespa: ['Primavera', 'Sprint', 'GTS', 'LX', 'S 125'],
+    TVS: ['Callisto', 'Ntorq', 'Apache'],
+    KTM: ['Duke 200', 'Duke 250', 'Duke 390', 'RC 200', 'RC 250']
+  };
+
+  const COLORS = ['Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
+  const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
+  const YEARS = Array.from({length: new Date().getFullYear() - 1899}, (_, i) => new Date().getFullYear() - i);
+
+  const getAvailableBrands = () => {
+    if (formData.category === 'motor') return MOTOR_BRANDS;
+    if (formData.category === 'mobil') return CAR_BRANDS;
+    return Array.from(new Set([...CAR_BRANDS, ...MOTOR_BRANDS]));
+  };
+
+  const getAvailableModels = () => {
+    if (formData.category === 'motor') {
+      return formData.brand ? MOTOR_MODELS_BY_BRAND[formData.brand] || [] : [];
+    }
+    if (formData.category === 'mobil') {
+      return formData.brand ? CAR_MODELS_BY_BRAND[formData.brand] || [] : [];
+    }
+    return [];
+  };
+
+  const renderFormFields = () => {
+    const isMobil = formData.category === 'mobil';
+    const isMotor = formData.category === 'motor';
+    
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1rem' }}>
+        {/* Kolom 1: Data Dasar */}
+        <div>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Data Dasar Unit</h4>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Provider (Pemilik)</label>
+            <select required value={formData.provider_id} onChange={(e) => setFormData({...formData, provider_id: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <option value="" disabled>Pilih Provider...</option>
+              {providers.map(p => (
+                <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Kategori</label>
+            <select required value={formData.category} onChange={(e) => {
+              setFormData({...formData, category: e.target.value, brand: '', model: '', body_type: ''});
+            }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <option value="" disabled>Pilih Kategori...</option>
+              <option value="mobil">Mobil</option>
+              <option value="motor">Motor</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Barang</label>
+            <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Harga Dasar (Rp)</label>
+            <input required type="number" min="1" value={formData.base_price} onChange={(e) => setFormData({...formData, base_price: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Deskripsi Tambahan</label>
+            <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} rows={3} />
+          </div>
+
+          <h4 style={{ marginBottom: '1rem', marginTop: '1.5rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Hasil Inspeksi</h4>
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>{isMotor ? 'Grade Body' : 'Grade Interior'}</label>
+              <select value={formData.grade_interior} onChange={(e) => setFormData({...formData, grade_interior: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">--</option>
+                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            {!isMotor && (
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Grade Exterior</label>
+                <select value={formData.grade_exterior} onChange={(e) => setFormData({...formData, grade_exterior: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                  <option value="">--</option>
+                  {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Kolom 2: Spesifikasi Kendaraan */}
+        <div>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Spesifikasi Unit</h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Merek</label>
+              <select value={formData.brand} onChange={(e) => {
+                setFormData({...formData, brand: e.target.value, model: ''});
+              }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">Pilih Merek...</option>
+                {getAvailableBrands().map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            {formData.brand && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipe/Model</label>
+                <select value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                  <option value="">Pilih Tipe...</option>
+                  {getAvailableModels().map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            {isMobil && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Jenis Body</label>
+                <select value={formData.body_type} onChange={(e) => setFormData({...formData, body_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                  <option value="">Pilih Jenis...</option>
+                  {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Warna</label>
+              <select value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">Pilih Warna...</option>
+                {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bahan Bakar</label>
+              <select value={formData.fuel_type} onChange={(e) => setFormData({...formData, fuel_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">--</option>
+                {['Bensin', 'Solar', 'Hybrid', 'EV'].map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Transmisi</label>
+              <select value={formData.transmission} onChange={(e) => setFormData({...formData, transmission: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">--</option>
+                {['Manual', 'Otomatis'].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tahun</label>
+              <select value={formData.year} onChange={(e) => setFormData({...formData, year: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">--</option>
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Silinder (CC)</label>
+              <input type="number" min="0" value={formData.cylinder} onChange={(e) => setFormData({...formData, cylinder: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="misal: 1500" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Odometer (KM)</label>
+              <input type="number" min="0" value={formData.odometer} onChange={(e) => setFormData({...formData, odometer: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="misal: 50000" />
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>No Polisi</label>
+              <input type="text" value={formData.police_number} onChange={(e) => setFormData({...formData, police_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="B 1234 ABC" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>No BPKB</label>
+              <input type="text" value={formData.bpkb_number} onChange={(e) => setFormData({...formData, bpkb_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="No BPKB" />
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>No Rangka</label>
+              <input type="text" value={formData.frame_number} onChange={(e) => setFormData({...formData, frame_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="MH123..." />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  };
+
+
+  
+  const handleApprove = async (id: string) => {
+    if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
+    try {
+      const response = await fetch(apiUrl(`/admin/assets/${id}/approve`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      if (response.ok) fetchAssets();
+      else alert('Gagal menyetujui barang');
+    } catch (err) { console.error(err); }
+  };
+
+  const handleReject = async (id: string) => {
+    if (!confirm('Apakah Anda yakin menolak barang ini?')) return;
+    try {
+      const response = await fetch(apiUrl(`/admin/assets/${id}/reject`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      if (response.ok) fetchAssets();
+      else alert('Gagal menolak barang');
+    } catch (err) { console.error(err); }
+  };
+
+  const handleReviewUlang = async (id: string) => {
+    if (!confirm('Ajukan ulang barang ini untuk direview?')) return;
+    try {
+      const response = await fetch(apiUrl(`/assets/${id}/review`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      if (response.ok) fetchAssets();
+      else alert('Gagal mengajukan ulang');
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Apakah Anda yakin menghapus barang ini secara permanen?')) return;
+    try {
+      const response = await fetch(apiUrl(`/assets/${id}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      });
+      if (response.ok) fetchAssets();
+      else alert('Gagal menghapus barang');
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchAssets = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
+      if (token) {
+        const decoded = parseJwt(token);
+        if (decoded) setUserRole(decoded.role);
+      }
+
       let query = `?page=1&per_page=50`;
       if (statusFilter) query += `&status=${statusFilter}`;
+      if (providerFilter) query += `&provider_id=${providerFilter}`;
       if (categoryFilter) query += `&category=${categoryFilter}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
 
@@ -89,30 +399,40 @@ export default function AssetsPage() {
       if (response.ok && data.success) {
         setAssets(data.data);
       } else {
-        applyDummyFilters();
+        setAssets([]);
       }
     } catch (err) {
-      applyDummyFilters();
+      console.error(err);
+      setAssets([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter, search, statusFilter, providerFilter]);
 
-  const applyDummyFilters = () => {
-    let filtered = [...dummyAssets];
-    if (statusFilter) filtered = filtered.filter((a) => a.status === statusFilter);
-    if (categoryFilter) filtered = filtered.filter((a) => a.category === categoryFilter);
-    if (search) {
-      filtered = filtered.filter((a) =>
-        a.title.toLowerCase().includes(search.toLowerCase())
-      );
+  const fetchProviders = async () => {
+    try {
+      const response = await apiFetch('/admin/users?role=provider&provider_status=approved&per_page=100');
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setProviders(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load providers', err);
     }
-    setAssets(filtered);
   };
 
   useEffect(() => {
     fetchAssets();
-  }, [categoryFilter, statusFilter, search]);
+    fetchProviders();
+  }, [fetchAssets]);
+
+  useEffect(() => {
+    // Only fetch providers if user is admin or inspector
+    if (['admin', 'superadmin', 'inspector'].includes(userRole)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchProviders();
+    }
+  }, [userRole]);
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -139,12 +459,114 @@ export default function AssetsPage() {
     }
   };
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('accessToken');
+      const payload = { ...formData };
+      payload.base_price = Number(payload.base_price);
+      if (payload.year) payload.year = Number(payload.year);
+      if (payload.cylinder) payload.cylinder = Number(payload.cylinder);
+      if (payload.odometer) payload.odometer = Number(payload.odometer);
+      
+      // Clean empty strings
+      Object.keys(payload).forEach(k => { if(payload[k] === '') delete payload[k] });
+
+      const response = await fetch(apiUrl('/assets'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setShowCreateModal(false);
+        setFormData({ provider_id: '', category: 'mobil', title: '', description: '', base_price: '' });
+        fetchAssets();
+      } else {
+        alert(data.error?.message || 'Gagal membuat unit barang');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const payload = { ...formData };
+      payload.base_price = Number(payload.base_price);
+      if (payload.year) payload.year = Number(payload.year);
+      if (payload.cylinder) payload.cylinder = Number(payload.cylinder);
+      if (payload.odometer) payload.odometer = Number(payload.odometer);
+      
+      Object.keys(payload).forEach(k => { if(payload[k] === '') delete payload[k] });
+
+      const response = await fetch(apiUrl(`/assets/${selectedAsset.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setShowEditModal(false);
+        fetchAssets();
+      } else {
+        alert(data.error?.message || 'Gagal mengubah unit barang');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
+  const openEdit = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setFormData({
+      ...initialFormState,
+      ...asset,
+      provider_id: asset.provider_id,
+      category: asset.category,
+      title: asset.title,
+      description: asset.description || '',
+      base_price: asset.base_price?.toString() || '',
+      year: (asset as any).year?.toString() || '',
+      cylinder: (asset as any).cylinder?.toString() || '',
+      odometer: (asset as any).odometer?.toString() || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const canEdit = (asset: Asset) => {
+    if (['admin', 'superadmin'].includes(userRole)) return true;
+    if (userRole === 'inspector' && asset.status === 'pending') return true;
+    return false;
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Barang">
       <div className="toolbar">
         <div className="toolbar-left">
           <h1 className="page-title">Katalog Barang Titip Lelang</h1>
-          <p className="page-subtitle">Daftar semua unit aset barang yang didaftarkan oleh provider.</p>
+          <p className="page-subtitle">Daftar semua unit aset barang yang didaftarkan.</p>
+        </div>
+        <div className="toolbar-right">
+          {['admin', 'superadmin', 'inspector'].includes(userRole) && (
+            <Button variant="primary" size="sm" onClick={() => {
+              setFormData(initialFormState);
+              setShowCreateModal(true);
+            }}>
+              + Tambah Unit
+            </Button>
+          )}
         </div>
       </div>
 
@@ -172,10 +594,8 @@ export default function AssetsPage() {
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
               <option value="">Semua Kategori</option>
-              <option value="mobil">🚗 Mobil Penumpang</option>
-              <option value="motor">🏍️ Sepeda Motor</option>
-              <option value="alat_berat">🏗️ Komersial & Alat Berat</option>
-              <option value="properti">🏢 Properti</option>
+              <option value="mobil">Mobil</option>
+              <option value="motor">Motor</option>
             </select>
           </div>
 
@@ -187,14 +607,28 @@ export default function AssetsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="">Semua Status</option>
-              <option value="pending">Pending Review</option>
-              <option value="approved">Approved</option>
-              <option value="listed">Listed (Active)</option>
-              <option value="sold">Sold</option>
-              <option value="returned">Returned</option>
+              <option value="pending,returned">Semua</option>
+              <option value="pending">Pending</option>
+              <option value="returned">Dikembalikan (Rejected)</option>
             </select>
           </div>
+
+          {['admin', 'superadmin', 'inspector'].includes(userRole) && (
+            <div>
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
+              <select
+                className="form-select"
+                style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+                value={providerFilter}
+                onChange={(e) => setProviderFilter(e.target.value)}
+              >
+                <option value="">Semua Provider</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -248,8 +682,25 @@ export default function AssetsPage() {
                       })}
                     </td>
                     <td>
-                      <div className="d-flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>Detail</Button>
+                      <div className="d-flex gap-1 flex-wrap">
+                        {['admin', 'superadmin'].includes(userRole) && (
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
+                        )}
+                        {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
+                          <Button variant="success" size="sm" onClick={() => handleApprove(asset.id)}>Approve</Button>
+                        )}
+                        {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
+                          <Button variant="danger" size="sm" onClick={() => handleReject(asset.id)}>Reject</Button>
+                        )}
+                        {userRole === 'inspector' && (
+                          <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>Edit</Button>
+                        )}
+                        {['inspector', 'provider'].includes(userRole) && asset.status === 'returned' && (
+                          <Button variant="primary" size="sm" onClick={() => handleReviewUlang(asset.id)}>Ajukan</Button>
+                        )}
+                        {userRole === 'inspector' && (
+                          <Button variant="danger" size="sm" onClick={() => handleDelete(asset.id)}>Delete</Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -259,6 +710,42 @@ export default function AssetsPage() {
           </table>
         </div>
       </Card>
+
+      {/* CREATE MODAL */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ width: '90%', maxWidth: '900px' }}>
+            <Card>
+              <h3 style={{ marginBottom: '1rem' }}>Tambah Unit Baru (Inspeksi)</h3>
+            <form onSubmit={handleCreate}>
+              {renderFormFields()}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>Batal</Button>
+                <Button variant="primary" type="submit">Submit Unit</Button>
+              </div>
+            </form>
+          </Card>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ width: '90%', maxWidth: '900px' }}>
+            <Card>
+              <h3 style={{ marginBottom: '1rem' }}>Edit Unit Barang (Inspeksi)</h3>
+            <form onSubmit={handleEdit}>
+              {renderFormFields()}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Batal</Button>
+                <Button variant="primary" type="submit">Simpan Perubahan</Button>
+              </div>
+            </form>
+          </Card>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -100,197 +100,7 @@ export default function FinanceManager({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const dummyDeposits: Deposit[] = [
-    {
-      id: 'dep-1',
-      user_id: 'user-1',
-      session_id: 'session-2',
-      amount: 5000000,
-      va_number: '7008123456789012',
-      va_bank: 'bca',
-      payment_method: 'virtual_account',
-      status: 'paid',
-      paid_at: '2026-06-23T11:30:00.000Z',
-      created_at: '2026-06-23T11:00:00.000Z',
-      user: {
-        full_name: 'Budi Raharjo',
-        email: 'budi.raharjo@gmail.com',
-        phone: '+628123456789',
-      },
-      session: {
-        title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-      },
-    },
-    {
-      id: 'dep-2',
-      user_id: 'user-2',
-      session_id: 'session-1',
-      amount: 5000000,
-      va_number: '7008987654321098',
-      va_bank: 'mandiri',
-      payment_method: 'bill_payment',
-      status: 'pending',
-      created_at: '2026-06-23T12:00:00.000Z',
-      user: {
-        full_name: 'Dewi Lestari',
-        email: 'dewi.lestari@yahoo.co.id',
-        phone: '+628789012345',
-      },
-      session: {
-        title: 'Lelang Mobil Bekas Avanza & Xenia Cabang Jakarta',
-      },
-    },
-    {
-      id: 'dep-3',
-      user_id: 'user-3',
-      session_id: 'session-2',
-      amount: 1000000,
-      va_number: '7008112233445566',
-      va_bank: 'bni',
-      payment_method: 'virtual_account',
-      status: 'expired',
-      created_at: '2026-06-22T09:00:00.000Z',
-      user: {
-        full_name: 'Andi Wijaya',
-        email: 'andi.wijaya@outlook.com',
-        phone: '+628567890123',
-      },
-      session: {
-        title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-      },
-    },
-  ];
 
-  const dummyInvoices: Invoice[] = [
-    {
-      id: 'inv-1',
-      lot_id: 'lot-1',
-      bidder_id: 'user-1',
-      hammer_price: 150000000,
-      commission: 4500000,
-      tax: 495000,
-      total: 154995000,
-      status: 'paid',
-      due_date: '2026-06-28T23:59:59.000Z',
-      paid_at: '2026-06-24T10:00:00.000Z',
-      created_at: '2026-06-23T15:00:00.000Z',
-      bidder: {
-        full_name: 'Budi Raharjo',
-        email: 'budi.raharjo@gmail.com',
-        phone: '+628123456789',
-      },
-      lot: {
-        lot_number: 12,
-        asset: {
-          title: 'Toyota Avanza 1.3 G M/T 2019',
-          category: 'mobil',
-        },
-        session: {
-          title: 'Lelang Mobil Bekas Avanza & Xenia Cabang Jakarta',
-        },
-      },
-    },
-    {
-      id: 'inv-2',
-      lot_id: 'lot-2',
-      bidder_id: 'user-2',
-      hammer_price: 18000000,
-      commission: 540000,
-      tax: 59400,
-      total: 1859940,
-      status: 'unpaid',
-      due_date: '2026-06-28T23:59:59.000Z',
-      created_at: '2026-06-23T16:00:00.000Z',
-      bidder: {
-        full_name: 'Dewi Lestari',
-        email: 'dewi.lestari@yahoo.co.id',
-        phone: '+628789012345',
-      },
-      lot: {
-        lot_number: 5,
-        asset: {
-          title: 'Yamaha NMAX 155 ABS 2021',
-          category: 'motor',
-        },
-        session: {
-          title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-        },
-      },
-    },
-  ];
-
-  const dummyRefundQueue: Deposit[] = [
-    {
-      id: 'dep-refund-1',
-      user_id: 'user-3',
-      session_id: 'session-2',
-      amount: 5000000,
-      status: 'pending_refund',
-      created_at: '2026-06-22T09:00:00.000Z',
-      user: {
-        full_name: 'Andi Wijaya',
-        email: 'andi.wijaya@outlook.com',
-        phone: '+628567890123',
-      },
-      session: {
-        title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-      },
-    },
-  ];
-
-  const dummySettlements: Settlement[] = [
-    {
-      id: 'settle-1',
-      lot_id: 'lot-1',
-      provider_id: 'prov-1',
-      gross_amount: 150000000,
-      commission_deducted: 7500000, // 5%
-      net_amount: 142500000,
-      status: 'pending',
-      created_at: '2026-06-23T15:00:00.000Z',
-      provider: {
-        full_name: 'Adira Finance',
-        company_name: 'PT Adira Dinamika Multi Finance',
-        email: 'info@adira.co.id',
-      },
-      lot: {
-        lot_number: 12,
-        asset: {
-          title: 'Toyota Avanza 1.3 G M/T 2019',
-          category: 'mobil',
-        },
-        session: {
-          title: 'Lelang Mobil Bekas Avanza & Xenia Cabang Jakarta',
-        },
-      },
-    },
-    {
-      id: 'settle-2',
-      lot_id: 'lot-2',
-      provider_id: 'prov-1',
-      gross_amount: 18000000,
-      commission_deducted: 900000,
-      net_amount: 17100000,
-      status: 'processed',
-      transferred_at: '2026-06-24T12:00:00.000Z',
-      created_at: '2026-06-23T16:00:00.000Z',
-      provider: {
-        full_name: 'Adira Finance',
-        company_name: 'PT Adira Dinamika Multi Finance',
-        email: 'info@adira.co.id',
-      },
-      lot: {
-        lot_number: 5,
-        asset: {
-          title: 'Yamaha NMAX 155 ABS 2021',
-          category: 'motor',
-        },
-        session: {
-          title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-        },
-      },
-    },
-  ];
 
   const fetchDeposits = async () => {
     setLoading(true);
@@ -308,10 +118,10 @@ export default function FinanceManager({
       if (response.ok && data.success) {
         setDeposits(data.data);
       } else {
-        applyDummyFilters();
+        setDeposits([]);
       }
     } catch (err) {
-      applyDummyFilters();
+      setDeposits([]);
     } finally {
       setLoading(false);
     }
@@ -333,10 +143,10 @@ export default function FinanceManager({
       if (response.ok && data.success) {
         setInvoices(data.data);
       } else {
-        applyDummyInvoices();
+        setInvoices([]);
       }
     } catch (err) {
-      applyDummyInvoices();
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -355,10 +165,10 @@ export default function FinanceManager({
       if (response.ok && data.success) {
         setRefundQueue(data.data);
       } else {
-        setRefundQueue(dummyRefundQueue);
+        setRefundQueue([]);
       }
     } catch (err) {
-      setRefundQueue(dummyRefundQueue);
+      setRefundQueue([]);
     } finally {
       setLoading(false);
     }
@@ -380,10 +190,10 @@ export default function FinanceManager({
       if (response.ok && data.success) {
         setSettlements(data.data);
       } else {
-        applyDummySettlements();
+        setSettlements([]);
       }
     } catch (err) {
-      applyDummySettlements();
+      setSettlements([]);
     } finally {
       setLoading(false);
     }
@@ -467,7 +277,7 @@ export default function FinanceManager({
         throw new Error(data.error?.message || 'Gagal mencairkan dana settlement');
       }
 
-      alert('Pencairan dana transfer bank partner via Xendit berhasil diselesaikan!');
+      alert('Pencairan dana transfer bank partner via sistem berhasil diselesaikan!');
       fetchSettlements();
     } catch (error: any) {
       alert(error.message || 'Terjadi kesalahan saat mencairkan dana.');
@@ -476,23 +286,7 @@ export default function FinanceManager({
     }
   };
 
-  const applyDummyFilters = () => {
-    let filtered = [...dummyDeposits];
-    if (statusFilter) filtered = filtered.filter((d) => d.status === statusFilter);
-    setDeposits(filtered);
-  };
 
-  const applyDummyInvoices = () => {
-    let filtered = [...dummyInvoices];
-    if (invoiceStatusFilter) filtered = filtered.filter((inv) => inv.status === invoiceStatusFilter);
-    setInvoices(filtered);
-  };
-
-  const applyDummySettlements = () => {
-    let filtered = [...dummySettlements];
-    if (settlementStatusFilter) filtered = filtered.filter((s) => s.status === settlementStatusFilter);
-    setSettlements(filtered);
-  };
 
   useEffect(() => {
     if (activeTab === 'deposits') {
@@ -638,7 +432,6 @@ export default function FinanceManager({
                   <tr>
                     <th>Waktu Transaksi</th>
                     <th>Bidder</th>
-                    <th>Sesi Lelang</th>
                     <th>Jumlah Jaminan</th>
                     <th>Virtual Account (VA)</th>
                     <th>Status Pembayaran</th>
@@ -647,9 +440,9 @@ export default function FinanceManager({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} className="text-center">Memuat data transaksi deposit...</td></tr>
+                    <tr><td colSpan={6} className="text-center">Memuat data transaksi deposit...</td></tr>
                   ) : deposits.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
+                    <tr><td colSpan={6} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
                   ) : (
                     deposits.map((deposit) => (
                       <tr key={deposit.id}>
@@ -663,11 +456,6 @@ export default function FinanceManager({
                           ) : (
                             <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
                           )}
-                        </td>
-                        <td style={{ maxWidth: '200px' }}>
-                          <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={deposit.session?.title}>
-                            {deposit.session?.title || 'Sesi ID: ' + deposit.session_id.substring(0, 8)}
-                          </div>
                         </td>
                         <td><strong className="text-primary">{formatRupiah(deposit.amount)}</strong></td>
                         <td>
@@ -883,7 +671,7 @@ export default function FinanceManager({
                     <th>Potongan Balai (5%)</th>
                     <th>Penerimaan Bersih (Net)</th>
                     <th>Status</th>
-                    <th style={{ textAlign: 'center', width: '200px' }}>Pencairan Dana (Xendit)</th>
+                    <th style={{ textAlign: 'center', width: '200px' }}>Pencairan Dana (Sistem)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -925,7 +713,7 @@ export default function FinanceManager({
                             className="btn btn-xs btn-primary"
                             disabled={settle.status !== 'pending' || processingId !== null}
                             style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '600' }}
-                            title={settle.status !== 'pending' ? 'Sudah dicairkan' : 'Cairkan dana via Xendit'}
+                            title={settle.status !== 'pending' ? 'Sudah dicairkan' : 'Cairkan dana via sistem'}
                           >
                             {processingId === settle.id ? 'Memproses...' : settle.status === 'processed' ? '✓ Transferred' : '🏦 Cairkan Dana'}
                           </button>

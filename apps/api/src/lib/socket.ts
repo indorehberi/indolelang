@@ -127,7 +127,16 @@ export function initSocket(server: HttpServer): SocketIoServer {
         });
 
         // Calculate anti-sniping timer extension
-        const snipeCheck = biddingService.calculateAntiSnipe(state.timeRemaining, state.extensionCount);
+        const snipeSetting = await prisma.platform_settings.findFirst({
+          where: { key: 'anti_sniping_extension_seconds' }
+        });
+        const extensionSecs = snipeSetting ? parseInt(snipeSetting.value, 10) : 120;
+        const snipeCheck = biddingService.calculateAntiSnipe(
+          state.timeRemaining,
+          state.extensionCount,
+          30,
+          extensionSecs
+        );
 
         // Update lot in-memory state
         state.currentPrice = data.amount;
@@ -288,4 +297,29 @@ export async function closeActiveLot(lotId: string): Promise<any> {
   }
 
   return settled;
+}
+
+export async function cancelActiveLot(lotId: string): Promise<any> {
+  const ioServer = io;
+  const state = activeLots.get(lotId);
+  if (state) {
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+    }
+    activeLots.delete(lotId);
+  }
+
+  const updated = await prisma.lots.update({
+    where: { id: lotId },
+    data: { status: 'pending' },
+    include: { asset: true },
+  });
+
+  if (ioServer) {
+    ioServer.to(`lot:${lotId}`).emit('lot:cancelled', {
+      lot_id: lotId,
+    });
+  }
+
+  return updated;
 }

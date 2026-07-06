@@ -2,15 +2,30 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { apiUrl, fetchWithRetry } from "@/lib/api";
 
 export default function LupaPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      setSubmitted(true);
+      try {
+        const response = await fetchWithRetry(apiUrl("/auth/forgot-password"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (response.ok) {
+          setSubmitted(true);
+        } else {
+          const data = await response.json();
+          alert(data.error?.message || "Gagal mengirim link reset");
+        }
+      } catch (error) {
+        alert("Terjadi kesalahan koneksi");
+      }
     }
   };
 

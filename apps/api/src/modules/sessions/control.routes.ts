@@ -23,6 +23,13 @@ router.post(
 );
 
 router.post(
+  '/admin/lots/:id/cancel',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.cancelLot
+);
+
+router.post(
   '/admin/sessions/:id/end',
   authenticate,
   authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),

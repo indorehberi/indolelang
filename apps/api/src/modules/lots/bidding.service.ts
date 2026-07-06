@@ -52,25 +52,52 @@ export class BiddingService {
    * Validate incoming bid submission
    */
   async validateBid(bid: BidSubmission, currentPrice: number, currentHighestBidderId?: string): Promise<void> {
-    // 1. Verify bidder has an active NIPL (paid deposit) for this session
-    const nipl = await prisma.deposits.findFirst({
+    // 1. Fetch lot to get unit_type
+    const lot = await prisma.lots.findUnique({
+      where: { id: bid.lotId },
+      include: { asset: true },
+    });
+
+    if (!lot || !lot.asset) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot atau aset tidak ditemukan');
+    }
+
+    const unitType = lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil';
+
+    // 2. Verify bidder has allocated NIPL for this session and unit type
+    const allocation = await prisma.nipl_allocations.findUnique({
       where: {
-        user_id: bid.userId,
-        session_id: bid.sessionId,
-        status: DepositStatus.PAID,
+        user_id_session_id_unit_type: {
+          user_id: bid.userId,
+          session_id: bid.sessionId,
+          unit_type: unitType,
+        },
       },
     });
 
-    if (!nipl) {
-      throw new AppError(400, ErrorCode.INSUFFICIENT_DEPOSIT, 'Anda tidak memiliki NIPL aktif untuk sesi lelang ini');
+    if (!allocation || allocation.allocated_quantity <= 0) {
+      throw new AppError(
+        400,
+        ErrorCode.INSUFFICIENT_DEPOSIT,
+        'Anda minimal harus memiliki 1 NIPL yang dialokasikan untuk sesi lelang ini'
+      );
     }
 
-    // 2. Prevent self-bidding (cannot outbid yourself)
+    // Check if bidder has already won maximum lot cars allowed by their allocation
+    if (allocation.used_quantity >= allocation.allocated_quantity) {
+      throw new AppError(
+        400,
+        ErrorCode.INSUFFICIENT_DEPOSIT,
+        'Batas kemenangan lot mobil untuk NIPL yang dialokasikan di sesi ini telah tercapai'
+      );
+    }
+
+    // 3. Prevent self-bidding (cannot outbid yourself)
     if (currentHighestBidderId === bid.userId) {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Anda sudah memegang penawaran tertinggi saat ini');
     }
 
-    // 3. Validate increment rules
+    // 4. Validate increment rules
     const minIncrement = this.getMinIncrement(currentPrice);
     if (bid.amount < currentPrice + minIncrement) {
       throw new AppError(
@@ -84,7 +111,7 @@ export class BiddingService {
       );
     }
 
-    // 4. Ensure amount matches step increment
+    // 5. Ensure amount matches step increment
     const difference = bid.amount - currentPrice;
     if (difference % minIncrement !== 0) {
       throw new AppError(
@@ -106,7 +133,7 @@ export class BiddingService {
     const lot = await prisma.lots.findUnique({
       where: { id: lotId },
       include: {
-        asset: true,
+        asset: { include: { provider: true } },
         session: true,
         bids: {
           orderBy: [
@@ -134,22 +161,61 @@ export class BiddingService {
       const hammerPrice = Number(winningBid.amount);
       const winnerId = winningBid.bidder_id;
 
-      // Read platform settings for dynamic tax/commission rates
+      // Ambil pengaturan dinamis dari platform_settings
       const settings = await prisma.platform_settings.findMany({
-        where: { tenant_id: 'default' },
+        where: {
+          key: { in: ['admin_fee_tiers', 'pmk41_percentage'] }
+        }
       });
-      const getSettingVal = (key: string, fallback: string) =>
-        settings.find((s) => s.key === key)?.value || fallback;
+      
+      const pmk41Setting = settings.find(s => s.key === 'pmk41_percentage')?.value || '1.1';
+      const pmk41Rate = parseFloat(pmk41Setting) / 100;
+      
+      let adminFee = 0;
+      const adminFeeTiersRaw = settings.find(s => s.key === 'admin_fee_tiers')?.value;
+      
+      if (adminFeeTiersRaw) {
+        try {
+          const tiers = JSON.parse(adminFeeTiersRaw);
+          // Cari tier yang sesuai dengan hammer price
+          // Tiers diasumsikan sudah di-sort dari terkecil ke terbesar berdasarkan max_price
+          let found = false;
+          for (const tier of tiers) {
+            if (tier.max_price === null || hammerPrice <= tier.max_price) {
+              adminFee = Number(tier.fee);
+              found = true;
+              break;
+            }
+          }
+          if (!found && tiers.length > 0) {
+            // Jika melebihi semua max_price, gunakan fee tier terakhir
+            adminFee = Number(tiers[tiers.length - 1].fee);
+          }
+        } catch (e) {
+          console.error("Gagal parse admin_fee_tiers, fallback ke default", e);
+          // Fallback
+          if (hammerPrice <= 200000000) adminFee = 3500000;
+          else if (hammerPrice <= 400000000) adminFee = 4000000;
+          else if (hammerPrice <= 600000000) adminFee = 4500000;
+          else adminFee = 6000000;
+        }
+      } else {
+        // Fallback default
+        if (hammerPrice <= 200000000) adminFee = 3500000;
+        else if (hammerPrice <= 400000000) adminFee = 4000000;
+        else if (hammerPrice <= 600000000) adminFee = 4500000;
+        else adminFee = 6000000;
+      }
 
-      const commissionRate = parseFloat(getSettingVal('commission_percentage', '3.0')) / 100;
-      const premiumRate = parseFloat(getSettingVal('buyer_premium_percentage', '1.5')) / 100;
-      const taxRate = parseFloat(getSettingVal('tax_percentage', '11.0')) / 100;
-
-      const commission = hammerPrice * commissionRate;
-      const premium = hammerPrice * premiumRate;
-      const subtotal = hammerPrice + commission + premium;
-      const tax = subtotal * taxRate;
-      const total = Math.ceil(subtotal + tax);
+      // PMK 41 fee (dari pengaturan) if not paid by provider
+      let pmk41Amount = 0;
+      if (!lot.asset.provider.pmk41_paid_by_provider) {
+        pmk41Amount = Math.round(hammerPrice * pmk41Rate);
+      }
+      
+      const commission = adminFee;
+      const tax = 0;
+      const total = hammerPrice + adminFee + pmk41Amount;
 
       // Perform updates inside database transaction
       const [updatedLot, invoice, winnerUser] = await prisma.$transaction([
@@ -169,6 +235,8 @@ export class BiddingService {
             hammer_price: new Prisma.Decimal(hammerPrice),
             commission: new Prisma.Decimal(commission),
             tax: new Prisma.Decimal(tax),
+            admin_fee: new Prisma.Decimal(adminFee),
+            pmk41_amount: new Prisma.Decimal(pmk41Amount),
             total: new Prisma.Decimal(total),
             due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days payment window
             status: 'unpaid',
@@ -192,6 +260,20 @@ export class BiddingService {
               currency: 'IDR',
               minimumFractionDigits: 0,
             }).format(hammerPrice)} pada lot "${lot.asset.title}" telah disetujui sebagai pemenang.`,
+          },
+        }),
+        prisma.nipl_allocations.update({
+          where: {
+            user_id_session_id_unit_type: {
+              user_id: winnerId,
+              session_id: lot.session_id,
+              unit_type: lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil',
+            },
+          },
+          data: {
+            used_quantity: {
+              increment: 1,
+            },
           },
         }),
         prisma.audit_logs.create({
@@ -232,12 +314,12 @@ export class BiddingService {
                     <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 4px 0; color: #718096;">Komisi Balai:</td>
-                    <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(commission)}</td>
+                    <td style="padding: 4px 0; color: #718096;">Admin Fee:</td>
+                    <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(adminFee)}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 4px 0; color: #718096;">Buyer Premium:</td>
-                    <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(premium)}</td>
+                    <td style="padding: 4px 0; color: #718096;">Biaya PMK 41:</td>
+                    <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(pmk41Amount)}</td>
                   </tr>
                   <tr>
                     <td style="padding: 4px 0; color: #718096;">PPN (11%):</td>

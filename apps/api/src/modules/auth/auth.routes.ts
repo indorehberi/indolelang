@@ -8,6 +8,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyOtpSchema,
+  googleAuthSchema,
 } from './auth.schema';
 
 const router = Router();
@@ -76,6 +77,13 @@ router.post(
   }),
   validate(verifyOtpSchema),
   controller.verifyOtp
+);
+
+// 8. Google Login/Register
+router.post(
+  '/google',
+  validate(googleAuthSchema),
+  controller.googleAuth
 );
 
 export default router;

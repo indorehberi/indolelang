@@ -14,11 +14,32 @@ export default function KontakPage() {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.nama && formData.email && formData.subjek && formData.pesan) {
-      setSubmitted(true);
-      setFormData({ nama: "", email: "", subjek: "", pesan: "" });
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("http://localhost:3001/api/v1/contact-messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSubmitted(true);
+          setFormData({ nama: "", email: "", subjek: "", pesan: "" });
+        } else {
+          setError(data.error?.message || "Gagal mengirim pesan.");
+        }
+      } catch (err) {
+        setError("Terjadi kesalahan jaringan.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -38,6 +59,13 @@ export default function KontakPage() {
                 Punya pertanyaan seputar lelang, kerjasama kemitraan provider, atau masalah teknis pembayaran? Silakan kirimkan pesan kepada kami melalui formulir di bawah ini.
               </p>
             </div>
+
+            {error && (
+              <div className="bg-error/10 border border-error/30 text-error p-4 rounded-2xl flex items-center gap-3">
+                <span className="material-symbols-outlined">error</span>
+                <span className="font-bold text-body-md">{error}</span>
+              </div>
+            )}
 
             {submitted && (
               <div className="bg-success/10 border border-success/30 text-success p-5 rounded-2xl flex items-start gap-3">
@@ -109,12 +137,18 @@ export default function KontakPage() {
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-4 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md shadow-premium/15"
-              >
-                Kirim Pesan
-              </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-primary text-on-primary font-bold text-body-md rounded-xl btn-press hover:bg-primary/90 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="material-symbols-outlined animate-spin">refresh</span>
+                  ) : (
+                    <span className="material-symbols-outlined">send</span>
+                  )}
+                  {loading ? "Mengirim..." : "Kirim Pesan"}
+                </button>
             </form>
           </div>
 
@@ -145,7 +179,7 @@ export default function KontakPage() {
                   <p className="text-body-sm">
                     <strong>Email Resmi:</strong>
                     <br />
-                    info@indolelang.com / support@indolelang.com
+                    cs@bidku.co.id
                   </p>
                 </div>
 
@@ -154,7 +188,7 @@ export default function KontakPage() {
                   <p className="text-body-sm">
                     <strong>Telepon Kantor:</strong>
                     <br />
-                    (021) 5098-8888
+                    082318037002
                   </p>
                 </div>
 

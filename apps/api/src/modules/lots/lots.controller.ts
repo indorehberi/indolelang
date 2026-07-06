@@ -13,13 +13,14 @@ export class LotsController {
     try {
       const page = parseInt(req.query.page as string || '1', 10);
       const perPage = parseInt(req.query.per_page as string || '20', 10);
-      const { session_id, status } = req.query as any;
+      const { session_id, status, provider_id } = req.query as any;
 
       const { lots, meta } = await lotsService.getLots(
         page,
         perPage,
         session_id,
-        status
+        status,
+        provider_id
       );
       sendSuccess(res, lots, 'Daftar lot lelang berhasil dimuat', meta);
     } catch (error) {

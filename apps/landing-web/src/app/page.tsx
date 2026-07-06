@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions } from "@/hooks/usePublicData";
 
 function AnimatedCounter({
   target,
@@ -138,188 +139,52 @@ function LotCard({
   );
 }
 
-const initialLots = [
-  {
-    id: "1",
-    title: "Toyota Avanza 1.3 G",
-    grade: "B",
-    location: "Jakarta Selatan",
-    hargaDasar: 135000000,
-    status: "Live",
-    timerKey: "avanza",
-    participants: 47,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp",
-    jenisLelang: "English Auction",
-    featured: false,
-  },
-  {
-    id: "2",
-    title: "Honda CR-V 1.5 Turbo",
-    grade: "A",
-    location: "Surabaya",
-    hargaDasar: 310000000,
-    status: "Akan Datang",
-    timerKey: "crv",
-    timerLabel: "2 Hari",
-    participants: 89,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-    jenisLelang: "English Auction",
-    featured: false,
-  },
-  {
-    id: "3",
-    title: "Toyota Hilux 2.4 V",
-    grade: "B",
-    location: "Medan",
-    hargaDasar: 285000000,
-    status: "Live",
-    timerKey: "hilux",
-    participants: 34,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW",
-    jenisLelang: "English Auction",
-    featured: false,
-  },
-  {
-    id: "4",
-    title: "Honda Brio 1.2 RS",
-    grade: "A",
-    location: "Semarang",
-    hargaDasar: 98000000,
-    status: "Live",
-    timerKey: "brio",
-    participants: 56,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl",
-    jenisLelang: "Sealed-Bid",
-    featured: false,
-  },
-  {
-    id: "5",
-    title: "Mitsubishi Pajero Sport",
-    grade: "A",
-    location: "Jakarta Pusat",
-    hargaDasar: 425000000,
-    status: "Live",
-    timerKey: "pajero",
-    participants: 72,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM",
-    jenisLelang: "Buy Now + Auction",
-    featured: true,
-  },
-  {
-    id: "6",
-    title: "BMW X5 xDrive30d",
-    grade: "A",
-    location: "Tangerang",
-    hargaDasar: 1150000000,
-    status: "Akan Datang",
-    timerKey: "bmw",
-    timerLabel: "3 Hari",
-    participants: 104,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM",
-    jenisLelang: "English Auction",
-    featured: true,
-  },
-  {
-    id: "7",
-    title: "Daihatsu Xenia 1.5 R",
-    grade: "B",
-    location: "Bandung",
-    hargaDasar: 165000000,
-    status: "Live",
-    timerKey: "xenia",
-    participants: 38,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB",
-    jenisLelang: "Sealed-Bid",
-    featured: true,
-  },
-  {
-    id: "8",
-    title: "Yamaha NMAX Connected",
-    grade: "A",
-    location: "Yogyakarta",
-    hargaDasar: 22000000,
-    status: "Akan Datang",
-    timerKey: "nmax",
-    timerLabel: "5 Hari",
-    participants: 19,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6",
-    jenisLelang: "English Auction",
-    featured: true,
-  },
-  {
-    id: "9",
-    title: "Suzuki Swift 1.2 GS",
-    grade: "B",
-    location: "Tangerang Selatan",
-    hargaDasar: 112000000,
-    status: "Live",
-    timerKey: "swift",
-    participants: 23,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB",
-    jenisLelang: "Dutch Auction",
-    featured: false,
-  },
-  {
-    id: "10",
-    title: "Vespa Sprint S 150",
-    grade: "A",
-    location: "Jakarta Barat",
-    hargaDasar: 42000000,
-    status: "Live",
-    timerKey: "vespa",
-    participants: 15,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6",
-    jenisLelang: "Dutch Auction",
-    featured: true,
-  },
-  {
-    id: "11",
-    title: "iPhone 15 Pro Max Bundle",
-    grade: "A",
-    location: "Bandung",
-    hargaDasar: 18000000,
-    status: "Live",
-    timerKey: "iphone",
-    participants: 41,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-    jenisLelang: "Timed Auction",
-    featured: false,
-  },
-  {
-    id: "12",
-    title: "Toyota Raize 1.0T CVT",
-    grade: "A",
-    location: "Jakarta Barat",
-    hargaDasar: 210000000,
-    status: "Live",
-    timerKey: "raize",
-    participants: 12,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_ynwMqo7kT08ssXXJsGSjibfPe57XznHvi41Mjkt_jbGy2-a-fycvwk4nWH-5hnGlwnp8whWELZ8pnG5Wn3HWlbNIMntoz4ZlhohDti-SiLDsyXHy0w7sLLVEiGae386QxYS6XpMnVccBqdLunYwvCBAofP1PVuJ06D3eZMDxE7kbVO-Bqv_c3hUHPl9BWSeq3qkYHWBvv239rgOVx49WJqOn7TN_vhwg0VV1-q_vqf7m_6HOyuTivEWRM9MrhzrM",
-    jenisLelang: "Buy Now + Auction",
-    featured: true,
-  },
-  {
-    id: "13",
-    title: "Paket Alat Kantor PT ABC",
-    grade: "B",
-    location: "Surabaya",
-    hargaDasar: 45000000,
-    status: "Live",
-    timerKey: "ptabc",
-    participants: 8,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64",
-    jenisLelang: "Group/Bundle",
-    featured: false,
-  },
-];
+const initialLots: any[] = [];
 
 export default function Home() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [lotsList, setLotsList] = useState(initialLots);
+
+  const { data: dbFeaturedLots = [] } = useFeaturedLots();
+  const { data: dbSessions = [] } = usePublicSessions();
+  const { data: platformStats } = usePlatformStats();
+  const { data: categoryStats } = useCategoryStats();
+
+  const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const isLiveAuctionRunning = lotsList.some((lot) => lot.status === "Live");
-  const [enabledTypes, setEnabledTypes] = useState({ english: true, dutch: true, sealed: true, timed: true, buynow: true, group: true });
-  const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: true, heavy: true });
+  const [enabledTypes, setEnabledTypes] = useState({ english: true, dutch: false, sealed: false, timed: false, buynow: false, group: false });
+  const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
+
+  useEffect(() => {
+    if (dbFeaturedLots && dbFeaturedLots.length > 0) {
+      const mapped = dbFeaturedLots.map((dbLot: any) => {
+        let images = [];
+        try {
+          images = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
+        } catch (e) {
+          images = [];
+        }
+        const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const isLive = dbLot.status === "active";
+        
+        return {
+          id: dbLot.id,
+          title: dbLot.asset.title,
+          grade: dbLot.asset.condition === "BARU" ? "A" : "B",
+          location: dbLot.session?.branch?.city || "Jakarta",
+          hargaDasar: Number(dbLot.starting_price),
+          status: isLive ? "Live" : "Akan Datang",
+          timerKey: dbLot.id,
+          timerLabel: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
+          participants: 0,
+          image,
+          jenisLelang: "English Auction",
+          featured: true,
+        };
+      });
+      setLotsList(mapped);
+    }
+  }, [dbFeaturedLots]);
 
   // --- STATE FOR FAQ ACCORDION ---
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -380,18 +245,18 @@ export default function Home() {
 
       setEnabledTypes({
         english: cookieMap["feat_auction_english"] !== "false",
-        dutch: cookieMap["feat_auction_dutch"] !== "false",
-        sealed: cookieMap["feat_auction_sealed"] !== "false",
-        timed: cookieMap["feat_auction_timed"] !== "false",
-        buynow: cookieMap["feat_auction_buynow"] !== "false",
-        group: cookieMap["feat_auction_group"] !== "false",
+        dutch: cookieMap["feat_auction_dutch"] === "true",
+        sealed: cookieMap["feat_auction_sealed"] === "true",
+        timed: cookieMap["feat_auction_timed"] === "true",
+        buynow: cookieMap["feat_auction_buynow"] === "true",
+        group: cookieMap["feat_auction_group"] === "true",
       });
 
       setEnabledCategories({
         mobil: cookieMap["feat_category_mobil"] !== "false",
         motor: cookieMap["feat_category_motor"] !== "false",
-        properti: cookieMap["feat_category_properti"] !== "false",
-        heavy: cookieMap["feat_category_heavy"] !== "false",
+        properti: cookieMap["feat_category_properti"] === "true",
+        heavy: cookieMap["feat_category_heavy"] === "true",
       });
 
       // 2. Read user titip-jual assets from localStorage
@@ -450,7 +315,7 @@ export default function Home() {
   const handleActionClick = (actionName: string) => {
     const action = actionName.toLowerCase();
     if (action.includes("daftar") || action.includes("registrasi")) {
-      router.push("/register/bidder");
+      router.push("/register");
     } else if (action.includes("masuk") || action.includes("portal")) {
       router.push("/login");
     } else if (action.includes("katalog") || action.includes("aktif") || action.includes("kategori") || action.includes("semua lelang")) {
@@ -462,7 +327,7 @@ export default function Home() {
     } else if (action.includes("ekyc")) {
       router.push("/ekyc/upload");
     } else if (action.includes("provider")) {
-      router.push("/register/provider");
+      router.push("/register");
     } else if (action.includes("kontak") || action.includes("hubungi")) {
       router.push("/kontak");
     } else {
@@ -470,30 +335,11 @@ export default function Home() {
     }
   };
 
+  const enabledCount = Object.values(enabledTypes).filter(Boolean).length;
+
   return (
     <>
-      {/* ========== STICKY MOBILE CTA ========== */}
-      <div
-        id="stickyCta"
-        className={`sticky-cta fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/20 px-4 py-3 md:hidden shadow-lg ${
-          stickyVisible ? "visible" : ""
-        }`}
-      >
-        <div className="flex items-center gap-3 max-w-container-max mx-auto">
-          <button
-            onClick={() => handleActionClick("Daftar Sekarang")}
-            className="flex-1 px-4 py-2.5 bg-[#178630] text-white rounded-xl font-bold text-sm btn-press btn-shine transition-all shadow-lg shadow-[#178630]/15 hover:bg-[#178630]/90 text-center"
-          >
-            Daftar Sekarang
-          </button>
-          <button
-            onClick={() => handleActionClick("Lihat Lelang Aktif")}
-            className="flex-1 px-4 py-2.5 bg-[#f67904] text-white rounded-xl font-bold text-sm btn-press transition-all hover:bg-[#f67904]/90 text-center"
-          >
-            Lihat Lelang Aktif
-          </button>
-        </div>
-      </div>
+
 
       <Header />
 
@@ -542,30 +388,30 @@ export default function Home() {
                 </div>
 
                 {/* Trust badges - inline */}
-                <div className="flex flex-wrap items-center gap-4 pt-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-primary filled">
+                <div className="flex flex-nowrap items-center gap-2 sm:gap-4 pt-4 w-full overflow-hidden">
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                    <span className="material-symbols-outlined text-xs sm:text-sm text-primary filled">
                       verified
                     </span>
-                    <span className="text-body-sm font-medium text-on-surface-variant">
+                    <span className="text-[10px] sm:text-body-sm font-medium text-on-surface-variant">
                       Aman &amp; Terpercaya
                     </span>
                   </div>
-                  <div className="w-px h-5 bg-outline-variant/30"></div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-secondary filled">
+                  <div className="w-px h-4 sm:h-5 bg-outline-variant/30 flex-shrink-0"></div>
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                    <span className="material-symbols-outlined text-xs sm:text-sm text-secondary filled">
                       bolt
                     </span>
-                    <span className="text-body-sm font-medium text-on-surface-variant">
+                    <span className="text-[10px] sm:text-body-sm font-medium text-on-surface-variant">
                       Proses Cepat
                     </span>
                   </div>
-                  <div className="w-px h-5 bg-outline-variant/30 hidden sm:block"></div>
-                  <div className="flex items-center gap-1.5 hidden sm:flex">
-                    <span className="material-symbols-outlined text-sm text-primary filled">
+                  <div className="w-px h-4 sm:h-5 bg-outline-variant/30 flex-shrink-0"></div>
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                    <span className="material-symbols-outlined text-xs sm:text-sm text-primary filled">
                       support_agent
                     </span>
-                    <span className="text-body-sm font-medium text-on-surface-variant">
+                    <span className="text-[10px] sm:text-body-sm font-medium text-on-surface-variant">
                       Dukungan 24/7
                     </span>
                   </div>
@@ -613,31 +459,31 @@ export default function Home() {
         <section className="py-6 md:py-8 bg-surface-container-low/30 border-b border-outline-variant/10">
           <div className="max-w-container-max mx-auto px-margin-page">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <div className="text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
+              <div className="stat-card text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
                 <p className="stat-number text-primary">
-                  <AnimatedCounter target={1200} suffix="+" />
+                  <AnimatedCounter target={platformStats?.total_lots_sold || 1200} suffix="+" />
                 </p>
                 <p className="text-body-sm font-medium text-outline mt-0.5">
-                  Lot Terjual / Bulan
+                  Lot Terjual
                 </p>
               </div>
-              <div className="text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
+              <div className="stat-card text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
                 <p className="stat-number text-primary">
-                  <AnimatedCounter target={3400} suffix="+" />
+                  <AnimatedCounter target={platformStats?.total_users || 3400} suffix="+" />
                 </p>
                 <p className="text-body-sm font-medium text-outline mt-0.5">
-                  Peserta Aktif
+                  Peserta Terdaftar
                 </p>
               </div>
-              <div className="text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
+              <div className="stat-card text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
                 <p className="stat-number text-primary">
-                  <AnimatedCounter target={120} prefix="Rp " suffix="M+" />
+                  <AnimatedCounter target={platformStats?.total_sales ? Math.floor(platformStats.total_sales / 1000000) : 120000} prefix="Rp " suffix="Jt+" />
                 </p>
                 <p className="text-body-sm font-medium text-outline mt-0.5">
                   Nilai Transaksi
                 </p>
               </div>
-              <div className="text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
+              <div className="stat-card text-center p-4 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-all duration-500 hover:-translate-y-1">
                 <p className="stat-number text-primary">
                   <AnimatedCounter target={30} suffix="+" />
                 </p>
@@ -728,7 +574,7 @@ export default function Home() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleActionClick("Kategori Mobil");
+                    router.push('/katalog?category=MOBIL');
                   }}
                   className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md"
                 >
@@ -748,7 +594,7 @@ export default function Home() {
                     <h4 className="font-bold text-white text-body-md truncate">
                       Mobil Penumpang
                     </h4>
-                    <p className="text-white/80 text-body-sm">842 Unit Tersedia</p>
+                    <p className="text-white/80 text-body-sm">{categoryStats?.MOBIL || 0} Lot Tersedia</p>
                   </div>
                 </a>
               )}
@@ -758,7 +604,7 @@ export default function Home() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleActionClick("Kategori Motor");
+                    router.push('/katalog?category=MOTOR');
                   }}
                   className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md"
                 >
@@ -776,66 +622,88 @@ export default function Home() {
                   ></div>
                   <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
                     <h4 className="font-bold text-white text-body-md truncate">Sepeda Motor</h4>
-                    <p className="text-white/80 text-body-sm">1.120 Unit Tersedia</p>
+                    <p className="text-white/80 text-body-sm">{categoryStats?.MOTOR || 0} Lot Tersedia</p>
                   </div>
                 </a>
               )}
               {/* Komersial */}
-              {enabledCategories.heavy && (
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleActionClick("Kategori Alat Berat");
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert("Kategori lelang Alat Berat akan segera hadir!");
+                }}
+                className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
+              >
+                <img
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale"
+                  alt="Alat Berat"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%)",
                   }}
-                  className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md"
-                >
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    alt="Alat Berat"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64"
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%)",
-                    }}
-                  ></div>
-                  <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
-                    <h4 className="font-bold text-white text-body-md truncate">Alat Berat</h4>
-                    <p className="text-white/80 text-body-sm">145 Unit Tersedia</p>
-                  </div>
-                </a>
-              )}
+                ></div>
+                <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
+                  <h4 className="font-bold text-white text-body-md truncate">Alat Berat</h4>
+                  <p className="text-white/80 text-body-sm font-semibold text-amber-400">Segera Hadir</p>
+                </div>
+              </a>
               {/* Properti */}
-              {enabledCategories.properti && (
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleActionClick("Kategori Properti");
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert("Kategori lelang Properti akan segera hadir!");
+                }}
+                className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
+              >
+                <img
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale"
+                  alt="Properti"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAKe_8vmxw29JLRtQYJu9kIj9SSxejc7c-x8FZ9yvwAcraOjYJQWtAun90V_9mWhx5Fc0yj7qi226wff8XoO-B8zS94kC8jRdGIB8O9bsH7Nhr0u4sJZGBdX9R6-JALgUiUFbI_NW_vN-QiNbVb_WGRUuassF6O_AjU9RuREtTqPZI9hvaWxO6IxqUzevGmKDWDbe9XRHS-qXcH0eH4c1lTgfR2ZHLmTZvUQbPf2dM8WY2ksd1kXL4JpiipvA98Fs_rPDJFniNHLto"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%)",
                   }}
-                  className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md"
-                >
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    alt="Properti"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAKe_8vmxw29JLRtQYJu9kIj9SSxejc7c-x8FZ9yvwAcraOjYJQWtAun90V_9mWhx5Fc0yj7qi226wff8XoO-B8zS94kC8jRdGIB8O9bsH7Nhr0u4sJZGBdX9R6-JALgUiUFbI_NW_vN-QiNbVb_WGRUuassF6O_AjU9RuREtTqPZI9hvaWxO6IxqUzevGmKDWDbe9XRHS-qXcH0eH4c1lTgfR2ZHLmTZvUQbPf2dM8WY2ksd1kXL4JpiipvA98Fs_rPDJFniNHLto"
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%)",
-                    }}
-                  ></div>
-                  <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
-                    <h4 className="font-bold text-white text-body-md truncate">Properti</h4>
-                    <p className="text-white/80 text-body-sm">52 Unit Tersedia</p>
-                  </div>
-                </a>
-              )}
+                ></div>
+                <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
+                  <h4 className="font-bold text-white text-body-md truncate">Properti</h4>
+                  <p className="text-white/80 text-body-sm font-semibold text-amber-400">Segera Hadir</p>
+                </div>
+              </a>
+              {/* Barang Sehari-hari */}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert("Kategori lelang Barang akan segera hadir!");
+                }}
+                className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
+              >
+                <img
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale"
+                  alt="Barang Sehari-hari"
+                  src="https://images.unsplash.com/photo-1584433144859-1fc3ab64a957?auto=format&fit=crop&q=80&w=600"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%)",
+                  }}
+                ></div>
+                <div className="absolute bottom-3 left-3 right-3 bg-black/45 backdrop-blur-md border border-white/10 rounded-xl p-3 text-white">
+                  <h4 className="font-bold text-white text-body-md truncate">Barang</h4>
+                  <p className="text-white/80 text-body-sm font-semibold text-amber-400">Segera Hadir</p>
+                </div>
+              </a>
             </div>
           </div>
         </section>
@@ -916,7 +784,7 @@ export default function Home() {
         </section>
 
         {/* ========== SUB-LIST: ENGLISH AUCTION ========== */}
-        {enabledTypes.english && (
+        {enabledCount > 1 && enabledTypes.english && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -958,7 +826,7 @@ export default function Home() {
         )}
 
         {/* ========== SUB-LIST: DUTCH AUCTION ========== */}
-        {enabledTypes.dutch && (
+        {enabledCount > 1 && enabledTypes.dutch && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -1000,7 +868,7 @@ export default function Home() {
         )}
 
         {/* ========== SUB-LIST: SEALED BID ========== */}
-        {enabledTypes.sealed && (
+        {enabledCount > 1 && enabledTypes.sealed && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -1042,7 +910,7 @@ export default function Home() {
         )}
 
         {/* ========== SUB-LIST: TIMED AUCTION ========== */}
-        {enabledTypes.timed && (
+        {enabledCount > 1 && enabledTypes.timed && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -1084,7 +952,7 @@ export default function Home() {
         )}
 
         {/* ========== SUB-LIST: BUY NOW + AUCTION ========== */}
-        {enabledTypes.buynow && (
+        {enabledCount > 1 && enabledTypes.buynow && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -1126,7 +994,7 @@ export default function Home() {
         )}
 
         {/* ========== SUB-LIST: GROUP/BUNDLE ========== */}
-        {enabledTypes.group && (
+        {enabledCount > 1 && enabledTypes.group && (
           <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
             <div className="max-w-container-max mx-auto px-margin-page">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
@@ -1167,6 +1035,84 @@ export default function Home() {
           </section>
         )}
 
+        {/* ========== UPCOMING AUCTION TYPES ========== */}
+        {(!enabledTypes.dutch || !enabledTypes.sealed || !enabledTypes.timed || !enabledTypes.buynow || !enabledTypes.group) && (
+          <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
+            <div className="max-w-container-max mx-auto px-margin-page">
+              <div className="text-center mb-8">
+                <h2 className="text-heading-2xl font-bold text-on-background font-serif">
+                  Fitur Lelang Mendatang
+                </h2>
+                <p className="text-body-lg text-on-surface-variant mt-1">
+                  Kami terus berinovasi. Berikut adalah jenis lelang yang akan segera hadir di platform kami.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-4">
+                {!enabledTypes.dutch && (
+                  <div className="relative overflow-hidden rounded-2xl shadow-sm text-center grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all min-h-[200px] flex flex-col justify-end group cursor-pointer border border-white/20">
+                    <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=600')" }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
+                    <div className="relative z-10 text-white flex flex-col items-center p-5">
+                      <span className="material-symbols-outlined text-4xl mb-2 text-white">trending_down</span>
+                      <h4 className="font-bold text-body-md mb-1 text-white">Dutch Auction</h4>
+                      <p className="text-body-sm text-white/80 mb-3">Harga turun berkala hingga deal.</p>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full">Segera Hadir</span>
+                    </div>
+                  </div>
+                )}
+                {!enabledTypes.sealed && (
+                  <div className="relative overflow-hidden rounded-2xl shadow-sm text-center grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all min-h-[200px] flex flex-col justify-end group cursor-pointer border border-white/20">
+                    <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1596526131083-e8c633c948d2?q=80&w=600')" }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
+                    <div className="relative z-10 text-white flex flex-col items-center p-5">
+                      <span className="material-symbols-outlined text-4xl mb-2 text-white">lock</span>
+                      <h4 className="font-bold text-body-md mb-1 text-white">Sealed-Bid</h4>
+                      <p className="text-body-sm text-white/80 mb-3">Penawaran tertutup & rahasia.</p>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full">Segera Hadir</span>
+                    </div>
+                  </div>
+                )}
+                {!enabledTypes.timed && (
+                  <div className="relative overflow-hidden rounded-2xl shadow-sm text-center grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all min-h-[200px] flex flex-col justify-end group cursor-pointer border border-white/20">
+                    <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1508962914676-134849a727f0?q=80&w=600')" }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
+                    <div className="relative z-10 text-white flex flex-col items-center p-5">
+                      <span className="material-symbols-outlined text-4xl mb-2 text-white">schedule</span>
+                      <h4 className="font-bold text-body-md mb-1 text-white">Timed Auction</h4>
+                      <p className="text-body-sm text-white/80 mb-3">Lelang dengan batas waktu.</p>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full">Segera Hadir</span>
+                    </div>
+                  </div>
+                )}
+                {!enabledTypes.buynow && (
+                  <div className="relative overflow-hidden rounded-2xl shadow-sm text-center grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all min-h-[200px] flex flex-col justify-end group cursor-pointer border border-white/20">
+                    <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600')" }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
+                    <div className="relative z-10 text-white flex flex-col items-center p-5">
+                      <span className="material-symbols-outlined text-4xl mb-2 text-white">shopping_bag</span>
+                      <h4 className="font-bold text-body-md mb-1 text-white">Buy Now</h4>
+                      <p className="text-body-sm text-white/80 mb-3">Beli instan tanpa proses bidding.</p>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full">Segera Hadir</span>
+                    </div>
+                  </div>
+                )}
+                {!enabledTypes.group && (
+                  <div className="relative overflow-hidden rounded-2xl shadow-sm text-center grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all min-h-[200px] flex flex-col justify-end group cursor-pointer border border-white/20">
+                    <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=600')" }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
+                    <div className="relative z-10 text-white flex flex-col items-center p-5">
+                      <span className="material-symbols-outlined text-4xl mb-2 text-white">inventory_2</span>
+                      <h4 className="font-bold text-body-md mb-1 text-white">Group/Bundle</h4>
+                      <p className="text-body-sm text-white/80 mb-3">Penawaran paket aset sekaligus.</p>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full">Segera Hadir</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ========== HOW IT WORKS - 7 STEPS ========== */}
         <section
           id="how-it-works"
@@ -1182,7 +1128,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5">
               {/* Step 1: Register */}
               <div className="bg-white/50 backdrop-blur-md p-6 rounded-2xl border border-white/60 shadow-sm hover:shadow-md transition-all text-center group hover:border-primary/50">
                 <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1267,11 +1213,11 @@ export default function Home() {
                 Siap memulai perjalanan lelang Anda?
               </p>
               <button
-                onClick={() => handleActionClick("Daftar Sekarang")}
+                onClick={() => handleActionClick("Masuk")}
                 className="px-8 py-3.5 bg-premium text-on-premium rounded-xl font-bold text-body-md btn-press btn-shine transition-all hover:bg-premium/85 shadow-lg shadow-premium/15 inline-flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-lg">person_add</span>
-                Daftar Sekarang
+                <span className="material-symbols-outlined text-lg">login</span>
+                Masuk
               </button>
             </div>
           </div>
@@ -1292,8 +1238,13 @@ export default function Home() {
               {/* Testimonial 1 */}
               <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
-                    BS
+                  <div className="w-11 h-11 rounded-full overflow-hidden bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=120&h=120&fit=crop"
+                      alt="Bambang Susilo"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <h4 className="font-bold text-body-md">Bambang Susilo</h4>
@@ -1315,8 +1266,13 @@ export default function Home() {
               {/* Testimonial 2 */}
               <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center font-bold text-on-primary-fixed text-body-md">
-                    RM
+                  <div className="w-11 h-11 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center font-bold text-on-primary-fixed text-body-md">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120&h=120&fit=crop"
+                      alt="Ratna Mutia"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <h4 className="font-bold text-body-md">Ratna Mutia</h4>
@@ -1338,8 +1294,13 @@ export default function Home() {
               {/* Testimonial 3 */}
               <div className="testimonial-card bg-white/50 backdrop-blur-md border border-white/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
-                    AP
+                  <div className="w-11 h-11 rounded-full overflow-hidden bg-secondary-fixed flex items-center justify-center font-bold text-on-secondary-fixed text-body-md">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=120&h=120&fit=crop"
+                      alt="Aditya Pratama"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <h4 className="font-bold text-body-md">Aditya Pratama</h4>
@@ -1694,11 +1655,11 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <button
-                onClick={() => handleActionClick("Daftar Sekarang")}
+                onClick={() => handleActionClick("Masuk")}
                 className="px-8 py-4 bg-[#178630] text-white rounded-xl font-bold text-body-md btn-press btn-shine transition-all hover:bg-[#178630]/90 shadow-xl shadow-[#178630]/15 flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-lg">person_add</span>
-                Daftar Sekarang
+                <span className="material-symbols-outlined text-lg">login</span>
+                Masuk
               </button>
               <button
                 onClick={() => handleActionClick("Lihat Lelang Aktif")}
@@ -1708,9 +1669,6 @@ export default function Home() {
                 Lihat Lelang Aktif
               </button>
             </div>
-            <p className="text-white/50 text-body-sm mt-6">
-              *Gratis mendaftar. Tanpa komitmen.
-            </p>
           </div>
         </section>
       </main>

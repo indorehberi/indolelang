@@ -17,8 +17,8 @@ export const rejectKycSchema = z.object({
 
 export const kycQueueQuerySchema = z.object({
   query: z.object({
-    page: z.string().transform((val) => parseInt(val, 10)).default('1'),
-    per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
-    status: z.enum([KycStatus.PENDING, KycStatus.APPROVED, KycStatus.REJECTED]).default(KycStatus.PENDING),
+    page: z.string().optional().transform((val) => val ? parseInt(val, 10) : 1),
+    per_page: z.string().optional().transform((val) => val ? parseInt(val, 10) : 20),
+    status: z.enum([KycStatus.PENDING, KycStatus.APPROVED, KycStatus.REJECTED, 'all']).default(KycStatus.PENDING),
   }),
 });

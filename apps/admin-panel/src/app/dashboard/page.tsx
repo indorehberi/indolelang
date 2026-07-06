@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Badge from '../../components/ui/Badge';
+import { apiUrl } from '../../lib/api';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 interface AdminUser {
   full_name?: string;
@@ -38,50 +40,18 @@ interface RecentTransaction {
   time: string;
 }
 
-const categoryStats: CategoryStat[] = [
-  { label: 'Mobil', value: 245, y: 69, height: 51, color: 'var(--wf-primary)' },
-  { label: 'Motor', value: 480, y: 20, height: 100, color: 'var(--wf-gold)' },
-  { label: 'Alat Berat', value: 32, y: 113, height: 7, color: 'var(--wf-primary)' },
-  { label: 'Properti', value: 12, y: 117, height: 3, color: 'var(--wf-primary)' },
-];
 
-const recentTransactions: RecentTransaction[] = [
-  {
-    id: 'AL-99231',
-    bidder: 'Budi Santoso',
-    lot: 'Toyota Avanza 2021',
-    amount: 145000000,
-    status: 'paid',
-    time: '10:45 WIB',
-  },
-  {
-    id: 'AL-99230',
-    bidder: 'Siska Wijaya',
-    lot: 'Honda Vario 150',
-    amount: 18500000,
-    status: 'pending',
-    time: '10:42 WIB',
-  },
-  {
-    id: 'AL-99229',
-    bidder: 'Ahmad Pratama',
-    lot: 'Komatsu Excavator PC200',
-    amount: 650000000,
-    status: 'paid',
-    time: '10:30 WIB',
-  },
-];
 
-const quickActions = [
+const getQuickActions = (kycCount: number, assetCount: number) => [
   {
     title: 'Antrian Verifikasi KYC',
-    subtitle: '14 akun menunggu review manual',
+    subtitle: `${kycCount} akun menunggu review`,
     href: '/kyc/verification',
     icon: '🔍',
   },
   {
     title: 'Approval Pengajuan Barang',
-    subtitle: '15 item baru dari provider',
+    subtitle: `${assetCount} item baru dari provider`,
     href: '/assets/approval',
     icon: '✔️',
   },
@@ -111,12 +81,54 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [statsData, setStatsData] = useState<any>(null);
+  const [kycPendingCount, setKycPendingCount] = useState<number>(0);
+  const [assetPendingCount, setAssetPendingCount] = useState<number>(0);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  // Dynamic Chart States
+  const [chartCategory, setChartCategory] = useState<string>('');
+  const [chartMetric, setChartMetric] = useState<string>('lots');
+  const [chartRange, setChartRange] = useState<string>('week');
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState<string>('');
+
+  const fetchChart = async () => {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    if (!token || !user) return;
+    setChartLoading(true);
+    setChartError('');
+    try {
+      const query = new URLSearchParams({ category: chartCategory, metric: chartMetric, range: chartRange });
+      const res = await fetch(apiUrl(`/admin/dashboard/chart?${query.toString()}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setChartData(data.data);
+      } else {
+        setChartError(data.error?.message || 'Gagal mengambil data chart');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setChartError(err.message || 'Terjadi kesalahan jaringan');
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChart();
+  }, [chartCategory, chartMetric, chartRange, user]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
-    if (!token || !storedUser) {
+    if (!token || token === 'undefined' || token === 'null' || !storedUser) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('token');
       router.replace('/login');
       return;
     }
@@ -132,6 +144,63 @@ export default function DashboardPage() {
     setIsCheckingSession(false);
   }, [router]);
 
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    if (!token || !user) return;
+
+    const fetchDashboardStats = async () => {
+      try {
+        const resStats = await fetch(apiUrl('/admin/dashboard/stats'), {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const dataStats = await resStats.json();
+        if (resStats.ok && dataStats.success) {
+          setStatsData(dataStats.data);
+        }
+
+        const resKyc = await fetch(apiUrl('/admin/kyc/queue?status=pending&per_page=1'), {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const dataKyc = await resKyc.json();
+        if (resKyc.ok && dataKyc.success) {
+          const total = dataKyc.meta?.total ?? dataKyc.data?.length ?? 0;
+          setKycPendingCount(total);
+        }
+
+        const resAssets = await fetch(apiUrl('/assets?status=pending&per_page=1'), {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const dataAssets = await resAssets.json();
+        if (resAssets.ok && dataAssets.success) {
+          const total = dataAssets.meta?.total ?? dataAssets.data?.length ?? 0;
+          setAssetPendingCount(total);
+        }
+
+        const resInvoices = await fetch(apiUrl('/documents/invoices?per_page=5'), {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const dataInvoices = await resInvoices.json();
+        if (resInvoices.ok && dataInvoices.success) {
+          setRecentTransactions(dataInvoices.data);
+        }
+
+
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats', err);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [user]);
+
   const displayName = useMemo(() => {
     return user?.full_name || user?.name || user?.email || 'Admin';
   }, [user]);
@@ -145,31 +214,29 @@ export default function DashboardPage() {
       .join('');
   }, [displayName]);
 
-  const kpis: KpiItem[] = [
-    {
-      label: 'Transaksi Hari Ini',
-      value: formatRupiah(847500000),
-      trend: '↑ 12.3% dari kemarin',
-    },
-    {
-      label: 'Lot Terjual',
-      value: '127 Unit',
-      trend: '↑ 8.5% dari bulan lalu',
-      tone: 'gold',
-    },
-    {
-      label: 'Pendapatan Komisi',
-      value: formatRupiah(34200000),
-      trend: '↑ 15.2%',
-      tone: 'success',
-    },
-    {
-      label: 'Verifikasi KYC Tertunda',
-      value: '14 Akun',
-      trend: 'Butuh Approval',
-      tone: 'danger',
-    },
-  ];
+  const kpis: KpiItem[] = useMemo(() => {
+    const soldToday = statsData?.lotsSold?.today || 0;
+    const soldWeek = statsData?.lotsSold?.week || 0;
+    const soldMonth = statsData?.lotsSold?.month || 0;
+    const soldTotal = statsData?.lotsSold?.total || 0;
+
+    const incomeToday = statsData?.netIncome?.today || 0;
+    const incomeWeek = statsData?.netIncome?.week || 0;
+    const incomeMonth = statsData?.netIncome?.month || 0;
+    const incomeTotal = statsData?.netIncome?.total || 0;
+
+    return [
+      { label: 'Lot Terjual Hari Ini', value: `${soldToday} Unit`, trend: 'Hari ini' },
+      { label: 'Lot Terjual Pekan Ini', value: `${soldWeek} Unit`, trend: 'Pekan ini' },
+      { label: 'Lot Terjual Bulan Ini', value: `${soldMonth} Unit`, trend: 'Bulan ini', tone: 'gold' },
+      { label: 'Terjual Total', value: `${soldTotal} Unit`, trend: 'Keseluruhan', tone: 'gold' },
+      
+      { label: 'Pendapatan Bersih Hari Ini', value: formatRupiah(incomeToday), trend: 'Hari ini', tone: 'success' },
+      { label: 'Pendapatan Bersih Minggu Ini', value: formatRupiah(incomeWeek), trend: 'Pekan ini', tone: 'success' },
+      { label: 'Pendapatan Bersih Bulan Ini', value: formatRupiah(incomeMonth), trend: 'Bulan ini', tone: 'success' },
+      { label: 'Pendapatan Bersih Total', value: formatRupiah(incomeTotal), trend: 'Keseluruhan', tone: 'success' },
+    ];
+  }, [statsData]);
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
@@ -194,8 +261,8 @@ export default function DashboardPage() {
       userName={displayName}
       userInitial={userInitial}
       role={user.role || 'Superadmin'}
-      kycPendingCount={14}
-      assetPendingCount={15}
+      kycPendingCount={kycPendingCount}
+      assetPendingCount={assetPendingCount}
       hasLiveSession
       onLogout={handleLogout}
     >
@@ -226,80 +293,84 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 className="fw-bold">Sesi Mobil Penumpang JKT - Batch 15</h3>
+                <h3 className="fw-bold">Belum Ada Sesi Live</h3>
                 <p className="text-muted fs-sm">
-                  45 peserta online &bull; Lot berjalan: 12 dari 45
+                  Tidak ada sesi lelang yang sedang berjalan saat ini
                 </p>
               </div>
-              <Link href="/auction/control-room" className="btn btn-gold">
-                Buka Ruang Kontrol
+              <Link href="/sessions" className="btn btn-outline">
+                Lihat Daftar Sesi
               </Link>
             </div>
           </div>
 
           {/* Category Chart */}
           <div className="card">
-            <div className="card-header">Lelang Berdasarkan Kategori (Unit Terjual)</div>
-            <div style={{ padding: '1rem 0' }}>
-              <svg
-                viewBox="0 0 400 160"
-                style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-              >
-                {/* Grid Lines */}
-                <line x1="50" y1="20" x2="380" y2="20" stroke="#f1f2f6" strokeWidth="1" />
-                <line x1="50" y1="70" x2="380" y2="70" stroke="#f1f2f6" strokeWidth="1" />
-                <line x1="50" y1="120" x2="380" y2="120" stroke="#dcdde1" strokeWidth="1" />
-
-                {/* Bars */}
-                {categoryStats.map((item, index) => {
-                  const xPositions = [90, 170, 250, 330];
-                  const x = xPositions[index];
-                  const textY = item.y < 60 ? item.y - 8 : item.y + 15;
-
-                  return (
-                    <g key={item.label}>
-                      <rect
-                        x={x}
-                        y={item.y}
-                        width="30"
-                        height={item.height}
-                        rx="3"
-                        fill={item.color}
-                      />
-                      <text
-                        x={x + 15}
-                        y={textY}
-                        fill="var(--wf-text)"
-                        fontSize="9"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                      >
-                        {item.value}
-                      </text>
-                      <text
-                        x={x + 15}
-                        y="138"
-                        fill="var(--wf-text-muted)"
-                        fontSize="9"
-                        textAnchor="middle"
-                      >
-                        {item.label}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Y-axis Labels */}
-                <text x="45" y="23" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">
-                  500
-                </text>
-                <text x="45" y="73" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">
-                  250
-                </text>
-                <text x="45" y="123" fill="var(--wf-text-muted)" fontSize="8" textAnchor="end">
-                  0
-                </text>
-              </svg>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div>Analitik Grafik</div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select 
+                  className="wf-input" 
+                  style={{ minWidth: '150px' }}
+                  value={chartCategory}
+                  onChange={(e) => setChartCategory(e.target.value)}
+                >
+                  <option value="">Semua Kategori</option>
+                  <option value="mobil">Mobil</option>
+                  <option value="motor">Motor</option>
+                </select>
+                <select 
+                  className="wf-input" 
+                  style={{ minWidth: '150px' }}
+                  value={chartMetric}
+                  onChange={(e) => setChartMetric(e.target.value)}
+                >
+                  <option value="lots">Jumlah Lot Terjual</option>
+                  <option value="income">Pendapatan Bersih</option>
+                </select>
+                <select 
+                  className="wf-input" 
+                  style={{ minWidth: '150px' }}
+                  value={chartRange}
+                  onChange={(e) => setChartRange(e.target.value)}
+                >
+                  <option value="week">Minggu Ini (Per Hari)</option>
+                  <option value="month">Bulan Ini (Per Tanggal)</option>
+                  <option value="year">Tahun Ini (Per Bulan)</option>
+                  <option value="all">Semua Tahun</option>
+                </select>
+                <button onClick={fetchChart} className="wf-btn wf-btn-outline" style={{ padding: '0.5rem 1rem' }} disabled={chartLoading}>
+                  {chartLoading ? 'Memuat...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '1rem', height: '300px', width: '100%' }}>
+              {chartError && <div style={{ color: 'red', marginBottom: '1rem', fontSize: '12px' }}>{chartError}</div>}
+              {chartData.length === 0 && !chartLoading && !chartError && <div style={{ color: '#888', textAlign: 'center', marginTop: '2rem' }}>Belum ada data untuk periode ini</div>}
+              {chartData.length > 0 && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f2f6" />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#81737f" fontSize={12} dy={10} height={40} />
+                  <YAxis 
+                    width={70}
+                    axisLine={false} 
+                    tickLine={false} 
+                    stroke="#81737f"
+                    fontSize={12}
+                    domain={[0, 'auto']}
+                    allowDecimals={false}
+                    tickFormatter={val => chartMetric === 'income' ? `Rp ${val >= 1000000 ? (val / 1000000) + 'M' : val}` : val} 
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }} 
+                    contentStyle={{ borderRadius: '6px', border: '1px solid #E9E6DF' }}
+                    formatter={(val: any) => chartMetric === 'income' ? `Rp ${Number(val || 0).toLocaleString('id-ID')}` : val}
+                  />
+                  <Bar dataKey="value" fill="#f67904" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
@@ -309,7 +380,7 @@ export default function DashboardPage() {
           <div className="card">
             <div className="card-header">Aksi Administratif Cepat</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {quickActions.map((action) => (
+              {getQuickActions(kycPendingCount, assetPendingCount).map((action) => (
                 <Link
                   key={action.href}
                   href={action.href}
@@ -342,12 +413,12 @@ export default function DashboardPage() {
             <tbody>
               {recentTransactions.map((transaction) => (
                 <tr key={transaction.id}>
-                  <td>#{transaction.id}</td>
-                  <td>{transaction.bidder}</td>
-                  <td>{transaction.lot}</td>
-                  <td className="fw-bold">{formatRupiah(transaction.amount)}</td>
-                  <td>{getStatusBadge(transaction.status)}</td>
-                  <td>{transaction.time}</td>
+                  <td>#{transaction.id.substring(0, 8)}</td>
+                  <td>{transaction.bidder?.full_name || 'Unknown'}</td>
+                  <td>{transaction.lot?.asset?.title || 'Unknown'}</td>
+                  <td className="fw-bold">{formatRupiah(transaction.total)}</td>
+                  <td>{getStatusBadge(transaction.status === 'paid' ? 'paid' : (transaction.status === 'overdue' ? 'overdue' : 'pending'))}</td>
+                  <td>{new Date(transaction.created_at).toLocaleString('id-ID')}</td>
                 </tr>
               ))}
             </tbody>

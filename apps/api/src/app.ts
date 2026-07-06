@@ -24,7 +24,12 @@ import blogRoutes from './modules/blogs/blogs.routes';
 import testimonialRoutes from './modules/testimonials/testimonials.routes';
 import uploadRoutes from './modules/upload/upload.routes';
 import testRoutes from './modules/test/test.routes';
-
+import publicRoutes from './modules/public/public.routes';
+import healthRoutes from './modules/health/health.routes';
+import niplRoutes from './modules/nipl/nipl.routes';
+import campaignRoutes from './modules/campaigns/campaigns.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import contactMessagesRoutes from './modules/contact-messages/contact-messages.routes';
 const app = express();
 
 // Security and utility middleware
@@ -76,11 +81,17 @@ app.use(apiPrefix, settingRoutes);
 app.use(apiPrefix, auditRoutes);
 app.use(apiPrefix, blogRoutes);
 app.use(apiPrefix, testimonialRoutes);
+app.use(apiPrefix, niplRoutes);
+app.use(apiPrefix, campaignRoutes);
+app.use(apiPrefix, dashboardRoutes);
+app.use(apiPrefix, contactMessagesRoutes);
 
 // Routes mounted with specific resource prefixes
 app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}/upload`, uploadRoutes);
 app.use(`${apiPrefix}/test`, testRoutes);
+app.use(`${apiPrefix}/public`, publicRoutes);
+app.use(`${apiPrefix}/health`, healthRoutes);
 
 // 404 handler for unmatched API routes
 app.use((req, res, next) => {

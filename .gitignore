@@ -77,4 +77,8 @@ tmp/
 /wireframe/
 /desktop_auction_dashboard.png
 /estimasi_biaya_infrastruktur.md
-
+*.xlsx
+*.csv
+/apps/api/uploads/
+.agents/
+.gemini/

@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
+import { apiUrl } from '../../../lib/api';
 
 interface Staff {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   phone: string;
-  role: 'superadmin' | 'admin' | 'operator';
+  role: 'superadmin' | 'admin' | 'operator' | 'inspector';
   branch_name: string;
   status: 'active' | 'suspended';
   created_at: string;
@@ -19,40 +20,31 @@ interface Staff {
 
 export default function AdminStaffPage() {
   const router = useRouter();
-  const [loading] = useState(false);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
 
-  const dummyStaff: Staff[] = [
-    {
-      id: 'staff-1',
-      name: 'Super Admin Indo-Lelang',
-      email: 'superadmin@indo-lelang.com',
-      phone: '+628111111111',
-      role: 'superadmin',
-      branch_name: 'Pusat (Headquarters)',
-      status: 'active',
-      created_at: '2026-06-01T00:00:00.000Z',
-    },
-    {
-      id: 'staff-2',
-      name: 'Admin Cabang Jakarta',
-      email: 'admin@indo-lelang.com',
-      phone: '+628222222222',
-      role: 'admin',
-      branch_name: 'Indo-Lelang Jakarta',
-      status: 'active',
-      created_at: '2026-06-15T00:00:00.000Z',
-    },
-    {
-      id: 'staff-3',
-      name: 'Andi Operator JKT',
-      email: 'operator.jkt@indolelang.com',
-      phone: '+628333333333',
-      role: 'operator',
-      branch_name: 'Indo-Lelang Jakarta',
-      status: 'active',
-      created_at: '2026-06-20T10:00:00.000Z',
-    },
-  ];
+  React.useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(apiUrl('/admin/users?per_page=100'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          const allStaff = data.data.filter((u: any) => ['superadmin', 'admin', 'operator', 'inspector'].includes(u.role));
+          setStaffList(allStaff);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStaff();
+  }, []);
 
   const getRoleBadge = (role: Staff['role']) => {
     switch (role) {
@@ -62,6 +54,8 @@ export default function AdminStaffPage() {
         return <Badge variant="info">Admin Cabang</Badge>;
       case 'operator':
         return <Badge variant="info">Operator</Badge>;
+      case 'inspector':
+        return <Badge variant="warning">Inspector</Badge>;
       default:
         return <Badge variant="default">{role}</Badge>;
     }
@@ -75,6 +69,14 @@ export default function AdminStaffPage() {
     );
   };
 
+  const uniqueBranches = Array.from(new Set(staffList.map((s) => s.branch_name).filter(Boolean)));
+
+  const filteredStaff = staffList.filter((staff) => {
+    if (roleFilter && staff.role !== roleFilter) return false;
+    if (branchFilter && staff.branch_name !== branchFilter) return false;
+    return true;
+  });
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Admin & Operator">
       <div className="toolbar">
@@ -82,10 +84,46 @@ export default function AdminStaffPage() {
           <h1 className="page-title">Manajemen Staf Internal</h1>
           <p className="page-subtitle">Daftar akun administrator, admin cabang, dan operator yang memiliki akses administratif platform.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline btn-sm" onClick={() => router.push('/users/admin/roles')}>⚙️ Atur Hak Akses Role</button>
           <button className="btn btn-primary btn-sm" onClick={() => router.push('/users/admin/new')}>+ Tambah Staf Baru</button>
         </div>
       </div>
+
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Filter Role</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">Semua Role</option>
+              <option value="superadmin">Superadmin</option>
+              <option value="admin">Admin Cabang</option>
+              <option value="operator">Operator</option>
+              <option value="inspector">Inspector</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Filter Cabang</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            >
+              <option value="">Semua Cabang</option>
+              {uniqueBranches.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">
@@ -104,12 +142,12 @@ export default function AdminStaffPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={7} className="text-center">Memuat data staf...</td></tr>
-              ) : dummyStaff.length === 0 ? (
+              ) : filteredStaff.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-muted">Tidak ada akun staf ditemukan.</td></tr>
               ) : (
-                dummyStaff.map((staff) => (
+                filteredStaff.map((staff) => (
                   <tr key={staff.id}>
-                    <td><strong>{staff.name}</strong></td>
+                    <td><strong>{staff.full_name}</strong></td>
                     <td>
                       <div>{staff.email}</div>
                       <div className="text-muted" style={{ fontSize: '0.8rem' }}>{staff.phone}</div>

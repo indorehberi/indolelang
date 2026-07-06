@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
+import { apiUrl } from '../../../lib/api';
 
 type ReportType = 'sessions' | 'finance' | 'users' | 'bids' | 'deposits';
 type OutputFormat = 'pdf' | 'excel' | 'csv';
@@ -12,6 +13,7 @@ interface FilterConfig {
   to_date: string;
   branch: string;
   status: string;
+  role?: string;
 }
 
 const REPORT_TYPES = [
@@ -28,7 +30,6 @@ const FORMATS: { value: OutputFormat; label: string; icon: string }[] = [
   { value: 'csv', label: 'CSV Raw Data', icon: '📑' },
 ];
 
-const BRANCHES = ['Semua Cabang', 'Jakarta (HQ)', 'Bandung', 'Surabaya', 'Medan', 'Makassar'];
 
 export default function ReportBuilderPage() {
   const [reportType, setReportType] = useState<ReportType>('sessions');
@@ -38,9 +39,24 @@ export default function ReportBuilderPage() {
     to_date: '2026-06-30',
     branch: 'Semua Cabang',
     status: '',
+    role: '',
   });
   const [generating, setGenerating] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
+  const [branchesList, setBranchesList] = useState<{ id: string; name: string; }[]>([]);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await fetch(apiUrl('/branches'));
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setBranchesList(data.data);
+        }
+      } catch (err) {}
+    };
+    fetchBranches();
+  }, []);
 
   const handleGenerate = () => {
     setGenerating(true);
@@ -181,8 +197,9 @@ export default function ReportBuilderPage() {
                   value={filters.branch}
                   onChange={(e) => setFilters({ ...filters, branch: e.target.value })}
                 >
-                  {BRANCHES.map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                  <option value="Semua Cabang">Semua Cabang</option>
+                  {branchesList.map((b) => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
                   ))}
                 </select>
               </div>
@@ -211,6 +228,20 @@ export default function ReportBuilderPage() {
                   </select>
                 </div>
               )}
+              {reportType === 'users' && (
+                <div className="form-group">
+                  <label className="form-label">Role Pengguna</label>
+                  <select
+                    className="form-select"
+                    value={filters.role || ''}
+                    onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+                  >
+                    <option value="">Semua Role</option>
+                    <option value="bidder">Bidder</option>
+                    <option value="provider">Provider</option>
+                  </select>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -233,6 +264,7 @@ export default function ReportBuilderPage() {
                 { label: 'Periode', value: `${filters.from_date} s/d ${filters.to_date}` },
                 { label: 'Cabang', value: filters.branch },
                 ...(filters.status ? [{ label: 'Status', value: filters.status }] : []),
+                ...(filters.role && reportType === 'users' ? [{ label: 'Role Pengguna', value: filters.role.charAt(0).toUpperCase() + filters.role.slice(1) }] : []),
               ].map(({ label, value }) => (
                 <div
                   key={label}

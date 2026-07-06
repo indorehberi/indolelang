@@ -40,6 +40,7 @@ describe('Authentication Module Integration Tests', () => {
           email: 'invalid-email',
           phone: testPhone,
           password: testPassword,
+          confirm_password: testPassword,
           full_name: 'Test User',
           role: 'bidder',
         });
@@ -56,6 +57,7 @@ describe('Authentication Module Integration Tests', () => {
           email: testEmail,
           phone: testPhone,
           password: testPassword,
+          confirm_password: testPassword,
           full_name: 'Test User',
           role: 'bidder',
         });
@@ -71,12 +73,26 @@ describe('Authentication Module Integration Tests', () => {
     });
 
     it('should fail registration for duplicate email', async () => {
+      const activeEmail = 'activeuser@example.com';
+      // Register active user (no phone)
+      await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email: activeEmail,
+          password: testPassword,
+          confirm_password: testPassword,
+          full_name: 'Active User',
+          role: 'bidder',
+        });
+
+      // Try registering again with the same email
       const res = await request(app)
         .post('/api/v1/auth/register')
         .send({
-          email: testEmail,
-          phone: '+628999999991',
+          email: activeEmail,
+          phone: '+628999999992',
           password: testPassword,
+          confirm_password: testPassword,
           full_name: 'Test Duplicate',
           role: 'bidder',
         });
@@ -84,6 +100,9 @@ describe('Authentication Module Integration Tests', () => {
       expect(res.status).toBe(409);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('USER_ALREADY_EXISTS');
+
+      // Cleanup active user
+      await prisma.users.deleteMany({ where: { email: activeEmail } }).catch(() => {});
     });
   });
 
@@ -246,6 +265,47 @@ describe('Authentication Module Integration Tests', () => {
 
       expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/v1/auth/google', () => {
+    const googleEmail = 'googleuser@example.com';
+
+    afterAll(async () => {
+      await prisma.users.deleteMany({
+        where: { email: googleEmail },
+      });
+    });
+
+    it('should successfully register a new user using Google OAuth', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/google')
+        .send({
+          email: googleEmail,
+          full_name: 'Google User',
+          role: 'bidder',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('accessToken');
+      expect(res.body.data.user.email).toBe(googleEmail);
+      expect(res.body.data.user.role).toBe(Role.BIDDER);
+      expect(res.body.data.user.status).toBe(UserStatus.ACTIVE);
+    });
+
+    it('should successfully log in an existing user using Google OAuth', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/google')
+        .send({
+          email: googleEmail,
+          full_name: 'Google User',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('accessToken');
+      expect(res.body.data.user.email).toBe(googleEmail);
     });
   });
 });

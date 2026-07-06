@@ -13,7 +13,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2">
               <img
                 alt="BIDKU"
-                className="h-9 md:h-10 w-auto"
+                className="h-14 md:h-16 w-auto"
                 src="/logo-bidku.png"
               />
             </Link>
@@ -22,8 +22,8 @@ export default function Footer() {
             </p>
             <div className="text-body-md text-on-surface-variant space-y-1">
               <p className="font-bold text-primary">Hubungi Kami:</p>
-              <p>✉️ support@indolelang.com</p>
-              <p>📞 (021) 5098-8888</p>
+              <p>✉️ cs@bidku.co.id</p>
+              <p>📞 082318037002</p>
             </div>
           </div>
 
@@ -59,8 +59,8 @@ export default function Footer() {
             <h5 className="font-bold text-body-md text-primary mb-4">Panduan Bidder</h5>
             <ul className="space-y-2.5" style={{ listStyle: "none", padding: 0 }}>
               <li>
-                <Link href="/register/bidder" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
-                  Registrasi Bidder
+                <Link href="/register" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
+                  Daftar Akun Baru
                 </Link>
               </li>
               <li>
@@ -86,12 +86,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/register/provider" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
+                <Link href="/register" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
                   Daftar Sebagai Provider
                 </Link>
               </li>
               <li>
-                <Link href="/register/provider" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
+                <Link href="/syarat" className="text-body-md text-on-surface-variant hover:text-primary transition-colors">
                   Ketentuan Titip Jual
                 </Link>
               </li>
@@ -99,10 +99,18 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-outline-variant/10 text-center">
-          <p className="text-body-sm text-outline">
+        <div className="mt-10 pt-6 pb-6 sm:pb-0 border-t border-outline-variant/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-body-sm text-outline text-center sm:text-left">
             © 2026 PT INDO LELANG SEJAHTERA. All rights reserved.
           </p>
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-body-sm font-medium">
+            <Link href="/syarat" className="text-primary underline hover:text-primary/80 transition-colors">
+              Ketentuan Umum
+            </Link>
+            <Link href="/kebijakan" className="text-primary underline hover:text-primary/80 transition-colors">
+              Kebijakan Privasi
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

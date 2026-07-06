@@ -8,9 +8,10 @@ export default function RootPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    if (token) {
+    if (token && token !== 'undefined' && token !== 'null') {
       router.replace('/dashboard');
     } else {
+      localStorage.removeItem('accessToken');
       router.replace('/login');
     }
   }, [router]);

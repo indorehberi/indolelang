@@ -1,48 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { usePublicSessions } from "@/hooks/usePublicData";
 
-const initialSessions = [
-  {
-    id: "SESI-120",
-    name: "Lelang Mobil Penumpang Jakarta - Batch 15",
-    dateTime: "12 Juni 2026, 10:00 WIB",
-    lotCount: "45 Mobil",
-    deposit: "Rp 5.000.000 / NIPL",
-    region: "Jakarta",
-    status: "Membuka Pendaftaran",
-    statusStyle: "bg-success/15 text-success",
-  },
-  {
-    id: "SESI-121",
-    name: "Lelang Sepeda Motor Bandung - Batch 22",
-    dateTime: "12 Juni 2026, 14:00 WIB",
-    lotCount: "120 Motor",
-    deposit: "Rp 1.000.000 / NIPL",
-    region: "Bandung",
-    status: "Membuka Pendaftaran",
-    statusStyle: "bg-success/15 text-success",
-  },
-  {
-    id: "SESI-122",
-    name: "Lelang Alat Berat & Truk Komersial - Nasional",
-    dateTime: "15 Juni 2026, 09:00 WIB",
-    lotCount: "12 Unit",
-    deposit: "Rp 20.000.000 / NIPL",
-    region: "Nasional",
-    status: "Segera Hadir",
-    statusStyle: "bg-warning/15 text-warning",
-  },
-];
+const initialSessions: any[] = [];
 
 export default function JadwalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("Semua Wilayah");
+  const [sessionsList, setSessionsList] = useState<any[]>(initialSessions);
 
-  const filteredSessions = initialSessions.filter((session) => {
+  const { data: dbSessions = [] } = usePublicSessions();
+
+  useEffect(() => {
+    if (dbSessions && dbSessions.length > 0) {
+      const mapped = dbSessions.map((s: any) => ({
+        id: s.id.substring(0, 8).toUpperCase(),
+        name: s.title,
+        dateTime: new Date(s.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ", " + new Date(s.scheduled_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB",
+        lotCount: `${s._count?.lots || 0} Lot`,
+        deposit: "Rp 5.000.000 / NIPL",
+        region: s.branch?.city || "Jakarta",
+        status: s.status === "live" ? "Sedang Berlangsung" : "Membuka Pendaftaran",
+        statusStyle: s.status === "live" ? "bg-error/15 text-error" : "bg-success/15 text-success",
+      }));
+      setSessionsList(mapped);
+    }
+  }, [dbSessions]);
+
+  const uniqueRegions = Array.from(new Set(sessionsList.map(s => s.region))).filter(Boolean);
+
+  const filteredSessions = sessionsList.filter((session) => {
     const matchesSearch = session.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -86,10 +77,9 @@ export default function JadwalPage() {
                   className="w-full sm:w-[200px] pl-4 pr-10 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md font-medium text-on-surface appearance-none focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-sm cursor-pointer"
                 >
                   <option>Semua Wilayah</option>
-                  <option>Jakarta</option>
-                  <option>Bandung</option>
-                  <option>Surabaya</option>
-                  <option>Nasional</option>
+                  {uniqueRegions.map((region) => (
+                    <option key={region as string} value={region as string}>{region as string}</option>
+                  ))}
                 </select>
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
                   unfold_more

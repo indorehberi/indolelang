@@ -31,8 +31,10 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
   beforeAll(async () => {
     // 1. Database Cleanup
     await prisma.bids.deleteMany({});
+    await prisma.documents.deleteMany({});
     await prisma.invoices.deleteMany({});
     await prisma.deposits.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
     await prisma.kyc_documents.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
@@ -41,7 +43,7 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
     await prisma.users.deleteMany({
       where: {
         email: {
-          in: [adminEmail, bidder1Email, bidder2Email],
+          in: [adminEmail, bidder1Email, bidder2Email, 'hacker@example.com'],
         },
       },
     });
@@ -179,13 +181,33 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
         va_number: '1234500002',
       },
     });
+
+    await prisma.nipl_allocations.create({
+      data: {
+        user_id: bidder1Id,
+        session_id: sessionId,
+        allocated_quantity: 2,
+        used_quantity: 0,
+      },
+    });
+
+    await prisma.nipl_allocations.create({
+      data: {
+        user_id: bidder2Id,
+        session_id: sessionId,
+        allocated_quantity: 2,
+        used_quantity: 0,
+      },
+    });
   });
 
   afterAll(async () => {
     // Clean up
     await prisma.bids.deleteMany({});
+    await prisma.documents.deleteMany({});
     await prisma.invoices.deleteMany({});
     await prisma.deposits.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
     await prisma.kyc_documents.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
@@ -194,7 +216,7 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
     await prisma.users.deleteMany({
       where: {
         email: {
-          in: [adminEmail, bidder1Email, bidder2Email],
+          in: [adminEmail, bidder1Email, bidder2Email, 'hacker@example.com'],
         },
       },
     });
@@ -229,7 +251,7 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
           },
           2_000_000_000
         )
-      ).rejects.toThrow('Anda tidak memiliki NIPL aktif untuk sesi lelang ini');
+      ).rejects.toThrow('Anda minimal harus memiliki 1 NIPL yang dialokasikan untuk sesi lelang ini');
 
       await prisma.users.delete({ where: { id: hacker.id } });
     });

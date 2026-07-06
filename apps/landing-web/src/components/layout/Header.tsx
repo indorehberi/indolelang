@@ -9,13 +9,25 @@ export default function Header() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Parse search query from URL on load
+  // Parse search query and check auth on load
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const q = params.get("search");
       if (q) setSearchQuery(q);
+      
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Invalid user data in localStorage");
+        }
+      }
     }
   }, [pathname]);
 
@@ -47,7 +59,7 @@ export default function Header() {
         <Link href="/" className="flex-shrink-0 flex items-center gap-2">
           <img
             alt="BIDKU"
-            className="h-9 md:h-10 w-auto"
+            className="h-14 md:h-16 w-auto"
             src="/logo-bidku.png"
           />
         </Link>
@@ -87,18 +99,24 @@ export default function Header() {
 
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
-          <Link
-            className="hidden sm:inline-block text-body-md font-extrabold text-on-surface hover:text-primary transition-colors"
-            href="/register/bidder"
-          >
-            Daftar
-          </Link>
-          <Link
-            href="/login"
-            className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press btn-shine transition-all text-center"
-          >
-            Masuk
-          </Link>
+          {mounted && user ? (
+            <Link
+              href={user.role === "provider" ? "/provider/dashboard" : "/bidder/dashboard"}
+              className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-xl">dashboard</span>
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press btn-shine transition-all text-center"
+              >
+                Masuk
+              </Link>
+            </>
+          )}
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -129,22 +147,28 @@ export default function Header() {
                 {link.name}
               </Link>
             ))}
-            <div className="flex gap-3 mt-2">
-              <Link
-                href="/register/bidder"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-5 py-2.5 border-2 border-outline-variant/30 text-on-surface rounded-xl font-bold text-body-md btn-press transition-all hover:border-primary hover:text-primary w-full text-center"
-              >
-                Daftar
-              </Link>
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 w-full text-center"
-              >
-                Masuk
-              </Link>
-            </div>
+            {mounted && user ? (
+              <div className="flex gap-3 mt-2">
+                <Link
+                  href={user.role === "provider" ? "/provider/dashboard" : "/bidder/dashboard"}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 w-full text-center flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-xl">dashboard</span>
+                  Dashboard
+                </Link>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 w-full text-center"
+                >
+                  Masuk
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

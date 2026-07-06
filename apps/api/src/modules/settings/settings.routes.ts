@@ -9,6 +9,9 @@ import { updateSettingSchema, getSettingsQuerySchema } from './settings.schema';
 const router = Router();
 const controller = new SettingsController();
 
+// Public platform settings route
+router.get('/settings/public', controller.getSettings);
+
 // Admin / Superadmin platform settings routes
 router.get(
   '/admin/settings',

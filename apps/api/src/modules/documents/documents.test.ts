@@ -35,6 +35,7 @@ describe('Documents Generation & Verification Module Integration Tests', () => {
     await prisma.invoices.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
     await prisma.auction_sessions.deleteMany({});
     await prisma.branches.deleteMany({});
     const testPhones = ['+628111111111', '+628222222222', '+628333333333'];
@@ -190,6 +191,7 @@ describe('Documents Generation & Verification Module Integration Tests', () => {
     await prisma.invoices.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
     await prisma.auction_sessions.deleteMany({});
     await prisma.branches.deleteMany({});
     const testPhones = ['+628111111111', '+628222222222', '+628333333333'];

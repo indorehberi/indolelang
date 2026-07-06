@@ -19,7 +19,7 @@ export class PaymentsController {
       const notification = req.body;
 
       // 1. Verify Midtrans Webhook Signature
-      const isValid = midtransClient.verifyWebhookSignature({
+      const isValid = await midtransClient.verifyWebhookSignature({
         order_id: notification.order_id,
         status_code: notification.status_code,
         gross_amount: notification.gross_amount,
@@ -64,7 +64,7 @@ export class PaymentsController {
         }
 
         if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
-          await prisma.$transaction([
+          const updatePromises: any[] = [
             prisma.deposits.update({
               where: { id: depositId },
               data: {
@@ -72,12 +72,50 @@ export class PaymentsController {
                 paid_at: new Date(),
               },
             }),
+          ];
+
+          if (deposit.session_id) {
+            const quantity = deposit.package_type === 'unlimited' ? 999 : parseInt(deposit.package_type || '0');
+            updatePromises.push(
+              prisma.nipl_allocations.upsert({
+                where: {
+                  user_id_session_id_unit_type: {
+                    user_id: deposit.user_id,
+                    session_id: deposit.session_id,
+                    unit_type: deposit.unit_type || 'mobil',
+                  },
+                },
+                create: {
+                  user_id: deposit.user_id,
+                  session_id: deposit.session_id,
+                  unit_type: deposit.unit_type || 'mobil',
+                  allocated_quantity: quantity,
+                  used_quantity: 0,
+                },
+                update: {
+                  allocated_quantity: {
+                    increment: quantity,
+                  },
+                },
+              })
+            );
+          }
+
+          const formattedAmount = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+          }).format(Number(deposit.amount));
+
+          updatePromises.push(
             prisma.notifications.create({
               data: {
                 user_id: deposit.user_id,
                 type: 'deposit_success',
                 title: 'Deposit Berhasil',
-                body: `NIPL Anda untuk sesi "${deposit.session.title}" sudah aktif`,
+                body: deposit.session_id
+                  ? `NIPL Anda untuk sesi "${deposit.session?.title || 'Sesi Lelang'}" sudah aktif`
+                  : `Jaminan NIPL Bebas sebesar ${formattedAmount} telah berhasil ditambahkan ke saldo Anda`,
               },
             }),
             prisma.audit_logs.create({
@@ -87,19 +125,17 @@ export class PaymentsController {
                 resource_id: depositId,
                 new_value: transactionStatus,
               },
-            }),
-          ]);
+            })
+          );
 
-          const formattedAmount = new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-          }).format(Number(deposit.amount));
+          await prisma.$transaction(updatePromises);
 
           sendEmail({
             to: deposit.user.email,
             subject: `[Indo-Lelang] Pembayaran Deposit NIPL Berhasil`,
-            text: `Halo ${deposit.user.full_name},\n\nPembayaran jaminan deposit sebesar ${formattedAmount} untuk sesi lelang "${deposit.session.title}" telah kami terima.\n\nNIPL Anda kini telah AKTIF. Anda dapat mengikuti proses bidding saat sesi lelang tersebut dimulai.\n\nTerima kasih,\nTim Indo-Lelang`,
+            text: deposit.session_id
+              ? `Halo ${deposit.user.full_name},\n\nPembayaran jaminan deposit sebesar ${formattedAmount} untuk sesi lelang "${deposit.session?.title || 'Sesi Lelang'}" telah kami terima.\n\nNIPL Anda kini telah AKTIF. Anda dapat mengikuti proses bidding saat sesi lelang tersebut dimulai.\n\nTerima kasih,\nTim Indo-Lelang`
+              : `Halo ${deposit.user.full_name},\n\nPembayaran jaminan deposit bebas sebesar ${formattedAmount} telah kami terima.\n\nSaldo NIPL Bebas Anda kini telah AKTIF. Anda dapat mengalokasikannya ke sesi lelang aktif mana saja kapan saja melalui Dashboard.\n\nTerima kasih,\nTim Indo-Lelang`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
                 <h2 style="color: #2f855a;">Pembayaran Deposit Berhasil</h2>
@@ -109,7 +145,7 @@ export class PaymentsController {
                   <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                       <td style="padding: 6px 0; color: #4a5568;">Sesi Lelang:</td>
-                      <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${deposit.session.title}</td>
+                      <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${deposit.session_id ? deposit.session?.title : 'NIPL Bebas (Saldo Terbuka)'}</td>
                     </tr>
                     <tr>
                       <td style="padding: 6px 0; color: #4a5568;">Jumlah Jaminan:</td>
@@ -121,7 +157,9 @@ export class PaymentsController {
                     </tr>
                   </table>
                 </div>
-                <p>Anda sekarang dapat mengikuti dan melakukan bidding pada sesi lelang tersebut saat jadwalnya dimulai.</p>
+                <p>${deposit.session_id 
+                  ? 'Anda sekarang dapat mengikuti dan melakukan bidding pada sesi lelang tersebut saat jadwalnya dimulai.' 
+                  : 'Anda dapat mengalokasikan saldo jaminan ini untuk mendaftar sesi lelang aktif apa saja lewat menu Kelola Alokasi.'}</p>
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
                 <p style="font-size: 0.8rem; color: #a0aec0; text-align: center;">Email ini dikirimkan secara otomatis oleh sistem Indo-Lelang. Harap tidak membalas email ini.</p>
               </div>
@@ -172,9 +210,8 @@ export class PaymentsController {
             lot: {
               include: {
                 asset: {
-                  select: {
-                    title: true,
-                    provider_id: true,
+                  include: {
+                    provider: true,
                   },
                 },
               },
@@ -193,8 +230,40 @@ export class PaymentsController {
 
         if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
           const hammerPrice = Number(invoice.hammer_price);
-          const commissionDeducted = hammerPrice * 0.05; // 3% commission + 2% provider fee
-          const netAmount = hammerPrice - commissionDeducted;
+          const provider = invoice.lot.asset.provider;
+          
+          // Fetch settings from DB
+          const settings = await prisma.platform_settings.findMany({
+            where: {
+              key: { in: ['tax_percentage', 'dpp_lain_multiplier', 'ppn_dpp_lain_percentage', 'pph23_percentage', 'pmk41_percentage'] }
+            }
+          });
+          const taxPct = parseFloat(settings.find(s => s.key === 'tax_percentage')?.value || '11.0');
+          const dppLainMultiplier = eval(settings.find(s => s.key === 'dpp_lain_multiplier')?.value || '11/12');
+          const ppnDppLainPct = parseFloat(settings.find(s => s.key === 'ppn_dpp_lain_percentage')?.value || '12.0') / 100;
+          const pph23Pct = parseFloat(settings.find(s => s.key === 'pph23_percentage')?.value || '2.0') / 100;
+          const pmk41Pct = parseFloat(settings.find(s => s.key === 'pmk41_percentage')?.value || '1.1') / 100;
+          
+          let totalInvoiceFeeLelang = 0;
+          if (provider.provider_fee_type === 'flat') {
+            totalInvoiceFeeLelang = Number(provider.provider_fee_amount || 0);
+          } else { // percentage or default
+            const percentage = Number(provider.provider_fee_amount || 0) / 100;
+            totalInvoiceFeeLelang = Math.round(hammerPrice * percentage);
+          }
+          
+          const feeDpp = Math.round(totalInvoiceFeeLelang / (1 + (taxPct / 100)));
+          const feeDppLain = Math.round(feeDpp * dppLainMultiplier);
+          const feePpn = Math.round(feeDppLain * ppnDppLainPct);
+          const feePph23 = Math.round((totalInvoiceFeeLelang - feePpn) * pph23Pct);
+          const totalTerimaFeeLelang = totalInvoiceFeeLelang - feePph23;
+          
+          let pmk41 = 0;
+          if (provider.pmk41_paid_by_provider) {
+            pmk41 = Math.round(hammerPrice * pmk41Pct);
+          }
+          
+          const netAmount = hammerPrice - totalTerimaFeeLelang + pmk41;
 
           await prisma.$transaction([
             prisma.invoices.update({
@@ -207,10 +276,15 @@ export class PaymentsController {
             prisma.settlements.create({
               data: {
                 lot_id: invoice.lot_id,
-                provider_id: invoice.lot.asset.provider_id,
+                provider_id: provider.id,
                 gross_amount: new Prisma.Decimal(hammerPrice),
-                commission_deducted: new Prisma.Decimal(commissionDeducted),
+                commission_deducted: new Prisma.Decimal(totalTerimaFeeLelang),
                 net_amount: new Prisma.Decimal(netAmount),
+                fee_dpp: new Prisma.Decimal(feeDpp),
+                fee_dpp_lain: new Prisma.Decimal(feeDppLain),
+                fee_ppn: new Prisma.Decimal(feePpn),
+                fee_pph23: new Prisma.Decimal(feePph23),
+                pmk41_amount: new Prisma.Decimal(pmk41),
                 status: 'pending',
               },
             }),

@@ -11,6 +11,7 @@ import { apiUrl } from '../../../lib/api';
 interface UserDetail {
   id: string;
   name: string;
+  full_name?: string;
   email: string;
   phone: string;
   role: string;
@@ -21,6 +22,10 @@ interface UserDetail {
   bank_holder?: string;
   created_at: string;
   kyc_status?: string;
+  provider_status?: string;
+  provider_fee_type?: string;
+  provider_fee_amount?: number;
+  pmk41_paid_by_provider?: boolean;
 }
 
 interface KycDoc {
@@ -30,25 +35,7 @@ interface KycDoc {
   status: string;
 }
 
-const DUMMY_USER: UserDetail = {
-  id: 'user-demo-001',
-  name: 'Budi Santoso',
-  email: 'budi.santoso@gmail.com',
-  phone: '08123456789',
-  role: 'bidder',
-  status: 'active',
-  nik: '327310******9003',
-  bank_name: 'BCA',
-  bank_account: '8098765432',
-  bank_holder: 'Budi Santoso',
-  created_at: '2026-05-14T10:00:00Z',
-  kyc_status: 'approved',
-};
 
-const DUMMY_KYC_DOCS: KycDoc[] = [
-  { id: 'doc-1', type: 'ktp', file_url: '', status: 'approved' },
-  { id: 'doc-2', type: 'selfie', file_url: '', status: 'approved' },
-];
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -61,6 +48,12 @@ export default function UserDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Provider fee configuration states
+  const [feeType, setFeeType] = useState('percentage');
+  const [feeAmount, setFeeAmount] = useState<number>(0);
+  const [pmk41, setPmk41] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
@@ -69,22 +62,27 @@ export default function UserDetailPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const res = await fetch(apiUrl(`/admin/users/${userId}`), {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.data?.user || data.data);
+          const u = data.data?.user || data.data;
+          setUser(u);
           setKycDocs(data.data?.kyc_docs || []);
+          if (u.role === 'provider' || u.provider_status === 'approved') {
+            setFeeType(u.provider_fee_type || 'percentage');
+            setFeeAmount(u.provider_fee_amount || 0);
+            setPmk41(u.pmk41_paid_by_provider || false);
+          }
         } else {
-          // Fallback to dummy
-          setUser(DUMMY_USER);
-          setKycDocs(DUMMY_KYC_DOCS);
+          setUser(null);
+          setKycDocs([]);
         }
       } catch {
-        setUser(DUMMY_USER);
-        setKycDocs(DUMMY_KYC_DOCS);
+        setUser(null);
+        setKycDocs([]);
       } finally {
         setLoading(false);
       }
@@ -97,7 +95,7 @@ export default function UserDetailPage() {
     if (!confirm(`Anda yakin ingin ${user?.status === 'suspended' ? 'mengaktifkan' : 'mensuspend'} akun ini?`)) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(apiUrl(`/admin/users/${userId}/status`), {
         method: 'PATCH',
         headers: {
@@ -127,7 +125,7 @@ export default function UserDetailPage() {
     if (!confirm('Kirim ulang email reset password ke pengguna ini?')) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(apiUrl(`/admin/users/${userId}/reset-password`), {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -141,6 +139,35 @@ export default function UserDetailPage() {
       showToast('error', 'Koneksi ke server gagal');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSaveProviderSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const res = await fetch(apiUrl(`/admin/users/${userId}/provider-status`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          status: user?.provider_status || 'approved',
+          provider_fee_type: feeType,
+          provider_fee_amount: feeAmount,
+          pmk41_paid_by_provider: pmk41,
+        }),
+      });
+      if (res.ok) {
+        showToast('success', 'Pengaturan biaya & fee provider berhasil disimpan');
+      } else {
+        showToast('error', 'Gagal menyimpan pengaturan fee');
+      }
+    } catch {
+      showToast('error', 'Koneksi ke server gagal');
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -264,11 +291,11 @@ export default function UserDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                {user.name.charAt(0).toUpperCase()}
+                {(user.full_name || user.name || '-').charAt(0).toUpperCase()}
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                  {user.name}
+                  {user.full_name || user.name}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                   <Badge variant={getRoleBadge(user.role)}>
@@ -286,7 +313,7 @@ export default function UserDetailPage() {
               <tbody>
                 {[
                   { label: 'ID Pengguna', value: user.id },
-                  { label: 'Nama Lengkap', value: user.name },
+                  { label: 'Nama Lengkap', value: user.full_name || user.name },
                   { label: 'NIK / KTP', value: user.nik || '—' },
                   { label: 'Email', value: user.email },
                   { label: 'Nomor HP', value: user.phone || '—' },
@@ -362,6 +389,64 @@ export default function UserDetailPage() {
               </button>
             </div>
           </Card>
+
+          {/* Provider Settings Card */}
+          {(user.role === 'provider' || user.provider_status === 'approved') && (
+            <Card title="Pengaturan Biaya & Fee Provider">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Tipe Fee Lelang (Diterapkan ke Harga Terbentuk)
+                  </label>
+                  <select 
+                    value={feeType} 
+                    onChange={(e) => setFeeType(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="percentage">Prosentase (%) dari Harga Terbentuk</option>
+                    <option value="flat">Flat Fee (Nominal Pasti)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Nilai Fee {feeType === 'percentage' ? '(%)' : '(Rp)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    value={feeAmount} 
+                    onChange={(e) => setFeeAmount(Number(e.target.value))}
+                    placeholder={feeType === 'percentage' ? 'Misal: 1.5' : 'Misal: 1500000'}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: '1.4' }}>
+                    *Nilai ini merupakan total **Invoice Fee Lelang** secara kotor (bruto). Sistem akan otomatis menghitung breakdown nilai bersih DPP, DPP Lain, dan memotongnya dengan tarif PPh 23 (2%) saat pencairan settlement.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                  <input 
+                    type="checkbox" 
+                    id="pmk41" 
+                    checked={pmk41} 
+                    onChange={(e) => setPmk41(e.target.checked)}
+                    style={{ width: '1.1rem', height: '1.1rem' }}
+                  />
+                  <label htmlFor="pmk41" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Beban Biaya PMK 41 (1,1%) Dibayarkan oleh Provider
+                  </label>
+                </div>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Button 
+                    variant="primary" 
+                    onClick={handleSaveProviderSettings} 
+                    disabled={savingSettings}
+                    style={{ width: '100%' }}
+                  >
+                    {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan Biaya'}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Right: KYC docs */}
@@ -425,10 +510,10 @@ export default function UserDetailPage() {
           <Card title="Aktivitas Lelang">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {[
-                { label: 'Total Bid Ditempatkan', value: '32' },
-                { label: 'Lot Dimenangkan', value: '5' },
-                { label: 'Total Deposit Masuk', value: 'Rp 35.000.000' },
-                { label: 'Status Deposit Aktif', value: 'Rp 5.000.000' },
+                { label: 'Total Bid Ditempatkan', value: '0' },
+                { label: 'Lot Dimenangkan', value: '0' },
+                { label: 'Total Deposit Masuk', value: 'Rp 0' },
+                { label: 'Status Deposit Aktif', value: 'Rp 0' },
               ].map(({ label, value }) => (
                 <div
                   key={label}

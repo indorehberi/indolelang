@@ -47,11 +47,27 @@ export class DepositsController {
   async createDeposit(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { session_id, amount, bank } = req.body;
+      const { session_id, unit_type, package_type, bank } = req.body;
 
-      const deposit = await depositsService.createDeposit(userId, session_id, amount, bank);
+      const deposit = await depositsService.createDeposit(userId, session_id, unit_type, package_type, bank);
 
       sendSuccess(res, deposit, 'Pendaftaran NIPL berhasil, Virtual Account telah dibuat', undefined, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Request refund for a paid deposit (Bidder only)
+   */
+  async requestRefund(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      const result = await depositsService.requestRefund(userId, id);
+      
+      sendSuccess(res, result, 'Pengajuan refund berhasil. Uang jaminan sedang diproses untuk dikembalikan.');
     } catch (error) {
       next(error);
     }

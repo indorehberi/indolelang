@@ -40,39 +40,7 @@ interface BastInfo {
   signed: boolean;
 }
 
-const DUMMY_ASSET: AssetDetail = {
-  id: 'asset-demo-001',
-  title: 'Honda Brio Satya 1.2 E 2021',
-  category: 'Kendaraan',
-  condition: 'used',
-  description:
-    'Honda Brio Satya tahun 2021, tangan pertama, kilometer rendah 28.000 km, warna Midnight Black. Surat-surat lengkap dan asli.',
-  base_price: 115_000_000,
-  status: 'pending_inspection',
-  provider_name: 'PT Astra Auto Financial',
-  photos: [],
-  created_at: '2026-06-01T10:30:00Z',
-};
 
-const DUMMY_INSPECTION: InspectionReport = {
-  engine_grade: 'B',
-  interior_grade: 'A',
-  exterior_grade: 'B',
-  recommended_base_price: 115_000_000,
-  notes:
-    'Mesin berfungsi prima. Oli mesin bersih. Terdapat sedikit goresan halus di dekat gagang pintu pengemudi. AC berfungsi sangat baik.',
-  inspected_by: 'Rudi Appraisal (Staf Inspeksi)',
-  inspected_at: '2026-06-09T11:00:00Z',
-};
-
-const DUMMY_BAST: BastInfo = {
-  bast_number: 'BAST-TJ/2026/06/102',
-  received_at: '2026-06-09T11:30:00Z',
-  delivered_by: 'Driver PT Astra Auto (Budi)',
-  received_by: 'Jaka (Staf Gudang Balai Lelang)',
-  warehouse: 'Gudang Jakarta (HQ)',
-  signed: true,
-};
 
 export default function AssetDetailPage() {
   const params = useParams();
@@ -84,6 +52,7 @@ export default function AssetDetailPage() {
   const [bast, setBast] = useState<BastInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [inspectionForm, setInspectionForm] = useState({
@@ -100,9 +69,16 @@ export default function AssetDetailPage() {
   };
 
   useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role);
+      }
+    } catch(e) {}
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const res = await fetch(apiUrl(`/assets/${assetId}`), {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -110,28 +86,14 @@ export default function AssetDetailPage() {
           const data = await res.json();
           setAsset(data.data);
         } else {
-          setAsset(DUMMY_ASSET);
-          setInspection(DUMMY_INSPECTION);
-          setBast(DUMMY_BAST);
-          setInspectionForm({
-            engine_grade: DUMMY_INSPECTION.engine_grade,
-            interior_grade: DUMMY_INSPECTION.interior_grade,
-            exterior_grade: DUMMY_INSPECTION.exterior_grade,
-            recommended_base_price: String(DUMMY_INSPECTION.recommended_base_price),
-            notes: DUMMY_INSPECTION.notes,
-          });
+          setAsset(null);
+          setInspection(null);
+          setBast(null);
         }
       } catch {
-        setAsset(DUMMY_ASSET);
-        setInspection(DUMMY_INSPECTION);
-        setBast(DUMMY_BAST);
-        setInspectionForm({
-          engine_grade: DUMMY_INSPECTION.engine_grade,
-          interior_grade: DUMMY_INSPECTION.interior_grade,
-          exterior_grade: DUMMY_INSPECTION.exterior_grade,
-          recommended_base_price: String(DUMMY_INSPECTION.recommended_base_price),
-          notes: DUMMY_INSPECTION.notes,
-        });
+        setAsset(null);
+        setInspection(null);
+        setBast(null);
       } finally {
         setLoading(false);
       }
@@ -140,10 +102,44 @@ export default function AssetDetailPage() {
     if (assetId) fetchData();
   }, [assetId]);
 
+  
+  const handleApprove = async () => {
+    if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/assets/${assetId}/approve`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showToast('success', 'Barang disetujui');
+        // reload data
+        router.refresh();
+        setTimeout(() => window.location.reload(), 1000);
+      } else alert('Gagal menyetujui barang');
+    } catch (err) { console.error(err); }
+  };
+
+  const handleReject = async () => {
+    if (!confirm('Apakah Anda yakin menolak barang ini?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/assets/${assetId}/reject`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showToast('success', 'Barang ditolak');
+        router.refresh();
+        setTimeout(() => window.location.reload(), 1000);
+      } else alert('Gagal menolak barang');
+    } catch (err) { console.error(err); }
+  };
+
   const handleSaveInspection = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(apiUrl(`/assets/${assetId}/inspection`), {
         method: 'POST',
         headers: {
@@ -237,9 +233,17 @@ export default function AssetDetailPage() {
             &bull; Detail Barang
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/assets')}>
-          ← Kembali
-        </Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button variant="outline" onClick={() => router.push('/assets')}>
+            ← Kembali
+          </Button>
+          {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
+            <>
+              <Button variant="success" onClick={handleApprove}>Approve</Button>
+              <Button variant="danger" onClick={handleReject}>Reject</Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Asset info banner */}

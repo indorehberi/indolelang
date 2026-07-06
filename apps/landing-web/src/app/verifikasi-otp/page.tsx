@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { apiUrl, fetchWithRetry } from "@/lib/api";
 import { Suspense } from "react";
 
 function VerifikasiOtpContent() {
@@ -42,12 +43,26 @@ function VerifikasiOtpContent() {
     }
   };
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const otpCode = otp.join("");
     if (otpCode.length === 6) {
-      // Direct redirect to eKYC page
-      router.push("/ekyc/upload");
+      try {
+        const response = await fetchWithRetry(apiUrl("/auth/verify-otp"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, otp: otpCode }),
+        });
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          alert("Verifikasi berhasil! Akun Anda sudah aktif. Silakan login.");
+          router.push("/login");
+        } else {
+          alert(resData.error?.message || "Kode OTP salah atau kedaluwarsa.");
+        }
+      } catch (err) {
+        alert("Terjadi kesalahan koneksi.");
+      }
     } else {
       alert("Masukkan 6 digit kode OTP lengkap.");
     }

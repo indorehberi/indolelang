@@ -28,47 +28,7 @@ export default function SessionsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const dummySessions: Session[] = [
-    {
-      id: 'session-1',
-      branch_id: 'branch-1',
-      title: 'Lelang Mobil Bekas Avanza & Xenia Cabang Jakarta',
-      description: 'Menampilkan 12 unit MPV siap lelang, kondisi istimewa.',
-      scheduled_at: '2026-07-05T10:00:00.000Z',
-      status: 'draft',
-      branch: {
-        name: 'Indo-Lelang Jakarta',
-        city: 'Jakarta',
-      },
-      created_at: '2026-06-23T08:00:00.000Z',
-    },
-    {
-      id: 'session-2',
-      branch_id: 'branch-2',
-      title: 'Lelang Motor Matic Honda & Yamaha Cabang Surabaya',
-      description: '25 unit motor matic tahun muda KM rendah.',
-      scheduled_at: '2026-06-28T13:30:00.000Z',
-      status: 'published',
-      branch: {
-        name: 'Indo-Lelang Surabaya',
-        city: 'Surabaya',
-      },
-      created_at: '2026-06-22T04:00:00.000Z',
-    },
-    {
-      id: 'session-3',
-      branch_id: 'branch-1',
-      title: 'Lelang Cepat Unit Motor Cabang Jakarta',
-      description: 'Sesi lelang cepat sore hari untuk motor sitaan.',
-      scheduled_at: '2026-06-23T15:00:00.000Z',
-      status: 'live',
-      branch: {
-        name: 'Indo-Lelang Jakarta',
-        city: 'Jakarta',
-      },
-      created_at: '2026-06-23T01:00:00.000Z',
-    },
-  ];
+
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -87,24 +47,13 @@ export default function SessionsPage() {
       if (response.ok && data.success) {
         setSessions(data.data);
       } else {
-        applyDummyFilters();
+        setSessions([]);
       }
     } catch (err) {
-      applyDummyFilters();
+      setSessions([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const applyDummyFilters = () => {
-    let filtered = [...dummySessions];
-    if (statusFilter) filtered = filtered.filter((s) => s.status === statusFilter);
-    if (search) {
-      filtered = filtered.filter((s) =>
-        s.title.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    setSessions(filtered);
   };
 
   useEffect(() => {
@@ -248,9 +197,9 @@ export default function SessionsPage() {
                             <Button variant="danger" size="sm">Enter Room</Button>
                           </Link>
                         ) : (
-                          <>
+                          <Link href={`/lots/planning?session_id=${session.id}`}>
                             <Button variant="outline" size="sm">Manage Lots</Button>
-                          </>
+                          </Link>
                         )}
                       </div>
                     </td>

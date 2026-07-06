@@ -1,9 +1,12 @@
 import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, S3_CONFIG } from '../config/s3';
+import { env } from '../config/env';
 import sharp from 'sharp';
 import crypto from 'crypto';
 import path from 'path';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 
 export interface UploadOptions {
   folder?: string;
@@ -55,26 +58,57 @@ export async function uploadToS3(
     fileBuffer = await sharpInstance.toBuffer();
   }
 
-  // Upload to S3
-  const command = new PutObjectCommand({
-    Bucket: S3_CONFIG.bucket,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: contentType,
-  });
+  const isDummyS3 = !env.AWS_ACCESS_KEY_ID || 
+                    env.AWS_ACCESS_KEY_ID.includes('dummy') || 
+                    env.AWS_ACCESS_KEY_ID.includes('your-') ||
+                    env.AWS_ACCESS_KEY_ID === '';
 
-  await s3Client.send(command);
+  try {
+    if (isDummyS3) {
+      throw new Error('S3 credentials are dummy or empty, fallback to local file system.');
+    }
 
-  // Generate public URL (or use presigned URL if bucket is private)
-  const url = `https://${S3_CONFIG.bucket}.s3.${S3_CONFIG.region}.amazonaws.com/${key}`;
+    // Upload to S3
+    const command = new PutObjectCommand({
+      Bucket: S3_CONFIG.bucket,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: contentType,
+    });
 
-  return {
-    key,
-    url,
-    bucket: S3_CONFIG.bucket,
-    size: fileBuffer.length,
-    mimeType: contentType,
-  };
+    await s3Client.send(command);
+
+    // Generate public URL
+    const url = `https://${S3_CONFIG.bucket}.s3.${S3_CONFIG.region}.amazonaws.com/${key}`;
+
+    return {
+      key,
+      url,
+      bucket: S3_CONFIG.bucket,
+      size: fileBuffer.length,
+      mimeType: contentType,
+    };
+  } catch (error) {
+    // Local File Storage Fallback
+    const uploadDir = path.join(process.cwd(), 'uploads', folder);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    const filePath = path.join(uploadDir, filename);
+    await fsPromises.writeFile(filePath, fileBuffer);
+
+    const hostUrl = process.env.API_URL || 'http://localhost:8000';
+    const url = `${hostUrl}/uploads/${folder}/${filename}`;
+
+    return {
+      key,
+      url,
+      bucket: 'local-storage',
+      size: fileBuffer.length,
+      mimeType: contentType,
+    };
+  }
 }
 
 /**

@@ -4,7 +4,7 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
-import { activeLots, startActiveLot, closeActiveLot, getSocketIo, maskUserId } from '../../lib/socket';
+import { activeLots, startActiveLot, closeActiveLot, cancelActiveLot, getSocketIo, maskUserId } from '../../lib/socket';
 import { LotStatus, SessionStatus, DepositStatus } from '@indo-lelang/shared-types';
 import { logger } from '../../lib/logger';
 import { isFeatureEnabled } from '../../lib/featureToggle';
@@ -93,6 +93,33 @@ export class ControlController {
       logAdminAction(req, 'MANUAL_CLOSE_LOT', 'lots', lotId, lot, settled);
 
       sendSuccess(res, settled, 'Lot berhasil ditutup (ketok palu manual).');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel an active lot manually
+   */
+  async cancelLot(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const lotId = req.params.id;
+
+      const lot = await prisma.lots.findUnique({ where: { id: lotId } });
+      if (!lot) {
+        throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot tidak ditemukan');
+      }
+
+      if (lot.status !== LotStatus.ACTIVE) {
+        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Lot tidak dalam status aktif');
+      }
+
+      const cancelled = await cancelActiveLot(lotId);
+
+      // Audit Log
+      logAdminAction(req, 'CANCEL_ACTIVE_LOT', 'lots', lotId, lot, cancelled);
+
+      sendSuccess(res, cancelled, 'Lot berhasil dibatalkan dan dikembalikan ke pending.');
     } catch (error) {
       next(error);
     }

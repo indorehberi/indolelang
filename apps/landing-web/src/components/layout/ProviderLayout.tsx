@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import SessionTimeout from "./SessionTimeout";
 
 interface ProviderLayoutProps {
   children: React.ReactNode;
@@ -48,6 +49,8 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
     }
   };
 
+
+
   const menuItems = [
     { name: "Dashboard", href: "/provider/dashboard", icon: "dashboard" },
     { name: "Ajukan Aset Baru", href: "/provider/ajukan-barang", icon: "add_box" },
@@ -59,17 +62,20 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="min-h-screen bg-surface flex">
+    <div className="min-h-screen bg-surface flex flex-col font-sans">
+      <SessionTimeout timeoutMinutes={10} />
       {/* ====== DESKTOP SIDEBAR ====== */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl">
         {/* Brand Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-            <span className="material-symbols-outlined text-white text-base filled">storefront</span>
-          </div>
-          <span className="font-black text-white text-lg tracking-tight">
-            BIDKU
-          </span>
+        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start">
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="BIDKU"
+              className="h-12 w-auto"
+              src="/logo-bidku.png"
+            />
+          </Link>
         </div>
 
         {/* User Role Tag */}
@@ -106,9 +112,9 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error/10 transition-all w-full text-left"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all w-full shadow-md shadow-red-900/20"
           >
-            <span className="material-symbols-outlined text-base">logout</span>
+            <span className="material-symbols-outlined text-lg">logout</span>
             Keluar Akun
           </button>
         </div>
@@ -160,14 +166,15 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
           {/* Drawer menu */}
           <div className="relative w-64 bg-slate-900 text-white flex flex-col h-full shadow-2xl z-10 animate-fade-in-up">
             <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white text-base filled">storefront</span>
-                </div>
-                <span className="font-black text-white text-lg tracking-tight">
-                  BIDKU
-                </span>
-              </div>
+          {/* Mobile Logo */}
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="BIDKU"
+              className="h-10 w-auto"
+              src="/logo-bidku.png"
+            />
+          </Link>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-white"
@@ -208,9 +215,9 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error/10 transition-all w-full text-left"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all w-full shadow-md shadow-red-900/20"
               >
-                <span className="material-symbols-outlined text-base">logout</span>
+                <span className="material-symbols-outlined text-lg">logout</span>
                 Keluar Akun
               </button>
             </div>

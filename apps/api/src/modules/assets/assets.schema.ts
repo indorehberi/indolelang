@@ -3,18 +3,37 @@ import { AssetCategory, AssetStatus } from '@indo-lelang/shared-types';
 
 export const createAssetSchema = z.object({
   body: z.object({
-    category: z.enum([
-      AssetCategory.MOBIL,
-      AssetCategory.MOTOR,
-      AssetCategory.ALAT_BERAT,
-      AssetCategory.PROPERTI,
-    ], {
-      errorMap: () => ({ message: 'Kategori barang tidak valid' }),
-    }),
-    title: z.string().min(5, 'Nama barang minimal 5 karakter'),
+    category: z.nativeEnum(AssetCategory),
+    title: z.string().min(3),
     description: z.string().optional(),
-    base_price: z.number().positive('Harga dasar harus lebih besar dari 0'),
-    images: z.string().optional(), // stringified JSON array
+    base_price: z.any().transform(v => Number(v)),
+    images: z.any().optional(),
+    provider_id: z.string().uuid().optional(),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    color: z.string().optional(),
+    fuel_type: z.string().optional(),
+    transmission: z.string().optional(),
+    body_type: z.string().optional(),
+    year: z.any().optional(),
+    police_number: z.string().optional(),
+    bpkb_number: z.string().optional(),
+    frame_number: z.string().optional(),
+    cylinder: z.any().optional(),
+    odometer: z.any().optional(),
+    is_recommended: z.any().optional(),
+    engine_number: z.string().optional(),
+    stnk_date: z.any().optional(),
+    stnk_tax_date: z.any().optional(),
+    keur_date: z.any().optional(),
+    doc_stnk: z.any().optional(),
+    doc_bpkb: z.any().optional(),
+    doc_faktur: z.any().optional(),
+    doc_kwitansi: z.any().optional(),
+    doc_form_a: z.any().optional(),
+    doc_copy_ktp: z.any().optional(),
+    doc_keur: z.any().optional(),
+    doc_sph: z.any().optional(),
   }),
 });
 
@@ -41,6 +60,23 @@ export const updateAssetSchema = z.object({
         AssetStatus.RETURNED,
       ])
       .optional(),
+      
+    inspector_id: z.string().uuid().optional(),
+    inspection_date: z.string().datetime().optional(),
+    grade_interior: z.enum(['A', 'B', 'C', 'D']).optional(),
+    grade_exterior: z.enum(['A', 'B', 'C', 'D']).optional(),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    color: z.string().optional(),
+    fuel_type: z.enum(['Bensin', 'Solar', 'Hybrid', 'EV']).optional(),
+    transmission: z.enum(['Manual', 'Otomatis']).optional(),
+    body_type: z.string().optional(),
+    year: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
+    police_number: z.string().optional(),
+    bpkb_number: z.string().optional(),
+    frame_number: z.string().optional(),
+    cylinder: z.number().int().positive().optional(),
+    odometer: z.number().int().nonnegative().optional(),
   }),
 });
 
@@ -48,13 +84,8 @@ export const getAssetsQuerySchema = z.object({
   query: z.object({
     page: z.string().transform((val) => parseInt(val, 10)).default('1'),
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
-    status: z.enum([
-      AssetStatus.PENDING,
-      AssetStatus.APPROVED,
-      AssetStatus.LISTED,
-      AssetStatus.SOLD,
-      AssetStatus.RETURNED,
-    ]).optional(),
+    status: z.string().optional(),
+    provider_id: z.string().uuid().optional(),
     category: z.enum([
       AssetCategory.MOBIL,
       AssetCategory.MOTOR,
@@ -64,3 +95,4 @@ export const getAssetsQuerySchema = z.object({
     search: z.string().optional(),
   }),
 });
+ 

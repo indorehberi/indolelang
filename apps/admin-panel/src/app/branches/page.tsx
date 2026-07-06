@@ -4,6 +4,10 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
+import Input from '../../components/ui/Input';
+import Toast from '../../components/ui/Toast';
 import { apiUrl } from '../../lib/api';
 
 interface Branch {
@@ -20,29 +24,18 @@ interface Branch {
 export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
-  const dummyBranches: Branch[] = [
-    {
-      id: 'br-1',
-      tenant_id: 'default',
-      name: 'Indo-Lelang Jakarta',
-      city: 'Jakarta',
-      address: 'Jl. Jendral Sudirman No. 21, Jakarta Selatan',
-      phone: '+622155551234',
-      pic_name: 'Budi Santoso',
-      is_active: true,
-    },
-    {
-      id: 'br-2',
-      tenant_id: 'default',
-      name: 'Indo-Lelang Surabaya',
-      city: 'Surabaya',
-      address: 'Jl. Basuki Rahmat No. 45, Genteng, Surabaya',
-      phone: '+623155556789',
-      pic_name: 'Siti Rahma',
-      is_active: true,
-    },
-  ];
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    city: '',
+    address: '',
+    phone: '',
+    pic_name: '',
+  });
 
   const fetchBranches = async () => {
     setLoading(true);
@@ -57,10 +50,10 @@ export default function BranchesPage() {
       if (response.ok && data.success) {
         setBranches(data.data);
       } else {
-        setBranches(dummyBranches);
+        setBranches([]);
       }
     } catch (e) {
-      setBranches(dummyBranches);
+      setBranches([]);
     } finally {
       setLoading(false);
     }
@@ -70,6 +63,42 @@ export default function BranchesPage() {
     fetchBranches();
   }, []);
 
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.city || !formData.address || !formData.phone || !formData.pic_name) {
+      alert('Mohon isi semua bidang yang diwajibkan.');
+      return;
+    }
+
+    setAdding(true);
+    setToast(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/admin/branches'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal menambahkan cabang');
+      }
+
+      setToast({ message: 'Cabang berhasil ditambahkan', variant: 'success' });
+      setShowAddModal(false);
+      setFormData({ name: '', city: '', address: '', phone: '', pic_name: '' });
+      fetchBranches();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengaturan" breadcrumbCurrent="Manajemen Cabang">
       <div className="toolbar">
@@ -78,7 +107,9 @@ export default function BranchesPage() {
           <p className="page-subtitle">Daftar lokasi fisik kantor operasional dan titik penyerahan/pengambilan unit lelang.</p>
         </div>
         <div className="toolbar-right">
-          <button className="btn btn-primary btn-sm">+ Tambah Cabang</button>
+          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+            + Tambah Cabang
+          </Button>
         </div>
       </div>
 
@@ -129,6 +160,94 @@ export default function BranchesPage() {
           </table>
         </div>
       </Card>
+
+      {/* Add Branch Modal */}
+      {showAddModal && (
+        <Modal
+          isOpen={showAddModal}
+          title="Tambah Cabang Baru"
+          onClose={() => setShowAddModal(false)}
+        >
+          <form onSubmit={handleAddSubmit}>
+            <div className="mb-2">
+              <Input
+                label="Nama Cabang"
+                type="text"
+                required
+                placeholder="Contoh: Cabang Jakarta Pusat"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <Input
+                label="Kota"
+                type="text"
+                required
+                placeholder="Contoh: Jakarta Pusat"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <label className="form-label" style={{ fontWeight: 'bold' }}>
+                Alamat Lengkap <span className="text-danger">*</span>
+              </label>
+              <textarea
+                className="form-control"
+                required
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '0.5rem',
+                  border: '1px solid var(--wf-border)',
+                  borderRadius: 'var(--radius)',
+                  fontFamily: 'inherit',
+                }}
+                placeholder="Alamat lengkap cabang..."
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <Input
+                label="Nomor Telepon"
+                type="text"
+                required
+                placeholder="Contoh: 08123456789"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <Input
+                label="Nama Kepala Cabang (PIC)"
+                type="text"
+                required
+                placeholder="Contoh: Budi Santoso"
+                value={formData.pic_name}
+                onChange={(e) => setFormData({ ...formData, pic_name: e.target.value })}
+              />
+            </div>
+            <div className="d-flex justify-end gap-1">
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} disabled={adding}>
+                Batal
+              </Button>
+              <Button type="submit" variant="primary" disabled={adding}>
+                {adding ? 'Menyimpan...' : 'Simpan Cabang'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }

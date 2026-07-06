@@ -1,45 +1,227 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { apiUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 
 export default function BidderProfile() {
-  const [name, setName] = useState("Budi Santoso");
-  const [email, setEmail] = useState("budi.santoso@gmail.com");
-  const [phone, setPhone] = useState("081234567890");
-  const [ekycStatus, setEkycStatus] = useState("verified");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  
+  // New Profile Fields
+  const [address, setAddress] = useState("");
+  const [occupation, setOccupation] = useState("Pegawai Swasta");
+  const [bankName, setBankName] = useState("");
+  const [bankAccountNo, setBankAccountNo] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [npwp, setNpwp] = useState("");
+  const [npwpUrl, setNpwpUrl] = useState("");
+  const [npwpFile, setNpwpFile] = useState<File | null>(null);
+  const [isUploadingNpwp, setIsUploadingNpwp] = useState(false);
+  const [isCheckingBank, setIsCheckingBank] = useState(false);
+
+  const [ekycStatus, setEkycStatus] = useState("unverified"); // unverified, pending, approved, rejected
+  const [ktpUploaded, setKtpUploaded] = useState(false);
+  const [selfieUploaded, setSelfieUploaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadProfileData = async () => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      // 1. Fetch Profile Info
+      const resProfile = await fetch(apiUrl("/users/profile"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resProfileData = await resProfile.json();
+      if (resProfile.ok && resProfileData.success) {
+        const user = resProfileData.data;
+        setName(user.full_name || "");
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
+        setAddress(user.address || "");
+        setOccupation(user.occupation || "Pegawai Swasta");
+        setBankName(user.bank_name || "");
+        setBankAccountNo(user.bank_account_no || "");
+        setBankAccountName(user.bank_account_name || "");
+        setNpwp(user.npwp || "");
+        setNpwpUrl(user.npwp_url || "");
+      }
+
+      // 2. Fetch KYC Document Status
+      const resKyc = await fetch(apiUrl("/kyc/status"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resKycData = await resKyc.json();
+      if (resKyc.ok && resKycData.success) {
+        const kyc = resKycData.data;
+        setEkycStatus(kyc.status || "pending");
+        setKtpUploaded(!!kyc.ktp_url);
+        setSelfieUploaded(!!kyc.selfie_url);
+      } else if (resKyc.status === 404) {
+        // KYC documents not uploaded yet
+        setEkycStatus("unverified");
+        setKtpUploaded(false);
+        setSelfieUploaded(false);
+      }
+    } catch (err) {
+      console.error("Failed to load profile/kyc data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          if (user.full_name) setName(user.full_name);
-          if (user.email) setEmail(user.email);
-          if (user.phone) setPhone(user.phone);
-        } catch (e) {}
-      }
-      const storedEkyc = localStorage.getItem("user_ekyc_status");
-      if (storedEkyc) setEkycStatus(storedEkyc);
-    }
+    loadProfileData();
   }, []);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      alert("Profil berhasil diperbarui!");
-    }, 1000);
+  const handleNpwpUpload = async () => {
+    if (!npwpFile) return;
+    
+    setIsUploadingNpwp(true);
+    const token = localStorage.getItem("accessToken");
+    
+    const formData = new FormData();
+    formData.append("file", npwpFile);
+    
+    try {
+      const response = await fetch(apiUrl("/upload/single"), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setNpwpUrl(resData.data.url);
+        alert("NPWP berhasil diunggah! Jangan lupa klik Simpan Perubahan.");
+      } else {
+        alert(resData.error?.message || "Gagal mengunggah dokumen.");
+      }
+    } catch (err) {
+      alert("Koneksi gagal saat mengunggah dokumen.");
+    } finally {
+      setIsUploadingNpwp(false);
+    }
   };
+
+  const handleCheckBank = async () => {
+    if (!bankName || !bankAccountNo) {
+      alert("Pilih bank dan isi nomor rekening terlebih dahulu.");
+      return;
+    }
+    
+    setIsCheckingBank(true);
+    const token = localStorage.getItem("accessToken");
+    
+    try {
+      const response = await fetch(apiUrl("/bank/validate"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bank_code: bankName,
+          account_no: bankAccountNo,
+        }),
+      });
+      
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setBankAccountName(resData.data.account_name);
+        alert("Rekening berhasil divalidasi atas nama: " + resData.data.account_name);
+      } else {
+        alert(resData.error?.message || "Rekening tidak ditemukan atau tidak valid.");
+        setBankAccountName("");
+      }
+    } catch (err) {
+      alert("Koneksi gagal saat mengecek rekening.");
+    } finally {
+      setIsCheckingBank(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("accessToken");
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(apiUrl("/users/profile"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          full_name: name,
+          phone: phone,
+          address: address,
+          occupation: occupation,
+          bank_name: bankName,
+          bank_account_no: bankAccountNo,
+          bank_account_name: bankAccountName,
+          npwp: npwp,
+          npwp_url: npwpUrl,
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        // Sync local storage user
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const userObj = JSON.parse(storedUser);
+          userObj.full_name = name;
+          userObj.phone = phone;
+          userObj.address = address;
+          userObj.occupation = occupation;
+          userObj.bank_name = bankName;
+          userObj.bank_account_no = bankAccountNo;
+          userObj.bank_account_name = bankAccountName;
+          userObj.npwp = npwp;
+          userObj.npwp_url = npwpUrl;
+          localStorage.setItem("user", JSON.stringify(userObj));
+        }
+        alert("Profil berhasil diperbarui!");
+        loadProfileData();
+      } else {
+        alert(resData.error?.message || "Gagal memperbarui profil.");
+      }
+    } catch (err) {
+      alert("Koneksi gagal. Pastikan API server aktif.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <BidderLayout pageTitle="Profil &amp; eKYC">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
+          <p className="text-body-md text-on-surface-variant font-medium">Memuat data profil...</p>
+        </div>
+      </BidderLayout>
+    );
+  }
 
   return (
     <BidderLayout pageTitle="Profil &amp; eKYC">
       <p className="page-subtitle">Kelola informasi akun Anda dan pantau verifikasi identitas</p>
 
       <div className="grid-2">
+        {/* Profile Card */}
         <div className="card">
           <div className="card-header">Data Profil Pengguna</div>
           <form onSubmit={handleSave} className="space-y-4">
@@ -72,6 +254,145 @@ export default function BidderProfile() {
                 required
               />
             </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Alamat Lengkap</label>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="panel-form-input min-h-[80px] resize-y"
+                placeholder="Alamat domisili saat ini"
+              />
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Pekerjaan</label>
+              <select
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+                className="panel-form-input"
+              >
+                <option value="ASN">ASN</option>
+                <option value="Pegawai Swasta">Pegawai Swasta</option>
+                <option value="Wiraswasta">Wiraswasta</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Bank <span className="text-error">*</span></label>
+              <input
+                list="banks"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                className="panel-form-input"
+                required
+                placeholder="Ketik atau pilih nama bank"
+              />
+              <datalist id="banks">
+                <option value="BCA">BCA (Bank Central Asia)</option>
+                <option value="Mandiri">Bank Mandiri</option>
+                <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                <option value="CIMB Niaga">CIMB Niaga</option>
+                <option value="Permata">Bank Permata</option>
+                <option value="Danamon">Bank Danamon</option>
+                <option value="BTN">BTN (Bank Tabungan Negara)</option>
+                <option value="Maybank">Maybank Indonesia</option>
+                <option value="Mega">Bank Mega</option>
+                <option value="BTPN">BTPN</option>
+                <option value="OCBC NISP">OCBC NISP</option>
+                <option value="Panin">Panin Bank</option>
+                <option value="Muamalat">Bank Muamalat</option>
+                <option value="Sinarmas">Bank Sinarmas</option>
+                <option value="Bukopin">KB Bukopin</option>
+                <option value="DKI">Bank DKI</option>
+                <option value="BJB">Bank BJB</option>
+                <option value="Jago">Bank Jago</option>
+                <option value="SeaBank">SeaBank</option>
+                <option value="Neo Commerce">Bank Neo Commerce (BNC)</option>
+                <option value="Blu">Blu by BCA Digital</option>
+                <option value="Jenius">Jenius (BTPN)</option>
+                <option value="BPD Bali">BPD Bali</option>
+                <option value="BPD DIY">BPD DIY</option>
+                <option value="BPD Jateng">Bank Jateng</option>
+                <option value="BPD Jatim">Bank Jatim</option>
+              </datalist>
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">No Rekening <span className="text-error">*</span></label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bankAccountNo}
+                  onChange={(e) => setBankAccountNo(e.target.value)}
+                  className="panel-form-input flex-1"
+                  required
+                  placeholder="Contoh: 1234567890"
+                />
+                <button
+                  type="button"
+                  onClick={handleCheckBank}
+                  disabled={isCheckingBank || !bankName || !bankAccountNo}
+                  className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-sm text-sm flex items-center justify-center disabled:opacity-50 min-w-[120px]"
+                >
+                  {isCheckingBank ? (
+                    <span className="material-symbols-outlined animate-spin">sync</span>
+                  ) : (
+                    "Cek Rekening"
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">A/N Rekening <span className="text-error">*</span></label>
+              <input
+                type="text"
+                value={bankAccountName}
+                onChange={(e) => setBankAccountName(e.target.value)}
+                className="panel-form-input bg-slate-50 text-slate-500 cursor-not-allowed"
+                required
+                readOnly
+                placeholder="Nama akan muncul otomatis setelah Anda menekan Cek Rekening"
+              />
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Nomor NPWP</label>
+              <input
+                type="text"
+                value={npwp}
+                onChange={(e) => setNpwp(e.target.value)}
+                className="panel-form-input"
+                placeholder="Opsional, disarankan"
+              />
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Upload Dokumen NPWP</label>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setNpwpFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full px-4 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer focus:border-premium outline-none flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={handleNpwpUpload}
+                  disabled={!npwpFile || isUploadingNpwp}
+                  className="px-4 py-2 bg-secondary text-white font-bold rounded-xl disabled:opacity-50"
+                >
+                  {isUploadingNpwp ? "Upload..." : "Upload"}
+                </button>
+              </div>
+              {npwpUrl && (
+                <div className="text-xs text-success mt-2 font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                  Dokumen NPWP tersimpan
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               disabled={isSaving}
@@ -82,47 +403,97 @@ export default function BidderProfile() {
           </form>
         </div>
 
+        {/* KYC Status Card */}
         <div className="card">
           <div className="card-header">Status Verifikasi eKYC</div>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              {ekycStatus === "verified" ? (
+              {ekycStatus === "approved" || ekycStatus === "verified" ? (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-success/10 text-success flex items-center justify-center font-bold text-lg border border-success/25">
-                    <span className="material-symbols-outlined text-2xl filled">verified_user</span>
+                  <div className="w-12 h-12 rounded-full bg-success/10 text-success flex items-center justify-center border border-success/25">
+                    <span className="material-symbols-outlined text-2xl font-bold">verified_user</span>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-800">Verifikasi Berhasil</div>
                     <div className="text-[10px] text-success font-bold uppercase tracking-wider">Aktif</div>
                   </div>
                 </>
-              ) : (
+              ) : ekycStatus === "pending" ? (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center font-bold text-lg border border-warning/25">
-                    <span className="material-symbols-outlined text-2xl filled">warning</span>
+                  <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center border border-warning/25">
+                    <span className="material-symbols-outlined text-2xl font-bold animate-spin">sync</span>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-800">Menunggu Verifikasi</div>
+                    <div className="text-sm font-bold text-slate-800">Sedang Diverifikasi</div>
                     <div className="text-[10px] text-warning font-bold uppercase tracking-wider">Pending Review</div>
+                  </div>
+                </>
+              ) : ekycStatus === "rejected" ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center border border-error/25">
+                    <span className="material-symbols-outlined text-2xl font-bold">report</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Verifikasi Ditolak</div>
+                    <div className="text-[10px] text-error font-bold uppercase tracking-wider">Ditolak</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200">
+                    <span className="material-symbols-outlined text-2xl font-bold">gpp_maybe</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Belum Verifikasi</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Belum Aktif</div>
                   </div>
                 </>
               )}
             </div>
 
             <div className="border-t border-outline-variant/20 pt-4 space-y-3">
-              <p className="text-xs text-slate-600">
-                Penyedia eKYC kami sedang memvalidasi kesesuaian data KTP Anda dengan instansi kependudukan.
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {ekycStatus === "approved" || ekycStatus === "verified"
+                  ? "Akun Anda telah terverifikasi. Anda berhak mengikuti seluruh sesi lelang aktif di IndoLelang."
+                  : ekycStatus === "pending"
+                  ? "Penyedia eKYC kami sedang memvalidasi kesesuaian data KTP Anda dengan instansi kependudukan."
+                  : ekycStatus === "rejected"
+                  ? "Dokumen Anda tidak sesuai. Harap ajukan ulang dokumen identitas baru Anda."
+                  : "Anda wajib mengunggah KTP dan Swafoto untuk dapat mengikuti transaksi lelang di platform IndoLelang."}
               </p>
+
               <div className="p-3 bg-slate-50 border border-outline-variant/30 rounded-xl space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Dokumen KTP:</span>
-                  <span className="font-bold text-success">Telah Diunggah</span>
+                  <span className={`font-bold ${ktpUploaded ? "text-success" : "text-error"}`}>
+                    {ktpUploaded ? "Telah Diunggah" : "Belum Diunggah"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Foto Selfie:</span>
-                  <span className="font-bold text-success">Telah Diunggah</span>
+                  <span className={`font-bold ${selfieUploaded ? "text-success" : "text-error"}`}>
+                    {selfieUploaded ? "Telah Diunggah" : "Belum Diunggah"}
+                  </span>
                 </div>
               </div>
+
+              {ekycStatus === "unverified" && (
+                <Link
+                  href="/ekyc/upload"
+                  className="mt-3 w-full py-2.5 bg-premium text-on-premium font-bold text-body-sm rounded-xl text-center block shadow hover:bg-premium/95 active:scale-98 transition-all"
+                >
+                  🚀 Mulai Verifikasi eKYC
+                </Link>
+              )}
+
+              {ekycStatus === "rejected" && (
+                <Link
+                  href="/ekyc/upload"
+                  className="mt-3 w-full py-2.5 bg-error text-white font-bold text-body-sm rounded-xl text-center block shadow hover:bg-error/95 active:scale-98 transition-all"
+                >
+                  🔄 Ajukan Ulang eKYC
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -16,7 +16,9 @@ export class AssetsController {
       const perPage = parseInt(req.query.per_page as string || '20', 10);
       const { status, category, search } = req.query as any;
 
-      const providerId = req.user!.role === Role.PROVIDER ? req.user!.id : undefined;
+      const providerId = req.user!.role === Role.PROVIDER 
+        ? req.user!.id 
+        : (req.query.provider_id as string || undefined);
 
       const { assets, meta } = await assetsService.getAssets(
         page,
@@ -50,9 +52,44 @@ export class AssetsController {
    */
   async createAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const providerId = req.user!.id;
+      let providerId = req.user!.id;
+      if (req.user!.role !== Role.PROVIDER && req.body.provider_id) {
+        providerId = req.body.provider_id;
+      }
       const asset = await assetsService.createAsset(req.body, providerId);
-      sendSuccess(res, asset, 'Barang baru berhasil diajukan untuk review', undefined, 201);
+      
+      if (req.user!.role !== Role.PROVIDER) {
+        logAdminAction(req, 'CREATE_ASSET', 'assets', asset.id, null, asset);
+      }
+      
+      sendSuccess(res, asset, 'Barang baru berhasil ditambahkan', undefined, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update an asset
+   */
+  async updateAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const asset = await assetsService.getAssetById(id);
+      
+      // Access control for editing
+      const userRole = req.user!.role;
+      if (userRole === Role.INSPECTOR && asset.status !== 'pending') {
+        res.status(403).json({ success: false, error: { message: 'Inspector hanya dapat mengedit unit dengan status pending' } });
+        return;
+      }
+      
+      const updatedAsset = await assetsService.updateAsset(id, req.body);
+      
+      if (userRole !== Role.PROVIDER) {
+        logAdminAction(req, 'UPDATE_ASSET', 'assets', id, asset, updatedAsset);
+      }
+
+      sendSuccess(res, updatedAsset, 'Barang berhasil diperbarui');
     } catch (error) {
       next(error);
     }
@@ -93,6 +130,55 @@ export class AssetsController {
       next(error);
     }
   }
-}
 
+  /**
+   * Delete asset (Inspector)
+   */
+  async deleteAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const asset = await assetsService.getAssetById(id);
+      await assetsService.deleteAsset(id);
+      
+      logAdminAction(req, 'DELETE_ASSET', 'assets', id, asset, null);
+
+      res.status(200).json({ success: true, message: 'Barang berhasil dihapus' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Re-review asset (Inspector)
+   */
+  async reviewAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const asset = await assetsService.reviewAsset(id);
+
+      logAdminAction(req, 'REVIEW_ASSET', 'assets', id, null, asset);
+
+      sendSuccess(res, asset, 'Barang diajukan ulang untuk direview');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel approval (Admin/Operator)
+   */
+  async cancelApproval(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const asset = await assetsService.cancelApproval(id);
+
+      logAdminAction(req, 'CANCEL_APPROVAL', 'assets', id, null, asset);
+
+      sendSuccess(res, asset, 'Persetujuan barang berhasil dibatalkan');
+    } catch (error) {
+      next(error);
+    }
+  }
+}
 export default AssetsController;
+

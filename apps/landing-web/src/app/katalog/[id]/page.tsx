@@ -1,72 +1,87 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { apiUrl } from "@/lib/api";
 
 export default function DetailLotPage() {
   const router = useRouter();
+  const { id } = useParams() as { id: string };
+
+  const [lot, setLot] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedThumb, setSelectedThumb] = useState(0);
-  const [bidAmount, setBidAmount] = useState(145000000);
+  const [bidAmount, setBidAmount] = useState(0);
   const [wishlisted, setWishlisted] = useState(false);
 
-  const images = [
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuDx_9SWM1Z1hW6_R8j18nKSwK80H9f7yZ5_mE1R5P0L-KjX6l_eF1qYgG4N4a5m_2kLp-h1zQ5yvM8_1rFj6xO0V1N_4zTfL8v9M_2jV4v8R-FmZ-v5L8k7z-Fm9jV8mZ-Tf0v7K-L2z",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl"
-  ];
+  useEffect(() => {
+    if (!id) return;
 
-  const specs = [
-    { label: "Merk / Model", value: "Toyota Avanza 1.3 G MT" },
-    { label: "Tahun Pembuatan", value: "2022" },
-    { label: "Nomor Polisi", value: "B 2098 SJA (Jakarta)" },
-    { label: "Transmisi / Bahan Bakar", value: "Manual / Bensin" },
-    { label: "Odometer (KM)", value: "45,310 km" },
-    { label: "Kondisi (Appraisal Grade)", value: "Grade B (Mesin Prima, Bodi Mulus)" },
-    { label: "Status Surat-Surat", value: "BPKB & STNK Ready (Pajak Hidup s/d Des 2026)" },
-  ];
+    const fetchLotDetail = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(apiUrl(`/lots/${id}`));
+        if (!res.ok) {
+          throw new Error("Gagal memuat detail lot dari API");
+        }
+        const result = await res.json();
+        if (result.success && result.data) {
+          const lotData = result.data;
+          setLot(lotData);
+          setBidAmount(lotData.hammer_price || lotData.starting_price);
+          
+          // Check watchlist status from localStorage
+          const stored = localStorage.getItem("watchlist");
+          if (stored) {
+            try {
+              const list: string[] = JSON.parse(stored);
+              setWishlisted(list.includes(lotData.id));
+            } catch (e) {
+              // ignore
+            }
+          }
+        } else {
+          setError(result.error?.message || "Lot tidak ditemukan");
+        }
+      } catch (err: any) {
+        setError(err.message || "Terjadi kesalahan saat memuat data.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const similarLots = [
-    {
-      id: 2,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-      alt: "Honda CR-V",
-      badge: "Mobil",
-      badgeStyle: "bg-secondary text-on-secondary",
-      location: "Bandung",
-      title: "Honda CR-V Prestige 2020",
-      hargaAwal: "Rp 325 Juta",
-      deposit: "Rp 10 Juta",
-      timer: "Mulai 15:30 WIB",
-    },
-    {
-      id: 3,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW",
-      alt: "Toyota Hilux",
-      badge: "Mobil",
-      badgeStyle: "bg-primary text-on-primary",
-      location: "Surabaya",
-      title: "Toyota Hilux Double Cabin 2019",
-      hargaAwal: "Rp 278 Juta",
-      deposit: "Rp 10 Juta",
-      timer: "Besok, 10:00 WIB",
-    },
-    {
-      id: 4,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl",
-      alt: "Honda Brio",
-      badge: "Mobil",
-      badgeStyle: "bg-secondary text-on-secondary",
-      location: "Semarang",
-      title: "Honda Brio RS CVT 2022",
-      hargaAwal: "Rp 142 Juta",
-      deposit: "Rp 5 Juta",
-      timer: "Jumat, 09:30 WIB",
-    },
-  ];
+    fetchLotDetail();
+  }, [id]);
+
+  const toggleWishlist = () => {
+    if (!lot) return;
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = localStorage.getItem("watchlist");
+      let list: string[] = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(list)) list = [];
+
+      let nextWishlisted = false;
+      if (list.includes(lot.id)) {
+        list = list.filter((x) => x !== lot.id);
+        nextWishlisted = false;
+      } else {
+        list.push(lot.id);
+        nextWishlisted = true;
+      }
+
+      localStorage.setItem("watchlist", JSON.stringify(list));
+      setWishlisted(nextWishlisted);
+      window.dispatchEvent(new Event("watchlist-updated"));
+    } catch (e) {
+      console.error("Failed to update watchlist", e);
+    }
+  };
 
   const handleQuickBid = (increment: number) => {
     setBidAmount((prev) => prev + increment);
@@ -80,6 +95,93 @@ export default function DetailLotPage() {
       maximumFractionDigits: 0,
     }).format(value);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-4xl text-primary animate-spin">sync</span>
+            <p className="text-body-md text-on-surface-variant mt-3 font-semibold">Memuat detail lot...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !lot) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center max-w-md px-6">
+            <span className="material-symbols-outlined text-5xl text-error">error</span>
+            <h2 className="text-heading-md font-bold text-on-surface mt-4">Lot Tidak Ditemukan</h2>
+            <p className="text-body-sm text-on-surface-variant mt-2 leading-relaxed">{error || "Detail lot lelang ini tidak dapat ditemukan."}</p>
+            <Link href="/katalog" className="btn-press inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-primary text-on-primary rounded-xl text-body-sm font-bold shadow-md hover:bg-primary/95 transition-all">
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              Kembali ke Katalog
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Specs & images dynamic setup
+  const images = lot.asset.images && lot.asset.images.length > 0
+    ? lot.asset.images
+    : ["https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600"];
+
+  const specs = [
+    { label: "Kategori", value: lot.asset.category },
+    { label: "Merk / Model", value: lot.asset.title },
+    { label: "Tahun Pembuatan", value: lot.asset.year ? String(lot.asset.year) : "-" },
+    { label: "Nomor Polisi", value: lot.asset.police_number || "-" },
+    { label: "Transmisi", value: lot.asset.transmission || "-" },
+    { label: "Bahan Bakar", value: lot.asset.fuel_type || "-" },
+    { label: "Odometer", value: lot.asset.odometer ? `${lot.asset.odometer.toLocaleString("id-ID")} km` : "-" },
+    { label: "Kondisi", value: lot.asset.grade_exterior ? `Eksterior Grade ${lot.asset.grade_exterior} | Interior Grade ${lot.asset.grade_interior || "-"}` : "Grade B" },
+    { label: "Status Dokumen", value: lot.asset.bpkb_number ? `BPKB No. ${lot.asset.bpkb_number} & STNK Ready` : "STNK Ready" },
+  ];
+
+  const isLive = lot.status === "active";
+
+  const similarLots = [
+    {
+      id: "dummy-similar-1",
+      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
+      alt: "Honda CR-V",
+      location: "Bandung",
+      title: "Honda CR-V Prestige 2020",
+      hargaAwal: "Rp 325 Juta",
+      deposit: "Rp 10 Juta",
+      timer: "Mulai 15:30 WIB",
+    },
+    {
+      id: "dummy-similar-2",
+      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW",
+      alt: "Toyota Hilux",
+      location: "Surabaya",
+      title: "Toyota Hilux Double Cabin 2019",
+      hargaAwal: "Rp 278 Juta",
+      deposit: "Rp 10 Juta",
+      timer: "Besok, 10:00 WIB",
+    },
+    {
+      id: "dummy-similar-3",
+      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl",
+      alt: "Honda Brio",
+      location: "Semarang",
+      title: "Honda Brio RS CVT 2022",
+      hargaAwal: "Rp 142 Juta",
+      deposit: "Rp 5 Juta",
+      timer: "Jumat, 09:30 WIB",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-surface">
@@ -112,7 +214,7 @@ export default function DetailLotPage() {
           </Link>
           <span className="text-outline">/</span>
           <span className="text-on-surface font-semibold">
-            Toyota Avanza 1.3 G MT 2022
+            {lot.asset.title}
           </span>
         </div>
 
@@ -126,23 +228,25 @@ export default function DetailLotPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={images[selectedThumb]}
-                  alt="Toyota Avanza Detail"
+                  alt={`${lot.asset.title} Detail`}
                   className="w-full h-full object-cover transition-all duration-300"
                 />
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <span className="bg-error text-white px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                  <span className={`px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 ${
+                    isLive ? "bg-error text-white" : "bg-info text-white"
+                  }`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    LIVE AUCTION
+                    {isLive ? "LIVE AUCTION" : "UPCOMING"}
                   </span>
                   <span className="bg-white/90 backdrop-blur-md text-on-surface px-3 py-1 rounded-full text-badge-text font-bold shadow-sm">
-                    LOT #1045
+                    LOT #{lot.lot_number}
                   </span>
                 </div>
               </div>
 
               {/* Thumbnails Grid */}
               <div className="grid grid-cols-4 gap-3 mt-4">
-                {images.map((img, idx) => (
+                {images.map((img: string, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedThumb(idx)}
@@ -196,7 +300,7 @@ export default function DetailLotPage() {
                 <div>
                   <h3 className="font-bold text-body-lg text-on-surface">Pool Kantor Pusat Bidku</h3>
                   <p className="text-body-sm text-on-surface-variant leading-relaxed mt-1">
-                    Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151. Terbuka untuk Open House / Cek Fisik pada 10-11 Juni 2026, pukul 09:00 - 16:00 WIB.
+                    Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151. Terbuka untuk Open House / Cek Fisik, pukul 09:00 - 16:00 WIB.
                   </p>
                 </div>
                 <a
@@ -230,19 +334,21 @@ export default function DetailLotPage() {
               {/* Bid Panel Card */}
               <div className="bid-panel rounded-3xl p-6 border border-outline-variant/20 shadow-md">
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <span className="bg-error/10 text-error px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider">
-                    Lelang Sedang Berlangsung
+                  <span className={`px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider ${
+                    isLive ? "bg-error/10 text-error" : "bg-info/10 text-info"
+                  }`}>
+                    {isLive ? "Lelang Berlangsung" : "Lelang Akan Datang"}
                   </span>
-                  <span className="bg-success text-on-success px-3 py-1 rounded-full text-badge-text font-bold">
-                    Grade B
+                  <span className="bg-success text-on-success px-3 py-1 rounded-full text-badge-text font-bold font-sans">
+                    {lot.asset.grade_exterior ? `Grade ${lot.asset.grade_exterior}` : "Grade B"}
                   </span>
                 </div>
 
-                <h1 className="text-heading-lg font-bold text-on-surface leading-tight">
-                  Toyota Avanza 1.3 G MT 2022
+                <h1 className="text-heading-lg font-bold text-on-surface leading-tight font-serif">
+                  {lot.asset.title}
                 </h1>
                 <p className="text-body-sm text-on-surface-variant mt-1.5">
-                  Lot #1045 • Sesi Mobil Penumpang JKT
+                  Lot #{lot.lot_number} &bull; Sesi {lot.session?.title || "Umum"}
                 </p>
 
                 <div className="my-5 border-t border-outline-variant/20" />
@@ -269,7 +375,7 @@ export default function DetailLotPage() {
                         Jadwal Sesi Live Online:
                       </span>
                       <span className="text-body-md text-on-surface-variant block mt-0.5">
-                        12 Juni 2026, 10:00 WIB (Sesi Live Online)
+                        {lot.session?.scheduled_at ? new Date(lot.session.scheduled_at).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"} WIB
                       </span>
                     </div>
                   </div>
@@ -279,7 +385,7 @@ export default function DetailLotPage() {
                     {/* Action buttons */}
                     <div className="space-y-2.5 pt-2">
                       <button
-                        onClick={() => router.push("/bidder/bidding-room")}
+                        onClick={() => router.push(`/bidder/bidding-room?lotId=${lot.id}`)}
                         className="w-full py-4 bg-premium text-on-premium rounded-2xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md flex items-center justify-center gap-2"
                       >
                         <span className="material-symbols-outlined font-bold">gavel</span>
@@ -287,7 +393,7 @@ export default function DetailLotPage() {
                       </button>
 
                       <button
-                        onClick={() => setWishlisted(!wishlisted)}
+                        onClick={toggleWishlist}
                         className={`w-full py-3.5 border rounded-2xl text-body-md font-bold transition-all btn-press flex items-center justify-center gap-2 shadow-sm ${
                           wishlisted
                             ? "bg-premium/10 border-premium text-premium"
@@ -348,7 +454,7 @@ export default function DetailLotPage() {
             Rekomendasi Lot Serupa
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {similarLots.map((lot, idx) => (
+            {similarLots.map((similar, idx) => (
               <div
                 key={idx}
                 className="bg-white rounded-3xl border border-outline-variant/20 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
@@ -357,13 +463,13 @@ export default function DetailLotPage() {
                 <div className="relative aspect-[16/10] bg-surface-variant/20 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={lot.image}
-                    alt={lot.alt}
+                    src={similar.image}
+                    alt={similar.alt}
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3">
                     <span className="bg-white/95 backdrop-blur-sm text-on-surface text-badge-text font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-                      {lot.location}
+                      {similar.location}
                     </span>
                   </div>
                 </div>
@@ -372,18 +478,18 @@ export default function DetailLotPage() {
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-bold text-body-lg text-on-surface line-clamp-1 group-hover:text-premium transition-colors">
-                      {lot.title}
+                      {similar.title}
                     </h3>
                     <div className="flex justify-between items-center mt-3 text-body-sm text-on-surface-variant">
                       <span>Harga Awal</span>
                       <span className="font-extrabold text-body-md text-on-surface">
-                        {lot.hargaAwal}
+                        {similar.hargaAwal}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-1.5 text-body-sm text-on-surface-variant">
                       <span>Uang Jaminan</span>
                       <span className="font-semibold text-on-surface">
-                        {lot.deposit}
+                        {similar.deposit}
                       </span>
                     </div>
                   </div>
@@ -391,14 +497,14 @@ export default function DetailLotPage() {
                   <div className="mt-5 pt-4 border-t border-outline-variant/20 flex items-center justify-between gap-4">
                     <span className="text-body-sm font-semibold text-error flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-sm">schedule</span>
-                      {lot.timer}
+                      {similar.timer}
                     </span>
-                    <Link
-                      href={`/katalog/${lot.id}`}
+                    <button
+                      onClick={() => alert("Gunakan katalog utama untuk melihat lot real.")}
                       className="px-4 py-2 bg-premium/10 text-premium font-bold text-body-sm rounded-xl hover:bg-premium hover:text-on-premium transition-all btn-press"
                     >
                       Detail Lot
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>

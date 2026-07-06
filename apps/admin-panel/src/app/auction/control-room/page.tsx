@@ -13,6 +13,7 @@ interface Session {
   id: string;
   title: string;
   status: 'draft' | 'published' | 'live' | 'closed';
+  scheduled_at: string;
   branch?: {
     name: string;
     city: string;
@@ -32,6 +33,7 @@ interface Lot {
     category: string;
     base_price: number;
   };
+  session?: any;
 }
 
 interface BidLog {
@@ -48,6 +50,7 @@ export default function ControlRoomPage() {
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   
   // Real-time Active Lot State
   const [activeLot, setActiveLot] = useState<Lot | null>(null);
@@ -64,22 +67,7 @@ export default function ControlRoomPage() {
   const socketRef = useRef<Socket | null>(null);
 
   // Dummy Fallbacks
-  const dummySessions: Session[] = [
-    { id: 'session-1', title: 'Lelang Mobil MPV Cabang Jakarta', status: 'published', branch: { name: 'Indo-Lelang Jakarta', city: 'Jakarta' } },
-    { id: 'session-2', title: 'Lelang Motor Matic Cabang Surabaya', status: 'live', branch: { name: 'Indo-Lelang Surabaya', city: 'Surabaya' } },
-  ];
 
-  const dummyLots: Record<string, Lot[]> = {
-    'session-1': [
-      { id: 'lot-1', session_id: 'session-1', lot_number: 1, starting_price: 150000000, status: 'pending', asset: { title: 'Toyota Avanza 2021', category: 'mobil', base_price: 150000000 } },
-      { id: 'lot-2', session_id: 'session-1', lot_number: 2, starting_price: 130000000, status: 'pending', asset: { title: 'Daihatsu Xenia 2020', category: 'mobil', base_price: 130000000 } },
-    ],
-    'session-2': [
-      { id: 'lot-3', session_id: 'session-2', lot_number: 1, starting_price: 10000000, status: 'sold', hammer_price: 12000000, winner_id: 'Peserta #A1B2', asset: { title: 'Honda Beat 2020', category: 'motor', base_price: 10000000 } },
-      { id: 'lot-4', session_id: 'session-2', lot_number: 2, starting_price: 18000000, status: 'pending', asset: { title: 'Honda Vario 150 2021', category: 'motor', base_price: 18000000 } },
-      { id: 'lot-5', session_id: 'session-2', lot_number: 3, starting_price: 25000000, status: 'pending', asset: { title: 'Yamaha NMAX 155 2020', category: 'motor', base_price: 25000000 } },
-    ],
-  };
 
   // Fetch Session List on mount
   useEffect(() => {
@@ -91,19 +79,16 @@ export default function ControlRoomPage() {
         });
         const data = await response.json();
         if (response.ok && data.success) {
-          // Filter only published or live sessions for control room
-          const activeSessions = data.data.filter((s: Session) => s.status !== 'draft' && s.status !== 'closed');
-          setSessions(activeSessions);
-          if (activeSessions.length > 0) {
-            setSelectedSessionId(activeSessions[0].id);
+          const allSessions = data.data || [];
+          setSessions(allSessions);
+          if (allSessions.length > 0) {
+            setSelectedSessionId(allSessions[0].id);
           }
         } else {
-          setSessions(dummySessions);
-          setSelectedSessionId(dummySessions[0].id);
+          setSessions([]);
         }
       } catch (err) {
-        setSessions(dummySessions);
-        setSelectedSessionId(dummySessions[0].id);
+        setSessions([]);
       }
     };
     fetchSessions();
@@ -138,16 +123,12 @@ export default function ControlRoomPage() {
             setActiveLot(null);
           }
         } else {
-          const dlots = dummyLots[selectedSessionId] || [];
-          setLots(dlots);
-          const active = dlots.find((l) => l.status === 'active');
-          setActiveLot(active || null);
+          setLots([]);
+          setActiveLot(null);
         }
       } catch (err) {
-        const dlots = dummyLots[selectedSessionId] || [];
-        setLots(dlots);
-        const active = dlots.find((l) => l.status === 'active');
-        setActiveLot(active || null);
+        setLots([]);
+        setActiveLot(null);
       } finally {
         setLoading(false);
       }
@@ -259,7 +240,7 @@ export default function ControlRoomPage() {
         socketRef.current.disconnect();
       }
     };
-  }, [selectedSessionId, sessions]);
+  }, [selectedSessionId, sessions, refreshTrigger]);
 
   const watchLotSocket = (lotId: string) => {
     if (socketRef.current) {
@@ -317,6 +298,31 @@ export default function ControlRoomPage() {
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
       simulateLotClose(lotId, 'sold');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCancelLot = async (lotId: string) => {
+    if (!confirm('Apakah Anda yakin ingin membatalkan lot yang sedang aktif ini? Status lot akan dikembalikan ke pending.')) return;
+    setProcessingId(lotId);
+    setToast(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/lots/${lotId}/cancel`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setToast({ message: 'Lot berhasil dibatalkan dan dikembalikan ke pending.', variant: 'success' });
+        setRefreshTrigger((prev) => prev + 1);
+        setActiveLot(null);
+      } else {
+        throw new Error(data.error?.message || 'Gagal membatalkan lot');
+      }
+    } catch (err: any) {
+      setToast({ message: err.message, variant: 'danger' });
     } finally {
       setProcessingId(null);
     }
@@ -466,7 +472,7 @@ export default function ControlRoomPage() {
             >
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({s.status.toUpperCase()})
+                  {s.title} ({s.scheduled_at ? new Date(s.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}) [{s.status.toUpperCase()}]
                 </option>
               ))}
             </select>
@@ -560,6 +566,9 @@ export default function ControlRoomPage() {
                     )}
                   </div>
                   <div className="d-flex gap-1">
+                    <Button variant="outline" onClick={() => handleCancelLot(activeLot.id)} disabled={processingId === activeLot.id} style={{ borderColor: 'var(--wf-danger)', color: 'var(--wf-danger)' }}>
+                      ❌ Batalkan Lot
+                    </Button>
                     <Button variant="danger" onClick={() => handleCloseLot(activeLot.id)} disabled={processingId === activeLot.id}>
                       🔨 Ketok Palu (Close Lot)
                     </Button>
@@ -582,12 +591,13 @@ export default function ControlRoomPage() {
                 <thead>
                   <tr>
                     <th>Lot</th>
-                    <th>Nama Barang</th>
-                    <th>Harga Mulai / Dasar</th>
-                    <th>Harga Hasil Terakhir</th>
-                    <th>Pemenang</th>
+                    <th>Tgl Lelang</th>
+                    <th>Jam Lelang</th>
+                    <th>Lokasi</th>
+                    <th>Kendaraan</th>
+                    <th>Harga Limit</th>
                     <th>Status</th>
-                    <th>Aksi Operator</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -597,11 +607,25 @@ export default function ControlRoomPage() {
                         <strong>#{lot.lot_number}</strong>
                       </td>
                       <td>
+                        {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }) : '-'}
+                      </td>
+                      <td>
+                        {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '-'}
+                      </td>
+                      <td>
+                        {(lot as any).session?.branch ? `${(lot as any).session.branch.name}, ${(lot as any).session.branch.city}` : '-'}
+                      </td>
+                      <td>
                         <strong>{lot.asset.title}</strong>
                       </td>
                       <td>{formatRupiah(lot.starting_price)}</td>
-                      <td>{lot.hammer_price ? formatRupiah(lot.hammer_price) : '-'}</td>
-                      <td>{lot.winner_id ? lot.winner_id : '-'}</td>
                       <td>{getLotStatusBadge(lot.status)}</td>
                       <td>
                         {lot.status === 'pending' && (
@@ -615,14 +639,25 @@ export default function ControlRoomPage() {
                           </Button>
                         )}
                         {lot.status === 'active' && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            disabled={processingId === lot.id}
-                            onClick={() => handleCloseLot(lot.id)}
-                          >
-                            Ketok Palu
-                          </Button>
+                          <div className="d-flex gap-1">
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              disabled={processingId === lot.id}
+                              onClick={() => handleCloseLot(lot.id)}
+                            >
+                              Ketok Palu
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={processingId === lot.id}
+                              onClick={() => handleCancelLot(lot.id)}
+                              style={{ borderColor: 'var(--wf-danger)', color: 'var(--wf-danger)' }}
+                            >
+                              Batal
+                            </Button>
+                          </div>
                         )}
                         {lot.status !== 'pending' && lot.status !== 'active' && (
                           <span className="text-muted" style={{ fontSize: '0.85rem' }}>Selesai</span>

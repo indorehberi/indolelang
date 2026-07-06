@@ -13,10 +13,7 @@ interface AuctionHistory {
   date: string;
 }
 
-const history: AuctionHistory[] = [
-  { id: "LOT-9821", sessionName: "Sesi JKT Batch 15", lotName: "Toyota Avanza Veloz 1.5 AT 2021", myBid: 142000000, finalPrice: 142000000, status: "won", date: "15 Juni 2026" },
-  { id: "LOT-9812", sessionName: "Sesi SBY Batch 12", lotName: "Honda Vario 150 2019", myBid: 14500000, finalPrice: 15500000, status: "lost", date: "10 Juni 2026" },
-];
+const history: AuctionHistory[] = [];
 
 export default function BidderRiwayatLelang() {
   const formatRupiah = (value: number) => {
@@ -47,21 +44,29 @@ export default function BidderRiwayatLelang() {
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => (
-                <tr key={item.id}>
-                  <td>#{item.id}</td>
-                  <td>{item.sessionName}</td>
-                  <td className="font-bold text-slate-800">{item.lotName}</td>
-                  <td>{formatRupiah(item.myBid)}</td>
-                  <td>{formatRupiah(item.finalPrice)}</td>
-                  <td>
-                    <span className={`badge-ui ${item.status === "won" ? "success" : "danger"}`}>
-                      {item.status === "won" ? "Menang" : "Kalah"}
-                    </span>
+              {history.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-slate-500">
+                    Belum ada riwayat keikutsertaan lelang Anda.
                   </td>
-                  <td>{item.date}</td>
                 </tr>
-              ))}
+              ) : (
+                history.map((item) => (
+                  <tr key={item.id}>
+                    <td>#{item.id}</td>
+                    <td>{item.sessionName}</td>
+                    <td className="font-bold text-slate-800">{item.lotName}</td>
+                    <td>{formatRupiah(item.myBid)}</td>
+                    <td>{formatRupiah(item.finalPrice)}</td>
+                    <td>
+                      <span className={`badge-ui ${item.status === "won" ? "success" : "danger"}`}>
+                        {item.status === "won" ? "Menang" : "Kalah"}
+                      </span>
+                    </td>
+                    <td>{item.date}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

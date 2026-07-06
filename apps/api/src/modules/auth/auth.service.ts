@@ -35,68 +35,75 @@ export class AuthService {
 		}
 
 		// 2. Check if phone exists
-		const existingPhone = await prisma.users.findUnique({
-			where: { phone: data.phone },
-		});
-		if (existingPhone) {
-			if (existingPhone.status === UserStatus.PENDING) {
-				// Delete the pending user so they can register again
-				await prisma.users.delete({ where: { id: existingPhone.id } }).catch(() => {});
-			} else {
-				throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
+		if (data.phone) {
+			const existingPhone = await prisma.users.findUnique({
+				where: { phone: data.phone },
+			});
+			if (existingPhone) {
+				if (existingPhone.status === UserStatus.PENDING) {
+					// Delete the pending user so they can register again
+					await prisma.users.delete({ where: { id: existingPhone.id } }).catch(() => {});
+				} else {
+					throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
+				}
 			}
 		}
 
 		// 3. Hash password
 		const passwordHash = await hashPassword(data.password);
 
-		// 4. Create user
+		// 4. Create user (all signups default to BIDDER role)
+		// If registering as provider, queue status as pending for admin approval
+		const isProviderRequest = data.role === Role.PROVIDER;
 		const user = await prisma.users.create({
 			data: {
 				email: data.email,
-				phone: data.phone,
+				phone: data.phone || null,
 				password_hash: passwordHash,
 				full_name: data.full_name,
-				role: data.role,
-				status: UserStatus.PENDING,
-				company_name: data.role === Role.PROVIDER ? data.company_name : null,
-				npwp: data.role === Role.PROVIDER ? data.npwp : null,
+				role: Role.BIDDER, // Force role to BIDDER at start
+				status: data.phone ? UserStatus.PENDING : UserStatus.ACTIVE,
+				company_name: isProviderRequest ? data.company_name : null,
+				npwp: isProviderRequest ? data.npwp : null,
+				provider_status: isProviderRequest ? 'pending' : null,
 			},
 		});
 
-		try {
-			// 5. Generate and store OTP in Redis
-			const otpCode = env.NODE_ENV === 'production'
-				? Math.floor(100000 + Math.random() * 900000).toString()
-				: '123456';
+		if (data.phone) {
+			try {
+				// 5. Generate and store OTP in Redis
+				const otpCode = env.NODE_ENV === 'production'
+					? Math.floor(100000 + Math.random() * 900000).toString()
+					: '123456';
 
-			const otpData = {
-				code: otpCode,
-				attempts: 0,
-				userId: user.id,
-			};
+				const otpData = {
+					code: otpCode,
+					attempts: 0,
+					userId: user.id,
+				};
 
-			if (redis.isOpen) {
-				await redis.set(`otp:${data.phone}`, JSON.stringify(otpData), {
-					EX: 300, // 5 minutes
+				if (redis.isOpen) {
+					await redis.set(`otp:${data.phone}`, JSON.stringify(otpData), {
+						EX: 300, // 5 minutes
+					});
+				}
+
+				logger.info({ phone: data.phone, otpCode }, 'OTP generated for registration');
+
+				// Send OTP to email
+				await sendEmail({
+					to: data.email,
+					subject: 'Kode OTP Registrasi Indo-Lelang',
+					text: `Halo ${data.full_name},\n\nKode OTP Anda untuk pendaftaran di Indo-Lelang adalah: ${otpCode}.\nKode ini berlaku selama 5 menit.\n\nTerima kasih.`,
+					html: `<p>Halo <strong>${data.full_name}</strong>,</p><p>Kode OTP Anda untuk pendaftaran di Indo-Lelang adalah: <strong>${otpCode}</strong>.</p><p>Kode ini berlaku selama 5 menit.</p><p>Terima kasih.</p>`,
 				});
+			} catch (error) {
+				// Rollback user creation if subsequent steps (Redis or Email) fail
+				await prisma.users.delete({ where: { id: user.id } }).catch((delErr) => {
+					logger.error({ delErr, userId: user.id }, 'Failed to delete user during registration rollback');
+				});
+				throw error;
 			}
-
-			logger.info({ phone: data.phone, otpCode }, 'OTP generated for registration');
-
-			// Send OTP to email
-			await sendEmail({
-				to: data.email,
-				subject: 'Kode OTP Registrasi Indo-Lelang',
-				text: `Halo ${data.full_name},\n\nKode OTP Anda untuk pendaftaran di Indo-Lelang adalah: ${otpCode}.\nKode ini berlaku selama 5 menit.\n\nTerima kasih.`,
-				html: `<p>Halo <strong>${data.full_name}</strong>,</p><p>Kode OTP Anda untuk pendaftaran di Indo-Lelang adalah: <strong>${otpCode}</strong>.</p><p>Kode ini berlaku selama 5 menit.</p><p>Terima kasih.</p>`,
-			});
-		} catch (error) {
-			// Rollback user creation if subsequent steps (Redis or Email) fail
-			await prisma.users.delete({ where: { id: user.id } }).catch((delErr) => {
-				logger.error({ delErr, userId: user.id }, 'Failed to delete user during registration rollback');
-			});
-			throw error;
 		}
 
 		const kyc = await prisma.kyc_documents.findUnique({ where: { user_id: user.id } });
@@ -106,9 +113,166 @@ export class AuthService {
 			email: user.email,
 			phone: user.phone,
 			full_name: data.full_name,
+			role: user.role as Role,
+			status: user.status as UserStatus,
+			kyc_status: kyc ? kyc.status : undefined,
+		};
+	}
+
+	/**
+	 * Login or register user with Google OAuth (Verified with Google tokeninfo API or mock)
+	 */
+	async googleAuth(data: {
+		email?: string;
+		full_name?: string;
+		google_id?: string;
+		idToken?: string;
+		phone?: string;
+		role?: Role;
+		action?: 'login' | 'register';
+		company_name?: string;
+		npwp?: string;
+	}): Promise<LoginResponse & { refreshToken: string }> {
+		let email = data.email;
+		let fullName = data.full_name;
+
+		// 1. If idToken is provided, verify it with Google APIs
+		if (data.idToken) {
+			try {
+				const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${data.idToken}`);
+				if (!response.ok) {
+					throw new AppError(400, ErrorCode.UNAUTHORIZED, 'Token Google tidak valid atau kedaluwarsa');
+				}
+				const tokenInfo = await response.json() as any;
+				
+				// Verify Client ID matches if set in env
+				if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
+					if (tokenInfo.aud !== env.GOOGLE_CLIENT_ID) {
+						logger.warn({ aud: tokenInfo.aud, client_id: env.GOOGLE_CLIENT_ID }, 'Google token client ID mismatch');
+						throw new AppError(400, ErrorCode.UNAUTHORIZED, 'Aplikasi asal token Google tidak cocok');
+					}
+				}
+
+				email = tokenInfo.email;
+				fullName = tokenInfo.name || tokenInfo.email.split('@')[0];
+			} catch (error) {
+				if (error instanceof AppError) throw error;
+				logger.error({ error }, 'Error validating Google idToken');
+				throw new AppError(500, ErrorCode.UNAUTHORIZED, 'Gagal memverifikasi token dengan Google');
+			}
+		}
+
+		if (!email) {
+			throw new AppError(400, ErrorCode.INVALID_CREDENTIALS, 'Email harus dicantumkan');
+		}
+		if (!fullName) {
+			fullName = email.split('@')[0];
+		}
+
+		// 2. Find user by email
+		let user = await prisma.users.findUnique({
+			where: { email: email },
+			include: { kyc_document: true },
+		});
+
+		// 3. If user exists, log them in
+		if (user) {
+			if (user.status === UserStatus.SUSPENDED) {
+				throw new AppError(403, ErrorCode.USER_SUSPENDED, 'Akun Anda ditangguhkan. Silakan hubungi admin.');
+			}
+
+			// Generate tokens
+			const payload = {
+				id: user.id,
+				email: user.email,
+				role: user.role,
+				status: user.status,
+			};
+
+			const accessToken = generateAccessToken(payload);
+			const refreshToken = generateRefreshToken(payload);
+
+			if (redis.isOpen) {
+				await redis.set(`refresh_token:${user.id}`, refreshToken, {
+					EX: 30 * 24 * 60 * 60, // 30 days
+				});
+			}
+
+			return {
+				accessToken,
+				refreshToken,
+				user: {
+					id: user.id,
+					email: user.email,
+					phone: user.phone,
+					full_name: user.full_name,
+					role: user.role as Role,
+					status: user.status as UserStatus,
+					kyc_status: user.kyc_document ? user.kyc_document.status : undefined,
+				},
+			};
+		}
+
+		// 4. If user doesn't exist, always register them automatically as BIDDER
+		let role: any = Role.BIDDER;
+		
+		// If phone number is supplied, check for duplicates
+		if (data.phone) {
+			const existingPhone = await prisma.users.findUnique({
+				where: { phone: data.phone },
+			});
+			if (existingPhone) {
+				throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
+			}
+		}
+
+		// Generate random password hash since this is an OAuth user
+		const randomPassword = crypto.randomBytes(16).toString('hex');
+		const passwordHash = await hashPassword(randomPassword + 'Google1!');
+
+		user = await prisma.users.create({
+			data: {
+				email: email,
+				phone: data.phone || null,
+				password_hash: passwordHash,
+				full_name: fullName,
+				role: role,
+				status: UserStatus.ACTIVE, // Google accounts are active immediately
+				company_name: role === Role.PROVIDER ? data.company_name : null,
+				npwp: role === Role.PROVIDER ? data.npwp : null,
+			},
+			include: { kyc_document: true }
+		});
+
+		// Generate tokens
+		const payload = {
+			id: user.id,
+			email: user.email,
 			role: user.role,
 			status: user.status,
-			kyc_status: kyc ? kyc.status : undefined,
+		};
+
+		const accessToken = generateAccessToken(payload);
+		const refreshToken = generateRefreshToken(payload);
+
+		if (redis.isOpen) {
+			await redis.set(`refresh_token:${user.id}`, refreshToken, {
+				EX: 30 * 24 * 60 * 60, // 30 days
+			});
+		}
+
+		return {
+			accessToken,
+			refreshToken,
+			user: {
+				id: user.id,
+				email: user.email,
+				phone: user.phone,
+				full_name: user.full_name,
+				role: user.role as Role,
+				status: user.status as UserStatus,
+				kyc_status: undefined,
+			},
 		};
 	}
 

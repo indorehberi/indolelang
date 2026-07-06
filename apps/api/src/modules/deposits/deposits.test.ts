@@ -76,6 +76,7 @@ describe('Deposits & Payments Module Integration Tests', () => {
   afterAll(async () => {
     // Cleanup database and connections
     await prisma.deposits.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
     await prisma.auction_sessions.deleteMany({});
     await prisma.branches.deleteMany({});
     await prisma.users.deleteMany({
@@ -136,7 +137,7 @@ describe('Deposits & Payments Module Integration Tests', () => {
       chargeMock.mockRestore();
     });
 
-    it('should fail if registering NIPL for same session again while active', async () => {
+    it('should successfully register additional NIPL for same session (multiple deposits allowed)', async () => {
       // Create a paid/active deposit in DB directly
       await prisma.deposits.create({
         data: {
@@ -149,6 +150,17 @@ describe('Deposits & Payments Module Integration Tests', () => {
         },
       });
 
+      // Mock Midtrans API call
+      const chargeMock = jest
+        .spyOn(midtransClient, 'chargeVirtualAccount')
+        .mockResolvedValue({
+          order_id: 'NIPL-mocked-order-id-2',
+          va_number: '7008888899992222',
+          va_bank: 'bca',
+          payment_method: 'virtual_account',
+          raw_response: {},
+        });
+
       const res = await request(app)
         .post('/api/v1/deposits/create')
         .set('Authorization', `Bearer ${token}`)
@@ -158,9 +170,11 @@ describe('Deposits & Payments Module Integration Tests', () => {
           bank: 'bca',
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.message).toContain('sudah memiliki NIPL aktif');
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.amount).toBe(5000000);
+
+      chargeMock.mockRestore();
     });
   });
 

@@ -16,58 +16,7 @@ interface ReferralUser {
   joined_at: string;
 }
 
-const DUMMY_REFERRALS: ReferralUser[] = [
-  {
-    id: 'ref-001',
-    name: 'Budi Santoso',
-    email: 'budi.santoso@gmail.com',
-    referral_code: 'BUDI2026',
-    referrals_count: 12,
-    total_reward: 1_200_000,
-    status: 'active',
-    joined_at: '2026-01-15',
-  },
-  {
-    id: 'ref-002',
-    name: 'Siti Rahayu',
-    email: 'siti.rahayu@yahoo.com',
-    referral_code: 'SITI88',
-    referrals_count: 7,
-    total_reward: 700_000,
-    status: 'active',
-    joined_at: '2026-02-03',
-  },
-  {
-    id: 'ref-003',
-    name: 'Ahmad Fauzi',
-    email: 'ahmad.fauzi@gmail.com',
-    referral_code: 'FAUZI26',
-    referrals_count: 3,
-    total_reward: 300_000,
-    status: 'active',
-    joined_at: '2026-03-20',
-  },
-  {
-    id: 'ref-004',
-    name: 'Dewi Kusuma',
-    email: 'dewi.k@outlook.com',
-    referral_code: 'DEWI001',
-    referrals_count: 0,
-    total_reward: 0,
-    status: 'inactive',
-    joined_at: '2026-04-10',
-  },
-  {
-    id: 'ref-005',
-    name: 'Eko Prasetyo',
-    email: 'eko.prasetyo@gmail.com',
-    referral_code: 'EKO2026',
-    referrals_count: 5,
-    total_reward: 500_000,
-    status: 'active',
-    joined_at: '2026-02-28',
-  },
-];
+const DUMMY_REFERRALS: ReferralUser[] = [];
 
 export default function ReferralPage() {
   const [search, setSearch] = useState('');

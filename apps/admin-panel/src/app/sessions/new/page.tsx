@@ -30,10 +30,6 @@ export default function NewSessionPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
-  const dummyBranches: Branch[] = [
-    { id: 'Jakarta-Branch-ID-Fallback', name: 'Indo-Lelang Jakarta', city: 'Jakarta' },
-    { id: 'Surabaya-Branch-ID-Fallback', name: 'Indo-Lelang Surabaya', city: 'Surabaya' },
-  ];
 
   // Fetch branches
   useEffect(() => {
@@ -42,15 +38,19 @@ export default function NewSessionPage() {
         const response = await fetch(apiUrl('/branches'));
         const data = await response.json();
         if (response.ok && data.success) {
-          setBranches(data.data);
-          if (data.data.length > 0) setBranchId(data.data[0].id);
+          const central = data.data.find((b: any) => b.name.toLowerCase().includes('pusat') || b.name.toLowerCase().includes('jakarta'));
+          if (central) {
+            setBranches([central]);
+            setBranchId(central.id);
+          } else {
+            setBranches(data.data);
+            if (data.data.length > 0) setBranchId(data.data[0].id);
+          }
         } else {
-          setBranches(dummyBranches);
-          setBranchId(dummyBranches[0].id);
+          setBranches([]);
         }
       } catch (err) {
-        setBranches(dummyBranches);
-        setBranchId(dummyBranches[0].id);
+        setBranches([]);
       }
     };
     fetchBranches();

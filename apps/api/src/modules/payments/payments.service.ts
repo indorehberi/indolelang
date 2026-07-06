@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { xenditClient } from '../../lib/xendit';
+import { midtransClient } from '../../lib/midtrans';
 import { logger } from '../../lib/logger';
 import { Prisma } from '@prisma/client';
 
@@ -67,6 +67,11 @@ export class PaymentsService {
         gross_amount: Number(r.gross_amount),
         commission_deducted: Number(r.commission_deducted),
         net_amount: Number(r.net_amount),
+        fee_dpp: Number(r.fee_dpp || 0),
+        fee_dpp_lain: Number(r.fee_dpp_lain || 0),
+        fee_ppn: Number(r.fee_ppn || 0),
+        fee_pph23: Number(r.fee_pph23 || 0),
+        pmk41_amount: Number(r.pmk41_amount || 0),
         status: r.status,
         transferred_at: r.transferred_at ? r.transferred_at.toISOString() : undefined,
         created_at: r.created_at.toISOString(),
@@ -111,14 +116,29 @@ export class PaymentsService {
     }
 
     try {
-      // Execute the payout using the Xendit Client
-      const response = await xenditClient.createDisbursement({
-        externalId: `SETTLE-${settlementId}`,
-        amount: Number(settlement.net_amount),
-        bankCode: 'BCA', // Default bank code
-        accountHolderName: settlement.provider.full_name,
-        accountNumber: '1234567890', // Default dummy account number
+      // Check fee bearer setting
+      const settingRecord = await prisma.platform_settings.findFirst({
+        where: { key: 'FEE_BEARER' }
+      });
+      const feeBearer = settingRecord?.value || 'admin';
+      
+      let payoutAmount = Number(settlement.net_amount);
+      let gatewayFee = 0;
+      
+      if (feeBearer === 'customer') {
+        gatewayFee = 3200; // Midtrans Iris standard fee
+        payoutAmount = payoutAmount - gatewayFee;
+      }
+
+      // Execute the payout using the Midtrans Iris Client
+      const response = await midtransClient.createPayout({
+        reference_no: `SETTLE-${settlementId}`,
+        amount: payoutAmount,
+        bank_code: settlement.provider.bank_name || 'BCA', // Fallback
+        account_name: settlement.provider.bank_account_name || settlement.provider.full_name,
+        account_number: settlement.provider.bank_account_no || '1234567890',
         description: `Pelunasan lelang unit ${settlement.lot.asset.title.substring(0, 30)}`,
+        email: settlement.provider.email
       });
 
       if (response.status === 'FAILED') {
@@ -128,15 +148,16 @@ export class PaymentsService {
             status: 'failed',
           },
         });
-        throw new AppError(502, 'DISBURSEMENT_FAILED', 'Disbursement ditolak oleh bank partner');
+        throw new AppError(502, 'DISBURSEMENT_FAILED', 'Disbursement ditolak oleh Midtrans Iris');
       }
 
       // If pending or completed, mark as transferred
       const updated = await prisma.settlements.update({
         where: { id: settlementId },
         data: {
-          status: response.status === 'COMPLETED' ? 'processed' : 'pending', // map COMPLETED to processed
+          status: response.status === 'COMPLETED' ? 'processed' : 'pending',
           transferred_at: response.status === 'COMPLETED' ? new Date() : null,
+          gateway_fee: gatewayFee
         },
       });
 
@@ -172,33 +193,77 @@ export class PaymentsService {
       );
     }
 
-    // Simulate refund API call. We automatically accept it and mark refunded.
-    const updated = await prisma.$transaction([
-      prisma.deposits.update({
-        where: { id: depositId },
-        data: {
-          status: 'refunded',
-        },
-      }),
-      prisma.notifications.create({
-        data: {
-          user_id: deposit.user_id,
-          type: 'deposit_refunded',
-          title: 'Refund Jaminan NIPL Selesai',
-          body: `Uang jaminan deposit NIPL Sesi "${deposit.session.title}" sebesar Rp ${new Intl.NumberFormat('id-ID').format(Number(deposit.amount))} telah dikembalikan ke rekening Anda.`,
-        },
-      }),
-      prisma.audit_logs.create({
-        data: {
-          action: 'REFUND_DEPOSIT',
-          resource_type: 'deposit',
-          resource_id: depositId,
-          new_value: 'refunded',
-        },
-      }),
-    ]);
+    // Validation to prevent refunding deposits if the user won a lot but failed to pay (NIPL forfeit).
+    // We check if the user has any overdue invoices in the same session.
+    const overdueInvoices = await prisma.invoices.count({
+      where: {
+        bidder_id: deposit.user_id,
+        status: 'overdue',
+        lot: {
+          session_id: deposit.session_id || undefined
+        }
+      }
+    });
 
-    return updated[0];
+    if (overdueInvoices > 0) {
+      // System logic: Forfeit this 1 NIPL (mark as forfeited) and reject refund
+      await prisma.deposits.update({
+        where: { id: depositId },
+        data: { status: 'forfeited' }
+      });
+      throw new AppError(
+        400,
+        ErrorCode.BAD_REQUEST,
+        'Refund ditolak. Deposit (NIPL) ini hangus karena Anda memiliki tagihan pelunasan lelang yang tidak dibayar (Overdue) pada sesi ini.'
+      );
+    }
+
+    try {
+      // Execute refund via Midtrans Iris
+      const response = await midtransClient.createPayout({
+        reference_no: `REFUND-${depositId}`,
+        amount: Number(deposit.amount),
+        bank_code: deposit.user.bank_name || 'BCA', // Fallback
+        account_name: deposit.user.bank_account_name || deposit.user.full_name,
+        account_number: deposit.user.bank_account_no || '1234567890',
+        description: `Refund NIPL Sesi ${deposit.session?.title || ''}`.substring(0, 50),
+        email: deposit.user.email
+      });
+
+      if (response.status === 'FAILED') {
+        throw new AppError(502, 'REFUND_FAILED', 'Refund ditolak oleh Midtrans Iris');
+      }
+
+      const updated = await prisma.$transaction([
+        prisma.deposits.update({
+          where: { id: depositId },
+          data: {
+            status: 'refunded',
+          },
+        }),
+        prisma.notifications.create({
+          data: {
+            user_id: deposit.user_id,
+            type: 'deposit_refunded',
+            title: 'Refund Jaminan NIPL Selesai',
+            body: `Uang jaminan deposit NIPL Sesi "${deposit.session?.title || 'Umum'}" sebesar Rp ${new Intl.NumberFormat('id-ID').format(Number(deposit.amount))} telah dikembalikan ke rekening Anda.`,
+          },
+        }),
+        prisma.audit_logs.create({
+          data: {
+            action: 'REFUND_DEPOSIT',
+            resource_type: 'deposit',
+            resource_id: depositId,
+            new_value: 'refunded',
+          },
+        }),
+      ]);
+
+      return updated[0];
+    } catch (error) {
+      logger.error({ error, depositId }, 'Refund exception handled');
+      throw error;
+    }
   }
 
   /**

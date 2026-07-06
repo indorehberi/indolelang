@@ -1,72 +1,232 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
+import Button from '../../../components/ui/Button';
+import { apiFetch, apiUrl } from '../../../lib/api';
 
-interface Provider {
+interface User {
   id: string;
-  name: string;
-  company_name: string;
+  full_name: string;
   email: string;
-  phone: string;
-  npwp: string;
-  assets_count: number;
-  status: 'pending' | 'active' | 'suspended';
+  phone: string | null;
+  role: string;
+  status: string;
+  company_name?: string;
+  npwp?: string;
+  provider_status?: string;
+  provider_fee_type?: string;
+  provider_fee_amount?: number | string;
+  pmk41_paid_by_provider?: boolean;
   created_at: string;
 }
 
 export default function ProviderUsersPage() {
-  const [loading] = useState(false);
-  
-  const dummyProviders: Provider[] = [
-    {
-      id: 'prov-1',
-      name: 'Budi Hartono',
-      company_name: 'PT Djarum Finance',
-      email: 'budi.h@djarumfinance.co.id',
-      phone: '+628111222333',
-      npwp: '01.234.567.8-012.000',
-      assets_count: 24,
-      status: 'active',
-      created_at: '2026-05-10T08:30:00.000Z',
-    },
-    {
-      id: 'prov-2',
-      name: 'Rian Adiputra',
-      company_name: 'Adira Finance Corp',
-      email: 'rian.adi@adira.co.id',
-      phone: '+628123456789',
-      npwp: '02.456.789.0-123.000',
-      assets_count: 42,
-      status: 'active',
-      created_at: '2026-05-15T09:00:00.000Z',
-    },
-    {
-      id: 'prov-3',
-      name: 'Santi Wijaya',
-      company_name: 'PT Wijaya Asset Mandiri',
-      email: 'santi@wijayaasset.com',
-      phone: '+62899888777',
-      npwp: '03.789.123.4-567.000',
-      assets_count: 8,
-      status: 'pending',
-      created_at: '2026-06-20T14:20:00.000Z',
-    },
-  ];
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [providerStatusFilter, setProviderStatusFilter] = useState<string>('all');
 
-  const getStatusBadge = (status: Provider['status']) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Aktif</Badge>;
-      case 'pending':
-        return <Badge variant="warning">Menunggu Review</Badge>;
-      case 'suspended':
-        return <Badge variant="danger">Ditangguhkan</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    company_name: '',
+    npwp: '',
+    provider_fee_type: 'percentage',
+    provider_fee_amount: '0',
+    pmk41_paid_by_provider: false,
+  });
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      let url = '/admin/users?per_page=200';
+      if (providerStatusFilter === 'approved') {
+        url += '&role=provider';
+      } else if (providerStatusFilter === 'pending') {
+        url += '&provider_status=pending';
+      }
+
+      const response = await apiFetch(url);
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        let list = resData.data || [];
+        if (providerStatusFilter === 'all') {
+          list = list.filter((u: any) => u.role === 'provider' || u.provider_status === 'pending' || u.provider_status === 'rejected');
+        }
+        setUsers(list);
+      } else {
+        setUsers([]);
+      }
+    } catch (err) {
+      console.error('Failed to load users', err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
+  }, [providerStatusFilter]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleProcessUpgrade = async (userId: string, action: 'approved' | 'rejected') => {
+    let rejection_reason = '';
+    if (action === 'rejected') {
+      const reason = window.prompt('Masukkan alasan penolakan upgrade provider:');
+      if (reason === null) return; // User cancelled
+      if (!reason.trim()) {
+        alert('Alasan penolakan tidak boleh kosong.');
+        return;
+      }
+      rejection_reason = reason;
+    } else {
+      const confirmation = window.confirm(
+        `Apakah Anda yakin ingin menyetujui pengajuan upgrade provider ini?`
+      );
+      if (!confirmation) return;
+    }
+
+    try {
+      const response = await apiFetch(`/admin/users/${userId}/provider-status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: action, rejection_reason }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        alert(`Pengajuan upgrade provider berhasil ${action === 'approved' ? 'disetujui' : 'ditolak'}.`);
+        fetchUsers();
+      } else {
+        alert(resData.error?.message || 'Gagal memproses tindakan.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Koneksi gagal. Pastikan API server aktif.');
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/admin/users'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          ...formData, 
+          role: 'provider',
+          provider_status: 'approved',
+          provider_fee_type: formData.provider_fee_type,
+          provider_fee_amount: Number(formData.provider_fee_amount),
+          pmk41_paid_by_provider: formData.pmk41_paid_by_provider
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setShowCreateModal(false);
+        setFormData({ full_name: '', email: '', phone: '', password: '', company_name: '', npwp: '', provider_fee_type: 'percentage', provider_fee_amount: '0', pmk41_paid_by_provider: false });
+        fetchUsers();
+      } else {
+        alert(data.error?.message || 'Gagal membuat provider');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone,
+          company_name: formData.company_name,
+          npwp: formData.npwp,
+          provider_fee_type: formData.provider_fee_type,
+          provider_fee_amount: Number(formData.provider_fee_amount),
+          pmk41_paid_by_provider: formData.pmk41_paid_by_provider,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setShowEditModal(false);
+        fetchUsers();
+      } else {
+        alert(data.error?.message || 'Gagal mengubah provider');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setShowDeleteModal(false);
+        fetchUsers();
+      } else {
+        alert(data.error?.message || 'Gagal menghapus provider');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
+  const openEdit = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone || '',
+      password: '',
+      company_name: user.company_name || '',
+      npwp: user.npwp || '',
+      provider_fee_type: user.provider_fee_type || 'percentage',
+      provider_fee_amount: String(user.provider_fee_amount || '0'),
+      pmk41_paid_by_provider: user.pmk41_paid_by_provider || false,
+    });
+    setShowEditModal(true);
+  };
+
+  const openDelete = (user: User) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
   };
 
   return (
@@ -76,8 +236,24 @@ export default function ProviderUsersPage() {
           <h1 className="page-title">Manajemen Mitra Provider Aset</h1>
           <p className="page-subtitle">Daftar mitra penyedia aset/barang titipan yang terdaftar di platform Indo-Lelang.</p>
         </div>
-        <div className="toolbar-right">
-          <button className="btn btn-primary btn-sm">+ Tambah Provider</button>
+        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <select
+            className="search-box"
+            value={providerStatusFilter}
+            onChange={(e) => setProviderStatusFilter(e.target.value)}
+            style={{ padding: '0.45rem 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+          >
+            <option value="all">Semua Status</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+          </select>
+
+          <Button variant="primary" size="sm" onClick={() => {
+            setFormData({ full_name: '', email: '', phone: '', password: '', company_name: '', npwp: '', provider_fee_type: 'percentage', provider_fee_amount: '0', pmk41_paid_by_provider: false });
+            setShowCreateModal(true);
+          }}>
+            + Tambah Provider
+          </Button>
         </div>
       </div>
 
@@ -88,45 +264,209 @@ export default function ProviderUsersPage() {
               <tr>
                 <th>Nama Perwakilan</th>
                 <th>Nama Perusahaan</th>
-                <th>Kontak & Email</th>
+                <th>Kontak &amp; Email</th>
                 <th>NPWP</th>
-                <th style={{ textAlign: 'center' }}>Jumlah Unit</th>
                 <th>Status</th>
-                <th>Terdaftar Sejak</th>
-                <th style={{ textAlign: 'center' }}>Tindakan</th>
+                <th>Tanggal Daftar</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat data provider...</td></tr>
-              ) : dummyProviders.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Tidak ada provider ditemukan.</td></tr>
+                <tr><td colSpan={7} className="text-center py-6">Memuat data provider...</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-6 text-muted">Tidak ada provider ditemukan.</td></tr>
               ) : (
-                dummyProviders.map((prov) => (
-                  <tr key={prov.id}>
-                    <td><strong>{prov.name}</strong></td>
-                    <td>{prov.company_name}</td>
-                    <td>
-                      <div>{prov.email}</div>
-                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>{prov.phone}</div>
-                    </td>
-                    <td><code style={{ fontSize: '0.85rem' }}>{prov.npwp}</code></td>
-                    <td style={{ textAlign: 'center' }}><strong className="text-primary">{prov.assets_count} unit</strong></td>
-                    <td>{getStatusBadge(prov.status)}</td>
-                    <td>{new Date(prov.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="d-flex gap-1 justify-content-center">
-                        <button className="btn btn-xs btn-outline">Lihat Aset</button>
-                        <button className="btn btn-xs btn-danger">Suspend</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                users.map((prov) => {
+                  const isPending = prov.provider_status === 'pending';
+                  const isRejected = prov.provider_status === 'rejected';
+
+                  return (
+                    <tr key={prov.id}>
+                      <td><strong>{prov.full_name}</strong></td>
+                      <td>{prov.company_name || '-'}</td>
+                      <td>
+                        <div>{prov.email}</div>
+                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>{prov.phone || '-'}</div>
+                      </td>
+                      <td><code style={{ fontSize: '0.85rem' }}>{prov.npwp || '-'}</code></td>
+                      <td>
+                        {isPending ? (
+                          <Badge variant="warning">Pending Upgrade</Badge>
+                        ) : isRejected ? (
+                          <Badge variant="danger">Upgrade Ditolak</Badge>
+                        ) : (
+                          <Badge variant={prov.status === 'suspended' ? 'danger' : 'success'}>
+                            {prov.status === 'suspended' ? 'Suspended' : 'Aktif'}
+                          </Badge>
+                        )}
+                      </td>
+                      <td>{new Date(prov.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                      <td>
+                        {isPending ? (
+                          <div className="d-flex gap-1">
+                            <Button variant="success" size="sm" onClick={() => handleProcessUpgrade(prov.id, 'approved')}>
+                              Setujui
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleProcessUpgrade(prov.id, 'rejected')}>
+                              Tolak
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="d-flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => openEdit(prov)}>
+                              Edit
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => openDelete(prov)}>
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* CREATE MODAL */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <Card>
+            <h3 style={{ marginBottom: '1rem' }}>Tambah Provider Baru</h3>
+            <form onSubmit={handleCreate}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perwakilan</label>
+                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
+                <input required type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
+                <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perusahaan</label>
+                <input required type="text" value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>NPWP</label>
+                <input required type="text" value={formData.npwp} onChange={(e) => setFormData({...formData, npwp: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              
+              <hr style={{margin: '1rem 0', borderColor: '#eee'}} />
+              <h4 style={{marginBottom: '0.5rem'}}>Pengaturan Biaya & Pajak</h4>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipe Biaya (Fee)</label>
+                  <select value={formData.provider_fee_type} onChange={(e) => setFormData({...formData, provider_fee_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                    <option value="percentage">Persentase (%)</option>
+                    <option value="flat">Nominal Tetap (Rp)</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nilai Biaya</label>
+                  <input type="number" value={formData.provider_fee_amount} onChange={(e) => setFormData({...formData, provider_fee_amount: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={formData.pmk41_paid_by_provider} onChange={(e) => setFormData({...formData, pmk41_paid_by_provider: e.target.checked})} />
+                  <span>Pajak PMK-41 Ditanggung oleh Provider</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>Batal</Button>
+                <Button variant="primary" type="submit">Simpan</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <Card>
+            <h3 style={{ marginBottom: '1rem' }}>Edit Provider</h3>
+            <form onSubmit={handleEdit}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perwakilan</label>
+                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
+                <input required type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perusahaan</label>
+                <input required type="text" value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>NPWP</label>
+                <input required type="text" value={formData.npwp} onChange={(e) => setFormData({...formData, npwp: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+              </div>
+
+              <hr style={{margin: '1rem 0', borderColor: '#eee'}} />
+              <h4 style={{marginBottom: '0.5rem'}}>Pengaturan Biaya & Pajak</h4>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipe Biaya (Fee)</label>
+                  <select value={formData.provider_fee_type} onChange={(e) => setFormData({...formData, provider_fee_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                    <option value="percentage">Persentase (%)</option>
+                    <option value="flat">Nominal Tetap (Rp)</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nilai Biaya</label>
+                  <input type="number" value={formData.provider_fee_amount} onChange={(e) => setFormData({...formData, provider_fee_amount: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={formData.pmk41_paid_by_provider} onChange={(e) => setFormData({...formData, pmk41_paid_by_provider: e.target.checked})} />
+                  <span>Pajak PMK-41 Ditanggung oleh Provider</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Batal</Button>
+                <Button variant="primary" type="submit">Simpan</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <Card>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--color-danger)' }}>Hapus Provider</h3>
+            <p style={{ marginBottom: '1.5rem' }}>
+              Apakah Anda yakin ingin menghapus <strong>{selectedUser?.company_name || selectedUser?.full_name}</strong>? Tindakan ini akan menonaktifkan pengguna.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <Button variant="outline" type="button" onClick={() => setShowDeleteModal(false)}>Batal</Button>
+              <Button variant="danger" type="button" onClick={handleDelete}>Hapus</Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -111,6 +111,28 @@ export class AuthController {
 			next(error);
 		}
 	}
+
+	/**
+	 * Login or register with Google
+	 */
+	async googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			const result = await authService.googleAuth(req.body);
+
+			// Set Refresh Token in HttpOnly cookie
+			res.cookie('refreshToken', result.refreshToken, {
+				httpOnly: true,
+				secure: env.NODE_ENV === 'production',
+				sameSite: 'strict',
+				path: `${env.API_PREFIX}/auth`,
+				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+			});
+
+			sendSuccess(res, { accessToken: result.accessToken, user: result.user }, 'Login Google berhasil');
+		} catch (error) {
+			next(error);
+		}
+	}
 }
 
 export default AuthController;

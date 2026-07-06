@@ -144,7 +144,7 @@ Admin Buat Sesi → Assign Lot → Set Jadwal
 
 ### 4. Pelunasan
 ```
-Invoice → 5 Hari Kerja → Hammer + Komisi(3%) + PPN(11%)
+Invoice → 3 Hari Kerja → Hammer + Komisi(3%) + PPN(11%)
   → Bayar VA → Admin Verifikasi → LUNAS
   → Generate Surat Jalan + BAST (PDF)
 ```
@@ -184,7 +184,7 @@ Wireframe ada di folder `wireframe/`. Buka `wireframe/index.html` di browser unt
 | NIPL Kendaraan | Rp 5.000.000 |
 | NIPL Motor | Rp 1.000.000 |
 | NIPL Properti | Rp 10.000.000 |
-| Batas Pelunasan | 5 Hari Kerja |
+| Batas Pelunasan | 3 Hari Kerja |
 | Batas Pengambilan | 14 Hari Kalender |
 | Anti-Sniping Threshold | 30 Detik |
 | Anti-Sniping Extension | 120 Detik (max 3x) |

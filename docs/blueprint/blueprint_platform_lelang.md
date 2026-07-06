@@ -267,7 +267,7 @@ BIDDER (Peserta Lelang)
 ### 5.4 Alur Pembayaran & Pelunasan
 
 ```
-[Pemenang Dapat Invoice] → Pelunasan dalam 5 hari kerja
+[Pemenang Dapat Invoice] → Pelunasan dalam 3 hari kerja
     → Harga Hammer + Komisi (3%) + PPN (1.1%) + Biaya Lain
     → Pilih metode bayar → Transfer ke VA Pelunasan
     → Admin verifikasi → Status: LUNAS
@@ -635,7 +635,8 @@ PPN: default 11% (ikut regulasi berlaku)
 Jaminan NIPL Kendaraan: Rp 5.000.000
 Jaminan NIPL Motor: Rp 1.000.000
 Jaminan NIPL Properti: Rp 10.000.000
-Batas Waktu Pelunasan: 5 Hari Kerja
+Jaminan NIPL Alat Berat: Rp 10.000.000
+Batas Waktu Pelunasan: 3 Hari Kerja
 Anti-Sniping Threshold: 30 detik
 Anti-Sniping Extension: 120 detik (max 3x)
 ```

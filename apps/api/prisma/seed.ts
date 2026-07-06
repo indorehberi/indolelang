@@ -5,18 +5,30 @@ import { FEATURE_TOGGLE_DEFAULTS } from '../../../packages/shared-types/src/enum
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('🌱 Starting database seeding (Production/Clean Mode)...');
 
-  // 1. Clear existing settings and users to prevent duplicates
-  await prisma.platform_settings.deleteMany({});
+  // 1. Clear existing tables in correct dependency order
+  await prisma.bids.deleteMany({});
+  await prisma.deposits.deleteMany({});
+  await prisma.invoices.deleteMany({});
+  await prisma.settlements.deleteMany({});
+  await prisma.documents.deleteMany({});
+  await prisma.notifications.deleteMany({});
+  await prisma.audit_logs.deleteMany({});
+  await prisma.lots.deleteMany({});
+  await prisma.assets.deleteMany({});
+  await prisma.auction_sessions.deleteMany({});
+  await prisma.kyc_documents.deleteMany({});
   await prisma.users.deleteMany({});
   await prisma.branches.deleteMany({});
+  await prisma.platform_settings.deleteMany({});
 
   // 2. Hash passwords
   const superadminPasswordHash = await bcrypt.hash('Superadmin123!', 10);
   const adminPasswordHash = await bcrypt.hash('Admin123!', 10);
+  const operatorPasswordHash = await bcrypt.hash('Operator123!', 10);
 
-  // 3. Create default users
+  // 3. Create default system users (for admin panel access)
   const superadmin = await prisma.users.create({
     data: {
       email: 'superadmin@indo-lelang.com',
@@ -39,9 +51,21 @@ async function main() {
     },
   });
 
-  console.log('✅ Default users created:');
+  const operator = await prisma.users.create({
+    data: {
+      email: 'operator@indo-lelang.com',
+      phone: '+628333333333',
+      password_hash: operatorPasswordHash,
+      full_name: 'Operator Lelang Utama',
+      role: 'operator',
+      status: 'active',
+    },
+  });
+
+  console.log('✅ Default system staff accounts created:');
   console.log(`   - Superadmin: ${superadmin.email}`);
   console.log(`   - Admin: ${admin.email}`);
+  console.log(`   - Operator: ${operator.email}`);
 
   // 4. Create default branches
   const branchJakarta = await prisma.branches.create({
@@ -56,21 +80,8 @@ async function main() {
     },
   });
 
-  const branchSurabaya = await prisma.branches.create({
-    data: {
-      tenant_id: 'default',
-      name: 'Indo-Lelang Surabaya',
-      city: 'Surabaya',
-      address: 'Jl. Basuki Rahmat No. 45, Genteng, Surabaya',
-      phone: '+623155556789',
-      pic_name: 'Siti Rahma',
-      is_active: true,
-    },
-  });
-
   console.log('✅ Default branches created:');
   console.log(`   - Jakarta Branch ID: ${branchJakarta.id}`);
-  console.log(`   - Surabaya Branch ID: ${branchSurabaya.id}`);
 
   // 5. Create default feature toggles from FEATURE_TOGGLE_DEFAULTS
   const settingsData: any[] = [];
@@ -103,6 +114,42 @@ async function main() {
       key: 'nipl_deposit_amount',
       value: '5000000', // Rp 5.000.000 deposit per NIPL
       is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'nipl_motor_deposit_amount',
+      value: '1000000',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'anti_sniping_extension_seconds',
+      value: '120',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'fee_bearer_deposit',
+      value: 'bidder',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'fee_bearer_refund',
+      value: 'admin',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'fee_bearer_pelunasan',
+      value: 'bidder',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'fee_bearer_settlement',
+      value: 'provider',
+      is_encrypted: false,
     }
   );
 
@@ -112,9 +159,9 @@ async function main() {
       data: setting,
     });
   }
-
   console.log(`✅ Default platform settings and feature flags seeded (${settingsData.length} entries).`);
-  console.log('🌱 Seeding process complete!');
+
+  console.log('🌱 Seeding process complete! Database is now clean.');
 }
 
 main()

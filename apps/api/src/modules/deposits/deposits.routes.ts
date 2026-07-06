@@ -26,4 +26,12 @@ router.get(
   controller.getDeposits
 );
 
+// Request Refund NIPL (Bidder only)
+router.post(
+  '/deposits/:id/request-refund',
+  authenticate,
+  authorize(Role.BIDDER),
+  controller.requestRefund
+);
+
 export default router;
