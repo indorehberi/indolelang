@@ -19,6 +19,28 @@ export const metadata: Metadata = {
   title: "BIDKU - Platform Lelang Digital Terpercaya",
   description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
   keywords: ["lelang", "lelang mobil", "lelang motor", "bidku", "indo lelang", "lelang digital"],
+  openGraph: {
+    title: "BIDKU - Platform Lelang Digital Terpercaya",
+    description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
+    url: "https://bidku.co.id",
+    siteName: "BIDKU",
+    images: [
+      {
+        url: "/hero_cars_row.png",
+        width: 1200,
+        height: 630,
+        alt: "BIDKU Lelang Digital",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BIDKU - Platform Lelang Digital Terpercaya",
+    description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
+    images: ["/hero_cars_row.png"],
+  },
 };
 
 export default function RootLayout({
