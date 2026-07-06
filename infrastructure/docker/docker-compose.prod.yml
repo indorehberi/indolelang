@@ -67,7 +67,7 @@ services:
       - JWT_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=30d
       - API_PREFIX=/api/v1
-      - GOOGLE_CLIENT_ID=${PUBLIC_GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
     volumes:
       - uploads_prod:/app/apps/api/uploads
     deploy:
@@ -104,7 +104,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost}
         - NEXT_PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL:-http://localhost/admin}
-        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${PUBLIC_GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
     container_name: indolelang_landing_prod
     restart: unless-stopped
     expose:
@@ -115,7 +115,7 @@ services:
       - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost}
       - NEXT_PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL:-http://localhost/admin}
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${PUBLIC_GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
     deploy:
       resources:
         limits:
