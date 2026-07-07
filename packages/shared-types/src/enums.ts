@@ -47,6 +47,7 @@ export enum SessionStatus {
 
 export enum AssetStatus {
   PENDING = 'pending',
+  INSPECTED = 'inspected',
   APPROVED = 'approved',
   LISTED = 'listed',
   SOLD = 'sold',

@@ -8,6 +8,7 @@ import {
   createAssetSchema,
   updateAssetSchema,
   getAssetsQuerySchema,
+  inspectAssetSchema,
 } from './assets.schema';
 
 const router = Router();
@@ -36,6 +37,14 @@ router.put(
 );
 
 // Admin & Operator approval endpoints
+router.put(
+  '/admin/assets/:id/inspect',
+  authenticate,
+  authorize(Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
+  validate(inspectAssetSchema),
+  controller.inspectAsset
+);
+
 router.put(
   '/admin/assets/:id/approve',
   authenticate,

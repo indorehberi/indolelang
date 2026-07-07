@@ -114,6 +114,25 @@ export class AssetsController {
   }
 
   /**
+   * Inspect asset (Inspector action)
+   * Log action
+   */
+  async inspectAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const inspectorId = req.user!.id; // from auth middleware
+      const asset = await assetsService.inspectAsset(id, req.body, inspectorId);
+
+      // Log admin audit trail
+      logAdminAction(req, 'INSPECT_ASSET', 'assets', id, req.body, asset);
+
+      sendSuccess(res, asset, 'Barang berhasil diinspeksi');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Reject / Return asset to provider (Admin/Operator only)
    * Log action
    */

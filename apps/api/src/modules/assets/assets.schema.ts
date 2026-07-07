@@ -54,6 +54,7 @@ export const updateAssetSchema = z.object({
     status: z
       .enum([
         AssetStatus.PENDING,
+        AssetStatus.INSPECTED,
         AssetStatus.APPROVED,
         AssetStatus.LISTED,
         AssetStatus.SOLD,

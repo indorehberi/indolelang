@@ -137,6 +137,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     fetchSettings();
   }, [kycPendingCount, assetPendingCount, hasLiveSession]);
 
+  const [userRole, setUserRole] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) {
+        const parsed = JSON.parse(u);
+        setUserRole(parsed.role || '');
+      }
+    } catch(e) {}
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('token');
@@ -185,7 +197,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'Katalog',
       items: [
         { href: '/assets', icon: 'inventory_2', iconColor: '#6366f1', label: 'Daftar Barang' },
-        {
+        (userRole === 'inspector' || userRole === 'admin' || userRole === 'superadmin') && {
+          href: '/assets/inspection',
+          icon: 'policy',
+          iconColor: '#ef4444',
+          label: 'Inspeksi Barang',
+        },
+        (userRole !== 'inspector') && {
           href: '/assets/approval',
           icon: 'task_alt',
           iconColor: '#f97316',
@@ -193,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badge: assetCount,
           badgeTone: 'gold',
         },
-      ],
+      ].filter(Boolean) as NavItem[],
     },
     {
       title: 'Lelang',

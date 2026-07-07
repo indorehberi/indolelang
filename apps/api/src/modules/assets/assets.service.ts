@@ -144,6 +144,56 @@ export class AssetsService {
   }
 
   /**
+   * Inspect asset (Inspector submits inspection details)
+   */
+  async inspectAsset(id: string, data: any, inspectorId: string): Promise<AssetDTO> {
+    const asset = await prisma.assets.findUnique({ where: { id } });
+
+    if (!asset) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Aset barang tidak ditemukan');
+    }
+
+    if (asset.status !== AssetStatus.PENDING) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Hanya barang berstatus PENDING yang dapat diinspeksi');
+    }
+
+    const updated = await prisma.assets.update({
+      where: { id },
+      data: {
+        status: AssetStatus.INSPECTED,
+        inspector_id: inspectorId,
+        inspection_date: new Date(data.inspection_date),
+        grade_interior: data.grade_interior,
+        grade_exterior: data.grade_exterior,
+        grade_engine: data.grade_engine,
+        inspection_doc_url: data.inspection_doc_url || null,
+        
+        category: data.category,
+        brand: data.brand,
+        model: data.model,
+        color: data.color,
+        fuel_type: data.fuel_type,
+        transmission: data.transmission,
+        body_type: data.body_type,
+        year: data.year,
+        police_number: data.police_number,
+        bpkb_number: data.bpkb_number,
+        frame_number: data.frame_number,
+        cylinder: data.cylinder,
+        odometer: data.odometer,
+      } as any,
+    });
+
+    return {
+      ...updated,
+      base_price: Number(updated.base_price),
+      images: updated.images ? JSON.parse(updated.images as string) : {},
+      created_at: updated.created_at.toISOString(),
+      updated_at: updated.updated_at.toISOString(),
+    } as any;
+  }
+
+  /**
    * Update asset details
    */
   async updateAsset(id: string, data: any): Promise<AssetDTO> {
@@ -211,6 +261,13 @@ export class AssetsService {
    * Approve asset (Admin/Operator only)
    */
   async approveAsset(id: string): Promise<AssetDTO> {
+    const asset = await prisma.assets.findUnique({ where: { id } });
+    if (!asset) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Aset barang tidak ditemukan');
+    }
+    if (asset.status !== AssetStatus.INSPECTED) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Aset barang harus diinspeksi terlebih dahulu');
+    }
     return this.updateAsset(id, { status: AssetStatus.APPROVED });
   }
 
