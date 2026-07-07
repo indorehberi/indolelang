@@ -30,16 +30,14 @@ RUN npm run build -w apps/admin-panel
 FROM node:20-alpine
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/admin-panel/package*.json ./apps/admin-panel/
-COPY --from=builder /app/apps/admin-panel/next.config.ts ./apps/admin-panel/
-COPY --from=builder /app/apps/admin-panel/.next ./apps/admin-panel/.next
+ENV NODE_ENV=production
+
 COPY --from=builder /app/apps/admin-panel/public ./apps/admin-panel/public
-COPY --from=builder /app/apps/admin-panel/src ./apps/admin-panel/src
+COPY --from=builder /app/apps/admin-panel/.next/standalone ./
+COPY --from=builder /app/apps/admin-panel/.next/static ./apps/admin-panel/.next/static
 
 EXPOSE 3000
-ENV NODE_ENV=production
-WORKDIR /app/apps/admin-panel
-CMD ["npm", "run", "start"]
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["node", "apps/admin-panel/server.js"]

@@ -34,16 +34,14 @@ RUN npm run build -w apps/landing-web
 FROM node:20-alpine
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/landing-web/package*.json ./apps/landing-web/
-COPY --from=builder /app/apps/landing-web/next.config.ts ./apps/landing-web/
-COPY --from=builder /app/apps/landing-web/.next ./apps/landing-web/.next
+ENV NODE_ENV=production
+
 COPY --from=builder /app/apps/landing-web/public ./apps/landing-web/public
-COPY --from=builder /app/apps/landing-web/src ./apps/landing-web/src
+COPY --from=builder /app/apps/landing-web/.next/standalone ./
+COPY --from=builder /app/apps/landing-web/.next/static ./apps/landing-web/.next/static
 
 EXPOSE 3000
-ENV NODE_ENV=production
-WORKDIR /app/apps/landing-web
-CMD ["npm", "run", "start"]
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["node", "apps/landing-web/server.js"]
