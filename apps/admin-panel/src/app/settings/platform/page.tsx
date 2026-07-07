@@ -13,6 +13,7 @@ interface FeatureToggleItem {
 
 export default function PlatformSettingsPage() {
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [toggles, setToggles] = useState<FeatureToggleItem[]>([]);
   const [tax, setTax] = useState('11');
   const [nipl, setNipl] = useState('5000000');
@@ -104,6 +105,7 @@ export default function PlatformSettingsPage() {
 
   const fetchSettings = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const cookieMap: Record<string, string> = {};
       if (typeof document !== 'undefined') {
@@ -113,94 +115,120 @@ export default function PlatformSettingsPage() {
         });
       }
 
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/settings'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        const loadedToggles: FeatureToggleItem[] = [];
-        const newApiKeys = { ...apiKeys };
-        
-        data.data.forEach((item: any) => {
-          if (item.key.startsWith('feat_')) {
-            const val = cookieMap[item.key] || item.value;
-            loadedToggles.push({ key: item.key, value: val });
-          } else if (item.key === 'tax_percentage') {
-            setTax(item.value);
-          } else if (item.key === 'nipl_deposit_amount') {
-            setNipl(item.value);
-          } else if (item.key === 'nipl_motor_deposit_amount') {
-            setNiplMotor(item.value);
-          } else if (item.key === 'anti_sniping_extension_seconds') {
-            setAntiSnipeSecs(item.value);
-          } else if (item.key === 'FEE_BEARER') {
-            setFeeBearer(item.value);
-          } else if (item.key === 'fee_bearer_deposit') {
-            setFeeBearerDeposit(item.value);
-          } else if (item.key === 'fee_bearer_refund') {
-            setFeeBearerRefund(item.value);
-          } else if (item.key === 'fee_bearer_pelunasan') {
-            setFeeBearerPelunasan(item.value);
-          } else if (item.key === 'fee_bearer_settlement') {
-            setFeeBearerSettlement(item.value);
-          } else if (item.key === 'pmk41_percentage') {
-            setPmk41(item.value);
-          } else if (item.key === 'dpp_lain_multiplier') {
-            setDppLain(item.value);
-          } else if (item.key === 'ppn_dpp_lain_percentage') {
-            setPpnDppLain(item.value);
-          } else if (item.key === 'pph23_percentage') {
-            setPph23(item.value);
-          } else if (item.key === 'auction_lot_duration_secs') {
-            setAuctionLotDuration(item.value);
-          } else if (item.key === 'auction_lot_next_delay_secs') {
-            setAuctionLotNextDelay(item.value);
-          } else if (item.key === 'auction_session_start_trigger') {
-            setAuctionSessionStartTrigger(item.value);
-          } else if (item.key === 'auction_lot_end_trigger') {
-            setAuctionLotEndTrigger(item.value);
-          } else if (item.key === 'auction_lot_next_trigger') {
-            setAuctionLotNextTrigger(item.value);
-          } else if (item.key === 'auction_session_end_trigger') {
-            setAuctionSessionEndTrigger(item.value);
-          } else if (item.key === 'admin_fee_tiers') {
-            try {
-              setAdminFeeTiers(JSON.parse(item.value));
-            } catch(e) {}
-          } else if (item.key in newApiKeys) {
-            (newApiKeys as any)[item.key] = item.value;
-          }
+      const loadedToggles: FeatureToggleItem[] = [];
+      const newApiKeys = { ...apiKeys };
+      let apiFailed = false;
+
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(apiUrl('/admin/settings'), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-
-        const ensureToggle = (key: string, defaultValue: string) => {
-          if (!loadedToggles.some((t) => t.key === key)) {
-            loadedToggles.push({ key, value: cookieMap[key] || defaultValue });
-          }
-        };
-
-        ensureToggle('feat_auction_english', 'true');
-        ensureToggle('feat_auction_dutch', 'false');
-        ensureToggle('feat_auction_sealed', 'false');
-        ensureToggle('feat_auction_timed', 'false');
-        ensureToggle('feat_auction_buynow', 'false');
-        ensureToggle('feat_auction_group', 'false');
-        ensureToggle('feat_category_mobil', 'true');
-        ensureToggle('feat_category_motor', 'true');
-        ensureToggle('feat_category_properti', 'false');
-        ensureToggle('feat_category_heavy', 'false');
-        ensureToggle('feat_ekyc_auto', 'false');
-        ensureToggle('feat_referral_program', 'false');
-
-        setToggles(loadedToggles);
-        setApiKeys(newApiKeys);
-      } else {
-        setToggles([]);
+        const data = await response.json();
+        if (response.ok && data.success) {
+          data.data.forEach((item: any) => {
+            if (item.key.startsWith('feat_')) {
+              const val = cookieMap[item.key] || item.value;
+              loadedToggles.push({ key: item.key, value: val });
+            } else if (item.key === 'tax_percentage') {
+              setTax(item.value);
+            } else if (item.key === 'nipl_deposit_amount') {
+              setNipl(item.value);
+            } else if (item.key === 'nipl_motor_deposit_amount') {
+              setNiplMotor(item.value);
+            } else if (item.key === 'anti_sniping_extension_seconds') {
+              setAntiSnipeSecs(item.value);
+            } else if (item.key === 'FEE_BEARER') {
+              setFeeBearer(item.value);
+            } else if (item.key === 'fee_bearer_deposit') {
+              setFeeBearerDeposit(item.value);
+            } else if (item.key === 'fee_bearer_refund') {
+              setFeeBearerRefund(item.value);
+            } else if (item.key === 'fee_bearer_pelunasan') {
+              setFeeBearerPelunasan(item.value);
+            } else if (item.key === 'fee_bearer_settlement') {
+              setFeeBearerSettlement(item.value);
+            } else if (item.key === 'pmk41_percentage') {
+              setPmk41(item.value);
+            } else if (item.key === 'dpp_lain_multiplier') {
+              setDppLain(item.value);
+            } else if (item.key === 'ppn_dpp_lain_percentage') {
+              setPpnDppLain(item.value);
+            } else if (item.key === 'pph23_percentage') {
+              setPph23(item.value);
+            } else if (item.key === 'auction_lot_duration_secs') {
+              setAuctionLotDuration(item.value);
+            } else if (item.key === 'auction_lot_next_delay_secs') {
+              setAuctionLotNextDelay(item.value);
+            } else if (item.key === 'auction_session_start_trigger') {
+              setAuctionSessionStartTrigger(item.value);
+            } else if (item.key === 'auction_lot_end_trigger') {
+              setAuctionLotEndTrigger(item.value);
+            } else if (item.key === 'auction_lot_next_trigger') {
+              setAuctionLotNextTrigger(item.value);
+            } else if (item.key === 'auction_session_end_trigger') {
+              setAuctionSessionEndTrigger(item.value);
+            } else if (item.key === 'admin_fee_tiers') {
+              try {
+                setAdminFeeTiers(JSON.parse(item.value));
+              } catch(e) {}
+            } else if (item.key in newApiKeys) {
+              (newApiKeys as any)[item.key] = item.value;
+            }
+          });
+          setApiKeys(newApiKeys);
+        } else {
+          const errMsg = data.error?.message || `Server merespon dengan status ${response.status}`;
+          setFetchError(errMsg);
+          apiFailed = true;
+        }
+      } catch (networkErr: any) {
+        setFetchError(`Gagal terhubung ke server: ${networkErr.message || 'Network error'}`);
+        apiFailed = true;
       }
-    } catch (e) {
-      setToggles([]);
+
+      // ensureToggle SELALU dijalankan — baik API sukses maupun gagal
+      // Sehingga list toggle tidak pernah kosong
+      const ensureToggle = (key: string, defaultValue: string) => {
+        if (!loadedToggles.some((t) => t.key === key)) {
+          loadedToggles.push({ key, value: cookieMap[key] || defaultValue });
+        }
+      };
+
+      // Toggle layanan pihak ketiga (dari seed database)
+      ensureToggle('feat_live_streaming', 'false');
+      ensureToggle('feat_ekyc_auto', 'false');
+      ensureToggle('feat_push_notification', 'false');
+      ensureToggle('feat_qris_payment', 'false');
+      ensureToggle('feat_esign_bast', 'false');
+      ensureToggle('feat_auto_refund', 'false');
+      ensureToggle('feat_price_alert', 'false');
+      ensureToggle('feat_multi_branch', 'true');
+      ensureToggle('feat_analytics_dashboard', 'true');
+      ensureToggle('feat_audit_trail', 'true');
+
+      // Toggle tipe lelang
+      ensureToggle('feat_auction_english', 'true');
+      ensureToggle('feat_auction_dutch', 'false');
+      ensureToggle('feat_auction_sealed', 'false');
+      ensureToggle('feat_auction_timed', 'false');
+      ensureToggle('feat_auction_buynow', 'false');
+      ensureToggle('feat_auction_group', 'false');
+
+      // Toggle kategori aset
+      ensureToggle('feat_category_mobil', 'true');
+      ensureToggle('feat_category_motor', 'true');
+      ensureToggle('feat_category_properti', 'false');
+      ensureToggle('feat_category_heavy', 'false');
+
+      // Toggle fitur lainnya
+      ensureToggle('feat_referral_program', 'false');
+
+      setToggles(loadedToggles);
+    } catch (e: any) {
+      setFetchError(`Terjadi kesalahan tidak terduga: ${e.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -562,6 +590,12 @@ export default function PlatformSettingsPage() {
           <Card>
             <h2 className="card-title">Feature Toggles (Modul Layanan Pihak Ketiga)</h2>
             <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Perubahan status di bawah ini langsung berdampak pada alur registrasi, pembayaran, dan bidding room.</p>
+            
+            {fetchError && (
+              <div className="alert alert-warning mb-3" style={{ fontSize: '0.85rem' }}>
+                <strong>⚠️ Peringatan:</strong> {fetchError}. Menampilkan nilai default. Silakan <a href="/admin/login" style={{ fontWeight: 'bold' }}>login ulang</a> untuk memuat data terbaru dari server.
+              </div>
+            )}
             
             <div className="table-wrapper">
               <table>

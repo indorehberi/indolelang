@@ -100,6 +100,30 @@ async function main() {
     });
   });
 
+  // Additional feature toggles (auction types, asset categories, referral)
+  const additionalToggles = {
+    feat_auction_english: 'true',
+    feat_auction_dutch: 'false',
+    feat_auction_sealed: 'false',
+    feat_auction_timed: 'false',
+    feat_auction_buynow: 'false',
+    feat_auction_group: 'false',
+    feat_category_mobil: 'true',
+    feat_category_motor: 'true',
+    feat_category_properti: 'false',
+    feat_category_heavy: 'false',
+    feat_referral_program: 'false',
+  };
+
+  Object.entries(additionalToggles).forEach(([key, defaultValue]) => {
+    settingsData.push({
+      tenant_id: 'default',
+      key,
+      value: defaultValue,
+      is_encrypted: false,
+    });
+  });
+
   settingsData.push(
     {
       tenant_id: 'default',
