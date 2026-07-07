@@ -59,6 +59,7 @@ export class DepositsService {
     ]);
 
     const deposits: any[] = records.map((r) => ({
+      id: r.id,
       user_id: r.user_id,
       session_id: r.session_id,
       amount: Number(r.amount),
