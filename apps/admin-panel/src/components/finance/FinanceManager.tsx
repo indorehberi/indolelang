@@ -376,7 +376,7 @@ export default function FinanceManager({
       case 'pending_refund':
         return <Badge variant="warning">Menunggu Refund</Badge>;
       case 'verifying':
-        return <Badge variant="primary">Menunggu Verifikasi</Badge>;
+        return <Badge variant="info">Menunggu Verifikasi</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -541,7 +541,7 @@ export default function FinanceManager({
                         <td>{getStatusBadge(deposit.status)}</td>
                         <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
                         <td style={{ textAlign: 'center' }}>
-                          {deposit.status === 'verifying' && (
+                          {(deposit.status === 'verifying' || (deposit.status === 'pending' && deposit.payment_method === 'manual_transfer')) && (
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                               <button
                                 onClick={() => handleVerifyDeposit(deposit.id, 'approve')}

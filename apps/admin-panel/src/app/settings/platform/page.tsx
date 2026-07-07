@@ -643,13 +643,14 @@ export default function PlatformSettingsPage() {
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>Atas Nama Rekening</label>
                   <input type="text" className="form-input" value={apiKeys.manual_payment_name} onChange={(e) => setApiKeys({...apiKeys, manual_payment_name: e.target.value})} placeholder="Contoh: PT Indo Lelang Sejahtera" />
                 </div>
-                <div className="form-group mb-2 mt-3">
-                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Potongan Biaya Admin Saat Refund (Rp)</label>
-                  <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
-                  <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Anda (Admin). Jika diisi angka (misal 2500), Bidder akan melihat info pemotongan ini saat deposit.</p>
-                </div>
               </div>
             )}
+
+            <div className="form-group mb-2 mt-3" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#fff' }}>
+              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Potongan Biaya Admin Saat Refund Manual (Rp)</label>
+              <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Anda (Admin). Jika diisi angka (misal 2500), Bidder akan melihat info pemotongan ini saat deposit.</p>
+            </div>
 
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Mode Production?</label>
