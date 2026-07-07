@@ -49,7 +49,7 @@ model users {
   audit_logs    audit_logs[]
   blog_posts    blog_posts[]
   testimonials  testimonials[]
-  nipl_allocations nipl_allocations[]
+  checkout_orders checkout_orders[]
 }
 
 model kyc_documents {
@@ -97,7 +97,6 @@ model auction_sessions {
   branch   branches   @relation(fields: [branch_id], references: [id])
   lots     lots[]
   deposits deposits[]
-  nipl_allocations nipl_allocations[]
 }
 
 model assets {
@@ -220,12 +219,34 @@ model invoices {
   due_date     DateTime
   status       String    @default("unpaid")
   paid_at      DateTime?
+  order_id     String?
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
 
   lot       lots        @relation(fields: [lot_id], references: [id])
   bidder    users       @relation(fields: [bidder_id], references: [id])
+  order     checkout_orders? @relation(fields: [order_id], references: [id])
   documents documents[]
+}
+
+model checkout_orders {
+  id                String   @id @default(uuid())
+  bidder_id         String
+  total_invoices    Int
+  subtotal_amount   Decimal
+  deposit_deduction Decimal
+  final_amount      Decimal
+  gateway_fee       Decimal? @default(0)
+  status            String   @default("unpaid")
+  payment_method    String?
+  va_number         String?
+  va_bank           String?
+  paid_at           DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  bidder   users      @relation(fields: [bidder_id], references: [id])
+  invoices invoices[]
 }
 
 model settlements {
@@ -330,22 +351,6 @@ model testimonials {
   deleted_at   DateTime?
 
   user         users     @relation(fields: [user_id], references: [id])
-}
-
-model nipl_allocations {
-  id                 String   @id @default(uuid())
-  user_id            String
-  session_id         String
-  unit_type          String   @default("mobil")
-  allocated_quantity Int      @default(1)
-  used_quantity      Int      @default(0)
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-
-  user    users            @relation(fields: [user_id], references: [id])
-  session auction_sessions @relation(fields: [session_id], references: [id])
-
-  @@unique([user_id, session_id, unit_type])
 }
 
 model campaigns {

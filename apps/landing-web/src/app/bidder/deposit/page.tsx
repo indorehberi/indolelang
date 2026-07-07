@@ -125,7 +125,6 @@ export default function BidderDeposit() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          session_id: selectedSessionId || null,
           unit_type: unitType,
           package_type: packageType,
           bank: paymentMethod,
@@ -173,8 +172,8 @@ export default function BidderDeposit() {
 
       const resData = await response.json();
       if (response.ok && resData.success) {
-        alert("Simulasi pembayaran sukses berhasil diproses! Status deposit Anda kini aktif.");
-        router.push("/bidder/deposit/allocations");
+        alert("Simulasi pembayaran sukses berhasil diproses! Deposit Anda kini aktif dan dapat digunakan di semua sesi lelang.");
+        router.push("/bidder/dashboard");
       } else {
         alert(resData.error?.message || "Gagal memproses simulasi pembayaran.");
       }
@@ -206,19 +205,13 @@ export default function BidderDeposit() {
     <BidderLayout pageTitle="Setor Deposit NIPL">
       <p className="page-subtitle">Beli tiket penawaran NIPL untuk berpartisipasi lelang</p>
 
-      {/* Tabs */}
+      {/* Page Title & Tabs */}
       <div className="flex border-b border-outline-variant/60 mb-6 gap-6">
         <Link
           href="/bidder/deposit"
           className="py-3 font-bold text-body-md text-primary border-b-2 border-primary relative transition-all"
         >
-          💳 Setor Deposit NIPL
-        </Link>
-        <Link
-          href="/bidder/deposit/allocations"
-          className="py-3 font-semibold text-body-md text-on-surface-variant/60 hover:text-on-surface transition-all"
-        >
-          ⚙️ Kelola Alokasi NIPL
+          💳 Setor Deposit NIPL (Saldo Bebas)
         </Link>
       </div>
 
@@ -229,27 +222,11 @@ export default function BidderDeposit() {
             <div className="card-header">Form Pengajuan Jaminan NIPL</div>
             <form onSubmit={handleCreateDeposit} className="space-y-4">
               
-              {/* Sesi Lelang Selection */}
+              {/* Keterangan Sistem NIPL */}
               <div className="panel-form-group">
-                <label className="panel-form-label">Pilih Sesi Lelang</label>
-                {sessions.length === 0 ? (
-                  <div className="p-3 bg-error/10 border border-error/20 rounded-xl text-error text-xs">
-                    Belum ada sesi lelang aktif atau mendatang saat ini. NIPL akan disimpan sebagai saldo bebas.
-                  </div>
-                ) : (
-                  <select
-                    value={selectedSessionId}
-                    onChange={(e) => setSelectedSessionId(e.target.value)}
-                    className="panel-form-select"
-                  >
-                    <option value="">Beli sebagai Saldo Bebas (NIPL Bebas)</option>
-                    {sessions.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name || s.title} ({s.status === "live" ? "LIVE" : "Mendatang"})
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary text-xs font-medium">
+                  <strong>Penting:</strong> Semua NIPL yang Anda beli kini bersifat <strong>Global (Saldo Bebas)</strong> dan dapat digunakan untuk mengikuti sesi lelang mana saja tanpa perlu dialokasikan.
+                </div>
               </div>
 
               {/* Tipe Unit */}
@@ -495,10 +472,10 @@ export default function BidderDeposit() {
                   </ul>
                 </div>
                 <p>
-                  Setiap kemenangan lot akan memotong 1 NIPL. Jika NIPL di sesi tertentu belum terpakai (karena kalah bidding), Anda dapat memindahkannya ke sesi aktif lainnya di menu Manajemen Alokasi.
+                  Sistem NIPL kini bersifat <strong>Global (Lintas Sesi)</strong>. NIPL Anda akan dipotong (dihanguskan) saat Anda melakukan Checkout / pelunasan untuk unit yang Anda menangkan. 
                 </p>
                 <p>
-                  Uang deposit jaminan yang tidak terpakai bersifat *refundable* penuh 100% tanpa potongan apapun dalam 1-3 hari kerja.
+                  Uang deposit jaminan yang tidak terpakai (NIPL utuh) bersifat *refundable* penuh 100% tanpa potongan apapun dalam 1-3 hari kerja.
                 </p>
               </div>
             </div>

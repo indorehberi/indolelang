@@ -30,6 +30,7 @@ import niplRoutes from './modules/nipl/nipl.routes';
 import campaignRoutes from './modules/campaigns/campaigns.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import contactMessagesRoutes from './modules/contact-messages/contact-messages.routes';
+import checkoutRoutes from './modules/checkout/checkout.routes';
 const app = express();
 
 // Security and utility middleware
@@ -85,6 +86,7 @@ app.use(apiPrefix, niplRoutes);
 app.use(apiPrefix, campaignRoutes);
 app.use(apiPrefix, dashboardRoutes);
 app.use(apiPrefix, contactMessagesRoutes);
+app.use(apiPrefix, checkoutRoutes);
 
 // Routes mounted with specific resource prefixes
 app.use(`${apiPrefix}/auth`, authRoutes);

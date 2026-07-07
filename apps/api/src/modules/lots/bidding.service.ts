@@ -64,37 +64,67 @@ export class BiddingService {
 
     const unitType = lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil';
 
-    // 2. Verify bidder has allocated NIPL for this session and unit type
-    const allocation = await prisma.nipl_allocations.findUnique({
+    // 2. Verify bidder global NIPL quota for this unit type
+    const activeDeposits = await prisma.deposits.findMany({
       where: {
-        user_id_session_id_unit_type: {
-          user_id: bid.userId,
-          session_id: bid.sessionId,
-          unit_type: unitType,
-        },
+        user_id: bid.userId,
+        status: 'paid',
+        unit_type: unitType,
       },
     });
 
-    if (!allocation || allocation.allocated_quantity <= 0) {
-      throw new AppError(
-        400,
-        ErrorCode.INSUFFICIENT_DEPOSIT,
-        'Anda minimal harus memiliki 1 NIPL yang dialokasikan untuk sesi lelang ini'
-      );
+    let totalQuota = 0;
+    let isUnlimited = false;
+
+    for (const d of activeDeposits) {
+      if (d.package_type === 'unlimited') {
+        isUnlimited = true;
+        break;
+      }
+      totalQuota += parseInt(d.package_type || '1', 10);
     }
 
-    // Check if bidder has already won maximum lot cars allowed by their allocation
-    if (allocation.used_quantity >= allocation.allocated_quantity) {
+    if (!isUnlimited && totalQuota <= 0) {
       throw new AppError(
         400,
         ErrorCode.INSUFFICIENT_DEPOSIT,
-        'Batas kemenangan lot mobil untuk NIPL yang dialokasikan di sesi ini telah tercapai'
+        'Anda tidak memiliki NIPL aktif yang sesuai untuk melakukan penawaran.'
       );
     }
 
     // 3. Prevent self-bidding (cannot outbid yourself)
     if (currentHighestBidderId === bid.userId) {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Anda sudah memegang penawaran tertinggi saat ini');
+    }
+
+    if (!isUnlimited) {
+      // Check if bidder has already reached max capacity of won lots (active + pending checkout)
+      const currentWinningLiveLotsCount = await prisma.bids.count({
+        where: {
+          bidder_id: bid.userId,
+          is_winning: true,
+          lot: { status: 'active', asset: { category: { contains: unitType, mode: 'insensitive' } } },
+        },
+      });
+
+      const unpaidInvoicesCount = await prisma.invoices.count({
+        where: {
+          bidder_id: bid.userId,
+          status: 'unpaid',
+          lot: { asset: { category: { contains: unitType, mode: 'insensitive' } } },
+        },
+      });
+
+      const totalWon = currentWinningLiveLotsCount + unpaidInvoicesCount;
+      
+      // Since they are not currently the highest bidder (checked above), placing this bid means taking +1 quota
+      if (totalWon >= totalQuota) {
+        throw new AppError(
+          400,
+          ErrorCode.INSUFFICIENT_DEPOSIT,
+          `Kuota NIPL Anda telah habis (Maks. menang ${totalQuota} unit). Silakan beli NIPL tambahan.`
+        );
+      }
     }
 
     // 4. Validate increment rules
@@ -262,20 +292,7 @@ export class BiddingService {
             }).format(hammerPrice)} pada lot "${lot.asset.title}" telah disetujui sebagai pemenang.`,
           },
         }),
-        prisma.nipl_allocations.update({
-          where: {
-            user_id_session_id_unit_type: {
-              user_id: winnerId,
-              session_id: lot.session_id,
-              unit_type: lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil',
-            },
-          },
-          data: {
-            used_quantity: {
-              increment: 1,
-            },
-          },
-        }),
+
         prisma.audit_logs.create({
           data: {
             action: 'LOT_SETTLEMENT_SOLD',

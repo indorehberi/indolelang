@@ -71,12 +71,12 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
     }
   };
 
-  const menuItems = [
     { name: "Dashboard", href: "/bidder/dashboard", icon: "dashboard" },
     { name: "Katalog Lelang", href: "/katalog", icon: "gavel" },
     { name: "Watchlist Aset", href: "/bidder/watchlist", icon: "star", badge: watchlistCount > 0 ? String(watchlistCount) : undefined },
     { name: "Ruang Lelang Live", href: "/bidder/bidding-room", icon: "play_circle", isLive: true },
     { name: "Beli Deposit NIPL", href: "/bidder/deposit", icon: "payments" },
+    { name: "Keranjang Tagihan", href: "/bidder/cart", icon: "shopping_cart" },
     { name: "Riwayat Lelang", href: "/bidder/riwayat-lelang", icon: "history" },
     { name: "Profil & eKYC", href: "/bidder/profile", icon: "person" },
   ];

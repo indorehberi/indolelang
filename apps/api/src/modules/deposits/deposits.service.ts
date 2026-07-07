@@ -59,7 +59,6 @@ export class DepositsService {
     ]);
 
     const deposits: any[] = records.map((r) => ({
-      id: r.id,
       user_id: r.user_id,
       session_id: r.session_id,
       amount: Number(r.amount),
@@ -104,59 +103,9 @@ export class DepositsService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'User tidak ditemukan');
     }
 
-    // 2. Verify session exists and is not closed (with auto-fallback creation for testing)
-    let session = null;
-    let targetSessionId: string | null = null;
+    // 2. No session validation needed anymore because NIPL is global (cross-session).
+    const targetSessionId = null;
 
-    if (sessionId && sessionId !== 'null' && sessionId !== 'undefined') {
-      session = await prisma.auction_sessions.findUnique({ where: { id: sessionId } });
-      if (!session) {
-        const anySession = await prisma.auction_sessions.findFirst({
-          where: { status: { not: 'closed' } }
-        });
-        if (anySession) {
-          session = anySession;
-          targetSessionId = anySession.id;
-        } else {
-          let branch = await prisma.branches.findFirst();
-          if (!branch) {
-            branch = await prisma.branches.create({
-              data: {
-                tenant_id: 'default',
-                name: 'Cabang Demo Jakarta',
-                city: 'Jakarta',
-                address: 'Jl. Sudirman Kav 21',
-                phone: '021-555555',
-                pic_name: 'Budi Santoso',
-                is_active: true
-              }
-            });
-          }
-          
-          session = await prisma.auction_sessions.create({
-            data: {
-              id: sessionId === '00000000-0000-0000-0000-000000000000' ? crypto.randomUUID() : sessionId,
-              branch_id: branch.id,
-              title: 'Sesi Lelang Demo Otomatis',
-              description: 'Sesi lelang yang dibuat otomatis untuk kebutuhan simulasi & testing',
-              scheduled_at: new Date(Date.now() + 24 * 3600 * 1000),
-              status: 'published'
-            }
-          });
-          targetSessionId = session.id;
-        }
-      } else {
-        targetSessionId = session.id;
-      }
-
-      if (session && session.status === 'closed') {
-        throw new AppError(
-          400,
-          ErrorCode.BAD_REQUEST,
-          'Tidak dapat mendaftar NIPL untuk sesi lelang yang sudah ditutup'
-        );
-      }
-    }
 
     // Fetch settings for Fee Bearer and NIPL Amounts
     const settings = await prisma.platform_settings.findMany({
@@ -277,13 +226,13 @@ export class DepositsService {
 
     sendEmail({
       to: user.email,
-      subject: `[Indo-Lelang] Pembayaran NIPL ${session ? `Sesi ${session.title}` : 'Bebas'}`,
-      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang "${session.title}"` : 'Bebas (Saldo Terbuka)'}. Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\n${emailNumberTitle}: ${emailNumberValue}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
+      subject: `[Indo-Lelang] Pembayaran NIPL (Saldo Bebas Lintas Sesi)`,
+      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL Bebas (Saldo Terbuka). Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\n${emailNumberTitle}: ${emailNumberValue}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <h2 style="color: #2b6cb0;">Pendaftaran NIPL Indo-Lelang</h2>
           <p>Halo <strong>${user.full_name}</strong>,</p>
-          <p>Anda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang <strong>"${session.title}"</strong>` : 'Bebas (Saldo Terbuka)'}.</p>
+          <p>Anda telah mengajukan pendaftaran NIPL Bebas (Saldo Terbuka) yang dapat digunakan pada semua sesi lelang.</p>
           <div style="background-color: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -346,13 +295,12 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus paid yang dapat diajukan refund');
     }
 
-    // Check if user is currently winning an active lot
+    // Check if user is currently winning an active lot in ANY session
     const activeWonLots = await prisma.bids.findFirst({
       where: {
         bidder_id: userId,
         is_winning: true,
         lot: {
-          session_id: deposit.session_id || undefined,
           status: 'active'
         }
       }
@@ -362,14 +310,11 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak dapat mengajukan refund karena Anda sedang memenangkan lot yang masih aktif.');
     }
 
-    // Check if user has unpaid invoices in this session
+    // Check if user has ANY unpaid invoices
     const overdueInvoices = await prisma.invoices.count({
       where: {
         bidder_id: userId,
         status: { in: ['unpaid', 'overdue'] },
-        lot: {
-          session_id: deposit.session_id || undefined
-        }
       }
     });
 
