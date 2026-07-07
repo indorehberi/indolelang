@@ -14,6 +14,12 @@ interface User {
   email: string;
   phone: string;
   status: 'pending' | 'active' | 'suspended';
+  kyc?: {
+    id: string;
+    status: string;
+    ktp_url: string;
+    selfie_url: string;
+  };
   created_at: string;
 }
 
@@ -26,6 +32,7 @@ export default function BidderListPage() {
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Form states
@@ -137,20 +144,25 @@ export default function BidderListPage() {
     }
   };
 
-  const openEdit = (user: User) => {
-    setSelectedUser(user);
-    setFormData({
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone || '',
-      password: '',
-    });
-    setShowEditModal(true);
-  };
-
-  const openDelete = (user: User) => {
-    setSelectedUser(user);
-    setShowDeleteModal(true);
+  const handleApproveKyc = async (kycId: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menyetujui verifikasi KYC bidder ini?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/kyc/${kycId}/approve`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setShowKycModal(false);
+        fetchBidders();
+      } else {
+        const data = await response.json();
+        alert(data.error?.message || 'Gagal menyetujui KYC');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
   };
 
   return (
@@ -221,11 +233,35 @@ export default function BidderListPage() {
                     <td>{getStatusBadge(bidder.status)}</td>
                     <td>{bidder.created_at.split('T')[0]}</td>
                     <td>
-                      <div className="d-flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/users/${bidder.id}`)}>
-                          View
+                      <div className="d-flex gap-1" style={{ display: 'flex', gap: '0.5rem' }}>
+                        {bidder.status === 'pending' && bidder.kyc && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedUser(bidder);
+                              setShowKycModal(true);
+                            }}
+                          >
+                            View KYC
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setSelectedUser(bidder);
+                          setFormData({ 
+                            full_name: bidder.full_name, 
+                            email: bidder.email, 
+                            phone: bidder.phone || '', 
+                            password: '' 
+                          });
+                          setShowEditModal(true);
+                        }}>
+                          Edit
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => openDelete(bidder)}>
+                        <Button variant="danger" size="sm" onClick={() => {
+                          setSelectedUser(bidder);
+                          setShowDeleteModal(true);
+                        }}>
                           Delete
                         </Button>
                       </div>
@@ -264,6 +300,51 @@ export default function BidderListPage() {
               </div>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* KYC VIEW MODAL */}
+      {showKycModal && selectedUser && selectedUser.kyc && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '2rem' }}>
+          <div style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <Card>
+              <h3 style={{ marginBottom: '1rem' }}>Peninjauan KYC Bidder</h3>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                <div>
+                  <strong>Nama:</strong> {selectedUser.full_name}
+                </div>
+                <div>
+                  <strong>Email:</strong> {selectedUser.email}
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto KTP</h4>
+                  {selectedUser.kyc.ktp_url ? (
+                    <img src={selectedUser.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada KTP</div>
+                  )}
+                </div>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto Selfie</h4>
+                  {selectedUser.kyc.selfie_url ? (
+                    <img src={selectedUser.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada Selfie</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowKycModal(false)}>Tutup</Button>
+                <Button variant="primary" type="button" onClick={() => handleApproveKyc(selectedUser.kyc!.id)}>
+                  Setujui (Approve KYC)
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       )}
 

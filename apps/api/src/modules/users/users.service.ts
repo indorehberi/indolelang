@@ -53,7 +53,8 @@ export class UsersService {
             where: {
               status: 'paid'
             }
-          }
+          },
+          kyc_documents: true
         }
       }),
     ]);
@@ -69,6 +70,12 @@ export class UsersService {
       npwp: user.npwp || undefined,
       provider_status: user.provider_status || undefined,
       active_nipl_count: user.deposits ? user.deposits.length : 0,
+      kyc: user.kyc_documents ? {
+        id: user.kyc_documents.id,
+        status: user.kyc_documents.status,
+        ktp_url: user.kyc_documents.ktp_url,
+        selfie_url: user.kyc_documents.selfie_url
+      } : undefined,
       created_at: user.created_at.toISOString(),
       updated_at: user.updated_at.toISOString(),
     }));

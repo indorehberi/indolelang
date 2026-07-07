@@ -33,6 +33,7 @@ export default function ProviderUsersPage() {
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Form states
@@ -165,11 +166,11 @@ export default function ProviderUsersPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await response.json();
-      if (response.ok && data.success) {
+      if (response.ok) {
         setShowDeleteModal(false);
         fetchUsers();
       } else {
+        const data = await response.json();
         alert(data.error?.message || 'Gagal menghapus provider');
       }
     } catch (err) {
@@ -178,25 +179,30 @@ export default function ProviderUsersPage() {
     }
   };
 
-  const openEdit = (user: User) => {
-    setSelectedUser(user);
-    setFormData({
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone || '',
-      password: '',
-      company_name: user.company_name || '',
-      npwp: user.npwp || '',
-      provider_fee_type: user.provider_fee_type || 'percentage',
-      provider_fee_amount: String(user.provider_fee_amount || '0'),
-      pmk41_paid_by_provider: user.pmk41_paid_by_provider || false,
-    });
-    setShowEditModal(true);
-  };
-
-  const openDelete = (user: User) => {
-    setSelectedUser(user);
-    setShowDeleteModal(true);
+  const handleApproveProvider = async () => {
+    if (!selectedUser) return;
+    if (!window.confirm('Apakah Anda yakin ingin menyetujui provider ini?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ provider_status: 'approved', status: 'active' })
+      });
+      if (response.ok) {
+        setShowViewModal(false);
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error?.message || 'Gagal menyetujui provider');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
   };
 
   return (
@@ -270,25 +276,37 @@ export default function ProviderUsersPage() {
                       </td>
                       <td>{new Date(prov.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                       <td>
-                        {isPending ? (
-                          <div className="d-flex gap-1">
-                            <Button variant="success" size="sm" onClick={() => handleProcessUpgrade(prov.id, 'approved')}>
-                              Setujui
-                            </Button>
-                            <Button variant="danger" size="sm" onClick={() => handleProcessUpgrade(prov.id, 'rejected')}>
-                              Tolak
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="d-flex gap-1">
-                            <Button variant="outline" size="sm" onClick={() => openEdit(prov)}>
-                              Edit
-                            </Button>
-                            <Button variant="danger" size="sm" onClick={() => openDelete(prov)}>
-                              Delete
-                            </Button>
-                          </div>
-                        )}
+                        <div className="d-flex gap-1">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setSelectedUser(prov);
+                            setShowViewModal(true);
+                          }}>
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setSelectedUser(prov);
+                            setFormData({
+                              full_name: prov.full_name,
+                              email: prov.email,
+                              phone: prov.phone || '',
+                              password: '',
+                              company_name: prov.company_name || '',
+                              npwp: prov.npwp || '',
+                              provider_fee_type: prov.provider_fee_type || 'percentage',
+                              provider_fee_amount: String(prov.provider_fee_amount || '0'),
+                              pmk41_paid_by_provider: prov.pmk41_paid_by_provider || false,
+                            });
+                            setShowEditModal(true);
+                          }}>
+                            Edit
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => {
+                            setSelectedUser(prov);
+                            setShowDeleteModal(true);
+                          }}>
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -298,6 +316,49 @@ export default function ProviderUsersPage() {
           </table>
         </div>
       </Card>
+
+      {/* VIEW MODAL */}
+      {showViewModal && selectedUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '2rem' }}>
+          <div style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <Card>
+              <h3 style={{ marginBottom: '1rem' }}>Peninjauan Provider</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <strong>Nama Perwakilan:</strong><br/>{selectedUser.full_name}
+                </div>
+                <div>
+                  <strong>Email:</strong><br/>{selectedUser.email}
+                </div>
+                <div>
+                  <strong>Nama Perusahaan:</strong><br/>{selectedUser.company_name}
+                </div>
+                <div>
+                  <strong>NPWP:</strong><br/>{selectedUser.npwp}
+                </div>
+                <div>
+                  <strong>Fee Type:</strong><br/>{selectedUser.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Nominal Tetap (Rp)'}
+                </div>
+                <div>
+                  <strong>Fee Amount:</strong><br/>{selectedUser.provider_fee_amount}
+                </div>
+                <div>
+                  <strong>Status:</strong><br/>{selectedUser.provider_status}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowViewModal(false)}>Tutup</Button>
+                {selectedUser.provider_status === 'pending' && (
+                  <Button variant="primary" type="button" onClick={handleApproveProvider}>
+                    Setujui (Approve Provider)
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* EDIT MODAL */}
       {showEditModal && (
