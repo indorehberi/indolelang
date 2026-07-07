@@ -285,7 +285,7 @@ export default function BidderDashboard() {
       ) : null}
 
       {/* KPI Grid */}
-      <div className="kpi-grid">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <div className="kpi-card success">
           <div className="kpi-label">Saldo Jaminan Deposit</div>
           <div className="kpi-value">{formatRupiah(depositBalance)}</div>
@@ -311,9 +311,9 @@ export default function BidderDashboard() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid-2-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Left Column */}
-        <div>
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Live Session Card */}
           <div className="card">
             <div className="card-header">
@@ -340,7 +340,7 @@ export default function BidderDashboard() {
           </div>
 
           {/* Activity Chart SVG Placeholder */}
-          <div className="card">
+          <div className="card mb-0">
             <div className="card-header">Statistik Bidding Bulanan (Tawaran Dibuat)</div>
             <div className="py-8 text-center text-body-sm text-on-surface-variant flex flex-col items-center justify-center gap-2">
               <span className="material-symbols-outlined text-4xl text-slate-300">bar_chart</span>
@@ -350,28 +350,31 @@ export default function BidderDashboard() {
         </div>
 
         {/* Right Column */}
-        <div>
-          <div className="card">
+        <div className="flex flex-col gap-4">
+          <div className="card mb-0">
             <div className="card-header">Navigasi Panel Cepat</div>
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
               <Link 
                 href={ekycStatus === "approved" || ekycStatus === "verified" ? "/bidder/deposit" : "#"} 
-                className={`panel-btn panel-btn-outline justify-center ${ekycStatus !== "approved" && ekycStatus !== "verified" ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${ekycStatus !== "approved" && ekycStatus !== "verified" ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={(e) => { if (ekycStatus !== "approved" && ekycStatus !== "verified") { e.preventDefault(); alert("Verifikasi eKYC Anda belum disetujui."); } }}
               >
-                💳 Setor Deposit NIPL
+                <span className="text-xl mb-1 block">💳</span>
+                <span className="leading-tight whitespace-nowrap">Setor NIPL</span>
               </Link>
-              <Link href="/katalog" className="panel-btn panel-btn-outline justify-center">
-                🔍 Cari Unit Lelang
+              <Link href="/katalog" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
+                <span className="text-xl mb-1 block">🔍</span>
+                <span className="leading-tight whitespace-nowrap">Cari Unit</span>
               </Link>
-              <Link href="/bidder/profile" className="panel-btn panel-btn-outline justify-center">
-                👤 Verifikasi KYC &amp; Data
+              <Link href="/bidder/profile" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
+                <span className="text-xl mb-1 block">👤</span>
+                <span className="leading-tight whitespace-nowrap">Profil KYC</span>
               </Link>
             </div>
           </div>
 
           {/* Upgrade to Provider Card */}
-          <div className="card mt-4 border-t-4 border-primary">
+          <div className="card mb-0 border-t-4 border-primary">
             <div className="card-header text-primary">Titip Jual &amp; Bermitra</div>
             <div className="space-y-3">
               <p className="text-body-sm text-on-surface-variant leading-relaxed">
