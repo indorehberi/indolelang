@@ -12,7 +12,7 @@ export class UsersService {
   async getUsers(
     page: number,
     perPage: number,
-    role?: Role,
+    role?: Role | string,
     status?: UserStatus,
     search?: string,
     provider_status?: string
@@ -22,7 +22,11 @@ export class UsersService {
     };
 
     if (role) {
-      where.role = role as any;
+      if (role.includes(',')) {
+        where.role = { in: role.split(',') as any[] };
+      } else {
+        where.role = role as any;
+      }
     }
     if (status) {
       where.status = status as any;

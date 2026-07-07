@@ -25,8 +25,9 @@ interface User {
 
 export default function BidderListPage() {
   const router = useRouter();
-  const [bidders, setBidders] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   
   // Modal states
@@ -43,11 +44,14 @@ export default function BidderListPage() {
     password: '',
   });
 
-  const fetchBidders = useCallback(async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
-      let url = apiUrl('/admin/users?role=bidder');
+      let url = apiUrl('/admin/users?');
+      const roleQuery = filterRole ? filterRole : 'user,bidder';
+      url += `role=${roleQuery}`;
+      
       if (filterStatus) {
         url += `&status=${filterStatus}`;
       }
@@ -59,22 +63,22 @@ export default function BidderListPage() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        setBidders(data.data);
+        setUsers(data.data);
       } else {
-        setBidders([]);
+        setUsers([]);
       }
     } catch (err) {
       console.error(err);
-      setBidders([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterRole, filterStatus]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchBidders();
-  }, [fetchBidders]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const getStatusBadge = (status: User['status']) => {
     switch (status) {
@@ -111,7 +115,7 @@ export default function BidderListPage() {
       const data = await response.json();
       if (response.ok && data.success) {
         setShowEditModal(false);
-        fetchBidders();
+        fetchUsers();
       } else {
         alert(data.error?.message || 'Gagal mengubah bidder');
       }
@@ -134,7 +138,7 @@ export default function BidderListPage() {
       const data = await response.json();
       if (response.ok && data.success) {
         setShowDeleteModal(false);
-        fetchBidders();
+        fetchUsers();
       } else {
         alert(data.error?.message || 'Gagal menghapus bidder');
       }
@@ -154,7 +158,7 @@ export default function BidderListPage() {
       });
       if (response.ok) {
         setShowKycModal(false);
-        fetchBidders();
+        fetchUsers();
       } else {
         const data = await response.json();
         alert(data.error?.message || 'Gagal menyetujui KYC');
@@ -185,7 +189,7 @@ export default function BidderListPage() {
       });
       if (response.ok) {
         setShowKycModal(false);
-        fetchBidders();
+        fetchUsers();
       } else {
         const data = await response.json();
         alert(data.error?.message || 'Gagal menolak KYC');
@@ -200,9 +204,19 @@ export default function BidderListPage() {
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Bidder">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Daftar Bidder</h1>
+          <h1 className="page-title">Daftar Pengguna / Bidder</h1>
         </div>
         <div className="toolbar-right" style={{ display: 'flex', gap: '10px' }}>
+          <select 
+            className="search-box" 
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="">Semua (User & Bidder)</option>
+            <option value="user">Hanya User Baru</option>
+            <option value="bidder">Hanya Bidder</option>
+          </select>
           <select 
             className="search-box" 
             value={filterStatus}
@@ -229,6 +243,7 @@ export default function BidderListPage() {
                 <th>Nama Lengkap</th>
                 <th>Email</th>
                 <th>Nomor Telepon</th>
+                <th>Tipe Akun</th>
                 <th>NIPL Aktif</th>
                 <th>Status</th>
                 <th>Tanggal Daftar</th>
@@ -238,24 +253,29 @@ export default function BidderListPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center">
+                  <td colSpan={8} className="text-center">
                     Memuat data...
                   </td>
                 </tr>
-              ) : bidders.length === 0 ? (
+              ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center">
-                    Tidak ada bidder terdaftar.
+                  <td colSpan={8} className="text-center">
+                    Tidak ada pengguna terdaftar.
                   </td>
                 </tr>
               ) : (
-                bidders.map((bidder) => (
+                users.map((bidder) => (
                   <tr key={bidder.id}>
                     <td>
                       <strong>{bidder.full_name}</strong>
                     </td>
                     <td>{bidder.email}</td>
                     <td>{bidder.phone}</td>
+                    <td>
+                      <Badge variant={(bidder as any).role === 'bidder' ? 'info' : 'default'}>
+                        {((bidder as any).role || '').toUpperCase()}
+                      </Badge>
+                    </td>
                     <td>
                       <Badge variant={(bidder as any).active_nipl_count > 0 ? 'success' : 'default'}>
                         {(bidder as any).active_nipl_count || 0} NIPL

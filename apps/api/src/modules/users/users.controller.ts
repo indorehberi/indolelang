@@ -18,7 +18,7 @@ export class UsersController {
       const { users, meta } = await usersService.getUsers(
         page,
         per_page,
-        role as Role,
+        role as string,
         status as UserStatus,
         search,
         provider_status
