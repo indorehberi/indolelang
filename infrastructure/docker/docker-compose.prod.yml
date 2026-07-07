@@ -5,6 +5,8 @@ services:
     image: postgres:16-alpine
     container_name: indolelang_postgres_prod
     restart: unless-stopped
+    env_file:
+      - ../../.env
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgrespassword}
@@ -28,6 +30,8 @@ services:
     image: redis:7-alpine
     container_name: indolelang_redis_prod
     restart: unless-stopped
+    env_file:
+      - ../../.env
     ports:
       - '127.0.0.1:6379:6379' # Bind only to localhost for security
     volumes:
@@ -49,6 +53,8 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: indolelang_api_prod
     restart: unless-stopped
+    env_file:
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,6 +90,8 @@ services:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost}
     container_name: indolelang_admin_prod
     restart: unless-stopped
+    env_file:
+      - ../../.env
     expose:
       - '3000'
     environment:
@@ -107,6 +115,8 @@ services:
         - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
     container_name: indolelang_landing_prod
     restart: unless-stopped
+    env_file:
+      - ../../.env
     expose:
       - '3000'
     environment:
