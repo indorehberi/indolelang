@@ -657,6 +657,18 @@ export default function FinanceManager({
                               <span style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem' }} className="badge badge-outline">{refund.va_bank}</span>
                               <span style={{ marginLeft: '6px', fontFamily: 'monospace' }}>{refund.va_number}</span>
                             </div>
+                          ) : refund.payment_method === 'manual_transfer' ? (
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#d97706' }}>TRANSFER MANUAL</div>
+                              {refund.user?.bank_name ? (
+                                <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>
+                                  <strong>{refund.user.bank_name}</strong> - {refund.user.bank_account_no}
+                                  <br/>a/n {refund.user.bank_account_name || refund.user.full_name}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.75rem', color: 'red' }}>Rekening Bidder Belum Diisi</div>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-muted">-</span>
                           )}
@@ -669,7 +681,7 @@ export default function FinanceManager({
                             disabled={processingId !== null}
                             style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '600' }}
                           >
-                            {processingId === refund.id ? 'Memproses...' : '✓ Setujui Refund'}
+                            {processingId === refund.id ? 'Memproses...' : refund.payment_method === 'manual_transfer' ? '✓ Telah Direfund' : '✓ Setujui Refund'}
                           </button>
                         </td>
                       </tr>

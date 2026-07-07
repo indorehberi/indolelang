@@ -219,21 +219,26 @@ export class PaymentsService {
     }
 
     try {
-      // Execute refund via Midtrans Iris
-      const response = await midtransClient.createPayout({
-        reference_no: `REFUND-${depositId}`,
-        amount: Number(deposit.amount),
-        bank_code: deposit.user.bank_name || 'BCA', // Fallback
-        account_name: deposit.user.bank_account_name || deposit.user.full_name,
-        account_number: deposit.user.bank_account_no || '1234567890',
-        description: `Refund NIPL Sesi ${deposit.session?.title || ''}`.substring(0, 50),
-        email: deposit.user.email
-      });
+      // Execute refund via Midtrans Iris ONLY if not manual transfer
+      if (deposit.payment_method !== 'manual_transfer') {
+        const response = await midtransClient.createPayout({
+          reference_no: `REFUND-${depositId}`,
+          amount: Number(deposit.amount),
+          bank_code: deposit.user.bank_name || 'BCA', // Fallback
+          account_name: deposit.user.bank_account_name || deposit.user.full_name,
+          account_number: deposit.user.bank_account_no || '1234567890',
+          description: `Refund NIPL Sesi ${deposit.session?.title || ''}`.substring(0, 50),
+          email: deposit.user.email
+        });
 
-      if (response.status === 'FAILED') {
-        throw new AppError(502, 'REFUND_FAILED', 'Refund ditolak oleh Midtrans Iris');
+        if (response.status === 'FAILED') {
+          throw new AppError(502, 'REFUND_FAILED', 'Refund ditolak oleh Midtrans Iris');
+        }
       }
 
+      // If manual_transfer, we assume the Admin has transferred manually before clicking this button.
+      // So we just update the status to refunded.
+      
       const updated = await prisma.$transaction([
         prisma.deposits.update({
           where: { id: depositId },
@@ -286,6 +291,9 @@ export class PaymentsService {
               full_name: true,
               email: true,
               phone: true,
+              bank_name: true,
+              bank_account_no: true,
+              bank_account_name: true,
             },
           },
           session: {
