@@ -3,6 +3,9 @@ import { env } from './config/env';
 import { connectRedis, redis } from './config/redis';
 import { prisma } from './config/database';
 import { logger } from './lib/logger';
+import { initSocket } from './lib/socket';
+import { initCronJobs } from './lib/cron';
+import { createServer } from 'http';
 
 async function startServer() {
   try {
@@ -14,10 +17,11 @@ async function startServer() {
     }
 
     // 2. Start HTTP server and bind Socket.io
-    const http = require('http');
-    const { initSocket } = require('./lib/socket');
-    const httpServer = http.createServer(app);
+    const httpServer = createServer(app);
     initSocket(httpServer);
+
+    // Initialize Cron Jobs
+    initCronJobs();
 
     const server = httpServer.listen(env.PORT, () => {
       logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);

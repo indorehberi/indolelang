@@ -24,6 +24,16 @@ export default function PlatformSettingsPage() {
   const [feeBearerSettlement, setFeeBearerSettlement] = useState('provider');
   const [antiSnipeSecs, setAntiSnipeSecs] = useState('120');
   
+  // Auction Automation Settings
+  const [auctionLotDuration, setAuctionLotDuration] = useState('30');
+  const [auctionLotNextDelay, setAuctionLotNextDelay] = useState('10');
+  const [auctionSessionStartTrigger, setAuctionSessionStartTrigger] = useState('admin');
+  const [auctionLotEndTrigger, setAuctionLotEndTrigger] = useState('admin');
+  const [auctionLotNextTrigger, setAuctionLotNextTrigger] = useState('admin');
+  const [auctionSessionEndTrigger, setAuctionSessionEndTrigger] = useState('admin');
+  
+  const [isSavingAuction, setIsSavingAuction] = useState(false);
+
   // New financial settings
   const [pmk41, setPmk41] = useState('1.1');
   const [dppLain, setDppLain] = useState('11/12');
@@ -144,6 +154,18 @@ export default function PlatformSettingsPage() {
             setPpnDppLain(item.value);
           } else if (item.key === 'pph23_percentage') {
             setPph23(item.value);
+          } else if (item.key === 'auction_lot_duration_secs') {
+            setAuctionLotDuration(item.value);
+          } else if (item.key === 'auction_lot_next_delay_secs') {
+            setAuctionLotNextDelay(item.value);
+          } else if (item.key === 'auction_session_start_trigger') {
+            setAuctionSessionStartTrigger(item.value);
+          } else if (item.key === 'auction_lot_end_trigger') {
+            setAuctionLotEndTrigger(item.value);
+          } else if (item.key === 'auction_lot_next_trigger') {
+            setAuctionLotNextTrigger(item.value);
+          } else if (item.key === 'auction_session_end_trigger') {
+            setAuctionSessionEndTrigger(item.value);
           } else if (item.key === 'admin_fee_tiers') {
             try {
               setAdminFeeTiers(JSON.parse(item.value));
@@ -244,6 +266,38 @@ export default function PlatformSettingsPage() {
     fetchSettings();
   }, []);
 
+  const handleSaveAuctionSettings = async () => {
+    setIsSavingAuction(true);
+    const token = localStorage.getItem('accessToken');
+    try {
+      const updates = [
+        { key: 'auction_lot_duration_secs', value: auctionLotDuration },
+        { key: 'auction_lot_next_delay_secs', value: auctionLotNextDelay },
+        { key: 'auction_session_start_trigger', value: auctionSessionStartTrigger },
+        { key: 'auction_lot_end_trigger', value: auctionLotEndTrigger },
+        { key: 'auction_lot_next_trigger', value: auctionLotNextTrigger },
+        { key: 'auction_session_end_trigger', value: auctionSessionEndTrigger },
+      ];
+
+      for (const update of updates) {
+        await fetch(apiUrl(`/admin/settings/${update.key}`), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ value: update.value }),
+        });
+      }
+      alert('Otomatisasi Mesin Lelang berhasil disimpan!');
+      fetchSettings();
+    } catch (e) {
+      alert('Gagal menyimpan otomatisasi mesin lelang.');
+    } finally {
+      setIsSavingAuction(false);
+    }
+  };
+
   const handleSaveFinancials = async () => {
     if (!tax || !nipl || !niplMotor) {
       alert('Semua bidang (PPN, NIPL) harus diisi dan tidak boleh kosong atau dihapus.');
@@ -303,6 +357,61 @@ export default function PlatformSettingsPage() {
         {/* Left Column: Platform rules (fees, tax) */}
         <div>
           <Card>
+            <h2 className="card-title">Otomatisasi Mesin Lelang (Auction Engine)</h2>
+            <div className="alert alert-warning mt-3 mb-4 text-xs">
+              <strong>Perhatian:</strong> Jika mengubah trigger menjadi "Oleh Sistem", backend cron job akan mengambil alih fungsi dari Control Room.
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Waktu Tiap Lot (Detik) <span className="required">*</span></label>
+              <input type="number" className="form-input" value={auctionLotDuration} onChange={(e) => setAuctionLotDuration(e.target.value)} required />
+              <p className="text-xs text-muted mt-1">Default: 30 detik.</p>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Jeda Antar Lot (Detik) <span className="required">*</span></label>
+              <input type="number" className="form-input" value={auctionLotNextDelay} onChange={(e) => setAuctionLotNextDelay(e.target.value)} required />
+              <p className="text-xs text-muted mt-1">Jeda sebelum lot berikutnya dimulai jika menggunakan pemicu sistem.</p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Sesi Lelang Dimulai Oleh <span className="required">*</span></label>
+              <select className="form-input" value={auctionSessionStartTrigger} onChange={(e) => setAuctionSessionStartTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Auto-run Sesuai Jadwal)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Lot Diakhiri / Ketok Palu Oleh <span className="required">*</span></label>
+              <select className="form-input" value={auctionLotEndTrigger} onChange={(e) => setAuctionLotEndTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis saat Waktu Habis)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Lot Berikutnya Dilanjutkan Oleh <span className="required">*</span></label>
+              <select className="form-input" value={auctionLotNextTrigger} onChange={(e) => setAuctionLotNextTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis Setelah Jeda)</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Sesi Diakhiri / Ditutup Oleh <span className="required">*</span></label>
+              <select className="form-input" value={auctionSessionEndTrigger} onChange={(e) => setAuctionSessionEndTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis setelah semua Lot Selesai)</option>
+              </select>
+            </div>
+
+            <button className="btn btn-warning w-100 mt-2" onClick={handleSaveAuctionSettings} disabled={isSavingAuction}>
+              {isSavingAuction ? 'Menyimpan...' : 'Simpan Otomatisasi'}
+            </button>
+          </Card>
+
+          <Card className="mt-4">
             <h2 className="card-title">Aturan Keuangan Balai Lelang</h2>
             
             <div className="alert alert-info mt-3 mb-4 text-xs">

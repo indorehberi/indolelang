@@ -16,6 +16,7 @@ export interface ActiveLotState {
   timeRemaining: number;
   extensionCount: number;
   timerInterval?: NodeJS.Timeout;
+  autoEndTrigger?: string;
 }
 
 // In-memory active lot state
@@ -200,37 +201,40 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     bidsCount: 0,
     timeRemaining: durationSeconds,
     extensionCount: 0,
+    autoEndTrigger: 'admin', // will be fetched asynchronously
   };
+
+  // Fetch triggers
+  prisma.platform_settings.findFirst({ where: { key: 'auction_lot_end_trigger' } }).then(setting => {
+    if (setting) state.autoEndTrigger = setting.value;
+  });
 
   // Start interval loop
   state.timerInterval = setInterval(async () => {
-    state.timeRemaining -= 1;
+    if (state.timeRemaining > 0) {
+      state.timeRemaining -= 1;
+    }
 
     if (state.timeRemaining <= 0) {
-      clearInterval(state.timerInterval);
-      activeLots.delete(lot.id);
+      if (state.autoEndTrigger === 'system') {
+        clearInterval(state.timerInterval);
+        activeLots.delete(lot.id);
 
-      try {
-        const settled = await biddingService.settleLot(lot.id);
-
-        // Broadcast closed event to room
-        ioServer.to(`lot:${lot.id}`).emit('lot:closed', {
-          lot_id: lot.id,
-          result: settled.status, // 'sold' | 'unsold'
-          final_price: settled.hammer_price ? Number(settled.hammer_price) : undefined,
-          winner_id: settled.winner_id ? maskUserId(settled.winner_id) : undefined,
-        });
-
-        if (settled.status === 'sold') {
-          ioServer.to(`lot:${lot.id}`).emit('bid:winner', {
-            lot_id: lot.id,
-            winner_masked_id: maskUserId(settled.winner_id!),
-            final_price: Number(settled.hammer_price),
-            total_bids: state.bidsCount,
-          });
+        try {
+          const settled = await closeActiveLotAndTriggerNext(lot.id);
+        } catch (err) {
+          logger.error({ err }, 'Error in automated lot settlement');
         }
-      } catch (err) {
-        logger.error({ err }, 'Error in automated lot settlement');
+      } else {
+        // Just broadcast current timer state (0) waiting for admin
+        ioServer.to(`lot:${lot.id}`).emit('bid:update', {
+          lot_id: state.lotId,
+          current_price: state.currentPrice,
+          bidder_id: state.highestBidderMasked || '-',
+          bidder_count: state.bidsCount,
+          time_remaining: 0,
+          extension_count: state.extensionCount,
+        });
       }
     } else {
       // Broadcast current timer state
@@ -273,6 +277,9 @@ export async function closeActiveLot(lotId: string): Promise<any> {
   }
 
   const settled = await biddingService.settleLot(lotId);
+
+  // Trigger auto-next if configured
+  await handleAutoNextAndSessionEnd(settled);
 
   if (!ioServer) {
     logger.warn('Socket.io server has not been initialized. Skipping broadcast.');
@@ -323,3 +330,77 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
 
   return updated;
 }
+
+export async function closeActiveLotAndTriggerNext(lotId: string): Promise<any> {
+  return await closeActiveLot(lotId);
+}
+
+async function handleAutoNextAndSessionEnd(settledLot: any) {
+  try {
+    const sessionId = settledLot.session_id;
+
+    // Check if there are remaining pending lots in this session
+    const nextLot = await prisma.lots.findFirst({
+      where: { session_id: sessionId, status: 'pending' },
+      orderBy: { order: 'asc' },
+      include: { asset: true }
+    });
+
+    if (nextLot) {
+      // Auto-next trigger check
+      const nextSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_next_trigger' } });
+      const nextDelaySetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_next_delay_secs' } });
+      
+      if (nextSetting?.value === 'system') {
+        const delay = nextDelaySetting ? parseInt(nextDelaySetting.value, 10) * 1000 : 10000;
+        logger.info({ lotId: nextLot.id, delayMs: delay }, 'Auto-next trigger enabled. Next lot will start shortly.');
+        
+        setTimeout(async () => {
+          // Double check if it's still pending
+          const currentStatus = await prisma.lots.findUnique({ where: { id: nextLot.id } });
+          if (currentStatus?.status === 'pending') {
+            const updated = await prisma.lots.update({
+              where: { id: nextLot.id },
+              data: { status: 'active' },
+              include: { asset: true }
+            });
+            const durationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_duration_secs' } });
+            startActiveLot(updated, durationSetting ? parseInt(durationSetting.value, 10) : 30);
+          }
+        }, delay);
+      }
+    } else {
+      // No more lots. Auto-end session trigger check
+      const sessionEndSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_session_end_trigger' } });
+      if (sessionEndSetting?.value === 'system') {
+        logger.info({ sessionId }, 'All lots finished. Auto-ending session triggered by system.');
+        
+        // This simulates endSession logic from control controller
+        await prisma.auction_sessions.update({
+          where: { id: sessionId },
+          data: { status: 'closed' }
+        });
+        
+        // Broadcast session:ended
+        const ioServer = getSocketIo();
+        if (ioServer) {
+          const totalLotsCount = await prisma.lots.count({ where: { session_id: sessionId } });
+          const soldLotsCount = await prisma.lots.count({ where: { session_id: sessionId, status: 'sold' } });
+          const revenueRes = await prisma.lots.aggregate({
+            where: { session_id: sessionId, status: 'sold' },
+            _sum: { hammer_price: true },
+          });
+          ioServer.to(`session:${sessionId}`).emit('session:ended', {
+            session_id: sessionId,
+            total_lots: totalLotsCount,
+            lots_sold: soldLotsCount,
+            total_revenue: Number(revenueRes._sum.hammer_price || 0),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error handling auto-next lot or session end');
+  }
+}
+
