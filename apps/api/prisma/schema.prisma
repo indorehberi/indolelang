@@ -188,22 +188,20 @@ model bids {
 }
 
 model deposits {
-  id                String    @id @default(uuid())
-  user_id           String
-  session_id        String?
-  amount            Decimal
-  unit_type         String?
-  package_type      String?
-  va_number         String?
-  va_bank           String?
-  payment_method    String?
-  gateway_fee       Decimal?  @default(0)
-  payment_proof_url String?
-  status            String    @default("pending")
-  paid_at           DateTime?
-  expires_at        DateTime?
-  created_at        DateTime  @default(now())
-  updated_at        DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  user_id        String
+  session_id     String?
+  amount         Decimal
+  unit_type      String?
+  package_type   String?
+  va_number      String?
+  va_bank        String?
+  payment_method String?
+  gateway_fee    Decimal?  @default(0)
+  status         String    @default("pending")
+  paid_at        DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
 
   user    users             @relation(fields: [user_id], references: [id])
   session auction_sessions? @relation(fields: [session_id], references: [id])

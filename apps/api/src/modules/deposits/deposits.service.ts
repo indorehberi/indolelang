@@ -34,15 +34,6 @@ export class DepositsService {
 
     const skip = (page - 1) * perPage;
 
-    // 1. On-the-fly expiration check for all pending/verifying deposits before fetching
-    await prisma.deposits.updateMany({
-      where: {
-        status: { in: ['pending', 'verifying'] },
-        expires_at: { lt: new Date() },
-      },
-      data: { status: 'expired' },
-    });
-
     const [total, records] = await Promise.all([
       prisma.deposits.count({ where }),
       prisma.deposits.findMany({
@@ -76,10 +67,8 @@ export class DepositsService {
       va_number: r.va_number || undefined,
       va_bank: r.va_bank || undefined,
       payment_method: r.payment_method || undefined,
-      payment_proof_url: (r as any).payment_proof_url || undefined,
       status: r.status,
       paid_at: r.paid_at ? r.paid_at.toISOString() : undefined,
-      expires_at: (r as any).expires_at ? (r as any).expires_at.toISOString() : undefined,
       created_at: r.created_at.toISOString(),
       user: r.user,
       session: r.session,
@@ -114,23 +103,7 @@ export class DepositsService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'User tidak ditemukan');
     }
 
-    // 2. Prevent creating new NIPL if an active pending/verifying one exists
-    const existingPending = await prisma.deposits.findFirst({
-      where: {
-        user_id: userId,
-        status: { in: ['pending', 'verifying'] },
-        OR: [
-          { expires_at: null },
-          { expires_at: { gt: new Date() } }
-        ]
-      }
-    });
-
-    if (existingPending) {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Harap selesaikan atau tunggu masa kedaluwarsa pembayaran NIPL Anda sebelumnya.');
-    }
-
-    // 3. No session validation needed anymore because NIPL is global (cross-session).
+    // 2. No session validation needed anymore because NIPL is global (cross-session).
     const targetSessionId = null;
 
 
@@ -210,9 +183,19 @@ export class DepositsService {
       }
     }
 
-    // 5. Save deposit to database
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 60 minutes expiry
+    // 5. Expire any old pending deposits for the same session/free and user
+    await prisma.deposits.updateMany({
+      where: {
+        user_id: userId,
+        session_id: targetSessionId,
+        status: DepositStatus.PENDING,
+      },
+      data: {
+        status: DepositStatus.EXPIRED,
+      },
+    });
 
+    // 6. Save deposit to database
     const deposit = await prisma.deposits.create({
       data: {
         id: depositId,
@@ -226,7 +209,6 @@ export class DepositsService {
         va_bank: midtransRes.va_bank,
         payment_method: midtransRes.payment_method,
         status: DepositStatus.PENDING,
-        expires_at: expiresAt,
       },
     });
 
@@ -349,36 +331,9 @@ export class DepositsService {
   }
 
   /**
-   * Upload payment proof (Bidder)
+   * Mark a manual deposit as paid (Admin only)
    */
-  async uploadProof(depositId: string, userId: string, proofUrl: string): Promise<any> {
-    const deposit = await prisma.deposits.findUnique({
-      where: { id: depositId },
-    });
-
-    if (!deposit || deposit.user_id !== userId) {
-      throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
-    }
-
-    if (deposit.status !== 'pending') {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Pending yang dapat diunggah bukti transfer.');
-    }
-
-    const updated = await prisma.deposits.update({
-      where: { id: depositId },
-      data: {
-        payment_proof_url: proofUrl,
-        status: 'verifying',
-      },
-    });
-
-    return updated;
-  }
-
-  /**
-   * Admin verify a deposit (approve or reject)
-   */
-  async verifyDeposit(depositId: string, adminId: string, status: string, notes?: string): Promise<any> {
+  async markManualDepositAsPaid(depositId: string, adminId: string): Promise<any> {
     const deposit = await prisma.deposits.findUnique({
       where: { id: depositId },
     });
@@ -387,18 +342,24 @@ export class DepositsService {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
     }
 
-    if (deposit.status !== 'verifying') {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Verifying yang dapat diverifikasi admin');
+    if (deposit.payment_method !== 'manual_transfer') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit manual transfer yang dapat disetujui melalui fitur ini');
     }
 
-    const updateData: any = { status };
-    if (status === 'paid') {
-      updateData.paid_at = new Date();
+    if (deposit.status === 'paid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Deposit sudah dalam status Paid (Lunas)');
+    }
+
+    if (deposit.status !== 'pending') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Pending yang dapat ditandai Paid');
     }
 
     const updated = await prisma.deposits.update({
       where: { id: depositId },
-      data: updateData,
+      data: {
+        status: 'paid',
+        paid_at: new Date(),
+      },
     });
 
     return updated;

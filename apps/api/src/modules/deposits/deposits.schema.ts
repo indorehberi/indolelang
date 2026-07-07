@@ -20,21 +20,6 @@ export const getDepositsQuerySchema = z.object({
     page: z.string().transform((val) => parseInt(val, 10)).default('1'),
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
     session_id: z.string().uuid().optional(),
-    status: z.enum(['pending', 'verifying', 'paid', 'expired', 'refunded']).optional(),
-  }),
-});
-
-export const verifyDepositSchema = z.object({
-  body: z.object({
-    status: z.enum(['paid', 'rejected'], {
-      errorMap: () => ({ message: 'Status verifikasi harus paid atau rejected' }),
-    }),
-    notes: z.string().optional(),
-  }),
-});
-
-export const uploadProofSchema = z.object({
-  body: z.object({
-    payment_proof_url: z.string().url({ message: 'URL bukti transfer tidak valid' }),
+    status: z.enum(['pending', 'paid', 'expired', 'refunded']).optional(),
   }),
 });
