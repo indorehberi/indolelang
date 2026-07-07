@@ -335,7 +335,7 @@ export default function AssetsInspectionPage() {
             
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
               <Button variant="outline" onClick={() => setShowModal(false)}>Batal</Button>
-              <Button type="submit" form="inspectForm" isLoading={processing}>Simpan Hasil Inspeksi</Button>
+              <Button type="submit" form="inspectForm" disabled={processing}>{processing ? 'Memproses...' : 'Simpan Hasil Inspeksi'}</Button>
             </div>
           </div>
         </div>
