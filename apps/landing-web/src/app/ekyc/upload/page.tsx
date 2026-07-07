@@ -108,9 +108,9 @@ export default function EkycUploadPage() {
           videoRef.current.srcObject = stream;
         }
       }, 100);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Gagal membuka kamera:", err);
-      alert("Browser memblokir akses kamera langsung karena tidak menggunakan HTTPS. Kami akan membuka Galeri Foto sebagai alternatif.");
+      alert(`Tidak dapat mengakses kamera (${err.name}: ${err.message}). Kami akan membuka Galeri Foto sebagai alternatif.`);
       setIsCameraOpen(false);
       if (selfieInputRef.current) {
         selfieInputRef.current.click();
