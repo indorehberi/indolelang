@@ -384,4 +384,39 @@ export class DepositsService {
 
     return updated;
   }
+
+  /**
+   * Mark a manual deposit as paid (Admin only)
+   */
+  async markManualDepositAsPaid(depositId: string, adminId: string): Promise<any> {
+    const deposit = await prisma.deposits.findUnique({
+      where: { id: depositId },
+    });
+
+    if (!deposit) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
+    }
+
+    if (deposit.payment_method !== 'manual_transfer') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit manual transfer yang dapat disetujui melalui fitur ini');
+    }
+
+    if (deposit.status === 'paid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Deposit sudah dalam status Paid (Lunas)');
+    }
+
+    if (deposit.status !== 'pending') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Pending yang dapat ditandai Paid');
+    }
+
+    const updated = await prisma.deposits.update({
+      where: { id: depositId },
+      data: {
+        status: 'paid',
+        paid_at: new Date(),
+      },
+    });
+
+    return updated;
+  }
 }

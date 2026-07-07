@@ -34,4 +34,12 @@ router.post(
   controller.requestRefund
 );
 
+// Mark Manual Deposit as Paid (Admin only)
+router.put(
+  '/deposits/:id/mark-paid',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPER_ADMIN),
+  controller.markAsPaid
+);
+
 export default router;

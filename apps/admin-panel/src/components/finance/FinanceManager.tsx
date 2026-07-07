@@ -286,6 +286,31 @@ export default function FinanceManager({
     }
   };
 
+  const handleMarkPaid = async (depositId: string) => {
+    setProcessingId(depositId);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/deposits/${depositId}/mark-paid`), {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal menandai lunas deposit');
+      }
+
+      alert('Deposit berhasil ditandai Paid (Lunas)!');
+      fetchDeposits();
+    } catch (error: any) {
+      alert(error.message || 'Terjadi kesalahan saat memproses deposit.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -436,13 +461,14 @@ export default function FinanceManager({
                     <th>Virtual Account (VA)</th>
                     <th>Status Pembayaran</th>
                     <th>Waktu Lunas</th>
+                    <th style={{ textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={6} className="text-center">Memuat data transaksi deposit...</td></tr>
+                    <tr><td colSpan={7} className="text-center">Memuat data transaksi deposit...</td></tr>
                   ) : deposits.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
+                    <tr><td colSpan={7} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
                   ) : (
                     deposits.map((deposit) => (
                       <tr key={deposit.id}>
@@ -470,6 +496,19 @@ export default function FinanceManager({
                         </td>
                         <td>{getStatusBadge(deposit.status)}</td>
                         <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          {deposit.status === 'pending' && deposit.payment_method === 'manual_transfer' && (
+                            <button
+                              onClick={() => handleMarkPaid(deposit.id)}
+                              className="btn btn-xs btn-success"
+                              disabled={processingId !== null}
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                              title="Tandai Paid untuk deposit manual"
+                            >
+                              {processingId === deposit.id ? 'Memproses...' : '✓ Tandai Paid'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))
                   )}

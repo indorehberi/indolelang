@@ -72,6 +72,22 @@ export class DepositsController {
       next(error);
     }
   }
+
+  /**
+   * Mark a manual deposit as paid (Admin only)
+   */
+  async markAsPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const adminId = req.user!.id;
+      const { id } = req.params;
+
+      const result = await depositsService.markManualDepositAsPaid(id, adminId);
+      
+      sendSuccess(res, result, 'Status deposit berhasil diperbarui menjadi Paid (Lunas).');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default DepositsController;
