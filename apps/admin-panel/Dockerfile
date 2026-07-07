@@ -34,6 +34,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/admin-panel/package*.json ./apps/admin-panel/
+COPY --from=builder /app/apps/admin-panel/next.config.ts ./apps/admin-panel/
 COPY --from=builder /app/apps/admin-panel/.next ./apps/admin-panel/.next
 COPY --from=builder /app/apps/admin-panel/public ./apps/admin-panel/public
 

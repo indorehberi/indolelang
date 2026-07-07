@@ -38,6 +38,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/landing-web/package*.json ./apps/landing-web/
+COPY --from=builder /app/apps/landing-web/next.config.ts ./apps/landing-web/
 COPY --from=builder /app/apps/landing-web/.next ./apps/landing-web/.next
 COPY --from=builder /app/apps/landing-web/public ./apps/landing-web/public
 
