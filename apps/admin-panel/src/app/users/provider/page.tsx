@@ -205,6 +205,32 @@ export default function ProviderUsersPage() {
     }
   };
 
+  const handleRejectProvider = async () => {
+    if (!selectedUser) return;
+    if (!window.confirm('Apakah Anda yakin ingin menolak provider ini?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ provider_status: 'rejected' })
+      });
+      if (response.ok) {
+        setShowViewModal(false);
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error?.message || 'Gagal menolak provider');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Mitra Provider">
       <div className="toolbar">
@@ -350,9 +376,14 @@ export default function ProviderUsersPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <Button variant="outline" type="button" onClick={() => setShowViewModal(false)}>Tutup</Button>
                 {selectedUser.provider_status === 'pending' && (
-                  <Button variant="primary" type="button" onClick={handleApproveProvider}>
-                    Setujui (Approve Provider)
-                  </Button>
+                  <>
+                    <Button variant="danger" type="button" onClick={handleRejectProvider}>
+                      Tolak (Reject)
+                    </Button>
+                    <Button variant="primary" type="button" onClick={handleApproveProvider}>
+                      Setujui (Approve Provider)
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>

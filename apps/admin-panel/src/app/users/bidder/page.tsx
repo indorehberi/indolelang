@@ -165,6 +165,37 @@ export default function BidderListPage() {
     }
   };
 
+  const handleRejectKyc = async (kycId: string) => {
+    const reason = window.prompt('Masukkan alasan penolakan verifikasi KYC:');
+    if (reason === null) return; // User cancelled
+    if (!reason.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/kyc/${kycId}/reject`), {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ rejection_reason: reason.trim() })
+      });
+      if (response.ok) {
+        setShowKycModal(false);
+        fetchBidders();
+      } else {
+        const data = await response.json();
+        alert(data.error?.message || 'Gagal menolak KYC');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan sistem');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Bidder">
       <div className="toolbar">
@@ -339,6 +370,9 @@ export default function BidderListPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <Button variant="outline" type="button" onClick={() => setShowKycModal(false)}>Tutup</Button>
+                <Button variant="danger" type="button" onClick={() => handleRejectKyc(selectedUser.kyc!.id)}>
+                  Tolak (Reject)
+                </Button>
                 <Button variant="primary" type="button" onClick={() => handleApproveKyc(selectedUser.kyc!.id)}>
                   Setujui (Approve KYC)
                 </Button>
