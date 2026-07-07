@@ -162,12 +162,13 @@ export default function AssetsInspectionPage() {
       </div>
 
       {toast && (
-        <Toast
-          message={toast.message}
-          variant={toast.variant}
-          onClose={() => setToast(null)}
-          className="mb-4"
-        />
+        <div className="mb-4">
+          <Toast
+            message={toast.message}
+            variant={toast.variant}
+            onClose={() => setToast(null)}
+          />
+        </div>
       )}
 
       <Card>
