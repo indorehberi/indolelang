@@ -55,6 +55,7 @@ export default function PlatformSettingsPage() {
     aws_secret_key: '',
     aws_access_key: '',
     aws_bucket: '',
+    aws_endpoint: '',
     smtp_host: '',
     smtp_user: '',
     smtp_password: '',
@@ -576,6 +577,25 @@ export default function PlatformSettingsPage() {
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Iris Approver Key (Opsional)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_iris_approver_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_iris_approver_key: e.target.value})} />
+            </div>
+
+            <h3 className="text-md fw-bold mb-3 mt-4">Amazon S3 / Cloudflare R2 (Penyimpanan Foto)</h3>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Bucket Name</label>
+              <input type="text" placeholder="indo-lelang-bucket" className="form-input" value={apiKeys.aws_bucket} onChange={(e) => setApiKeys({...apiKeys, aws_bucket: e.target.value})} />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Access Key</label>
+              <input type="password" placeholder="********" className="form-input" value={apiKeys.aws_access_key} onChange={(e) => setApiKeys({...apiKeys, aws_access_key: e.target.value})} />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Secret Key</label>
+              <input type="password" placeholder="********" className="form-input" value={apiKeys.aws_secret_key} onChange={(e) => setApiKeys({...apiKeys, aws_secret_key: e.target.value})} />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Endpoint URL (Khusus Cloudflare R2 / MinIO)</label>
+              <input type="text" placeholder="https://<ACCOUNT_ID>.r2.cloudflarestorage.com" className="form-input" value={apiKeys.aws_endpoint} onChange={(e) => setApiKeys({...apiKeys, aws_endpoint: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Biarkan kosong jika menggunakan AWS S3 biasa. Wajib diisi jika menggunakan Cloudflare R2.</p>
             </div>
             
             <h3 className="text-md fw-bold mb-3 mt-4">Verihubs & Xendit</h3>
