@@ -48,7 +48,10 @@ export default function LoginPage() {
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
         } else if (["admin", "operator", "superadmin"].includes(user.role)) {
-          const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+          let adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+          if (typeof window !== "undefined" && window.location.hostname !== 'localhost') {
+            adminUrl = '/admin'; // Force relative path in production
+          }
           window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
         } else {
           alert("Role akun Anda tidak didukung pada halaman ini.");
