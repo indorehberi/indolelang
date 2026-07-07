@@ -96,4 +96,26 @@ export const getAssetsQuerySchema = z.object({
     search: z.string().optional(),
   }),
 });
+
+export const inspectAssetSchema = z.object({
+  body: z.object({
+    inspection_date: z.string().datetime(),
+    grade_interior: z.enum(['A', 'B', 'C', 'D', 'E']),
+    grade_exterior: z.enum(['A', 'B', 'C', 'D', 'E']),
+    grade_engine: z.enum(['A', 'B', 'C', 'D', 'E']),
+    category: z.nativeEnum(AssetCategory),
+    brand: z.string().min(1, 'Merek wajib diisi'),
+    model: z.string().min(1, 'Tipe wajib diisi'),
+    color: z.string().min(1, 'Warna wajib diisi'),
+    fuel_type: z.string().min(1, 'Bahan bakar wajib diisi'),
+    transmission: z.string().min(1, 'Transmisi wajib diisi'),
+    body_type: z.string().min(1, 'Jenis body wajib diisi'),
+    year: z.number().int().min(1900),
+    police_number: z.string().min(1, 'No Polisi wajib diisi'),
+    bpkb_number: z.string().min(1, 'No BPKB wajib diisi'),
+    frame_number: z.string().min(1, 'No Rangka wajib diisi'),
+    cylinder: z.number().int().positive('CC harus positif'),
+    odometer: z.number().int().nonnegative('Odometer tidak valid'),
+  }),
+});
  
