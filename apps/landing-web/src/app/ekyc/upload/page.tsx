@@ -110,8 +110,11 @@ export default function EkycUploadPage() {
       }, 100);
     } catch (err) {
       console.error("Gagal membuka kamera:", err);
-      alert("Tidak dapat mengakses kamera. Pastikan Anda memberikan izin kamera ke browser.");
+      alert("Browser memblokir akses kamera langsung karena tidak menggunakan HTTPS. Kami akan membuka Galeri Foto sebagai alternatif.");
       setIsCameraOpen(false);
+      if (selfieInputRef.current) {
+        selfieInputRef.current.click();
+      }
     }
   };
 
