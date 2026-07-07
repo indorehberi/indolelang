@@ -63,6 +63,7 @@ app.use(
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
+app.use('/api/uploads', express.static('uploads'));
 
 const apiPrefix = env.API_PREFIX || '/api/v1';
 
