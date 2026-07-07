@@ -161,13 +161,17 @@ export class DepositsService {
     // Fetch settings for Fee Bearer and NIPL Amounts
     const settings = await prisma.platform_settings.findMany({
       where: {
-        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount'] }
+        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount', 'deposit_payment_mode', 'manual_payment_bank', 'manual_payment_account', 'manual_payment_name'] }
       }
     });
 
     const feeBearer = settings.find(s => s.key === 'FEE_BEARER')?.value || 'admin';
     const niplMobilBase = parseInt(settings.find(s => s.key === 'nipl_deposit_amount')?.value || '5000000', 10);
     const niplMotorBase = parseInt(settings.find(s => s.key === 'nipl_motor_deposit_amount')?.value || '1000000', 10);
+    const depositPaymentMode = settings.find(s => s.key === 'deposit_payment_mode')?.value || 'auto';
+    const manualPaymentBank = settings.find(s => s.key === 'manual_payment_bank')?.value || 'BCA';
+    const manualPaymentAccount = settings.find(s => s.key === 'manual_payment_account')?.value || '7015886161';
+    const manualPaymentName = settings.find(s => s.key === 'manual_payment_name')?.value || 'PT Indo Lelang Sejahtera';
 
     // 3. Calculate amount based on unit_type and package_type
     let amount = 0;
@@ -199,24 +203,35 @@ export class DepositsService {
     const depositId = crypto.randomUUID();
     const orderId = `NIPL-${depositId}`;
 
-    // 4. Request Midtrans for VA details with a mock fallback for local testing
+    // 4. Request Midtrans for VA details with a mock fallback for local testing, or bypass if manual mode
     let midtransRes;
-    try {
-      midtransRes = await midtransClient.chargeVirtualAccount({
-        orderId,
-        amount: grossAmount, // pass the new total including fee
-        bank,
-      });
-    } catch (error) {
-      logger.warn({ error, orderId }, 'Midtrans charge failed. Falling back to Mock Payment Details.');
-      const dummyVa = `70088${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+    
+    if (depositPaymentMode === 'manual') {
       midtransRes = {
         order_id: orderId,
-        va_number: bank === 'qris' ? 'https://midtrans.com/qris-mock' : dummyVa,
-        va_bank: bank,
-        payment_method: bank === 'qris' ? 'qris' : 'virtual_account',
-        raw_response: { status_message: 'Mock payment created due to inactive midtrans channel' }
+        va_number: manualPaymentAccount,
+        va_bank: `manual_${manualPaymentBank.toLowerCase()}`,
+        payment_method: 'manual_transfer',
+        raw_response: { status_message: 'Manual payment instructed', account_name: manualPaymentName }
       };
+    } else {
+      try {
+        midtransRes = await midtransClient.chargeVirtualAccount({
+          orderId,
+          amount: grossAmount, // pass the new total including fee
+          bank,
+        });
+      } catch (error) {
+        logger.warn({ error, orderId }, 'Midtrans charge failed. Falling back to Mock Payment Details.');
+        const dummyVa = `70088${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+        midtransRes = {
+          order_id: orderId,
+          va_number: bank === 'qris' ? 'https://midtrans.com/qris-mock' : dummyVa,
+          va_bank: bank,
+          payment_method: bank === 'qris' ? 'qris' : 'virtual_account',
+          raw_response: { status_message: 'Mock payment created due to inactive midtrans channel' }
+        };
+      }
     }
 
     // 5. Expire any old pending deposits for the same session/free and user
@@ -254,11 +269,16 @@ export class DepositsService {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
+    
+    const isManual = depositPaymentMode === 'manual';
+    const emailMethod = isManual ? `Transfer Manual ${manualPaymentBank}` : (bank === 'qris' ? 'QRIS' : bank.toUpperCase() + ' Virtual Account');
+    const emailNumberTitle = isManual ? 'No. Rekening Tujuan' : (bank === 'qris' ? 'QR Code URL' : 'Nomor Virtual Account');
+    const emailNumberValue = isManual ? `${manualPaymentAccount} a.n ${manualPaymentName}` : midtransRes.va_number;
 
     sendEmail({
       to: user.email,
       subject: `[Indo-Lelang] Pembayaran NIPL ${session ? `Sesi ${session.title}` : 'Bebas'}`,
-      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang "${session.title}"` : 'Bebas (Saldo Terbuka)'}. Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${bank === 'qris' ? 'QRIS' : bank.toUpperCase() + ' Virtual Account'}.\n\n${bank === 'qris' ? 'QR Link / Code' : 'Nomor VA'}: ${midtransRes.va_number}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
+      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL ${session ? `untuk sesi lelang "${session.title}"` : 'Bebas (Saldo Terbuka)'}. Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\n${emailNumberTitle}: ${emailNumberValue}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <h2 style="color: #2b6cb0;">Pendaftaran NIPL Indo-Lelang</h2>
@@ -272,11 +292,11 @@ export class DepositsService {
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #718096;">Metode Pembayaran:</td>
-                <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${bank === 'qris' ? 'QRIS' : 'Virtual Account ' + bank.toUpperCase()}</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${emailMethod}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #718096;">${bank === 'qris' ? 'QR Code URL' : 'Nomor Virtual Account'}:</td>
-                <td style="padding: 6px 0; font-size: 1.1rem; font-weight: bold; color: #e53e3e; word-break: break-all;">${midtransRes.va_number}</td>
+                <td style="padding: 6px 0; color: #718096;">${emailNumberTitle}:</td>
+                <td style="padding: 6px 0; font-size: 1.1rem; font-weight: bold; color: #e53e3e; word-break: break-all;">${emailNumberValue}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #718096;">Status:</td>

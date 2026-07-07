@@ -39,8 +39,13 @@ export default function PlatformSettingsPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Integrations (API Keys)
+  // Integrations & Payment Modes
   const [apiKeys, setApiKeys] = useState({
+    deposit_payment_mode: 'auto',
+    manual_transfer_fee: '2500',
+    manual_payment_bank: 'BCA',
+    manual_payment_account: '7015886161',
+    manual_payment_name: 'PT Indo Lelang Sejahtera',
     midtrans_server_key: '',
     midtrans_client_key: '',
     midtrans_is_production: 'false',
@@ -81,6 +86,7 @@ export default function PlatformSettingsPage() {
     feat_category_motor: 'Kategori Motor',
     feat_category_properti: 'Kategori Properti',
     feat_category_heavy: 'Kategori Alat Berat',
+    feat_referral_program: 'Program Referral',
   };
 
 
@@ -164,6 +170,7 @@ export default function PlatformSettingsPage() {
         ensureToggle('feat_category_heavy', 'false');
         ensureToggle('feat_ekyc_auto', 'false');
         ensureToggle('feat_bank_inquiry_auto', 'false');
+        ensureToggle('feat_referral_program', 'false');
 
         setToggles(loadedToggles);
         setApiKeys(newApiKeys);
@@ -501,7 +508,40 @@ export default function PlatformSettingsPage() {
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           <div>
-            <h3 className="text-md fw-bold mb-3">Midtrans (Payment Gateway & Refund)</h3>
+            <h3 className="text-md fw-bold mb-3">Mode Pembayaran & Midtrans</h3>
+            
+            <div className="form-group mb-4" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
+              <label className="form-label fw-bold">Pilih Mode Pembayaran Deposit NIPL</label>
+              <select className="form-input" value={apiKeys.deposit_payment_mode} onChange={(e) => setApiKeys({...apiKeys, deposit_payment_mode: e.target.value})}>
+                <option value="auto">Otomatis (Payment Gateway Midtrans)</option>
+                <option value="manual">Manual (Transfer Bank Bypass Gateway)</option>
+              </select>
+              <p className="text-xs text-muted mt-1">Jika Manual, Bidder akan diminta transfer tunai ke rekening PT secara manual. Midtrans tidak akan digunakan untuk terima uang.</p>
+            </div>
+
+            {apiKeys.deposit_payment_mode === 'manual' && (
+              <div style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', marginBottom: '1.5rem', background: '#fff' }}>
+                <h4 className="fw-bold text-sm mb-3">Instruksi Transfer Manual (Ditampilkan ke Bidder)</h4>
+                <div className="form-group mb-2">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nama Bank</label>
+                  <input type="text" className="form-input" value={apiKeys.manual_payment_bank} onChange={(e) => setApiKeys({...apiKeys, manual_payment_bank: e.target.value})} placeholder="Contoh: BCA" />
+                </div>
+                <div className="form-group mb-2">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nomor Rekening</label>
+                  <input type="text" className="form-input" value={apiKeys.manual_payment_account} onChange={(e) => setApiKeys({...apiKeys, manual_payment_account: e.target.value})} placeholder="Contoh: 7015886161" />
+                </div>
+                <div className="form-group mb-2">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Atas Nama Rekening</label>
+                  <input type="text" className="form-input" value={apiKeys.manual_payment_name} onChange={(e) => setApiKeys({...apiKeys, manual_payment_name: e.target.value})} placeholder="Contoh: PT Indo Lelang Sejahtera" />
+                </div>
+                <div className="form-group mb-2 mt-3">
+                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Potongan Biaya Admin Saat Refund (Rp)</label>
+                  <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
+                  <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Anda (Admin). Jika diisi angka (misal 2500), Bidder akan melihat info pemotongan ini saat deposit.</p>
+                </div>
+              </div>
+            )}
+
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Mode Production?</label>
               <select className="form-input" value={apiKeys.midtrans_is_production} onChange={(e) => setApiKeys({...apiKeys, midtrans_is_production: e.target.value})}>
@@ -515,15 +555,21 @@ export default function PlatformSettingsPage() {
               <input type="text" placeholder="https://bidku.co.id/api/v1/payments/notification" className="form-input" value={apiKeys.midtrans_notification_url} onChange={(e) => setApiKeys({...apiKeys, midtrans_notification_url: e.target.value})} />
               <p className="text-xs text-muted mt-1">Gunakan untuk override URL yang disetel di dashboard Midtrans.</p>
             </div>
-            <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Server Key (Core API)</label>
-              <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_server_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_server_key: e.target.value})} />
-            </div>
-            <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Client Key (Core API)</label>
-              <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_client_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_client_key: e.target.value})} />
-            </div>
-            <div className="form-group mb-2">
+            
+            {apiKeys.deposit_payment_mode === 'auto' && (
+              <>
+                <div className="form-group mb-2">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Server Key (Core API)</label>
+                  <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_server_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_server_key: e.target.value})} />
+                </div>
+                <div className="form-group mb-2">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Client Key (Core API)</label>
+                  <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_client_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_client_key: e.target.value})} />
+                </div>
+              </>
+            )}
+
+            <div className="form-group mb-2 mt-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Iris Creator Key (Untuk Refund/Payout)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_iris_creator_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_iris_creator_key: e.target.value})} />
             </div>

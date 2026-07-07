@@ -20,6 +20,9 @@ export default function BidderDeposit() {
   const [orderId, setOrderId] = useState<string>("");
   const [feeBearer, setFeeBearer] = useState<string>("admin");
   const [showKycPopup, setShowKycPopup] = useState(false);
+  const [depositPaymentMode, setDepositPaymentMode] = useState<string>("auto");
+  const [manualTransferFee, setManualTransferFee] = useState<number>(2500);
+  const [manualAccountName, setManualAccountName] = useState<string>("PT Indo Lelang Sejahtera");
 
   // Response payment details
   const [vaNumber, setVaNumber] = useState<string>("");
@@ -65,6 +68,15 @@ export default function BidderDeposit() {
         if (feeSetting) {
           setFeeBearer(feeSetting.value);
         }
+        
+        const pm = resData.data.find((s: any) => s.key === "deposit_payment_mode");
+        if (pm) setDepositPaymentMode(pm.value);
+
+        const mFee = resData.data.find((s: any) => s.key === "manual_transfer_fee");
+        if (mFee) setManualTransferFee(Number(mFee.value) || 0);
+
+        const mName = resData.data.find((s: any) => s.key === "manual_payment_name");
+        if (mName) setManualAccountName(mName.value);
       }
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -396,6 +408,12 @@ export default function BidderDeposit() {
                     />
                     <div className="text-xs text-slate-400 font-bold uppercase tracking-wide">Scan Menggunakan Aplikasi E-Wallet Anda</div>
                   </div>
+                ) : paymentType === "manual_transfer" ? (
+                  <div className="text-center p-4 bg-slate-900 text-white rounded-xl">
+                    <div className="text-xs text-slate-400 font-medium">Rekening Tujuan ({vaBank.replace('manual_', '').toUpperCase()})</div>
+                    <div className="text-lg font-black tracking-widest mt-1 text-primary-fixed">{vaNumber}</div>
+                    <div className="text-xs text-slate-300 mt-2 font-medium">a.n. {manualAccountName}</div>
+                  </div>
                 ) : (
                   <div className="text-center p-4 bg-slate-900 text-white rounded-xl">
                     <div className="text-xs text-slate-400 font-medium">Nomor Virtual Account {vaBank.toUpperCase()}</div>
@@ -414,6 +432,12 @@ export default function BidderDeposit() {
                   </div>
                 </div>
 
+                {paymentType === "manual_transfer" && (
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning-dark mt-3">
+                    <strong>Catatan Potongan Refund:</strong> Saat pengembalian dana deposit, uang Anda akan dikurangi biaya administrasi transfer bank sebesar <strong>{manualTransferFee > 0 ? formatRupiah(manualTransferFee) : 'Rp0 (Ditanggung Admin)'}</strong>.
+                  </div>
+                )}
+
                 <div className="border-t border-outline-variant/20 pt-3 space-y-2 text-[11px] text-slate-600">
                   <p className="font-bold text-slate-800">Petunjuk Pembayaran:</p>
                   {paymentType === "qris" ? (
@@ -423,6 +447,14 @@ export default function BidderDeposit() {
                       <li>Scan gambar QR Code di atas.</li>
                       <li>Periksa nama akun IndoLelang dan jumlah tagihan.</li>
                       <li>Klik bayar &amp; masukkan PIN Anda. Selesai!</li>
+                    </ol>
+                  ) : paymentType === "manual_transfer" ? (
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>Gunakan ATM, M-Banking, atau Internet Banking Anda.</li>
+                      <li>Pilih menu Transfer antar bank / ke rekening tujuan.</li>
+                      <li>Masukkan rekening tujuan: {vaNumber} ({vaBank.replace('manual_', '').toUpperCase()}).</li>
+                      <li>Masukkan nominal pas sebesar {formatRupiah(totalPaid)} (sangat penting agar sistem memproses).</li>
+                      <li>Selesaikan pembayaran, simpan bukti transfer.</li>
                     </ol>
                   ) : (
                     <ol className="list-decimal pl-4 space-y-1">
