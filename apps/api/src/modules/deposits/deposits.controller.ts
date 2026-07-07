@@ -74,16 +74,34 @@ export class DepositsController {
   }
 
   /**
-   * Mark a manual deposit as paid (Admin only)
+   * Admin verify a deposit (approve or reject)
    */
-  async markAsPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyDeposit(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const adminId = req.user!.id;
       const { id } = req.params;
+      const { status, notes } = req.body;
 
-      const result = await depositsService.markManualDepositAsPaid(id, adminId);
+      const result = await depositsService.verifyDeposit(id, adminId, status, notes);
       
-      sendSuccess(res, result, 'Status deposit berhasil diperbarui menjadi Paid (Lunas).');
+      sendSuccess(res, result, `Status deposit berhasil diperbarui menjadi ${status}.`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Upload payment proof (Bidder)
+   */
+  async uploadProof(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const { payment_proof_url } = req.body;
+
+      const result = await depositsService.uploadProof(id, userId, payment_proof_url);
+      
+      sendSuccess(res, result, 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi admin.');
     } catch (error) {
       next(error);
     }

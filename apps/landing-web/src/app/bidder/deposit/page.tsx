@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
@@ -24,6 +24,13 @@ export default function BidderDeposit() {
   const [manualTransferFee, setManualTransferFee] = useState<number>(2500);
   const [manualAccountName, setManualAccountName] = useState<string>("PT Indo Lelang Sejahtera");
 
+  // Manual Transfer & Proof states
+  const [depositStatus, setDepositStatus] = useState<string>("");
+  const [expiresAt, setExpiresAt] = useState<string>("");
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
   // Response payment details
   const [vaNumber, setVaNumber] = useState<string>("");
   const [vaBank, setVaBank] = useState<string>("");
@@ -59,6 +66,46 @@ export default function BidderDeposit() {
     }
   };
 
+  const fetchActiveDeposit = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    try {
+      const response = await fetch(apiUrl("/deposits?status=pending"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success && resData.data.length > 0) {
+        const deposit = resData.data[0];
+        setOrderId(deposit.id);
+        setVaNumber(deposit.va_number || "");
+        setVaBank(deposit.va_bank || deposit.payment_method);
+        setPaymentType(deposit.payment_method || "virtual_account");
+        setTotalPaid(deposit.amount);
+        setDepositStatus(deposit.status);
+        setExpiresAt(deposit.expires_at || "");
+        setProofUrl(deposit.payment_proof_url || null);
+      } else {
+        const verifyingRes = await fetch(apiUrl("/deposits?status=verifying"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const verData = await verifyingRes.json();
+        if (verifyingRes.ok && verData.success && verData.data.length > 0) {
+          const deposit = verData.data[0];
+          setOrderId(deposit.id);
+          setVaNumber(deposit.va_number || "");
+          setVaBank(deposit.va_bank || deposit.payment_method);
+          setPaymentType(deposit.payment_method || "virtual_account");
+          setTotalPaid(deposit.amount);
+          setDepositStatus(deposit.status);
+          setExpiresAt(deposit.expires_at || "");
+          setProofUrl(deposit.payment_proof_url || null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch active deposit", error);
+    }
+  };
+
   const fetchSettings = async () => {
     try {
       const response = await fetch(apiUrl("/settings/public"));
@@ -86,7 +133,30 @@ export default function BidderDeposit() {
   useEffect(() => {
     fetchSessions();
     fetchSettings();
+    fetchActiveDeposit();
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (expiresAt && depositStatus === "pending") {
+      timer = setInterval(() => {
+        const diff = new Date(expiresAt).getTime() - new Date().getTime();
+        if (diff <= 0) {
+          setTimeLeft(0);
+          setDepositStatus("expired");
+        } else {
+          setTimeLeft(Math.floor(diff / 1000));
+        }
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [expiresAt, depositStatus]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const calculateTotalAmount = () => {
     const basePrice = unitType === "mobil" ? 5000000 : 1000000;
@@ -139,6 +209,8 @@ export default function BidderDeposit() {
         setVaBank(deposit.va_bank || paymentMethod);
         setPaymentType(deposit.payment_method || "virtual_account");
         setTotalPaid(amount);
+        setDepositStatus(deposit.status);
+        setExpiresAt(deposit.expires_at || "");
       } else {
         alert(resData.error?.message || "Gagal memproses deposit.");
       }
@@ -149,36 +221,63 @@ export default function BidderDeposit() {
     }
   };
 
-  const handleSimulatePaymentSuccess = async () => {
-    if (!orderId) {
-      alert("ID transaksi deposit tidak ditemukan.");
+  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const token = localStorage.getItem("accessToken");
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "deposits");
+
+      setIsUploadingProof(true);
+      try {
+        const response = await fetch(apiUrl("/upload/single"), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setProofUrl(resData.data.url);
+        } else {
+          alert(resData.error?.message || "Gagal mengunggah gambar.");
+        }
+      } catch (err) {
+        alert("Koneksi gagal saat mengunggah bukti.");
+      } finally {
+        setIsUploadingProof(false);
+      }
+    }
+  };
+
+  const handleSubmitProof = async () => {
+    if (!proofUrl) {
+      alert("Harap unggah bukti transfer terlebih dahulu.");
       return;
     }
-
+    setIsSubmitting(true);
     try {
-      const response = await fetch(apiUrl("/payments/webhook"), {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(apiUrl(`/deposits/${orderId}/proof`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          order_id: `NIPL-${orderId}`,
-          transaction_status: "settlement",
-          status_code: "200",
-          gross_amount: String(totalPaid),
-          signature_key: "dev-bypass",
-        }),
+        body: JSON.stringify({ payment_proof_url: proofUrl }),
       });
-
       const resData = await response.json();
       if (response.ok && resData.success) {
-        alert("Simulasi pembayaran sukses berhasil diproses! Deposit Anda kini aktif dan dapat digunakan di semua sesi lelang.");
-        router.push("/bidder/dashboard");
+        alert("Bukti pembayaran berhasil disubmit! Menunggu verifikasi admin.");
+        setDepositStatus("verifying");
       } else {
-        alert(resData.error?.message || "Gagal memproses simulasi pembayaran.");
+        alert(resData.error?.message || "Gagal memproses bukti.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengirimkan simulasi pembayaran.");
+      alert("Koneksi gagal saat submit bukti.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -345,8 +444,12 @@ export default function BidderDeposit() {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                disabled={isSubmitting || depositStatus === 'pending' || depositStatus === 'verifying'}
+                className={`w-full py-4 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${
+                  isSubmitting || depositStatus === 'pending' || depositStatus === 'verifying'
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-primary hover:bg-primary/95 text-white shadow-primary/20"
+                }`}
               >
                 {isSubmitting ? (
                   <>
@@ -404,9 +507,17 @@ export default function BidderDeposit() {
                     <span className="font-bold text-slate-800">{formatRupiah(totalPaid)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Batas Waktu</span>
-                    <span className="font-bold text-error">60 Menit</span>
+                    <span className="text-slate-500">Status Pembayaran</span>
+                    <span className={`font-bold ${depositStatus === 'pending' ? 'text-warning' : depositStatus === 'verifying' ? 'text-primary' : depositStatus === 'paid' ? 'text-success' : 'text-error'}`}>
+                      {depositStatus === 'pending' ? 'Menunggu Pembayaran' : depositStatus === 'verifying' ? 'Sedang Diverifikasi' : depositStatus === 'paid' ? 'Lunas' : 'Kedaluwarsa'}
+                    </span>
                   </div>
+                  {depositStatus === 'pending' && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Batas Waktu</span>
+                      <span className="font-bold text-error">{formatTime(timeLeft)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {paymentType === "manual_transfer" && (
@@ -415,44 +526,81 @@ export default function BidderDeposit() {
                   </div>
                 )}
 
-                <div className="border-t border-outline-variant/20 pt-3 space-y-2 text-[11px] text-slate-600">
-                  <p className="font-bold text-slate-800">Petunjuk Pembayaran:</p>
-                  {paymentType === "qris" ? (
-                    <ol className="list-decimal pl-4 space-y-1">
-                      <li>Buka aplikasi Gopay, ShopeePay, OVO, atau M-Banking Anda.</li>
-                      <li>Pilih menu scan QR/Bayar.</li>
-                      <li>Scan gambar QR Code di atas.</li>
-                      <li>Periksa nama akun IndoLelang dan jumlah tagihan.</li>
-                      <li>Klik bayar &amp; masukkan PIN Anda. Selesai!</li>
-                    </ol>
-                  ) : paymentType === "manual_transfer" ? (
-                    <ol className="list-decimal pl-4 space-y-1">
-                      <li>Gunakan ATM, M-Banking, atau Internet Banking Anda.</li>
-                      <li>Pilih menu Transfer antar bank / ke rekening tujuan.</li>
-                      <li>Masukkan rekening tujuan: {vaNumber} ({vaBank.replace('manual_', '').toUpperCase()}).</li>
-                      <li>Masukkan nominal pas sebesar {formatRupiah(totalPaid)} (sangat penting agar sistem memproses).</li>
-                      <li>Selesaikan pembayaran, simpan bukti transfer.</li>
-                    </ol>
-                  ) : (
-                    <ol className="list-decimal pl-4 space-y-1">
-                      <li>Pilih menu Transfer ke Rekening Virtual Account {vaBank.toUpperCase()}.</li>
-                      <li>Masukkan nomor VA di atas.</li>
-                      <li>Konfirmasi nama akun Anda &amp; total pembayaran {formatRupiah(totalPaid)}.</li>
-                      <li>Selesaikan pembayaran dan deposit Anda otomatis aktif.</li>
-                    </ol>
-                  )}
-                </div>
+                {(depositStatus === 'pending' || depositStatus === 'verifying') && (
+                  <>
+                    <div className="border-t border-outline-variant/20 pt-3 space-y-2 text-[11px] text-slate-600">
+                      <p className="font-bold text-slate-800">Petunjuk Pembayaran:</p>
+                      {paymentType === "manual_transfer" ? (
+                        <ol className="list-decimal pl-4 space-y-1">
+                          <li>Gunakan ATM, M-Banking, atau Internet Banking Anda.</li>
+                          <li>Pilih menu Transfer antar bank / ke rekening tujuan.</li>
+                          <li>Masukkan rekening tujuan: {vaNumber} ({vaBank.replace('manual_', '').toUpperCase()}).</li>
+                          <li>Masukkan nominal pas sebesar {formatRupiah(totalPaid)} (sangat penting agar sistem memproses).</li>
+                          <li>Selesaikan pembayaran, simpan bukti transfer.</li>
+                        </ol>
+                      ) : (
+                        <ol className="list-decimal pl-4 space-y-1">
+                          <li>Pilih menu Transfer ke Rekening Virtual Account {vaBank.toUpperCase()}.</li>
+                          <li>Masukkan nomor VA di atas.</li>
+                          <li>Konfirmasi nama akun Anda &amp; total pembayaran {formatRupiah(totalPaid)}.</li>
+                          <li>Selesaikan pembayaran dan upload bukti bayar.</li>
+                        </ol>
+                      )}
+                    </div>
 
-                <div className="border-t border-outline-variant/20 pt-3">
-                  <button
-                    type="button"
-                    onClick={handleSimulatePaymentSuccess}
-                    className="w-full py-2.5 bg-success hover:bg-success/95 text-white font-bold rounded-xl transition-all shadow-md shadow-success/15 flex items-center justify-center gap-1.5 text-xs"
-                  >
-                    <span className="material-symbols-outlined text-sm">task_alt</span>
-                    Simulasikan Pembayaran Sukses (Dev Only)
-                  </button>
-                </div>
+                    <div className="border-t border-outline-variant/20 pt-4">
+                      {depositStatus === 'pending' ? (
+                        <div className="space-y-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={proofInputRef}
+                            onChange={handleProofUpload}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => proofInputRef.current?.click()}
+                            className="w-full py-2.5 border-2 border-dashed border-primary/50 text-primary font-bold rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-xs"
+                          >
+                            <span className="material-symbols-outlined text-sm">upload_file</span>
+                            {isUploadingProof ? "Mengunggah..." : proofUrl ? "Bukti Terunggah (Klik untuk Ganti)" : "Upload Bukti Transfer"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleSubmitProof}
+                            disabled={!proofUrl || isSubmitting}
+                            className={`w-full py-2.5 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 text-xs ${
+                              !proofUrl || isSubmitting ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-primary hover:bg-primary/95 text-white shadow-primary/20"
+                            }`}
+                          >
+                            {isSubmitting ? "Memproses..." : "Saya Sudah Transfer"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-full py-3 bg-primary/10 border border-primary/20 text-primary font-bold rounded-xl flex items-center justify-center gap-2 text-sm">
+                          <span className="material-symbols-outlined animate-spin text-sm">hourglass_empty</span>
+                          Status: Verifikasi
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                {depositStatus === 'paid' && (
+                  <div className="p-4 bg-success/10 border border-success/30 rounded-xl flex flex-col items-center justify-center gap-2">
+                    <span className="material-symbols-outlined text-success text-4xl">check_circle</span>
+                    <div className="text-success-dark font-bold text-center">NIPL Aktif</div>
+                    <p className="text-xs text-success-dark/80 text-center">Anda sudah dapat menawar di sesi lelang.</p>
+                  </div>
+                )}
+                {depositStatus === 'expired' && (
+                  <div className="p-4 bg-error/10 border border-error/30 rounded-xl flex flex-col items-center justify-center gap-2">
+                    <span className="material-symbols-outlined text-error text-4xl">cancel</span>
+                    <div className="text-error font-bold text-center">Tagihan Kedaluwarsa</div>
+                    <p className="text-xs text-error/80 text-center">Silakan buat pengajuan deposit baru.</p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

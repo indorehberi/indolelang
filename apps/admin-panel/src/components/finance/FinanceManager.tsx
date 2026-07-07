@@ -14,7 +14,8 @@ interface Deposit {
   va_number?: string;
   va_bank?: string;
   payment_method?: string;
-  status: 'pending' | 'paid' | 'expired' | 'refunded' | 'pending_refund';
+  payment_proof_url?: string;
+  status: 'pending' | 'verifying' | 'paid' | 'expired' | 'refunded' | 'pending_refund';
   paid_at?: string;
   created_at: string;
   user?: {
@@ -264,6 +265,32 @@ export default function FinanceManager({
     }
   };
 
+  const handleVerifyDeposit = async (depositId: string, action: 'approve' | 'reject') => {
+    if (!confirm(`Apakah Anda yakin ingin me-${action} deposit ini?`)) return;
+    setProcessingId(depositId);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/deposits/${depositId}/verify`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        fetchDeposits();
+      } else {
+        alert(data.error?.message || `Gagal melakukan ${action} deposit.`);
+      }
+    } catch (err) {
+      alert("Koneksi gagal saat memverifikasi deposit.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleDisburseSettlement = async (settlementId: string) => {
     setProcessingId(settlementId);
     try {
@@ -348,6 +375,8 @@ export default function FinanceManager({
         return <Badge variant="info">Refunded</Badge>;
       case 'pending_refund':
         return <Badge variant="warning">Menunggu Refund</Badge>;
+      case 'verifying':
+        return <Badge variant="primary">Menunggu Verifikasi</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -448,6 +477,7 @@ export default function FinanceManager({
                 <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
                 <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
                 <button onClick={() => setStatusFilter('pending')} className={`btn btn-sm ${statusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending</button>
+                <button onClick={() => setStatusFilter('verifying')} className={`btn btn-sm ${statusFilter === 'verifying' ? 'btn-primary' : 'btn-outline'}`}>Verifikasi</button>
                 <button onClick={() => setStatusFilter('expired')} className={`btn btn-sm ${statusFilter === 'expired' ? 'btn-danger' : 'btn-outline'}`}>Expired</button>
               </div>
             </div>
@@ -462,6 +492,7 @@ export default function FinanceManager({
                     <th>Bidder</th>
                     <th>Jumlah Jaminan</th>
                     <th>Virtual Account (VA)</th>
+                    <th>Bukti Transfer</th>
                     <th>Status Pembayaran</th>
                     <th>Waktu Lunas</th>
                     <th style={{ textAlign: 'center' }}>Aksi</th>
@@ -497,19 +528,40 @@ export default function FinanceManager({
                             <span className="text-muted">-</span>
                           )}
                         </td>
+                        <td>
+                          {deposit.payment_proof_url ? (
+                            <a href={deposit.payment_proof_url.startsWith('http') ? deposit.payment_proof_url : apiUrl(`/..${deposit.payment_proof_url}`)} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>image</span>
+                              Lihat Bukti
+                            </a>
+                          ) : (
+                            <span className="text-muted text-sm">-</span>
+                          )}
+                        </td>
                         <td>{getStatusBadge(deposit.status)}</td>
                         <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
                         <td style={{ textAlign: 'center' }}>
-                          {deposit.status === 'pending' && deposit.payment_method === 'manual_transfer' && (
-                            <button
-                              onClick={() => handleMarkPaid(deposit.id)}
-                              className="btn btn-xs btn-success"
-                              disabled={processingId !== null}
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                              title="Tandai Paid untuk deposit manual"
-                            >
-                              {processingId === deposit.id ? 'Memproses...' : '✓ Tandai Paid'}
-                            </button>
+                          {deposit.status === 'verifying' && (
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => handleVerifyDeposit(deposit.id, 'approve')}
+                                className="btn btn-xs btn-success"
+                                disabled={processingId !== null}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                                title="Approve Deposit"
+                              >
+                                {processingId === deposit.id ? '...' : 'Terima'}
+                              </button>
+                              <button
+                                onClick={() => handleVerifyDeposit(deposit.id, 'reject')}
+                                className="btn btn-xs btn-danger"
+                                disabled={processingId !== null}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                                title="Reject Deposit"
+                              >
+                                {processingId === deposit.id ? '...' : 'Tolak'}
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

@@ -4,7 +4,7 @@ import { authenticate } from '../../middleware/auth';
 import { authorize } from '../../middleware/rbac';
 import { validate } from '../../middleware/validator';
 import { Role } from '@indo-lelang/shared-types';
-import { createDepositSchema, getDepositsQuerySchema } from './deposits.schema';
+import { createDepositSchema, getDepositsQuerySchema, uploadProofSchema, verifyDepositSchema } from './deposits.schema';
 
 const router = Router();
 const controller = new DepositsController();
@@ -34,12 +34,22 @@ router.post(
   controller.requestRefund
 );
 
-// Mark Manual Deposit as Paid (Admin only)
+// Mark Manual Deposit as Paid/Rejected (Admin only)
 router.put(
-  '/deposits/:id/mark-paid',
+  '/deposits/:id/verify',
   authenticate,
   authorize(Role.ADMIN, Role.SUPERADMIN),
-  controller.markAsPaid
+  validate(verifyDepositSchema),
+  controller.verifyDeposit
+);
+
+// Upload payment proof for deposit (Bidder only)
+router.post(
+  '/deposits/:id/proof',
+  authenticate,
+  authorize(Role.BIDDER),
+  validate(uploadProofSchema),
+  controller.uploadProof
 );
 
 export default router;
