@@ -330,15 +330,33 @@ export class UsersService {
         password_hash: passwordHash,
         full_name: data.full_name,
         role: data.role || Role.BIDDER,
-        status: (data.role === Role.ADMIN || data.role === Role.SUPERADMIN || data.role === Role.PROVIDER) ? UserStatus.ACTIVE : UserStatus.PENDING,
+        status: UserStatus.ACTIVE,
         company_name: data.company_name || null,
         npwp: data.npwp || null,
         provider_status: data.role === Role.PROVIDER ? 'approved' : (data.provider_status || null),
         provider_fee_type: data.provider_fee_type || null,
         provider_fee_amount: data.provider_fee_amount ? new Prisma.Decimal(data.provider_fee_amount) : null,
         pmk41_paid_by_provider: data.pmk41_paid_by_provider || false,
+        address: data.address || null,
+        occupation: data.occupation || null,
+        bank_name: data.bank_name || null,
+        bank_account_no: data.bank_account_no || null,
+        bank_account_name: data.bank_account_name || null,
+        npwp_url: data.npwp_url || null,
       },
     });
+
+    if (data.ktp_url || data.selfie_url) {
+      await prisma.kyc_documents.create({
+        data: {
+          user_id: user.id,
+          ktp_url: data.ktp_url || null,
+          selfie_url: data.selfie_url || null,
+          status: 'approved',
+          reviewed_at: new Date(),
+        },
+      });
+    }
 
     return {
       id: user.id,

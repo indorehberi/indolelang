@@ -63,6 +63,14 @@ export const adminCreateUserSchema = z.object({
     provider_fee_type: z.enum(['percentage', 'flat']).optional(),
     provider_fee_amount: z.string().optional().or(z.number().optional()),
     pmk41_paid_by_provider: z.boolean().optional(),
+    address: z.string().optional(),
+    occupation: z.string().optional(),
+    bank_name: z.string().optional(),
+    bank_account_no: z.string().optional(),
+    bank_account_name: z.string().optional(),
+    ktp_url: z.string().optional(),
+    selfie_url: z.string().optional(),
+    npwp_url: z.string().optional(),
   }),
 });
 
@@ -79,5 +87,13 @@ export const adminUpdateUserInfoSchema = z.object({
     provider_fee_type: z.enum(['percentage', 'flat']).optional(),
     provider_fee_amount: z.string().optional().or(z.number().optional()),
     pmk41_paid_by_provider: z.boolean().optional(),
+    address: z.string().optional(),
+    occupation: z.string().optional(),
+    bank_name: z.string().optional(),
+    bank_account_no: z.string().optional(),
+    bank_account_name: z.string().optional(),
+    ktp_url: z.string().optional(),
+    selfie_url: z.string().optional(),
+    npwp_url: z.string().optional(),
   }),
 });
