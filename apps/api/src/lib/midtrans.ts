@@ -24,8 +24,10 @@ export interface ChargeVaResponse {
 }
 
 export class MidtransClient {
-  private getBaseUrl(): string {
-    return env.MIDTRANS_IS_PRODUCTION
+  private async getBaseUrl(): Promise<string> {
+    const dbIsProd = await settingsService.getDecryptedSetting('midtrans_is_production');
+    const isProduction = dbIsProd !== null ? dbIsProd === 'true' : env.MIDTRANS_IS_PRODUCTION;
+    return isProduction
       ? 'https://api.midtrans.com'
       : 'https://api.sandbox.midtrans.com';
   }
@@ -41,7 +43,7 @@ export class MidtransClient {
    * Request Midtrans Core API to charge Virtual Account
    */
   async chargeVirtualAccount(params: ChargeVaParams): Promise<ChargeVaResponse> {
-    const baseUrl = this.getBaseUrl();
+    const baseUrl = await this.getBaseUrl();
     const authHeader = await this.getAuthHeader();
     const expiryMinutes = params.expiryMinutes || 60;
 
@@ -56,8 +58,10 @@ export class MidtransClient {
       },
     };
 
-    if (env.MIDTRANS_NOTIFICATION_URL) {
-      payload.override_notification_url = env.MIDTRANS_NOTIFICATION_URL;
+    const dbNotifUrl = await settingsService.getDecryptedSetting('midtrans_notification_url');
+    const notificationUrl = dbNotifUrl || env.MIDTRANS_NOTIFICATION_URL;
+    if (notificationUrl) {
+      payload.override_notification_url = notificationUrl;
     }
 
     if (params.bank === 'qris') {
@@ -178,13 +182,17 @@ export class MidtransClient {
     description: string;
     email?: string;
   }): Promise<any> {
-    const irisUrl = env.MIDTRANS_IS_PRODUCTION
+    const dbIsProd = await settingsService.getDecryptedSetting('midtrans_is_production');
+    const isProduction = dbIsProd !== null ? dbIsProd === 'true' : env.MIDTRANS_IS_PRODUCTION;
+    
+    const irisUrl = isProduction
       ? 'https://app.midtrans.com/iris/api/v1/payouts'
       : 'https://app.sandbox.midtrans.com/iris/api/v1/payouts';
       
-    // Midtrans Iris usually requires an Approver Key / Creator Key. 
-    // We will use the generic server key or dummy for simulation.
-    const authHeader = await this.getAuthHeader();
+    // Midtrans Iris requires Creator Key as Basic Auth for triggering payouts
+    const dbIrisKey = await settingsService.getDecryptedSetting('midtrans_iris_creator_key');
+    const irisKey = dbIrisKey || env.MIDTRANS_SERVER_KEY || 'dummy-iris-key';
+    const authHeader = `Basic ${Buffer.from(`${irisKey}:`).toString('base64')}`;
 
     if (env.NODE_ENV === 'development') {
       logger.info(params, 'Using Mock Midtrans Iris for payout');

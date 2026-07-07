@@ -43,6 +43,10 @@ export default function PlatformSettingsPage() {
   const [apiKeys, setApiKeys] = useState({
     midtrans_server_key: '',
     midtrans_client_key: '',
+    midtrans_is_production: 'false',
+    midtrans_notification_url: '',
+    midtrans_iris_creator_key: '',
+    midtrans_iris_approver_key: '',
     aws_secret_key: '',
     aws_access_key: '',
     aws_bucket: '',
@@ -497,14 +501,35 @@ export default function PlatformSettingsPage() {
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           <div>
-            <h3 className="text-md fw-bold mb-3">Midtrans (Payment Gateway)</h3>
+            <h3 className="text-md fw-bold mb-3">Midtrans (Payment Gateway & Refund)</h3>
             <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Server Key</label>
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Mode Production?</label>
+              <select className="form-input" value={apiKeys.midtrans_is_production} onChange={(e) => setApiKeys({...apiKeys, midtrans_is_production: e.target.value})}>
+                <option value="false">TIDAK (Sandbox / Test Mode)</option>
+                <option value="true">YA (Live Production)</option>
+              </select>
+              <p className="text-xs text-muted mt-1">Jika YA, semua tagihan dan refund akan menggunakan uang sungguhan.</p>
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Notification URL (Webhook)</label>
+              <input type="text" placeholder="https://bidku.co.id/api/v1/payments/notification" className="form-input" value={apiKeys.midtrans_notification_url} onChange={(e) => setApiKeys({...apiKeys, midtrans_notification_url: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Gunakan untuk override URL yang disetel di dashboard Midtrans.</p>
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Server Key (Core API)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_server_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_server_key: e.target.value})} />
             </div>
             <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Client Key</label>
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Client Key (Core API)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_client_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_client_key: e.target.value})} />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Iris Creator Key (Untuk Refund/Payout)</label>
+              <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_iris_creator_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_iris_creator_key: e.target.value})} />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Iris Approver Key (Opsional)</label>
+              <input type="password" placeholder="********" className="form-input" value={apiKeys.midtrans_iris_approver_key} onChange={(e) => setApiKeys({...apiKeys, midtrans_iris_approver_key: e.target.value})} />
             </div>
             
             <h3 className="text-md fw-bold mb-3 mt-4">Verihubs & Xendit</h3>
