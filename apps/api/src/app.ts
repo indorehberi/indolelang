@@ -61,9 +61,14 @@ app.use(
   })
 );
 
+import path from 'path';
+
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
-app.use('/api/uploads', express.static('uploads'));
+app.get('/api/uploads/*', (req, res) => {
+  const file = req.params[0];
+  res.sendFile(path.resolve(process.cwd(), 'uploads', file));
+});
 
 const apiPrefix = env.API_PREFIX || '/api/v1';
 
