@@ -21,6 +21,9 @@ interface Deposit {
     full_name: string;
     email: string;
     phone: string;
+    bank_name?: string;
+    bank_account_no?: string;
+    bank_account_name?: string;
   };
   session?: {
     title: string;
