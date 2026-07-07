@@ -22,7 +22,7 @@ export function initCronJobs() {
         const sessionsToStart = await prisma.auction_sessions.findMany({
           where: {
             status: SessionStatus.PUBLISHED,
-            start_time: { lte: now }
+            scheduled_at: { lte: now }
           }
         });
 
@@ -38,7 +38,7 @@ export function initCronJobs() {
           // Find the first pending lot
           const firstLot = await prisma.lots.findFirst({
             where: { session_id: session.id, status: LotStatus.PENDING },
-            orderBy: { order: 'asc' },
+            orderBy: { lot_number: 'asc' },
             include: { asset: true }
           });
 

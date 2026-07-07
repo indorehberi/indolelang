@@ -74,33 +74,6 @@ export class PaymentsController {
             }),
           ];
 
-          if (deposit.session_id) {
-            const quantity = deposit.package_type === 'unlimited' ? 999 : parseInt(deposit.package_type || '0');
-            updatePromises.push(
-              prisma.nipl_allocations.upsert({
-                where: {
-                  user_id_session_id_unit_type: {
-                    user_id: deposit.user_id,
-                    session_id: deposit.session_id,
-                    unit_type: deposit.unit_type || 'mobil',
-                  },
-                },
-                create: {
-                  user_id: deposit.user_id,
-                  session_id: deposit.session_id,
-                  unit_type: deposit.unit_type || 'mobil',
-                  allocated_quantity: quantity,
-                  used_quantity: 0,
-                },
-                update: {
-                  allocated_quantity: {
-                    increment: quantity,
-                  },
-                },
-              })
-            );
-          }
-
           const formattedAmount = new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',

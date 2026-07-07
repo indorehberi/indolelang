@@ -342,7 +342,7 @@ async function handleAutoNextAndSessionEnd(settledLot: any) {
     // Check if there are remaining pending lots in this session
     const nextLot = await prisma.lots.findFirst({
       where: { session_id: sessionId, status: 'pending' },
-      orderBy: { order: 'asc' },
+      orderBy: { lot_number: 'asc' },
       include: { asset: true }
     });
 
