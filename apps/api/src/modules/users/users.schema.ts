@@ -60,6 +60,9 @@ export const adminCreateUserSchema = z.object({
     company_name: z.string().optional(),
     npwp: z.string().optional(),
     provider_status: z.enum(['pending', 'approved', 'rejected']).optional(),
+    provider_fee_type: z.enum(['percentage', 'flat']).optional(),
+    provider_fee_amount: z.string().optional().or(z.number().optional()),
+    pmk41_paid_by_provider: z.boolean().optional(),
   }),
 });
 
@@ -73,5 +76,8 @@ export const adminUpdateUserInfoSchema = z.object({
     company_name: z.string().optional(),
     npwp: z.string().optional(),
     provider_status: z.enum(['pending', 'approved', 'rejected']).optional(),
+    provider_fee_type: z.enum(['percentage', 'flat']).optional(),
+    provider_fee_amount: z.string().optional().or(z.number().optional()),
+    pmk41_paid_by_provider: z.boolean().optional(),
   }),
 });

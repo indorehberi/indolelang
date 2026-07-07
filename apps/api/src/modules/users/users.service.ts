@@ -330,10 +330,13 @@ export class UsersService {
         password_hash: passwordHash,
         full_name: data.full_name,
         role: data.role || Role.BIDDER,
-        status: UserStatus.ACTIVE,
+        status: (data.role === Role.ADMIN || data.role === Role.SUPERADMIN || data.role === Role.PROVIDER) ? UserStatus.ACTIVE : UserStatus.PENDING,
         company_name: data.company_name || null,
         npwp: data.npwp || null,
-        provider_status: data.provider_status || null,
+        provider_status: data.role === Role.PROVIDER ? 'approved' : (data.provider_status || null),
+        provider_fee_type: data.provider_fee_type || null,
+        provider_fee_amount: data.provider_fee_amount ? new Prisma.Decimal(data.provider_fee_amount) : null,
+        pmk41_paid_by_provider: data.pmk41_paid_by_provider || false,
       },
     });
 
