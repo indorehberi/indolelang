@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -24,12 +25,12 @@ interface User {
 }
 
 export default function ProviderUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [providerStatusFilter, setProviderStatusFilter] = useState<string>('all');
 
   // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -117,38 +118,7 @@ export default function ProviderUsersPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/users'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          ...formData, 
-          role: 'provider',
-          provider_status: 'approved',
-          provider_fee_type: formData.provider_fee_type,
-          provider_fee_amount: Number(formData.provider_fee_amount),
-          pmk41_paid_by_provider: formData.pmk41_paid_by_provider
-        }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setShowCreateModal(false);
-        setFormData({ full_name: '', email: '', phone: '', password: '', company_name: '', npwp: '', provider_fee_type: 'percentage', provider_fee_amount: '0', pmk41_paid_by_provider: false });
-        fetchUsers();
-      } else {
-        alert(data.error?.message || 'Gagal membuat provider');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan sistem');
-    }
-  };
+
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,10 +218,7 @@ export default function ProviderUsersPage() {
             <option value="pending">Pending</option>
           </select>
 
-          <Button variant="primary" size="sm" onClick={() => {
-            setFormData({ full_name: '', email: '', phone: '', password: '', company_name: '', npwp: '', provider_fee_type: 'percentage', provider_fee_amount: '0', pmk41_paid_by_provider: false });
-            setShowCreateModal(true);
-          }}>
+          <Button variant="primary" size="sm" onClick={() => router.push('/users/provider/new')}>
             + Tambah Provider
           </Button>
         </div>
@@ -331,68 +298,6 @@ export default function ProviderUsersPage() {
           </table>
         </div>
       </Card>
-
-      {/* CREATE MODAL */}
-      {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <Card>
-            <h3 style={{ marginBottom: '1rem' }}>Tambah Provider Baru</h3>
-            <form onSubmit={handleCreate}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perwakilan</label>
-                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
-                <input required type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
-                <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Perusahaan</label>
-                <input required type="text" value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>NPWP</label>
-                <input required type="text" value={formData.npwp} onChange={(e) => setFormData({...formData, npwp: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              
-              <hr style={{margin: '1rem 0', borderColor: '#eee'}} />
-              <h4 style={{marginBottom: '0.5rem'}}>Pengaturan Biaya & Pajak</h4>
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipe Biaya (Fee)</label>
-                  <select value={formData.provider_fee_type} onChange={(e) => setFormData({...formData, provider_fee_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-                    <option value="percentage">Persentase (%)</option>
-                    <option value="flat">Nominal Tetap (Rp)</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nilai Biaya</label>
-                  <input type="number" value={formData.provider_fee_amount} onChange={(e) => setFormData({...formData, provider_fee_amount: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                </div>
-              </div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={formData.pmk41_paid_by_provider} onChange={(e) => setFormData({...formData, pmk41_paid_by_provider: e.target.checked})} />
-                  <span>Pajak PMK-41 Ditanggung oleh Provider</span>
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>Batal</Button>
-                <Button variant="primary" type="submit">Simpan</Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
 
       {/* EDIT MODAL */}
       {showEditModal && (

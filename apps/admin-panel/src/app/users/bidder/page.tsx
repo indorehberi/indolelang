@@ -24,7 +24,6 @@ export default function BidderListPage() {
   const [filterStatus, setFilterStatus] = useState<string>('');
   
   // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -83,31 +82,7 @@ export default function BidderListPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/users'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ ...formData, role: 'bidder' }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setShowCreateModal(false);
-        setFormData({ full_name: '', email: '', phone: '', password: '' });
-        fetchBidders();
-      } else {
-        alert(data.error?.message || 'Gagal membuat bidder');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan sistem');
-    }
-  };
+
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,10 +172,7 @@ export default function BidderListPage() {
             <option value="suspended">Other (Suspended)</option>
           </select>
           <input type="text" placeholder="Cari bidder..." className="search-box" />
-          <Button variant="primary" size="sm" onClick={() => {
-            setFormData({ full_name: '', email: '', phone: '', password: '' });
-            setShowCreateModal(true);
-          }}>
+          <Button variant="primary" size="sm" onClick={() => router.push('/users/bidder/new')}>
             + Tambah Bidder
           </Button>
         </div>
@@ -266,36 +238,7 @@ export default function BidderListPage() {
         </div>
       </Card>
 
-      {/* CREATE MODAL */}
-      {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <Card>
-            <h3 style={{ marginBottom: '1rem' }}>Tambah Bidder Baru</h3>
-            <form onSubmit={handleCreate}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Lengkap</label>
-                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
-                <input required type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
-                <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>Batal</Button>
-                <Button variant="primary" type="submit">Simpan</Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
+
 
       {/* EDIT MODAL */}
       {showEditModal && (
