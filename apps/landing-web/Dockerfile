@@ -41,6 +41,7 @@ COPY --from=builder /app/apps/landing-web/package*.json ./apps/landing-web/
 COPY --from=builder /app/apps/landing-web/next.config.ts ./apps/landing-web/
 COPY --from=builder /app/apps/landing-web/.next ./apps/landing-web/.next
 COPY --from=builder /app/apps/landing-web/public ./apps/landing-web/public
+COPY --from=builder /app/apps/landing-web/src ./apps/landing-web/src
 
 EXPOSE 3000
 ENV NODE_ENV=production
