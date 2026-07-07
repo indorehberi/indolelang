@@ -3,8 +3,10 @@ import { UsersService } from './users.service';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
 import { Role, UserStatus } from '@indo-lelang/shared-types';
+import { SettingsService } from '../settings/settings.service';
 
 const usersService = new UsersService();
+const settingsService = new SettingsService();
 
 export class UsersController {
   /**
@@ -34,7 +36,10 @@ export class UsersController {
     try {
       const userId = req.user!.id;
       const user = await usersService.getUserById(userId);
-      sendSuccess(res, user, 'Profil berhasil dimuat');
+      
+      const bankInquiryMode = await settingsService.getDecryptedSetting('bank_inquiry_mode') || 'manual';
+      
+      sendSuccess(res, { ...user, bank_inquiry_mode: bankInquiryMode }, 'Profil berhasil dimuat');
     } catch (error) {
       next(error);
     }
@@ -62,6 +67,23 @@ export class UsersController {
       
       if (!bank_code || !account_no) {
         res.status(400).json({ success: false, error: { message: 'Bank code dan nomor rekening wajib diisi' } });
+        return;
+      }
+
+      const bankInquiryMode = await settingsService.getDecryptedSetting('bank_inquiry_mode') || 'manual';
+      
+      if (bankInquiryMode === 'manual') {
+        res.status(403).json({ success: false, error: { message: 'Fitur validasi bank tidak aktif' } });
+        return;
+      }
+
+      // TODO: Implement actual Xendit API request using xendit_api_key.
+      // For now, simulating API call as requested by previous flow if 'auto' is selected, 
+      // but requiring manual input via frontend if 'manual'.
+      
+      const xenditApiKey = await settingsService.getDecryptedSetting('xendit_api_key');
+      if (!xenditApiKey) {
+        res.status(500).json({ success: false, error: { message: 'Xendit API Key belum dikonfigurasi oleh Admin' } });
         return;
       }
 

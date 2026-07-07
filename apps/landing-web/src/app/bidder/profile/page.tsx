@@ -16,6 +16,8 @@ export default function BidderProfile() {
   const [bankName, setBankName] = useState("");
   const [bankAccountNo, setBankAccountNo] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
+  const [confirmBankAccountNo, setConfirmBankAccountNo] = useState("");
+  const [bankInquiryMode, setBankInquiryMode] = useState("manual");
   const [npwp, setNpwp] = useState("");
   const [npwpUrl, setNpwpUrl] = useState("");
   const [npwpFile, setNpwpFile] = useState<File | null>(null);
@@ -49,9 +51,13 @@ export default function BidderProfile() {
         setOccupation(user.occupation || "Pegawai Swasta");
         setBankName(user.bank_name || "");
         setBankAccountNo(user.bank_account_no || "");
+        setConfirmBankAccountNo(user.bank_account_no || "");
         setBankAccountName(user.bank_account_name || "");
         setNpwp(user.npwp || "");
         setNpwpUrl(user.npwp_url || "");
+        if (user.bank_inquiry_mode) {
+          setBankInquiryMode(user.bank_inquiry_mode);
+        }
       }
 
       // 2. Fetch KYC Document Status
@@ -152,6 +158,18 @@ export default function BidderProfile() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (bankInquiryMode === "manual") {
+      if (bankAccountNo !== confirmBankAccountNo) {
+        alert("Nomor Rekening dan Konfirmasi Nomor Rekening tidak cocok!");
+        return;
+      }
+      if (!bankAccountName.trim()) {
+        alert("Atas Nama Rekening wajib diisi!");
+        return;
+      }
+    }
+    
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
 
@@ -328,30 +346,47 @@ export default function BidderProfile() {
                   required
                   placeholder="Contoh: 1234567890"
                 />
-                <button
-                  type="button"
-                  onClick={handleCheckBank}
-                  disabled={isCheckingBank || !bankName || !bankAccountNo}
-                  className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-sm text-sm flex items-center justify-center disabled:opacity-50 min-w-[120px]"
-                >
-                  {isCheckingBank ? (
-                    <span className="material-symbols-outlined animate-spin">sync</span>
-                  ) : (
-                    "Cek Rekening"
-                  )}
-                </button>
+                {bankInquiryMode === "auto" && (
+                  <button
+                    type="button"
+                    onClick={handleCheckBank}
+                    disabled={isCheckingBank || !bankName || !bankAccountNo}
+                    className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-sm text-sm flex items-center justify-center disabled:opacity-50 min-w-[120px]"
+                  >
+                    {isCheckingBank ? (
+                      <span className="material-symbols-outlined animate-spin">sync</span>
+                    ) : (
+                      "Cek Rekening"
+                    )}
+                  </button>
+                )}
               </div>
             </div>
+
+            {bankInquiryMode === "manual" && (
+              <div className="panel-form-group">
+                <label className="panel-form-label">Konfirmasi No Rekening <span className="text-error">*</span></label>
+                <input
+                  type="text"
+                  value={confirmBankAccountNo}
+                  onChange={(e) => setConfirmBankAccountNo(e.target.value)}
+                  className="panel-form-input"
+                  required
+                  placeholder="Ketik ulang nomor rekening"
+                />
+              </div>
+            )}
+
             <div className="panel-form-group">
               <label className="panel-form-label">A/N Rekening <span className="text-error">*</span></label>
               <input
                 type="text"
                 value={bankAccountName}
                 onChange={(e) => setBankAccountName(e.target.value)}
-                className="panel-form-input bg-slate-50 text-slate-500 cursor-not-allowed"
+                className={`panel-form-input ${bankInquiryMode === 'auto' ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                 required
-                readOnly
-                placeholder="Nama akan muncul otomatis setelah Anda menekan Cek Rekening"
+                readOnly={bankInquiryMode === "auto"}
+                placeholder={bankInquiryMode === "auto" ? "Nama akan muncul otomatis setelah Anda menekan Cek Rekening" : "Ketik nama lengkap pemilik rekening"}
               />
             </div>
             <div className="panel-form-group">

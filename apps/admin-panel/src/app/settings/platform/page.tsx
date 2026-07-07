@@ -63,12 +63,12 @@ export default function PlatformSettingsPage() {
     smtp_from: '',
     verihubs_api_key: '',
     xendit_api_key: '',
+    bank_inquiry_mode: 'manual',
   });
 
   const toggleNames: Record<string, string> = {
     feat_live_streaming: 'Live Streaming',
     feat_ekyc_auto: 'EKYC (Otomatis via Pihak Ketiga)',
-    feat_bank_inquiry_auto: 'Cek Rekening (Otomatis via Pihak Ketiga)',
     feat_push_notification: 'Notifikasi Push',
     feat_qris_payment: 'Pembayaran QRIS',
     feat_esign_bast: 'E-Signature BAST',
@@ -170,7 +170,6 @@ export default function PlatformSettingsPage() {
         ensureToggle('feat_category_properti', 'false');
         ensureToggle('feat_category_heavy', 'false');
         ensureToggle('feat_ekyc_auto', 'false');
-        ensureToggle('feat_bank_inquiry_auto', 'false');
         ensureToggle('feat_referral_program', 'false');
 
         setToggles(loadedToggles);
@@ -598,15 +597,27 @@ export default function PlatformSettingsPage() {
               <p className="text-xs text-muted mt-1">Biarkan kosong jika menggunakan AWS S3 biasa. Wajib diisi jika menggunakan Cloudflare R2.</p>
             </div>
             
-            <h3 className="text-md fw-bold mb-3 mt-4">Verihubs & Xendit</h3>
+            <h3 className="text-md fw-bold mb-3 mt-4">Verihubs & Validasi Rekening Bank</h3>
+            <div className="form-group mb-2" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
+              <label className="form-label fw-bold">Mode Validasi Rekening Bidder</label>
+              <select className="form-input" value={apiKeys.bank_inquiry_mode || 'manual'} onChange={(e) => setApiKeys({...apiKeys, bank_inquiry_mode: e.target.value})}>
+                <option value="auto">Otomatis (Validasi API Xendit)</option>
+                <option value="manual">Manual (Isi Nama & Konfirmasi Nomor Saja)</option>
+              </select>
+              <p className="text-xs text-muted mt-1">Jika Manual, Bidder diminta mengetik nama rekeningnya sendiri tanpa kena biaya validasi.</p>
+            </div>
+            
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Verihubs API Key (eKYC)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.verihubs_api_key} onChange={(e) => setApiKeys({...apiKeys, verihubs_api_key: e.target.value})} />
             </div>
-            <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Xendit API Key (Disbursement)</label>
-              <input type="password" placeholder="********" className="form-input" value={apiKeys.xendit_api_key} onChange={(e) => setApiKeys({...apiKeys, xendit_api_key: e.target.value})} />
-            </div>
+            
+            {apiKeys.bank_inquiry_mode === 'auto' && (
+              <div className="form-group mb-2">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>Xendit API Key (Disbursement & Validasi Bank)</label>
+                <input type="password" placeholder="********" className="form-input" value={apiKeys.xendit_api_key} onChange={(e) => setApiKeys({...apiKeys, xendit_api_key: e.target.value})} />
+              </div>
+            )}
           </div>
           <div>
             <h3 className="text-md fw-bold mb-3">SMTP (Email)</h3>
