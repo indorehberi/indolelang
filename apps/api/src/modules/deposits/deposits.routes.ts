@@ -38,7 +38,7 @@ router.post(
 router.put(
   '/deposits/:id/mark-paid',
   authenticate,
-  authorize(Role.ADMIN, Role.SUPER_ADMIN),
+  authorize(Role.ADMIN, Role.SUPERADMIN),
   controller.markAsPaid
 );
 
