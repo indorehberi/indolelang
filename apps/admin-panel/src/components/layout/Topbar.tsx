@@ -10,7 +10,6 @@ interface TopbarProps {
   breadcrumbCurrent?: string;
   userName?: string;
   userInitial?: string;
-  onLogout?: () => void;
   onToggleSidebar?: () => void;
 }
 
@@ -19,7 +18,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   breadcrumbCurrent = 'Overview',
   userName = 'Superadmin User',
   userInitial = 'S',
-  onLogout,
   onToggleSidebar,
 }) => {
   const router = useRouter();
@@ -75,15 +73,11 @@ export const Topbar: React.FC<TopbarProps> = ({
   };
 
   const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-
     localStorage.removeItem('accessToken');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.replace('/login');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login';
   };
 
   return (

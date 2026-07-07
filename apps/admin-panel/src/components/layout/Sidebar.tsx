@@ -13,7 +13,6 @@ interface SidebarProps {
   kycPendingCount?: number;
   assetPendingCount?: number;
   hasLiveSession?: boolean;
-  onLogout?: () => void;
 }
 
 interface NavItem {
@@ -35,7 +34,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   kycPendingCount,
   assetPendingCount,
   hasLiveSession,
-  onLogout,
 }) => {
   const pathname = usePathname();
   const router = typeof window !== 'undefined' ? require('next/navigation').useRouter() : null;
@@ -140,16 +138,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [kycPendingCount, assetPendingCount, hasLiveSession]);
 
   const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-    if (typeof window !== 'undefined' && router) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      router.replace('/login');
-    }
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login';
   };
 
   const isRouteActive = (route: string) => {

@@ -14,7 +14,6 @@ interface DashboardLayoutProps {
   kycPendingCount?: number;
   assetPendingCount?: number;
   hasLiveSession?: boolean;
-  onLogout?: () => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -27,18 +26,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   kycPendingCount,
   assetPendingCount,
   hasLiveSession,
-  onLogout,
 }) => {
   const handleLogout = React.useCallback(() => {
-    if (onLogout) {
-      onLogout();
-    } else {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-  }, [onLogout]);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login';
+  }, []);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -75,7 +70,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         kycPendingCount={kycPendingCount}
         assetPendingCount={assetPendingCount}
         hasLiveSession={hasLiveSession}
-        onLogout={handleLogout}
       />
       <div className="main-content">
         <Topbar
@@ -83,7 +77,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           breadcrumbCurrent={breadcrumbCurrent}
           userName={userName}
           userInitial={userInitial}
-          onLogout={handleLogout}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
         <main className="page-content">{children}</main>

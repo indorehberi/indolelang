@@ -238,12 +238,7 @@ export default function DashboardPage() {
     ];
   }, [statsData]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.replace('/login');
-  };
+
 
   if (isCheckingSession || !user) {
     return (
@@ -264,7 +259,6 @@ export default function DashboardPage() {
       kycPendingCount={kycPendingCount}
       assetPendingCount={assetPendingCount}
       hasLiveSession
-      onLogout={handleLogout}
     >
       <h1 className="page-title">Dashboard</h1>
       <p className="page-subtitle">Panel Area admin &bull; Platform Indo-Lelang</p>
