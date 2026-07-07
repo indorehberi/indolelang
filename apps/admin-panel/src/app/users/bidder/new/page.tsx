@@ -172,7 +172,37 @@ export default function NewBidderPage() {
             <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>3. Data Rekening Bank</h3>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nama Bank</label>
-              <input type="text" value={form.bank_name} onChange={(e) => setForm({...form, bank_name: e.target.value})} placeholder="BCA / Mandiri / BNI" style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+              <input type="text" list="banks" value={form.bank_name} onChange={(e) => setForm({...form, bank_name: e.target.value})} placeholder="Ketik atau pilih nama bank..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+              <datalist id="banks">
+                <option value="BCA">BCA (Bank Central Asia)</option>
+                <option value="Mandiri">Bank Mandiri</option>
+                <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                <option value="CIMB Niaga">CIMB Niaga</option>
+                <option value="Permata">Bank Permata</option>
+                <option value="Danamon">Bank Danamon</option>
+                <option value="BTN">BTN (Bank Tabungan Negara)</option>
+                <option value="Maybank">Maybank Indonesia</option>
+                <option value="Mega">Bank Mega</option>
+                <option value="BTPN">BTPN</option>
+                <option value="OCBC NISP">OCBC NISP</option>
+                <option value="Panin">Panin Bank</option>
+                <option value="Muamalat">Bank Muamalat</option>
+                <option value="Sinarmas">Bank Sinarmas</option>
+                <option value="Bukopin">KB Bukopin</option>
+                <option value="DKI">Bank DKI</option>
+                <option value="BJB">Bank BJB</option>
+                <option value="Jago">Bank Jago</option>
+                <option value="SeaBank">SeaBank</option>
+                <option value="Neo Commerce">Bank Neo Commerce (BNC)</option>
+                <option value="Blu">Blu by BCA Digital</option>
+                <option value="Jenius">Jenius (BTPN)</option>
+                <option value="BPD Bali">BPD Bali</option>
+                <option value="BPD DIY">BPD DIY</option>
+                <option value="BPD Jateng">Bank Jateng</option>
+                <option value="BPD Jatim">Bank Jatim</option>
+              </datalist>
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nomor Rekening</label>
