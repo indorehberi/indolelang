@@ -212,7 +212,7 @@ export default function BidderCart() {
                 ) : (
                   <div className="space-y-4">
                     {invoices.map((inv) => (
-                      <label key={inv.id} className={\`flex items-start p-4 border rounded-xl cursor-pointer transition-all \${selectedInvoiceIds.includes(inv.id) ? 'border-primary bg-primary/5' : 'border-outline-variant/40 hover:bg-slate-50'}\`}>
+                      <label key={inv.id} className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${selectedInvoiceIds.includes(inv.id) ? 'border-primary bg-primary/5' : 'border-outline-variant/40 hover:bg-slate-50'}`}>
                         <div className="pt-1 mr-4">
                           <input 
                             type="checkbox" 
@@ -247,11 +247,11 @@ export default function BidderCart() {
                         key={b}
                         type="button"
                         onClick={() => setPaymentMethod(b)}
-                        className={\`p-3 border rounded-xl font-bold text-center transition-all uppercase text-xs \${
+                        className={`p-3 border rounded-xl font-bold text-center transition-all uppercase text-xs ${
                           paymentMethod === b
                             ? "border-primary bg-primary/5 text-primary"
                             : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
-                        }\`}
+                        }`}
                       >
                         {b} VA
                       </button>

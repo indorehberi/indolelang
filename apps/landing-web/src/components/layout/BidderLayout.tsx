@@ -71,6 +71,7 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
     }
   };
 
+  const menuItems = [
     { name: "Dashboard", href: "/bidder/dashboard", icon: "dashboard" },
     { name: "Katalog Lelang", href: "/katalog", icon: "gavel" },
     { name: "Watchlist Aset", href: "/bidder/watchlist", icon: "star", badge: watchlistCount > 0 ? String(watchlistCount) : undefined },
