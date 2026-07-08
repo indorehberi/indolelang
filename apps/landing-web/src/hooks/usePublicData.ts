@@ -60,3 +60,17 @@ export function usePublicTestimonials() {
     queryFn: () => fetchJson(apiUrl('/testimonials')),
   });
 }
+
+export function usePublicGalleries(page: number = 1, perPage: number = 6) {
+  return useQuery({
+    queryKey: ['public-galleries', page, perPage],
+    queryFn: async () => {
+      const res = await fetch(apiUrl(`/galleries/public?page=${page}&per_page=${perPage}`));
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'Gagal mengambil data dari API');
+      }
+      return res.json(); // Return full json to get meta.
+    },
+  });
+}

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials } from "@/hooks/usePublicData";
+import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials, usePublicGalleries } from "@/hooks/usePublicData";
+import GalleryGrid from "@/components/gallery/GalleryGrid";
 
 function AnimatedCounter({
   target,
@@ -151,6 +152,9 @@ export default function Home() {
   const { data: categoryStats } = useCategoryStats();
   const { data: publicBlogs = [] } = usePublicBlogs();
   const { data: publicTestimonials = [] } = usePublicTestimonials();
+  const { data: galleriesData, isLoading: loadingGalleries } = usePublicGalleries(1, 6);
+  
+  const galleries = galleriesData?.data || [];
 
   const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const isLiveAuctionRunning = lotsList.some((lot) => lot.status === "Live");
@@ -1531,6 +1535,33 @@ export default function Home() {
                 )}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ========== GALLERY SECTION ========== */}
+        <section id="gallery" className="py-12 md:py-16 bg-white">
+          <div className="max-w-container-max mx-auto px-margin-page">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+              <div>
+                <h2 className="text-heading-2xl font-bold text-on-background font-serif">
+                  Gallery
+                </h2>
+                <p className="text-body-lg text-on-surface-variant mt-2">
+                  Momen-momen terbaik di setiap acara lelang BIDKU
+                </p>
+              </div>
+              <Link
+                href="/gallery"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-low text-primary rounded-xl font-bold text-body-md hover:bg-surface-container transition-colors shrink-0"
+              >
+                Lihat Semua
+                <span className="material-symbols-outlined text-sm">
+                  arrow_forward
+                </span>
+              </Link>
+            </div>
+            
+            <GalleryGrid galleries={galleries} loading={loadingGalleries} />
           </div>
         </section>
 

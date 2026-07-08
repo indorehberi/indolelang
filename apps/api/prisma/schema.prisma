@@ -381,3 +381,10 @@ model contact_messages {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
+
+model galleries {
+  id         String   @id @default(uuid())
+  image_url  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

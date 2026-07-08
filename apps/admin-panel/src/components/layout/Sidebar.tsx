@@ -254,6 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { href: '/blog', icon: 'article', iconColor: '#6366f1', label: 'Blog & Artikel' },
         { href: '/testimoni', icon: 'reviews', iconColor: '#f59e0b', label: 'Testimoni' },
+        { href: '/gallery', icon: 'collections', iconColor: '#ec4899', label: 'Gallery' },
       ],
     },
     {
