@@ -112,7 +112,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost}
         - NEXT_PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL:-http://localhost/admin}
-        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     container_name: indolelang_landing_prod
     restart: unless-stopped
     env_file:
