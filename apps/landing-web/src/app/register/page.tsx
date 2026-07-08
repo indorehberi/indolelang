@@ -56,8 +56,8 @@ export default function RegisterPage() {
       const resData = await response.json();
       if (response.ok && resData.success) {
         setErrors({});
-        alert("Pendaftaran berhasil! Silakan periksa email Anda untuk kode OTP.");
-        router.push(`/verifikasi-otp?phone=${encodeURIComponent(formData.phone)}`);
+        alert("Pendaftaran berhasil! Silakan login untuk menyelesaikan verifikasi eKYC Anda.");
+        router.push(`/login`);
       } else {
         if (resData.error?.details) {
           const newErrors: Record<string, string> = {};

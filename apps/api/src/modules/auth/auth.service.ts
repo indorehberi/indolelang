@@ -62,49 +62,12 @@ export class AuthService {
 				password_hash: passwordHash,
 				full_name: data.full_name,
 				role: Role.BIDDER, // Force role to BIDDER at start
-				status: data.phone ? UserStatus.PENDING : UserStatus.ACTIVE,
+				status: UserStatus.PENDING, // Always pending until KYC is approved
 				company_name: isProviderRequest ? data.company_name : null,
 				npwp: isProviderRequest ? data.npwp : null,
 				provider_status: isProviderRequest ? 'pending' : null,
 			},
 		});
-
-		if (data.phone) {
-			try {
-				// 5. Generate and store OTP in Redis
-				const otpCode = env.NODE_ENV === 'production'
-					? Math.floor(100000 + Math.random() * 900000).toString()
-					: '123456';
-
-				const otpData = {
-					code: otpCode,
-					attempts: 0,
-					userId: user.id,
-				};
-
-				if (redis.isOpen) {
-					await redis.set(`otp:${data.phone}`, JSON.stringify(otpData), {
-						EX: 300, // 5 minutes
-					});
-				}
-
-				logger.info({ phone: data.phone, otpCode }, 'OTP generated for registration');
-
-				// Send OTP to email
-				await sendEmail({
-					to: data.email,
-					subject: 'Kode OTP Registrasi Indo-Lelang',
-					text: `Halo ${data.full_name},\n\nKode OTP Anda untuk pendaftaran di Indo-Lelang adalah: ${otpCode}.\nKode ini berlaku selama 5 menit.\n\nTerima kasih.`,
-					html: `<p>Halo <strong>${data.full_name}</strong>,</p><p>Kode OTP Anda untuk pendaftaran di Indo-Lelang adalah: <strong>${otpCode}</strong>.</p><p>Kode ini berlaku selama 5 menit.</p><p>Terima kasih.</p>`,
-				});
-			} catch (error) {
-				// Rollback user creation if subsequent steps (Redis or Email) fail
-				await prisma.users.delete({ where: { id: user.id } }).catch((delErr) => {
-					logger.error({ delErr, userId: user.id }, 'Failed to delete user during registration rollback');
-				});
-				throw error;
-			}
-		}
 
 		const kyc = await prisma.kyc_documents.findUnique({ where: { user_id: user.id } });
 
@@ -237,7 +200,7 @@ export class AuthService {
 				password_hash: passwordHash,
 				full_name: fullName,
 				role: role,
-				status: UserStatus.ACTIVE, // Google accounts are active immediately
+				status: UserStatus.PENDING, // Google accounts must also go through KYC
 				company_name: role === Role.PROVIDER ? data.company_name : null,
 				npwp: role === Role.PROVIDER ? data.npwp : null,
 			},
