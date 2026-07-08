@@ -111,7 +111,7 @@ export class DepositsService {
     // Fetch settings for Fee Bearer and NIPL Amounts
     const settings = await prisma.platform_settings.findMany({
       where: {
-        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount', 'deposit_payment_mode', 'manual_payment_bank', 'manual_payment_account', 'manual_payment_name'] }
+        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount', 'deposit_payment_mode', 'manual_payment_bank', 'manual_payment_account', 'manual_payment_name', 'manual_transfer_fee', 'manual_refund_fee'] }
       }
     });
 
@@ -122,6 +122,8 @@ export class DepositsService {
     const manualPaymentBank = settings.find(s => s.key === 'manual_payment_bank')?.value || 'BCA';
     const manualPaymentAccount = settings.find(s => s.key === 'manual_payment_account')?.value || '7015886161';
     const manualPaymentName = settings.find(s => s.key === 'manual_payment_name')?.value || 'PT Indo Lelang Sejahtera';
+    const manualTransferFee = parseFloat(settings.find(s => s.key === 'manual_transfer_fee')?.value || '0');
+    const manualRefundFee = parseFloat(settings.find(s => s.key === 'manual_refund_fee')?.value || '0');
 
     // 3. Calculate amount based on unit_type and package_type
     let amount = 0;
@@ -142,12 +144,17 @@ export class DepositsService {
     }
 
     let gatewayFee = 0;
+    let transferFee = 0;
+    let refundFee = 0;
     
-    if (feeBearer === 'customer') {
+    if (depositPaymentMode === 'manual') {
+      transferFee = manualTransferFee;
+      refundFee = manualRefundFee;
+    } else if (feeBearer === 'customer') {
       gatewayFee = calculateGatewayFee(amount, bank);
     }
     
-    const grossAmount = amount + gatewayFee;
+    const grossAmount = amount + gatewayFee + transferFee + refundFee;
 
     // Generate deposit record ID beforehand to use as Midtrans order ID
     const depositId = crypto.randomUUID();
@@ -204,6 +211,9 @@ export class DepositsService {
         session_id: targetSessionId,
         amount: new Prisma.Decimal(amount),
         gateway_fee: new Prisma.Decimal(gatewayFee),
+        transfer_fee: new Prisma.Decimal(transferFee),
+        refund_fee: new Prisma.Decimal(refundFee),
+        is_manual: depositPaymentMode === 'manual',
         unit_type,
         package_type,
         va_number: midtransRes.va_number,
@@ -351,8 +361,8 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Deposit sudah dalam status Paid (Lunas)');
     }
 
-    if (deposit.status !== 'pending') {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Pending yang dapat ditandai Paid');
+    if (deposit.status !== 'pending' && deposit.status !== 'pending_approval') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus Pending / Pending Approval yang dapat ditandai Paid');
     }
 
     const updated = await prisma.deposits.update({
@@ -360,6 +370,37 @@ export class DepositsService {
       data: {
         status: 'paid',
         paid_at: new Date(),
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Upload transfer proof and mark deposit as pending approval
+   */
+  async uploadTransferProof(userId: string, depositId: string, proofUrl: string): Promise<any> {
+    const deposit = await prisma.deposits.findUnique({
+      where: { id: depositId },
+    });
+
+    if (!deposit || deposit.user_id !== userId) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
+    }
+
+    if (deposit.payment_method !== 'manual_transfer') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Bukti transfer hanya untuk pembayaran manual');
+    }
+
+    if (deposit.status !== 'pending') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus pending yang dapat diunggah bukti transfernya');
+    }
+
+    const updated = await prisma.deposits.update({
+      where: { id: depositId },
+      data: { 
+        transfer_proof_url: proofUrl,
+        status: 'pending_approval'
       },
     });
 

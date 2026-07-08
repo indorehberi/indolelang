@@ -79,6 +79,7 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
     { name: "Beli Deposit NIPL", href: "/bidder/deposit", icon: "payments" },
     { name: "Keranjang Tagihan", href: "/bidder/cart", icon: "shopping_cart" },
     { name: "Riwayat Lelang", href: "/bidder/riwayat-lelang", icon: "history" },
+    { name: "Riwayat Deposit & Refund", href: "/bidder/deposit/history", icon: "account_balance_wallet" },
     { name: "Profil & eKYC", href: "/bidder/profile", icon: "person" },
   ];
 

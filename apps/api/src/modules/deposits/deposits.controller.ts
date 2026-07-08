@@ -88,6 +88,26 @@ export class DepositsController {
       next(error);
     }
   }
+  /**
+   * Upload transfer proof (Bidder only)
+   */
+  async uploadProof(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const { transfer_proof_url } = req.body;
+
+      if (!transfer_proof_url) {
+        throw new AppError(400, ErrorCode.BAD_REQUEST, 'URL bukti transfer wajib disertakan');
+      }
+
+      const result = await depositsService.uploadTransferProof(userId, id, transfer_proof_url);
+      
+      sendSuccess(res, result, 'Upload bukti transfer berhasil. Menunggu persetujuan Admin.');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default DepositsController;

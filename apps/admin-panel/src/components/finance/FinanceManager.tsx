@@ -14,7 +14,7 @@ interface Deposit {
   va_number?: string;
   va_bank?: string;
   payment_method?: string;
-  status: 'pending' | 'paid' | 'expired' | 'refunded' | 'pending_refund';
+  status: 'pending' | 'pending_approval' | 'paid' | 'expired' | 'refunded' | 'pending_refund';
   paid_at?: string;
   created_at: string;
   user?: {
@@ -342,6 +342,8 @@ export default function FinanceManager({
         return <Badge variant="success">Lunas (NIPL Aktif)</Badge>;
       case 'pending':
         return <Badge variant="warning">Menunggu Pembayaran</Badge>;
+      case 'pending_approval':
+        return <Badge variant="warning">Menunggu Persetujuan Admin</Badge>;
       case 'expired':
         return <Badge variant="default">Expired</Badge>;
       case 'refunded':
@@ -448,6 +450,7 @@ export default function FinanceManager({
                 <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
                 <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
                 <button onClick={() => setStatusFilter('pending')} className={`btn btn-sm ${statusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending</button>
+                <button onClick={() => setStatusFilter('pending_approval')} className={`btn btn-sm ${statusFilter === 'pending_approval' ? 'btn-warning' : 'btn-outline'}`}>Menunggu Approval</button>
                 <button onClick={() => setStatusFilter('expired')} className={`btn btn-sm ${statusFilter === 'expired' ? 'btn-danger' : 'btn-outline'}`}>Expired</button>
               </div>
             </div>
@@ -500,16 +503,29 @@ export default function FinanceManager({
                         <td>{getStatusBadge(deposit.status)}</td>
                         <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
                         <td style={{ textAlign: 'center' }}>
-                          {deposit.status === 'pending' && deposit.payment_method === 'manual_transfer' && (
-                            <button
-                              onClick={() => handleMarkPaid(deposit.id)}
-                              className="btn btn-xs btn-success"
-                              disabled={processingId !== null}
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                              title="Tandai Paid untuk deposit manual"
-                            >
-                              {processingId === deposit.id ? 'Memproses...' : '✓ Tandai Paid'}
-                            </button>
+                          {(deposit.status === 'pending' || deposit.status === 'pending_approval') && deposit.payment_method === 'manual_transfer' && (
+                            <div className="d-flex flex-column gap-1">
+                              {(deposit as any).transfer_proof_url && (
+                                <a 
+                                  href={(deposit as any).transfer_proof_url} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="btn btn-xs btn-outline-primary"
+                                  style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                                >
+                                  📄 View Proof
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleMarkPaid(deposit.id)}
+                                className="btn btn-xs btn-success"
+                                disabled={processingId !== null}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                                title="Tandai Paid untuk deposit manual"
+                              >
+                                {processingId === deposit.id ? 'Memproses...' : '✓ Setujui (Paid)'}
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

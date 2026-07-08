@@ -54,6 +54,8 @@ export default function PlatformSettingsPage() {
   const [apiKeys, setApiKeys] = useState({
     deposit_payment_mode: 'auto',
     manual_transfer_fee: '2500',
+    manual_refund_fee: '0',
+    deposit_timeout_minutes: '60',
     manual_payment_bank: 'BCA',
     manual_payment_account: '7015886161',
     manual_payment_name: 'PT Indo Lelang Sejahtera',
@@ -681,9 +683,17 @@ export default function PlatformSettingsPage() {
             )}
 
             <div className="form-group mb-2 mt-3" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#fff' }}>
-              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Potongan Biaya Admin Saat Refund Manual (Rp)</label>
+              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Transfer (Rp)</label>
               <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Anda (Admin). Jika diisi angka (misal 2500), Bidder akan melihat info pemotongan ini saat deposit.</p>
+              <p className="text-xs text-muted mt-1">Jika isi 0, biaya transfer ditanggung oleh Admin. Jika diisi angka (misal 2500), Bidder wajib membayar biaya ini saat deposit.</p>
+              
+              <label className="form-label fw-bold mt-3" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Refund (Rp)</label>
+              <input type="number" className="form-input" value={apiKeys.manual_refund_fee} onChange={(e) => setApiKeys({...apiKeys, manual_refund_fee: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Admin. Jika diisi angka, Bidder akan membayar biaya ini saat beli deposit atau dipotong saat pencairan.</p>
+
+              <label className="form-label fw-bold mt-3" style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Batas Waktu Pembayaran NIPL (Menit)</label>
+              <input type="number" className="form-input" value={apiKeys.deposit_timeout_minutes} onChange={(e) => setApiKeys({...apiKeys, deposit_timeout_minutes: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Waktu hitung mundur (countdown) yang diberikan kepada bidder untuk menyelesaikan pembayaran NIPL sebelum dibatalkan.</p>
             </div>
 
             <div className="form-group mb-2">

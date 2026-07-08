@@ -93,13 +93,53 @@ export class CheckoutService {
 
     // 2. Consume active deposits (NIPL Deductions)
     const activeDeposits = await prisma.deposits.findMany({
-      where: { user_id: userId, status: 'paid' }
+      where: { user_id: userId, status: 'paid' },
+      orderBy: { created_at: 'asc' }
     });
 
     let depositDeduction = new Prisma.Decimal(0);
-    activeDeposits.forEach(d => {
-       depositDeduction = depositDeduction.add(d.amount);
-    });
+    let remainingInvoiceAmount = new Prisma.Decimal(totalInvoices);
+    
+    const consumedDepositIds: string[] = [];
+    const remainderDepositsToCreate: any[] = [];
+    
+    for (const d of activeDeposits) {
+      if (remainingInvoiceAmount.lessThanOrEqualTo(0)) {
+        break; // Stop consuming if invoice is paid off
+      }
+      
+      const depositAmount = new Prisma.Decimal(d.amount);
+      if (depositAmount.lessThanOrEqualTo(remainingInvoiceAmount)) {
+        // Fully consume this deposit
+        depositDeduction = depositDeduction.add(depositAmount);
+        remainingInvoiceAmount = remainingInvoiceAmount.minus(depositAmount);
+        consumedDepositIds.push(d.id);
+      } else {
+        // Partially consume this deposit
+        depositDeduction = depositDeduction.add(remainingInvoiceAmount);
+        const remainderAmount = depositAmount.minus(remainingInvoiceAmount);
+        remainingInvoiceAmount = new Prisma.Decimal(0);
+        consumedDepositIds.push(d.id);
+        
+        remainderDepositsToCreate.push({
+          id: crypto.randomUUID(),
+          user_id: d.user_id,
+          session_id: d.session_id,
+          amount: remainderAmount,
+          gateway_fee: 0,
+          transfer_fee: 0,
+          refund_fee: 0,
+          is_manual: d.is_manual,
+          unit_type: d.unit_type,
+          package_type: d.package_type,
+          va_number: d.va_number,
+          va_bank: d.va_bank,
+          payment_method: d.payment_method,
+          status: 'paid',
+          paid_at: new Date()
+        });
+      }
+    }
 
     let finalAmount = totalInvoices.minus(depositDeduction);
     if (finalAmount.lessThan(0)) {
@@ -171,11 +211,17 @@ export class CheckoutService {
          }
        });
 
-       // 3. Mark deposits as consumed
-       if (activeDeposits.length > 0) {
+       // 3. Mark deposits as consumed and create remainders
+       if (consumedDepositIds.length > 0) {
           await tx.deposits.updateMany({
-             where: { id: { in: activeDeposits.map(d => d.id) } },
+             where: { id: { in: consumedDepositIds } },
              data: { status: 'consumed' }
+          });
+       }
+
+       if (remainderDepositsToCreate.length > 0) {
+          await tx.deposits.createMany({
+             data: remainderDepositsToCreate
           });
        }
 

@@ -29,6 +29,24 @@ export default function BidderDeposit() {
   const [vaBank, setVaBank] = useState<string>("");
   const [paymentType, setPaymentType] = useState<string>("");
   const [totalPaid, setTotalPaid] = useState<number>(0);
+  const [manualRefundFee, setManualRefundFee] = useState<number>(0);
+  const [depositTimeoutMinutes, setDepositTimeoutMinutes] = useState<number>(60);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timerId);
+    }
+  }, [timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const fetchSessions = async () => {
     if (typeof window === "undefined") return;
@@ -74,6 +92,12 @@ export default function BidderDeposit() {
 
         const mFee = resData.data.find((s: any) => s.key === "manual_transfer_fee");
         if (mFee) setManualTransferFee(Number(mFee.value) || 0);
+
+        const mRefund = resData.data.find((s: any) => s.key === "manual_refund_fee");
+        if (mRefund) setManualRefundFee(Number(mRefund.value) || 0);
+
+        const mTimeout = resData.data.find((s: any) => s.key === "deposit_timeout_minutes");
+        if (mTimeout) setDepositTimeoutMinutes(Number(mTimeout.value) || 60);
 
         const mName = resData.data.find((s: any) => s.key === "manual_payment_name");
         if (mName) setManualAccountName(mName.value);
@@ -138,7 +162,8 @@ export default function BidderDeposit() {
         setVaNumber(deposit.va_number || "");
         setVaBank(deposit.va_bank || paymentMethod);
         setPaymentType(deposit.payment_method || "virtual_account");
-        setTotalPaid(amount);
+        setTotalPaid(Number(deposit.amount) + Number(deposit.transfer_fee || 0) + Number(deposit.refund_fee || 0));
+        setTimeLeft(depositTimeoutMinutes * 60);
       } else {
         alert(resData.error?.message || "Gagal memproses deposit.");
       }
@@ -149,36 +174,53 @@ export default function BidderDeposit() {
     }
   };
 
-  const handleSimulatePaymentSuccess = async () => {
-    if (!orderId) {
-      alert("ID transaksi deposit tidak ditemukan.");
+  const handleUploadProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proofFile) {
+      alert("Pilih file bukti transfer terlebih dahulu.");
       return;
     }
 
+    setIsUploading(true);
+    const token = localStorage.getItem("accessToken");
+    const formData = new FormData();
+    formData.append("file", proofFile);
+
     try {
-      const response = await fetch(apiUrl("/payments/webhook"), {
+      // 1. Upload File
+      const uploadRes = await fetch(apiUrl("/upload/image"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.error?.message || "Gagal mengunggah bukti transfer.");
+      }
+
+      // 2. Submit Proof to Deposit
+      const proofUrl = uploadData.data.url;
+      const submitRes = await fetch(apiUrl(`/deposits/${orderId}/proof`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          order_id: `NIPL-${orderId}`,
-          transaction_status: "settlement",
-          status_code: "200",
-          gross_amount: String(totalPaid),
-          signature_key: "dev-bypass",
-        }),
+        body: JSON.stringify({ transfer_proof_url: proofUrl }),
       });
 
-      const resData = await response.json();
-      if (response.ok && resData.success) {
-        alert("Simulasi pembayaran sukses berhasil diproses! Deposit Anda kini aktif dan dapat digunakan di semua sesi lelang.");
+      const submitData = await submitRes.json();
+      if (submitRes.ok && submitData.success) {
+        alert("Bukti transfer berhasil diunggah! Mohon tunggu persetujuan Admin.");
         router.push("/bidder/dashboard");
       } else {
-        alert(resData.error?.message || "Gagal memproses simulasi pembayaran.");
+        throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
       }
-    } catch (err) {
-      alert("Koneksi gagal saat mengirimkan simulasi pembayaran.");
+    } catch (err: any) {
+      alert(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -404,14 +446,14 @@ export default function BidderDeposit() {
                     <span className="font-bold text-slate-800">{formatRupiah(totalPaid)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Batas Waktu</span>
-                    <span className="font-bold text-error">60 Menit</span>
+                    <span className="text-slate-500">Batas Waktu Pembayaran</span>
+                    <span className="font-bold text-error">{formatTime(timeLeft)} Menit</span>
                   </div>
                 </div>
 
-                {paymentType === "manual_transfer" && (
+                {paymentType === "manual_transfer" && manualTransferFee > 0 && (
                   <div className="p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning-dark mt-3">
-                    <strong>Catatan Potongan Refund:</strong> Saat pengembalian dana deposit, uang Anda akan dikurangi biaya administrasi transfer bank sebesar <strong>{manualTransferFee > 0 ? formatRupiah(manualTransferFee) : 'Rp0 (Ditanggung Admin)'}</strong>.
+                    <strong>Informasi Biaya:</strong> Pembayaran ini termasuk biaya transfer sebesar <strong>{formatRupiah(manualTransferFee)}</strong>.
                   </div>
                 )}
 
@@ -431,7 +473,8 @@ export default function BidderDeposit() {
                       <li>Pilih menu Transfer antar bank / ke rekening tujuan.</li>
                       <li>Masukkan rekening tujuan: {vaNumber} ({vaBank.replace('manual_', '').toUpperCase()}).</li>
                       <li>Masukkan nominal pas sebesar {formatRupiah(totalPaid)} (sangat penting agar sistem memproses).</li>
-                      <li>Selesaikan pembayaran, simpan bukti transfer.</li>
+                      <li>Simpan bukti transfer dan unggah pada form di bawah.</li>
+                      <li>Tunggu persetujuan Admin (1-2 Jam Kerja) sebelum NIPL aktif.</li>
                     </ol>
                   ) : (
                     <ol className="list-decimal pl-4 space-y-1">
@@ -443,16 +486,38 @@ export default function BidderDeposit() {
                   )}
                 </div>
 
-                <div className="border-t border-outline-variant/20 pt-3">
-                  <button
-                    type="button"
-                    onClick={handleSimulatePaymentSuccess}
-                    className="w-full py-2.5 bg-success hover:bg-success/95 text-white font-bold rounded-xl transition-all shadow-md shadow-success/15 flex items-center justify-center gap-1.5 text-xs"
-                  >
-                    <span className="material-symbols-outlined text-sm">task_alt</span>
-                    Simulasikan Pembayaran Sukses (Dev Only)
-                  </button>
-                </div>
+                {paymentType === "manual_transfer" && (
+                  <div className="border-t border-outline-variant/20 pt-3">
+                    <form onSubmit={handleUploadProof} className="space-y-3">
+                      <div className="form-group">
+                        <label className="form-label text-xs font-bold text-slate-700">Upload Bukti Transfer</label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="form-input p-2 text-xs w-full border border-slate-300 rounded bg-white"
+                          onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isUploading || !proofFile}
+                        className="w-full py-2.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-1.5 text-xs disabled:opacity-50"
+                      >
+                        {isUploading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Mengunggah...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-sm">cloud_upload</span>
+                            Saya Sudah Membayar
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

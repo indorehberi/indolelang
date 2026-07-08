@@ -9,8 +9,8 @@ import BidderLayout from "../../../components/layout/BidderLayout";
 export default function BidderDashboard() {
   const router = useRouter();
   const [ekycStatus, setEkycStatus] = useState<string>("pending");
-  const [depositBalance, setDepositBalance] = useState<number>(0);
-  const [niplTickets, setNiplTickets] = useState<number>(0);
+  const [niplMotorCount, setNiplMotorCount] = useState<number>(0);
+  const [niplMobilCount, setNiplMobilCount] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [activeSession, setActiveSession] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -102,10 +102,17 @@ export default function BidderDashboard() {
         setTransactions(list);
 
         // Sum success deposits balance
-        const successDeposits = list.filter((d: any) => d.status === "success");
-        const totalBalance = successDeposits.reduce((sum: number, d: any) => sum + d.amount, 0);
-        setDepositBalance(totalBalance);
-        setNiplTickets(successDeposits.length);
+        const successDeposits = list.filter((d: any) => d.status === "paid" || d.status === "success"); // accommodate older logic if any
+        let motorCount = 0;
+        let mobilCount = 0;
+        
+        successDeposits.forEach((d: any) => {
+          if (d.unit_type === "motor") motorCount++;
+          else if (d.unit_type === "mobil") mobilCount++;
+        });
+
+        setNiplMotorCount(motorCount);
+        setNiplMobilCount(mobilCount);
       }
 
       // 3. Fetch Active Auction Sessions
@@ -287,13 +294,13 @@ export default function BidderDashboard() {
       {/* KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <div className="kpi-card success">
-          <div className="kpi-label">Saldo Jaminan Deposit</div>
-          <div className="kpi-value">{formatRupiah(depositBalance)}</div>
+          <div className="kpi-label">NIPL Motor Aktif</div>
+          <div className="kpi-value">{niplMotorCount} NIPL</div>
           <div className="kpi-trend up">Aktif &amp; Siap Digunakan</div>
         </div>
         <div className="kpi-card gold">
-          <div className="kpi-label">Tiket NIPL Aktif</div>
-          <div className="kpi-value">{niplTickets} Sesi</div>
+          <div className="kpi-label">NIPL Mobil Aktif</div>
+          <div className="kpi-value">{niplMobilCount} NIPL</div>
           <div className="kpi-trend up">Siap Menawar Lot</div>
         </div>
         <div className="kpi-card">

@@ -42,4 +42,12 @@ router.put(
   controller.markAsPaid
 );
 
+// Upload transfer proof for manual deposit (Bidder only)
+router.post(
+  '/deposits/:id/proof',
+  authenticate,
+  authorize(Role.BIDDER),
+  controller.uploadProof
+);
+
 export default router;
