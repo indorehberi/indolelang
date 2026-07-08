@@ -34,7 +34,7 @@ export class UsersController {
    */
   async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = (req as any).user!.id;
       const user = await usersService.getUserById(userId);
       
       const bankInquiryMode = await settingsService.getDecryptedSetting('bank_inquiry_mode') || 'manual';
@@ -50,7 +50,7 @@ export class UsersController {
    */
   async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = (req as any).user!.id;
       const updatedUser = await usersService.updateUser(userId, req.body);
       sendSuccess(res, updatedUser, 'Profil berhasil diperbarui');
     } catch (error) {
@@ -100,7 +100,7 @@ export class UsersController {
       }
 
       // Simulasi berhasil, mengembalikan nama user dari profil yang login agar sesuai
-      const userId = req.user!.id;
+      const userId = (req as any).user!.id;
       const user = await usersService.getUserById(userId);
       const simulatedName = user.full_name.toUpperCase();
 

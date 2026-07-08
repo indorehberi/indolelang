@@ -19,6 +19,8 @@ async function main() {
   await prisma.assets.deleteMany({});
   await prisma.auction_sessions.deleteMany({});
   await prisma.kyc_documents.deleteMany({});
+  await prisma.blog_posts.deleteMany({});
+  await prisma.testimonials.deleteMany({});
   await prisma.users.deleteMany({});
   await prisma.branches.deleteMany({});
   await prisma.platform_settings.deleteMany({});

@@ -28,7 +28,7 @@ export function rateLimiter(options: RateLimitOptions = {}) {
         return next();
       }
 
-      const identifier = req.user?.id || req.ip || 'anonymous';
+      const identifier = (req as any).user?.id || req.ip || 'anonymous';
       const path = req.route?.path || req.path;
       const key = `${keyPrefix}:${req.method}:${path}:${identifier}`;
 
