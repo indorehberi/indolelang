@@ -31,7 +31,7 @@ export const getUsersQuerySchema = z.object({
   query: z.object({
     page: z.string().transform(val => parseInt(val, 10)).default('1'),
     per_page: z.string().transform(val => parseInt(val, 10)).default('20'),
-    role: z.nativeEnum(Role).optional(),
+    role: z.string().optional(),
     status: z.nativeEnum(UserStatus).optional(),
     provider_status: z.enum(['pending', 'approved', 'rejected']).optional(),
     search: z.string().optional(),
