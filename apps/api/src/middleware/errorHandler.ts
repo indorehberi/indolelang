@@ -45,7 +45,7 @@ export function errorHandler(
     });
 
     logger.warn({ path: req.path, method: req.method, details }, 'Validation error handled');
-    sendError(res, ErrorCode.VALIDATION_ERROR, 'Validasi input gagal', details, 400);
+    sendError(res, ErrorCode.VALIDATION_ERROR, `Validasi input gagal: ${JSON.stringify(details)}`, details, 400);
     return;
   }
 
