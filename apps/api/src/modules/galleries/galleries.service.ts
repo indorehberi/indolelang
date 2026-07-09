@@ -1,4 +1,4 @@
-import prisma from '../../lib/prisma';
+import { prisma } from '../../config/database';
 
 export const getGalleries = async (page: number, per_page: number) => {
   const skip = (page - 1) * per_page;

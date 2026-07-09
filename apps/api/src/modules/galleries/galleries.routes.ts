@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import * as galleriesController from './galleries.controller';
-import { authenticate, authorize } from '../../middleware/auth';
-import { validate } from '../../middleware/validate';
+import { authenticate } from '../../middleware/auth';
+import { authorize } from '../../middleware/rbac';
+import { validate } from '../../middleware/validator';
 import { createGallerySchema } from './galleries.validator';
 
 const router = Router();

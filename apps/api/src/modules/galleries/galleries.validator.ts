@@ -1,10 +1,5 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
-export const createGallerySchema = Joi.object({
-  image_url: Joi.string().uri().required().messages({
-    'string.base': 'URL gambar harus berupa teks',
-    'string.empty': 'URL gambar tidak boleh kosong',
-    'string.uri': 'Format URL gambar tidak valid',
-    'any.required': 'URL gambar wajib diisi',
-  }),
+export const createGallerySchema = z.object({
+  image_url: z.string().url('Format URL gambar tidak valid').min(1, 'URL gambar wajib diisi'),
 });
