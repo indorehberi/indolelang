@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth';
 import { authorize } from '../../middleware/rbac';
 import { validate } from '../../middleware/validator';
 import { createGallerySchema } from './galleries.validator';
+import { z } from 'zod';
 import { Role } from '@indo-lelang/shared-types';
 
 const router = Router();
@@ -36,7 +37,7 @@ router.post(
   '/admin',
   authenticate,
   authorize(Role.ADMIN, Role.SUPERADMIN),
-  validate(createGallerySchema),
+  validate(z.object({ body: createGallerySchema })),
   galleriesController.createGallery
 );
 
