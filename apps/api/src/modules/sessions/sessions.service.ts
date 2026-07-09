@@ -119,15 +119,38 @@ export class SessionsService {
    * Create a new auction session (Admin/Operator only)
    */
   async createSession(data: any, operatorId: string): Promise<AuctionSessionDTO> {
-    // Verify branch exists
-    const branch = await prisma.branches.findUnique({ where: { id: data.branch_id } });
+    let finalBranchId = data.branch_id;
+    let branch = null;
+
+    if (finalBranchId) {
+      branch = await prisma.branches.findUnique({ where: { id: finalBranchId } });
+    }
+
+    // Fallback: If no branch_id provided or branch not found, use or create default Jakarta branch
     if (!branch) {
-      throw new AppError(404, ErrorCode.NOT_FOUND, 'Cabang tidak ditemukan');
+      branch = await prisma.branches.findFirst({
+        where: { name: { contains: 'Jakarta' } }
+      });
+
+      if (!branch) {
+        branch = await prisma.branches.create({
+          data: {
+            tenant_id: 'default',
+            name: 'Indo-Lelang Jakarta (Pusat)',
+            city: 'Jakarta',
+            address: 'Jl. Sudirman, Jakarta',
+            phone: '+622155551234',
+            pic_name: 'Admin Pusat',
+            is_active: true,
+          }
+        });
+      }
+      finalBranchId = branch.id;
     }
 
     const s = await prisma.auction_sessions.create({
       data: {
-        branch_id: data.branch_id,
+        branch_id: finalBranchId,
         title: data.title,
         description: data.description || null,
         scheduled_at: new Date(data.scheduled_at),

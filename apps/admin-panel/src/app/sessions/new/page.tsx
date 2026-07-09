@@ -62,7 +62,7 @@ export default function NewSessionPage() {
         alert('Judul sesi minimal 5 karakter');
         return;
       }
-      if (!branchId) {
+      if (!branchId && branches.length > 0) {
         alert('Cabang wajib dipilih');
         return;
       }
@@ -101,7 +101,7 @@ export default function NewSessionPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          branch_id: branchId,
+          branch_id: branchId || undefined,
           title,
           description: description || undefined,
           scheduled_at,

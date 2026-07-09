@@ -3,7 +3,7 @@ import { SessionStatus } from '@indo-lelang/shared-types';
 
 export const createSessionSchema = z.object({
   body: z.object({
-    branch_id: z.string().uuid('ID Cabang tidak valid'),
+    branch_id: z.string().uuid('ID Cabang tidak valid').optional(),
     title: z.string().min(5, 'Judul sesi minimal 5 karakter'),
     description: z.string().optional(),
     scheduled_at: z.string().refine((val) => !isNaN(Date.parse(val)), {
