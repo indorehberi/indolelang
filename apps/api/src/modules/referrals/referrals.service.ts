@@ -1,6 +1,6 @@
-import { prisma } from '../../lib/prisma';
-import { AppError } from '../../middleware/errorHandler';
-import { ErrorCode } from '@indo-lelang/shared-types';
+import { prisma } from '../../config/database';
+import { AppError } from '../../lib/appError';
+import { ErrorCode } from '@indo-lelang/utils';
 
 export class ReferralsService {
   /**
@@ -34,7 +34,7 @@ export class ReferralsService {
       }),
     ]);
 
-    const mapped = records.map(r => ({
+    const mapped = records.map((r: any) => ({
       id: r.id,
       name: r.referrer?.full_name || '-',
       email: r.referrer?.email || '-',
@@ -84,7 +84,7 @@ export class ReferralsService {
       total_reward: Number(referral.total_reward),
       status: referral.status,
       usages_count: referral._count.usages,
-      recent_usages: referral.usages.map(u => ({
+      recent_usages: referral.usages.map((u: any) => ({
         id: u.id,
         referred_name: u.referred?.full_name || '-',
         reward_amount: Number(u.reward_amount),

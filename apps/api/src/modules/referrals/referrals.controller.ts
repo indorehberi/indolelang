@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { referralsService } from './referrals.service';
-import { sendSuccess } from '../../utils/response';
+import { sendSuccess } from '../../lib/apiResponse';
 
 class ReferralsController {
   async getAdminReferrals(req: Request, res: Response, next: NextFunction): Promise<void> {
