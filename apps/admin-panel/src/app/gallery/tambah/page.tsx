@@ -48,7 +48,7 @@ export default function TambahGalleryPage() {
     try {
       const imageUrl = await uploadFile(file);
 
-      const response = await fetch(apiUrl('/admin/galleries'), {
+      const response = await fetch(apiUrl('/galleries/admin'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -19,7 +19,7 @@ export default function GalleryListPage() {
   const fetchGalleries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(apiUrl('/admin/galleries'), {
+      const response = await fetch(apiUrl('/galleries/admin'), {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
         },
@@ -45,7 +45,7 @@ export default function GalleryListPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus gambar ini?')) return;
     try {
-      const response = await fetch(apiUrl(`/admin/galleries/${id}`), {
+      const response = await fetch(apiUrl(`/galleries/admin/${id}`), {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
