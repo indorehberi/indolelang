@@ -32,7 +32,8 @@ export default function GoogleAuthModal({
   useEffect(() => {
     if (isOpen && gsiLoaded) {
       try {
-        const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+        const raw_client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+        const client_id = raw_client_id.replace(/^["']|["']$/g, '').trim();
         
         if (client_id === "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
           console.error("Google Client ID belum diatur. Harap set NEXT_PUBLIC_GOOGLE_CLIENT_ID di .env");
