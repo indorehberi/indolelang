@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { Button } from '../../../components/ui/Button';
 import { apiUrl } from '../../../lib/api';
-import { useToast } from '../../../components/ui/Toast';
 
 export default function TambahGalleryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
-  const { setToast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -42,7 +40,7 @@ export default function TambahGalleryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setToast({ message: 'Silakan pilih gambar terlebih dahulu', variant: 'danger' });
+      alert('Silakan pilih gambar terlebih dahulu');
       return;
     }
 
@@ -64,10 +62,10 @@ export default function TambahGalleryPage() {
         throw new Error(data.error?.message || 'Gagal menyimpan gambar ke gallery');
       }
 
-      setToast({ message: 'Gambar berhasil ditambahkan ke gallery', variant: 'success' });
+      alert('Gambar berhasil ditambahkan ke gallery');
       router.push('/gallery');
     } catch (error: any) {
-      setToast({ message: error.message, variant: 'danger' });
+      alert(error.message);
     } finally {
       setSaving(false);
     }

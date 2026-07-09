@@ -5,7 +5,6 @@ import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Button } from '../../components/ui/Button';
 import { apiUrl } from '../../lib/api';
-import { useToast } from '../../components/ui/Toast';
 import Image from 'next/image';
 
 interface Gallery {
@@ -17,8 +16,6 @@ interface Gallery {
 export default function GalleryListPage() {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [loading, setLoading] = useState(true);
-  const { setToast } = useToast();
-
   const fetchGalleries = async () => {
     setLoading(true);
     try {
@@ -58,10 +55,10 @@ export default function GalleryListPage() {
       if (!data.success) {
         throw new Error(data.error?.message || 'Gagal menghapus gallery');
       }
-      setToast({ message: 'Gambar berhasil dihapus', variant: 'success' });
+      alert('Gambar berhasil dihapus');
       fetchGalleries();
     } catch (error: any) {
-      setToast({ message: error.message, variant: 'danger' });
+      alert(error.message);
     }
   };
 
