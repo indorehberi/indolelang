@@ -24,6 +24,9 @@ export default function BidderCart() {
   // Checkout Result
   const [orderResult, setOrderResult] = useState<any>(null);
 
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const fetchCart = async () => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
@@ -137,6 +140,56 @@ export default function BidderCart() {
       }
     } catch (err) {
       alert("Koneksi gagal.");
+    }
+  };
+
+  const handleUploadProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proofFile || !orderResult?.id) {
+      alert("Pilih file bukti transfer terlebih dahulu.");
+      return;
+    }
+
+    setIsUploading(true);
+    const token = localStorage.getItem("accessToken");
+    const formData = new FormData();
+    formData.append("file", proofFile);
+
+    try {
+      // 1. Upload File
+      const uploadRes = await fetch(apiUrl("/upload/image"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.error?.message || "Gagal mengunggah bukti transfer.");
+      }
+
+      // 2. Submit Proof to Checkout Order
+      const proofUrl = uploadData.data.url;
+      const submitRes = await fetch(apiUrl(`/checkout/${orderResult.id}/proof`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ transfer_proof_url: proofUrl }),
+      });
+
+      const submitData = await submitRes.json();
+      if (submitRes.ok && submitData.success) {
+        alert("Bukti transfer berhasil diunggah! Pembayaran Anda akan diverifikasi.");
+        router.push("/bidder/dashboard");
+      } else {
+        throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -314,15 +367,51 @@ export default function BidderCart() {
                   <div className="text-lg font-black tracking-widest mt-1 text-primary-fixed">{orderResult.va_number}</div>
                   <div className="text-xs text-slate-300 mt-2 font-medium">Total: {formatRupiah(orderResult.final_amount)}</div>
                 </div>
-                
-                <button
-                  type="button"
-                  onClick={handleSimulatePayment}
-                  className="w-full py-2 bg-success hover:bg-success/95 text-white font-bold rounded-xl transition-all shadow-md shadow-success/15 flex items-center justify-center gap-1.5 text-xs"
-                >
-                  <span className="material-symbols-outlined text-sm">task_alt</span>
-                  Simulasikan Pembayaran (Dev)
-                </button>
+
+                {orderResult.payment_method === 'manual_transfer' ? (
+                  <form onSubmit={handleUploadProof} className="space-y-4">
+                    <div className="p-4 border-2 border-dashed border-outline-variant/60 rounded-xl bg-surface">
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Upload Bukti Transfer *</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            setProofFile(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isUploading}
+                      className="w-full py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      {isUploading ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Mengunggah...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined">upload_file</span>
+                          Kirim Bukti Transfer
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSimulatePayment}
+                    className="w-full py-2 bg-success hover:bg-success/95 text-white font-bold rounded-xl transition-all shadow-md shadow-success/15 flex items-center justify-center gap-1.5 text-xs"
+                  >
+                    <span className="material-symbols-outlined text-sm">task_alt</span>
+                    Simulasikan Pembayaran (Dev)
+                  </button>
+                )}
               </div>
             ) : null}
           </div>

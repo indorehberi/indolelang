@@ -41,13 +41,17 @@ export default function AssetsInspectionPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Form State
   const [formData, setFormData] = useState<any>({
     inspection_date: new Date().toISOString().split('T')[0],
+    inspection_pic_name: '',
     grade_interior: 'A',
     grade_exterior: 'A',
     grade_engine: 'A',
+    inspection_doc_url: '',
     category: '',
     brand: '',
     model: '',
@@ -62,6 +66,16 @@ export default function AssetsInspectionPage() {
     cylinder: '',
     odometer: '',
   });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        setFormData((prev: any) => ({ ...prev, inspection_pic_name: u.full_name || '' }));
+      }
+    } catch (e) {}
+  }, []);
 
   const fetchPendingAssets = async () => {
     setLoading(true);
@@ -87,11 +101,19 @@ export default function AssetsInspectionPage() {
 
   const openInspection = (asset: Asset) => {
     setSelectedAsset(asset);
+    setRejectionReason('');
+    let picName = '';
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) picName = JSON.parse(stored).full_name || '';
+    } catch (e) {}
     setFormData({
       inspection_date: new Date().toISOString().split('T')[0] + 'T00:00:00Z',
+      inspection_pic_name: picName,
       grade_interior: 'A',
       grade_exterior: 'A',
       grade_engine: 'A',
+      inspection_doc_url: '',
       category: asset.category || '',
       brand: asset.brand || '',
       model: asset.model || '',
@@ -109,12 +131,35 @@ export default function AssetsInspectionPage() {
     setShowModal(true);
   };
 
-  const handleInspect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAsset) return;
-    setProcessing(true);
-    setToast(null);
+  const handleUploadDoc = async (file: File | null) => {
+    if (!file) return;
+    setUploadingDoc(true);
+    const token = localStorage.getItem('accessToken');
+    const uploadData = new FormData();
+    uploadData.append('file', file);
 
+    try {
+      const response = await fetch(apiUrl('/upload/single'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: uploadData,
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setFormData((prev: any) => ({ ...prev, inspection_doc_url: data.data.url }));
+      } else {
+        setToast({ message: data.error?.message || 'Gagal mengunggah dokumen inspeksi', variant: 'danger' });
+      }
+    } catch (err) {
+      setToast({ message: 'Koneksi gagal saat mengunggah dokumen', variant: 'danger' });
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const submitInspection = async () => {
+    if (!selectedAsset) return;
+    const token = localStorage.getItem('accessToken');
     const payload = {
       ...formData,
       year: parseInt(formData.year),
@@ -122,27 +167,75 @@ export default function AssetsInspectionPage() {
       odometer: parseInt(formData.odometer),
     };
 
+    const response = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/inspect`), {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      let msg = data.error?.message || 'Gagal melakukan inspeksi';
+      if (data.error?.details && Array.isArray(data.error.details)) {
+        msg = data.error.details.map((d: any) => d.message).join(', ');
+      }
+      throw new Error(msg);
+    }
+  };
+
+  const handleApprove = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+    setProcessing(true);
+    setToast(null);
+
     try {
+      await submitInspection();
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/inspect`), {
+      const response = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/approve`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Gagal menyetujui barang');
+
+      setToast({ message: 'Barang diinspeksi dan disetujui!', variant: 'success' });
+      setShowModal(false);
+      fetchPendingAssets();
+    } catch (err: any) {
+      setToast({ message: err.message, variant: 'danger' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedAsset) return;
+    if (!rejectionReason.trim()) {
+      setToast({ message: 'Alasan penolakan wajib diisi', variant: 'danger' });
+      return;
+    }
+    setProcessing(true);
+    setToast(null);
+
+    try {
+      await submitInspection();
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/reject`), {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ reason: rejectionReason.trim() }),
       });
-
       const data = await response.json();
-      if (!response.ok) {
-        let msg = data.error?.message || 'Gagal melakukan inspeksi';
-        if (data.error?.details && Array.isArray(data.error.details)) {
-            msg = data.error.details.map((d: any) => d.message).join(', ');
-        }
-        throw new Error(msg);
-      }
+      if (!response.ok) throw new Error(data.error?.message || 'Gagal menolak barang');
 
-      setToast({ message: 'Barang berhasil diinspeksi!', variant: 'success' });
+      setToast({ message: 'Barang diinspeksi dan ditolak. Provider telah diberi notifikasi.', variant: 'success' });
       setShowModal(false);
       fetchPendingAssets();
     } catch (err: any) {
@@ -224,14 +317,18 @@ export default function AssetsInspectionPage() {
             </div>
 
             <div className="p-5 overflow-y-auto flex-1">
-              <form id="inspectForm" onSubmit={handleInspect} className="space-y-6">
-                
+              <form id="inspectForm" onSubmit={handleApprove} className="space-y-6">
+
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
                   <h4 className="font-semibold text-slate-700 mb-4 border-b pb-2">Detail Inspeksi</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">Tanggal Inspeksi *</label>
                       <input type="datetime-local" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.inspection_date.substring(0,16)} onChange={(e) => setFormData({...formData, inspection_date: e.target.value + ':00Z'})} required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">PIC Inspeksi *</label>
+                      <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.inspection_pic_name} onChange={(e) => setFormData({...formData, inspection_pic_name: e.target.value})} required />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">Grade Interior *</label>
@@ -262,6 +359,20 @@ export default function AssetsInspectionPage() {
                         <option value="D">D - Kurang</option>
                         <option value="E">E - Buruk</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Dokumen Inspeksi (opsional)</label>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        disabled={uploadingDoc}
+                        onChange={(e) => handleUploadDoc(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary"
+                      />
+                      {uploadingDoc && <span className="text-xs text-slate-500">Mengunggah...</span>}
+                      {formData.inspection_doc_url && !uploadingDoc && (
+                        <span className="text-xs text-success font-bold">✓ Dokumen tersimpan</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -331,11 +442,26 @@ export default function AssetsInspectionPage() {
                 </div>
 
               </form>
+
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 mt-6">
+                <h4 className="font-semibold text-slate-700 mb-2">Alasan Ditolak</h4>
+                <p className="text-xs text-slate-500 mb-2">Isi hanya jika Anda akan menekan tombol &quot;Tolak&quot; di bawah.</p>
+                <textarea
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  rows={2}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Contoh: Foto mesin buram, nomor rangka tidak terbaca"
+                />
+              </div>
             </div>
-            
+
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
               <Button variant="outline" onClick={() => setShowModal(false)}>Batal</Button>
-              <Button type="submit" form="inspectForm" disabled={processing}>{processing ? 'Memproses...' : 'Simpan Hasil Inspeksi'}</Button>
+              <Button variant="danger" type="button" disabled={processing} onClick={handleReject}>
+                {processing ? 'Memproses...' : 'Tolak'}
+              </Button>
+              <Button type="submit" form="inspectForm" disabled={processing}>{processing ? 'Memproses...' : 'Setujui'}</Button>
             </div>
           </div>
         </div>

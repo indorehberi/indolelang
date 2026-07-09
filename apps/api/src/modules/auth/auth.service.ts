@@ -52,20 +52,16 @@ export class AuthService {
 		// 3. Hash password
 		const passwordHash = await hashPassword(data.password);
 
-		// 4. Create user (all signups default to BIDDER role)
-		// If registering as provider, queue status as pending for admin approval
-		const isProviderRequest = data.role === Role.PROVIDER;
+		// 4. Create a plain user account. Choosing to become a Bidder or Provider
+		// happens afterwards via /bidders/apply or /providers/apply, not at signup.
 		const user = await prisma.users.create({
 			data: {
 				email: data.email,
 				phone: data.phone || null,
 				password_hash: passwordHash,
 				full_name: data.full_name,
-				role: Role.BIDDER, // Force role to BIDDER at start
-				status: UserStatus.PENDING, // Always pending until KYC is approved
-				company_name: isProviderRequest ? data.company_name : null,
-				npwp: isProviderRequest ? data.npwp : null,
-				provider_status: isProviderRequest ? 'pending' : null,
+				role: Role.USER,
+				status: UserStatus.PENDING, // Pending until OTP/verification is confirmed
 			},
 		});
 
@@ -176,9 +172,10 @@ export class AuthService {
 			};
 		}
 
-		// 4. If user doesn't exist, always register them automatically as BIDDER
-		let role: any = Role.BIDDER;
-		
+		// 4. If user doesn't exist, register them as a plain user. They choose to
+		// become a Bidder or Provider afterwards via /bidders/apply or /providers/apply.
+		let role: any = Role.USER;
+
 		// If phone number is supplied, check for duplicates
 		if (data.phone) {
 			const existingPhone = await prisma.users.findUnique({
@@ -201,8 +198,6 @@ export class AuthService {
 				full_name: fullName,
 				role: role,
 				status: UserStatus.PENDING, // Google accounts must also go through KYC
-				company_name: role === Role.PROVIDER ? data.company_name : null,
-				npwp: role === Role.PROVIDER ? data.npwp : null,
 			},
 			include: { kyc_document: true }
 		});

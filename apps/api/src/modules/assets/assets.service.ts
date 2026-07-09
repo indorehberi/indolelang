@@ -1,8 +1,9 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { AssetDTO, PaginationMeta, AssetStatus, AssetCategory } from '@indo-lelang/shared-types';
+import { AssetDTO, PaginationMeta, AssetStatus, AssetCategory, NotificationType } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class AssetsService {
   /**
@@ -14,7 +15,11 @@ export class AssetsService {
     status?: string,
     category?: string,
     search?: string,
-    providerId?: string
+    providerId?: string,
+    branchId?: string,
+    poolStatus?: string,
+    dateFrom?: string,
+    dateTo?: string
   ): Promise<{ assets: AssetDTO[]; meta: PaginationMeta }> {
     const where: Prisma.assetsWhereInput = {};
 
@@ -30,6 +35,18 @@ export class AssetsService {
     }
     if (providerId) {
       where.provider_id = providerId;
+    }
+    if (branchId) {
+      where.branch_id = branchId;
+    }
+    if (poolStatus) {
+      where.pool_status = poolStatus;
+    }
+    if (dateFrom || dateTo) {
+      where.created_at = {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(dateTo) } : {}),
+      };
     }
     if (search) {
       where.title = { contains: search };
@@ -131,6 +148,17 @@ export class AssetsService {
         doc_copy_ktp: data.doc_copy_ktp === true || data.doc_copy_ktp === 'true' ? true : false,
         doc_keur: data.doc_keur === true || data.doc_keur === 'true' ? true : false,
         doc_sph: data.doc_sph === true || data.doc_sph === 'true' ? true : false,
+
+        branch_id: data.branch_id || null,
+        pool_status: data.pool_status || 'in_pool',
+        notes: data.notes || null,
+        photo_front: data.photo_front || null,
+        photo_back: data.photo_back || null,
+        photo_right: data.photo_right || null,
+        photo_left: data.photo_left || null,
+        photo_engine: data.photo_engine || null,
+        photo_interior: data.photo_interior || null,
+        photo_stnk: data.photo_stnk || null,
       } as any,
     });
 
@@ -163,6 +191,7 @@ export class AssetsService {
         status: AssetStatus.INSPECTED,
         inspector_id: inspectorId,
         inspection_date: new Date(data.inspection_date),
+        inspection_pic_name: data.inspection_pic_name,
         grade_interior: data.grade_interior,
         grade_exterior: data.grade_exterior,
         grade_engine: data.grade_engine,
@@ -240,6 +269,18 @@ export class AssetsService {
         doc_copy_ktp: data.doc_copy_ktp !== undefined ? (data.doc_copy_ktp === true || data.doc_copy_ktp === 'true') : undefined,
         doc_keur: data.doc_keur !== undefined ? (data.doc_keur === true || data.doc_keur === 'true') : undefined,
         doc_sph: data.doc_sph !== undefined ? (data.doc_sph === true || data.doc_sph === 'true') : undefined,
+
+        branch_id: data.branch_id !== undefined ? data.branch_id : undefined,
+        pool_status: data.pool_status ?? undefined,
+        notes: data.notes !== undefined ? data.notes : undefined,
+        rejection_reason: data.rejection_reason !== undefined ? data.rejection_reason : undefined,
+        photo_front: data.photo_front !== undefined ? data.photo_front : undefined,
+        photo_back: data.photo_back !== undefined ? data.photo_back : undefined,
+        photo_right: data.photo_right !== undefined ? data.photo_right : undefined,
+        photo_left: data.photo_left !== undefined ? data.photo_left : undefined,
+        photo_engine: data.photo_engine !== undefined ? data.photo_engine : undefined,
+        photo_interior: data.photo_interior !== undefined ? data.photo_interior : undefined,
+        photo_stnk: data.photo_stnk !== undefined ? data.photo_stnk : undefined,
       } as any,
     });
 
@@ -252,6 +293,17 @@ export class AssetsService {
       base_price: Number(updated.base_price),
       images: updated.images ? JSON.parse(updated.images as string) : undefined,
       status: updated.status,
+      branch_id: (updated as any).branch_id || undefined,
+      pool_status: (updated as any).pool_status || undefined,
+      notes: (updated as any).notes || undefined,
+      rejection_reason: (updated as any).rejection_reason || undefined,
+      photo_front: (updated as any).photo_front || undefined,
+      photo_back: (updated as any).photo_back || undefined,
+      photo_right: (updated as any).photo_right || undefined,
+      photo_left: (updated as any).photo_left || undefined,
+      photo_engine: (updated as any).photo_engine || undefined,
+      photo_interior: (updated as any).photo_interior || undefined,
+      photo_stnk: (updated as any).photo_stnk || undefined,
       created_at: updated.created_at.toISOString(),
       updated_at: updated.updated_at.toISOString(),
     };
@@ -268,24 +320,75 @@ export class AssetsService {
     if (asset.status !== AssetStatus.INSPECTED) {
       throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Aset barang harus diinspeksi terlebih dahulu');
     }
-    return this.updateAsset(id, { status: AssetStatus.APPROVED });
+    const updated = await this.updateAsset(id, { status: AssetStatus.APPROVED });
+
+    await notificationsService.createNotification({
+      userId: updated.provider_id,
+      type: NotificationType.ASSET_APPROVED,
+      title: 'Pengajuan Barang Disetujui',
+      body: `Selamat, pengajuan titip jual "${updated.title}" telah disetujui dan siap masuk penyusunan lot.`,
+    });
+
+    return updated;
   }
 
   /**
-   * Reject asset / return to provider (Admin/Operator only)
+   * Reject asset during inspection review (Admin/Operator only)
    */
-  async rejectAsset(id: string): Promise<AssetDTO> {
-    return this.updateAsset(id, { status: AssetStatus.RETURNED });
+  async rejectAsset(id: string, reason: string): Promise<AssetDTO> {
+    const updated = await this.updateAsset(id, {
+      status: AssetStatus.REJECTED,
+      rejection_reason: reason,
+    });
+
+    await notificationsService.createNotification({
+      userId: updated.provider_id,
+      type: NotificationType.ASSET_REJECTED,
+      title: 'Pengajuan Barang Ditolak',
+      body: `Pengajuan titip jual "${updated.title}" ditolak. Alasan: ${reason}. Anda dapat mengedit dan mengajukan kembali.`,
+    });
+
+    return updated;
   }
 
   /**
-   * Delete asset
+   * Provider/Admin withdraws an approved/listed asset before it's auctioned ("dikembalikan").
    */
-  async deleteAsset(id: string): Promise<void> {
+  async returnAsset(id: string): Promise<AssetDTO> {
     const asset = await prisma.assets.findUnique({ where: { id } });
     if (!asset) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Aset barang tidak ditemukan');
     }
+    if (![AssetStatus.APPROVED, AssetStatus.LISTED].includes(asset.status as AssetStatus)) {
+      throw new AppError(
+        400,
+        ErrorCode.VALIDATION_ERROR,
+        'Hanya barang berstatus disetujui/terdaftar yang dapat dikembalikan'
+      );
+    }
+    return this.updateAsset(id, { status: AssetStatus.RETURNED });
+  }
+
+  /**
+   * Delete asset. Providers may only delete their own submissions while
+   * still in "ditolak" (rejected) status; admin/inspector roles keep
+   * unrestricted delete for back-office cleanup.
+   */
+  async deleteAsset(id: string, caller?: { role: string; userId: string }): Promise<void> {
+    const asset = await prisma.assets.findUnique({ where: { id } });
+    if (!asset) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Aset barang tidak ditemukan');
+    }
+
+    if (caller?.role === 'provider') {
+      if (asset.provider_id !== caller.userId) {
+        throw new AppError(403, ErrorCode.FORBIDDEN, 'Anda hanya dapat menghapus barang milik Anda sendiri');
+      }
+      if (asset.status !== AssetStatus.REJECTED) {
+        throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Hanya barang berstatus ditolak yang dapat dihapus');
+      }
+    }
+
     await prisma.assets.delete({ where: { id } });
   }
 

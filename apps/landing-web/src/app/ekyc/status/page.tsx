@@ -9,6 +9,7 @@ function EkycStatusContent() {
   const router = useRouter();
   const [status, setStatus] = useState("loading"); // loading, unverified, pending, approved (verified), rejected
   const [userName, setUserName] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
   const [loading, setLoading] = useState(true);
 
   const fetchKycStatus = async () => {
@@ -31,17 +32,24 @@ function EkycStatusContent() {
         setUserName(resUserData.data.full_name || "Peserta Lelang");
       }
 
-      // 2. Fetch KYC status
-      const resKyc = await fetch(apiUrl("/kyc/status"), {
+      // 2. Fetch bidder application status
+      const resBidder = await fetch(apiUrl("/bidders/me"), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const resKycData = await resKyc.json();
-      
-      if (resKyc.ok && resKycData.success) {
-        const kyc = resKycData.data;
-        setStatus(kyc.status || "pending");
-      } else if (resKyc.status === 404) {
-        // Document has not been uploaded yet, redirect to upload page
+      const resBidderData = await resBidder.json();
+
+      if (resBidder.ok && resBidderData.success && resBidderData.data) {
+        const bidder = resBidderData.data;
+        const statusMap: Record<string, string> = {
+          antri: "pending",
+          aktif: "approved",
+          ditolak: "rejected",
+          nonaktif: "rejected",
+        };
+        setStatus(statusMap[bidder.status] || "pending");
+        setRejectionReason(bidder.rejection_reason || "");
+      } else {
+        // Application not submitted yet, redirect to the unified application page
         setStatus("unverified");
         router.push("/ekyc/upload");
       }
@@ -131,7 +139,7 @@ function EkycStatusContent() {
               {isVerified
                 ? "Selamat! Tim Admin Indo-Lelang telah memverifikasi dokumen eKYC Anda. Akun Anda kini aktif."
                 : isRejected
-                ? "Dokumen eKYC Anda ditolak oleh Admin. Silakan periksa kembali dan unggah ulang dokumen yang sesuai."
+                ? `Pengajuan Anda ditolak. Alasan: ${rejectionReason || "Dokumen tidak sesuai"}. Silakan ajukan kembali dengan data yang benar.`
                 : "Dokumen identitas Anda sedang diverifikasi secara manual oleh Tim Admin Indo-Lelang. Estimasi verifikasi selesai dalam 5-10 menit."}
             </p>
           </div>

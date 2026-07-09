@@ -44,6 +44,7 @@ interface BidLog {
 }
 
 export default function ControlRoomPage() {
+  const [activeTab, setActiveTab] = useState<'live' | 'arsip'>('live');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [sessionDetails, setSessionDetails] = useState<Session | null>(null);
@@ -329,7 +330,7 @@ export default function ControlRoomPage() {
   };
 
   const handleEndSession = async () => {
-    if (!confirm('Apakah Anda yakin ingin menutup sesi lelang ini? Semua lot pending akan dibatalkan.')) return;
+    if (!confirm('Apakah Anda yakin ingin menghentikan sesi lelang ini? Semua lot pending akan dibatalkan.')) return;
     setProcessingId(selectedSessionId);
     setToast(null);
     try {
@@ -340,14 +341,44 @@ export default function ControlRoomPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Gagal menutup sesi');
+        throw new Error(data.error?.message || 'Gagal menghentikan sesi');
       }
-      setToast({ message: 'Sesi lelang berhasil ditutup.', variant: 'success' });
+      setToast({ message: 'Sesi lelang berhasil dihentikan.', variant: 'success' });
+      if (sessionDetails) {
+        setSessionDetails({ ...sessionDetails, status: 'closed' });
+      }
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
       if (sessionDetails) {
         setSessionDetails({ ...sessionDetails, status: 'closed' });
       }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleStartSession = async () => {
+    if (!confirm('Apakah Anda yakin ingin memulai sesi lelang ini?')) return;
+    setProcessingId(selectedSessionId);
+    setToast(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/sessions/${selectedSessionId}/start`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal memulai sesi');
+      }
+      setToast({ message: 'Sesi lelang berhasil dimulai.', variant: 'success' });
+      if (sessionDetails) {
+        setSessionDetails({ ...sessionDetails, status: 'live' });
+      }
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      setToast({ message: err.message, variant: 'danger' });
     } finally {
       setProcessingId(null);
     }
@@ -476,21 +507,65 @@ export default function ControlRoomPage() {
                 </option>
               ))}
             </select>
-            {sessionDetails && sessionDetails.status !== 'closed' && (
+            {activeTab === 'live' && sessionDetails && sessionDetails.status === 'published' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleStartSession}
+                disabled={processingId === selectedSessionId}
+              >
+                Mulai Lelang
+              </Button>
+            )}
+            {activeTab === 'live' && sessionDetails && (sessionDetails.status === 'published' || sessionDetails.status === 'live') && (
               <Button
                 variant="danger"
                 size="sm"
                 onClick={handleEndSession}
                 disabled={processingId === selectedSessionId}
               >
-                Tutup Sesi
+                Stop Lelang
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--wf-border)', display: 'flex', gap: '1rem' }}>
+        <button
+          onClick={() => setActiveTab('live')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'live' ? '2px solid var(--wf-primary)' : '2px solid transparent',
+            color: activeTab === 'live' ? 'var(--wf-primary)' : 'var(--wf-text-light)',
+            fontWeight: activeTab === 'live' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          🔴 Live Control
+        </button>
+        <button
+          onClick={() => setActiveTab('arsip')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'arsip' ? '2px solid var(--wf-primary)' : '2px solid transparent',
+            color: activeTab === 'arsip' ? 'var(--wf-primary)' : 'var(--wf-text-light)',
+            fontWeight: activeTab === 'arsip' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          📂 Arsip Lelang
+        </button>
+      </div>
+
+      {activeTab === 'live' ? (
+        <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         {/* LEFT COLUMN: ACTIVE BIDDING & QUEUE */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
@@ -632,10 +707,10 @@ export default function ControlRoomPage() {
                           <Button
                             variant="primary"
                             size="sm"
-                            disabled={!!activeLot || processingId === lot.id}
+                            disabled={!!activeLot || processingId === lot.id || sessionDetails?.status !== 'live'}
                             onClick={() => handleActivateLot(lot.id)}
                           >
-                            Aktifkan Lot
+                            Lot Berikutnya
                           </Button>
                         )}
                         {lot.status === 'active' && (
@@ -712,6 +787,49 @@ export default function ControlRoomPage() {
           </div>
         </Card>
       </div>
+      ) : (
+        <Card title={`Arsip Sesi: ${sessionDetails?.title || '-'}`}>
+          {sessionDetails?.status !== 'closed' ? (
+            <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--wf-text-light)' }}>
+              <span style={{ fontSize: '3rem' }}>📂</span>
+              <h3 className="mt-2">Sesi Belum Selesai</h3>
+              <p style={{ fontSize: '0.9rem' }}>Silakan pilih sesi dengan status [CLOSED] untuk melihat arsip lelang.</p>
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Lot</th>
+                    <th>Kendaraan</th>
+                    <th>Harga Limit</th>
+                    <th>Harga Terakhir (Hammer)</th>
+                    <th>Pemenang</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lots.map((lot) => (
+                    <tr key={lot.id}>
+                      <td><strong>#{lot.lot_number}</strong></td>
+                      <td>{lot.asset.title}</td>
+                      <td>{formatRupiah(lot.starting_price)}</td>
+                      <td>{lot.hammer_price ? formatRupiah(lot.hammer_price) : '-'}</td>
+                      <td>{lot.winner_id ? 'Pemenang ID: ' + lot.winner_id : '-'}</td>
+                      <td>{getLotStatusBadge(lot.status)}</td>
+                    </tr>
+                  ))}
+                  {lots.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '1rem' }}>Tidak ada lot dalam sesi ini.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
 
       <style jsx global>{`
         @keyframes pulse {

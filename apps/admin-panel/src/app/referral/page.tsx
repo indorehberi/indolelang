@@ -16,7 +16,7 @@ interface ReferralUser {
   joined_at: string;
 }
 
-const DUMMY_REFERRALS: ReferralUser[] = [];
+import { apiUrl } from '../../lib/api';
 
 export default function ReferralPage() {
   const [search, setSearch] = useState('');
@@ -24,19 +24,40 @@ export default function ReferralPage() {
   const [rewardPerReferral, setRewardPerReferral] = useState('100000');
   const [savingConfig, setSavingConfig] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
+  const [referrals, setReferrals] = useState<ReferralUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchReferrals();
+  }, [search]);
+
+  const fetchReferrals = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/referrals?per_page=100&search=${search}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setReferrals(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const filtered = DUMMY_REFERRALS.filter((r) => {
-    const matchSearch =
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.email.toLowerCase().includes(search.toLowerCase()) ||
-      r.referral_code.toLowerCase().includes(search.toLowerCase());
+  const filtered = referrals.filter((r) => {
     const matchStatus = !statusFilter || r.status === statusFilter;
-    return matchSearch && matchStatus;
+    return matchStatus;
   });
 
   const formatPrice = (v: number) =>
@@ -238,8 +259,13 @@ export default function ReferralPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id}>
+                {loading ? (
+                  <tr><td colSpan={5} className="text-center">Memuat data...</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center text-muted">Tidak ada data referral.</td></tr>
+                ) : (
+                  filtered.map((r) => (
+                    <tr key={r.id}>
                     <td>
                       <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.email}</div>
@@ -279,14 +305,7 @@ export default function ReferralPage() {
                       </Badge>
                     </td>
                   </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      Tidak ada data ditemukan
-                    </td>
-                  </tr>
-                )}
+                )))}
               </tbody>
             </table>
           </div>

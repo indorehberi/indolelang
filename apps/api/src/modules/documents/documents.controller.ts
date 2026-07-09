@@ -114,6 +114,28 @@ export class DocumentsController {
       next(error);
     }
   };
+
+  async downloadBapl(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invoiceId = req.params.invoiceId;
+      await this.checkAccess(invoiceId, req);
+
+      const doc = await documentsService.generateBaplPdf(invoiceId);
+      const filePath = path.join(process.cwd(), doc.file_url);
+
+      if (!fs.existsSync(filePath)) {
+        throw new AppError(404, ErrorCode.NOT_FOUND, 'File dokumen tidak ditemukan di server');
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="bapl-${invoiceId}.pdf"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default DocumentsController;

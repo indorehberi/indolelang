@@ -64,7 +64,20 @@ export class BiddingService {
 
     const unitType = lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil';
 
-    // 2. Verify bidder global NIPL quota for this unit type
+    // 2. Block bidding for users who are active providers (cannot bid once approved as provider)
+    const activeProvider = await prisma.providers.findUnique({
+      where: { user_id: bid.userId },
+    });
+
+    if (activeProvider?.status === 'aktif') {
+      throw new AppError(
+        403,
+        ErrorCode.FORBIDDEN,
+        'Akun Anda sudah aktif sebagai Provider. Provider tidak dapat mengikuti lelang sebagai bidder.'
+      );
+    }
+
+    // 3. Verify bidder global NIPL quota for this unit type
     const activeDeposits = await prisma.deposits.findMany({
       where: {
         user_id: bid.userId,

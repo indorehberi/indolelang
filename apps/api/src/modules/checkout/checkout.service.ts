@@ -65,6 +65,31 @@ export class CheckoutService {
   }
 
   /**
+   * Get all checkout orders (invoices history) for a bidder
+   */
+  async getOrders(userId: string) {
+    const orders = await prisma.checkout_orders.findMany({
+      where: {
+        bidder_id: userId,
+      },
+      include: {
+        invoices: {
+          include: {
+            lot: {
+              include: {
+                asset: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return orders;
+  }
+
+  /**
    * Process checkout
    */
   async processCheckout(userId: string, invoiceIds: string[], bank: string) {
@@ -235,8 +260,43 @@ export class CheckoutService {
       deposit_deduction: Number(checkoutOrder.deposit_deduction),
       final_amount: Number(checkoutOrder.final_amount),
       status: checkoutOrder.status,
+      payment_method: checkoutOrder.payment_method,
       va_number: checkoutOrder.va_number,
       va_bank: checkoutOrder.va_bank,
+    };
+  }
+
+  /**
+   * Upload transfer proof for manual payment checkout
+   */
+  async uploadProof(orderId: string, userId: string, proofUrl: string) {
+    const order = await prisma.checkout_orders.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Pesanan tidak ditemukan');
+    }
+
+    if (order.bidder_id !== userId) {
+      throw new AppError(403, ErrorCode.FORBIDDEN, 'Akses ditolak');
+    }
+
+    if (order.status !== 'unpaid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Pesanan sudah dibayar atau kedaluwarsa');
+    }
+
+    const updated = await prisma.checkout_orders.update({
+      where: { id: orderId },
+      data: {
+        transfer_proof_url: proofUrl,
+      }
+    });
+
+    return {
+      id: updated.id,
+      status: updated.status,
+      transfer_proof_url: updated.transfer_proof_url,
     };
   }
 }

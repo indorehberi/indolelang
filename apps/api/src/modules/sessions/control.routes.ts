@@ -30,6 +30,13 @@ router.post(
 );
 
 router.post(
+  '/admin/sessions/:id/start',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.startSession
+);
+
+router.post(
   '/admin/sessions/:id/end',
   authenticate,
   authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),

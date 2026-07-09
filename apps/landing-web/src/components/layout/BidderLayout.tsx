@@ -16,51 +16,27 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userName, setUserName] = useState("Budi Santoso");
   const [userInitial, setUserInitial] = useState("BS");
-  const [watchlistCount, setWatchlistCount] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
+      const user = localStorage.getItem("user");
+      if (user) {
         try {
-          const user = JSON.parse(storedUser);
-          if (user.full_name) {
-            setUserName(user.full_name);
-            const initials = user.full_name
+          const parsed = JSON.parse(user);
+          setUserName(parsed.full_name);
+          setUserInitial(
+            parsed.full_name
               .split(" ")
               .map((n: string) => n[0])
               .join("")
               .substring(0, 2)
-              .toUpperCase();
-            setUserInitial(initials || "U");
-          }
+              .toUpperCase()
+          );
         } catch (e) {
-          // fallback
+          console.error("Error parsing user data");
         }
       }
     }
-
-    const updateWatchlistCount = () => {
-      if (typeof window !== "undefined") {
-        try {
-          const stored = localStorage.getItem("watchlist");
-          if (stored) {
-            const list = JSON.parse(stored);
-            setWatchlistCount(Array.isArray(list) ? list.length : 0);
-          } else {
-            setWatchlistCount(0);
-          }
-        } catch (e) {
-          setWatchlistCount(0);
-        }
-      }
-    };
-
-    updateWatchlistCount();
-    window.addEventListener("watchlist-updated", updateWatchlistCount);
-    return () => {
-      window.removeEventListener("watchlist-updated", updateWatchlistCount);
-    };
   }, []);
 
   const handleLogout = () => {
@@ -74,10 +50,10 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
   const menuItems = [
     { name: "Dashboard", href: "/bidder/dashboard", icon: "dashboard" },
     { name: "Katalog Lelang", href: "/katalog", icon: "gavel" },
-    { name: "Watchlist Aset", href: "/bidder/watchlist", icon: "star", badge: watchlistCount > 0 ? String(watchlistCount) : undefined },
     { name: "Ruang Lelang Live", href: "/bidder/bidding-room", icon: "play_circle", isLive: true },
     { name: "Beli Deposit NIPL", href: "/bidder/deposit", icon: "payments" },
     { name: "Keranjang Tagihan", href: "/bidder/cart", icon: "shopping_cart" },
+    { name: "Riwayat Tagihan", href: "/bidder/invoices", icon: "receipt_long" },
     { name: "Riwayat Lelang", href: "/bidder/riwayat-lelang", icon: "history" },
     { name: "Riwayat Deposit & Refund", href: "/bidder/deposit/history", icon: "account_balance_wallet" },
     { name: "Profil & eKYC", href: "/bidder/profile", icon: "person" },

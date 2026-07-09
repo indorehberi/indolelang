@@ -24,7 +24,7 @@ interface Asset {
   description?: string;
   base_price: number;
   images?: string[];
-  status: 'pending' | 'approved' | 'listed' | 'sold' | 'returned';
+  status: 'pending' | 'inspected' | 'approved' | 'listed' | 'sold' | 'rejected' | 'returned';
   created_at: string;
 }
 
@@ -51,7 +51,10 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('pending,returned');
+  const [statusFilter, setStatusFilter] = useState('pending,rejected,returned');
+  const [poolFilter, setPoolFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   
   const [userRole, setUserRole] = useState<string>('');
 
@@ -327,30 +330,6 @@ export default function AssetsPage() {
 
 
   
-  const handleApprove = async (id: string) => {
-    if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
-    try {
-      const response = await fetch(apiUrl(`/admin/assets/${id}/approve`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
-      if (response.ok) fetchAssets();
-      else alert('Gagal menyetujui barang');
-    } catch (err) { console.error(err); }
-  };
-
-  const handleReject = async (id: string) => {
-    if (!confirm('Apakah Anda yakin menolak barang ini?')) return;
-    try {
-      const response = await fetch(apiUrl(`/admin/assets/${id}/reject`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
-      if (response.ok) fetchAssets();
-      else alert('Gagal menolak barang');
-    } catch (err) { console.error(err); }
-  };
-
   const handleReviewUlang = async (id: string) => {
     if (!confirm('Ajukan ulang barang ini untuk direview?')) return;
     try {
@@ -389,6 +368,9 @@ export default function AssetsPage() {
       if (providerFilter) query += `&provider_id=${providerFilter}`;
       if (categoryFilter) query += `&category=${categoryFilter}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (poolFilter) query += `&pool_status=${poolFilter}`;
+      if (dateFrom) query += `&date_from=${dateFrom}`;
+      if (dateTo) query += `&date_to=${dateTo}`;
 
       const response = await fetch(apiUrl(`/assets${query}`), {
         headers: {
@@ -407,7 +389,7 @@ export default function AssetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, search, statusFilter, providerFilter]);
+  }, [categoryFilter, search, statusFilter, providerFilter, poolFilter, dateFrom, dateTo]);
 
   const fetchProviders = async () => {
     try {
@@ -450,10 +432,14 @@ export default function AssetsPage() {
         return <Badge variant="info">Approved</Badge>;
       case 'pending':
         return <Badge variant="warning">Pending Review</Badge>;
+      case 'inspected':
+        return <Badge variant="warning">Sudah Diinspeksi</Badge>;
+      case 'rejected':
+        return <Badge variant="danger">Ditolak</Badge>;
       case 'sold':
         return <Badge variant="default">Sold</Badge>;
       case 'returned':
-        return <Badge variant="danger">Returned</Badge>;
+        return <Badge variant="danger">Dikembalikan</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -607,9 +593,13 @@ export default function AssetsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="pending,returned">Semua</option>
-              <option value="pending">Pending</option>
-              <option value="returned">Dikembalikan (Rejected)</option>
+              <option value="pending,rejected,returned">Semua</option>
+              <option value="pending">Menunggu (Pending)</option>
+              <option value="inspected">Sudah Diinspeksi</option>
+              <option value="approved,listed">Disetujui</option>
+              <option value="rejected">Ditolak</option>
+              <option value="returned">Dikembalikan</option>
+              <option value="sold">Terjual</option>
             </select>
           </div>
 
@@ -629,6 +619,42 @@ export default function AssetsPage() {
               </select>
             </div>
           )}
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Pool</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={poolFilter}
+              onChange={(e) => setPoolFilter(e.target.value)}
+            >
+              <option value="">Semua Pool</option>
+              <option value="in_pool">In Pool</option>
+              <option value="out_pool">Out Pool</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
         </div>
       </Card>
 
@@ -686,16 +712,13 @@ export default function AssetsPage() {
                         {['admin', 'superadmin'].includes(userRole) && (
                           <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
                         )}
-                        {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
-                          <Button variant="success" size="sm" onClick={() => handleApprove(asset.id)}>Approve</Button>
-                        )}
-                        {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
-                          <Button variant="danger" size="sm" onClick={() => handleReject(asset.id)}>Reject</Button>
+                        {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.status === 'pending' && (
+                          <Button variant="primary" size="sm" onClick={() => router.push('/assets/inspection')}>Inspeksi</Button>
                         )}
                         {userRole === 'inspector' && (
                           <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>Edit</Button>
                         )}
-                        {['inspector', 'provider'].includes(userRole) && asset.status === 'returned' && (
+                        {['inspector', 'provider'].includes(userRole) && ['rejected', 'returned'].includes(asset.status) && (
                           <Button variant="primary" size="sm" onClick={() => handleReviewUlang(asset.id)}>Ajukan</Button>
                         )}
                         {userRole === 'inspector' && (

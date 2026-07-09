@@ -3,6 +3,7 @@ import { KycStatus } from '@indo-lelang/shared-types';
 
 export const uploadKycSchema = z.object({
   body: z.object({
+    nik: z.string().min(16, 'NIK harus 16 digit').max(16, 'NIK harus 16 digit').optional(),
     ktp_url: z.string().url('URL KTP tidak valid').optional(),
     selfie_url: z.string().url('URL Selfie tidak valid').optional(),
     ktp_selfie_url: z.string().url('URL KTP Selfie tidak valid').optional(),

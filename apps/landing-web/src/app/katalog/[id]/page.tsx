@@ -15,8 +15,7 @@ export default function DetailLotPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedThumb, setSelectedThumb] = useState(0);
-  const [bidAmount, setBidAmount] = useState(0);
-  const [wishlisted, setWishlisted] = useState(false);
+  const [bidAmount, setBidAmount] = useState<number>(0);
 
   useEffect(() => {
     if (!id) return;
@@ -33,17 +32,6 @@ export default function DetailLotPage() {
           const lotData = result.data;
           setLot(lotData);
           setBidAmount(lotData.hammer_price || lotData.starting_price);
-          
-          // Check watchlist status from localStorage
-          const stored = localStorage.getItem("watchlist");
-          if (stored) {
-            try {
-              const list: string[] = JSON.parse(stored);
-              setWishlisted(list.includes(lotData.id));
-            } catch (e) {
-              // ignore
-            }
-          }
         } else {
           setError(result.error?.message || "Lot tidak ditemukan");
         }
@@ -56,32 +44,6 @@ export default function DetailLotPage() {
 
     fetchLotDetail();
   }, [id]);
-
-  const toggleWishlist = () => {
-    if (!lot) return;
-    if (typeof window === "undefined") return;
-
-    try {
-      const stored = localStorage.getItem("watchlist");
-      let list: string[] = stored ? JSON.parse(stored) : [];
-      if (!Array.isArray(list)) list = [];
-
-      let nextWishlisted = false;
-      if (list.includes(lot.id)) {
-        list = list.filter((x) => x !== lot.id);
-        nextWishlisted = false;
-      } else {
-        list.push(lot.id);
-        nextWishlisted = true;
-      }
-
-      localStorage.setItem("watchlist", JSON.stringify(list));
-      setWishlisted(nextWishlisted);
-      window.dispatchEvent(new Event("watchlist-updated"));
-    } catch (e) {
-      console.error("Failed to update watchlist", e);
-    }
-  };
 
   const handleQuickBid = (increment: number) => {
     setBidAmount((prev) => prev + increment);
@@ -390,20 +352,6 @@ export default function DetailLotPage() {
                       >
                         <span className="material-symbols-outlined font-bold">gavel</span>
                         Ikut Bid Sekarang
-                      </button>
-
-                      <button
-                        onClick={toggleWishlist}
-                        className={`w-full py-3.5 border rounded-2xl text-body-md font-bold transition-all btn-press flex items-center justify-center gap-2 shadow-sm ${
-                          wishlisted
-                            ? "bg-premium/10 border-premium text-premium"
-                            : "bg-white border-outline-variant hover:bg-surface/40 text-on-surface"
-                        }`}
-                      >
-                        <span className={`material-symbols-outlined ${wishlisted ? "filled text-premium" : ""}`}>
-                          star
-                        </span>
-                        {wishlisted ? "Tersimpan di Watchlist" : "Tambah ke Watchlist"}
                       </button>
                     </div>
                   </div>

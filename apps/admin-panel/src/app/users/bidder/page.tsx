@@ -8,114 +8,100 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiUrl } from '../../../lib/api';
 
-interface User {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  status: 'pending' | 'active' | 'suspended';
+interface Bidder {
+  id: string; // bidders table row id
+  user_id: string;
+  status: 'antri' | 'aktif' | 'ditolak' | 'nonaktif';
+  rejection_reason?: string;
+  active_nipl_count?: number;
+  submitted_at: string;
   kyc?: {
     id: string;
     status: string;
-    ktp_url: string;
-    selfie_url: string;
+    ktp_url?: string;
+    selfie_url?: string;
   };
-  created_at: string;
+  user?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+  };
 }
 
 export default function BidderListPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [bidders, setBidders] = useState<Bidder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
-  
+  const [search, setSearch] = useState('');
+
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showKycModal, setShowKycModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedBidder, setSelectedBidder] = useState<Bidder | null>(null);
 
-  // Form states
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ full_name: '', email: '', phone: '' });
 
-  const fetchUsers = useCallback(async () => {
+  const fetchBidders = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
-      let url = apiUrl('/admin/users?');
-      const roleQuery = filterRole ? filterRole : 'user,bidder';
-      url += `role=${roleQuery}`;
-      
-      if (filterStatus) {
-        url += `&status=${filterStatus}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      let url = apiUrl(`/admin/bidders?per_page=200`);
+      if (filterStatus) url += `&status=${filterStatus}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
       if (response.ok && data.success) {
-        setUsers(data.data);
+        setBidders(data.data);
       } else {
-        setUsers([]);
+        setBidders([]);
       }
     } catch (err) {
       console.error(err);
-      setUsers([]);
+      setBidders([]);
     } finally {
       setLoading(false);
     }
-  }, [filterRole, filterStatus]);
+  }, [filterStatus, search]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchUsers();
-  }, [fetchUsers]);
+    const t = setTimeout(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBidders();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [fetchBidders]);
 
-  const getStatusBadge = (status: User['status']) => {
+  const getStatusBadge = (status: Bidder['status']) => {
     switch (status) {
-      case 'active':
-        return <Badge variant="success">Active</Badge>;
-      case 'pending':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'suspended':
-        return <Badge variant="danger">Suspended</Badge>;
+      case 'aktif':
+        return <Badge variant="success">Aktif</Badge>;
+      case 'antri':
+        return <Badge variant="warning">Menunggu Verifikasi</Badge>;
+      case 'ditolak':
+        return <Badge variant="danger">Ditolak</Badge>;
       default:
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="default">Nonaktif</Badge>;
     }
   };
 
-
-
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
+    if (!selectedBidder?.user) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+      const response = await fetch(apiUrl(`/admin/users/${selectedBidder.user.id}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
       if (response.ok && data.success) {
         setShowEditModal(false);
-        fetchUsers();
+        fetchBidders();
       } else {
         alert(data.error?.message || 'Gagal mengubah bidder');
       }
@@ -126,19 +112,17 @@ export default function BidderListPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedUser) return;
+    if (!selectedBidder?.user) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedUser.id}`), {
+      const response = await fetch(apiUrl(`/admin/users/${selectedBidder.user.id}`), {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (response.ok && data.success) {
         setShowDeleteModal(false);
-        fetchUsers();
+        fetchBidders();
       } else {
         alert(data.error?.message || 'Gagal menghapus bidder');
       }
@@ -148,20 +132,20 @@ export default function BidderListPage() {
     }
   };
 
-  const handleApproveKyc = async (kycId: string) => {
-    if (!window.confirm('Apakah Anda yakin ingin menyetujui verifikasi KYC bidder ini?')) return;
+  const handleApprove = async (id: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menyetujui pengajuan bidder ini?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/kyc/${kycId}/approve`), {
+      const response = await fetch(apiUrl(`/admin/bidders/${id}/approve`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-        setShowKycModal(false);
-        fetchUsers();
+        setShowReviewModal(false);
+        fetchBidders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menyetujui KYC');
+        alert(data.error?.message || 'Gagal menyetujui bidder');
       }
     } catch (err) {
       console.error(err);
@@ -169,30 +153,26 @@ export default function BidderListPage() {
     }
   };
 
-  const handleRejectKyc = async (kycId: string) => {
-    const reason = window.prompt('Masukkan alasan penolakan verifikasi KYC:');
-    if (reason === null) return; // User cancelled
+  const handleReject = async (id: string) => {
+    const reason = window.prompt('Masukkan alasan penolakan pengajuan bidder:');
+    if (reason === null) return;
     if (!reason.trim()) {
       alert('Alasan penolakan wajib diisi!');
       return;
     }
-    
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/kyc/${kycId}/reject`), {
+      const response = await fetch(apiUrl(`/admin/bidders/${id}/reject`), {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ rejection_reason: reason.trim() })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: reason.trim() }),
       });
       if (response.ok) {
-        setShowKycModal(false);
-        fetchUsers();
+        setShowReviewModal(false);
+        fetchBidders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menolak KYC');
+        alert(data.error?.message || 'Gagal menolak bidder');
       }
     } catch (err) {
       console.error(err);
@@ -204,31 +184,29 @@ export default function BidderListPage() {
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Bidder">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Daftar Pengguna / Bidder</h1>
+          <h1 className="page-title">Daftar Bidder</h1>
+          <p className="page-subtitle">Hanya menampilkan pengguna yang mengajukan diri sebagai bidder.</p>
         </div>
         <div className="toolbar-right" style={{ display: 'flex', gap: '10px' }}>
-          <select 
-            className="search-box" 
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-          >
-            <option value="">Semua (User & Bidder)</option>
-            <option value="user">Hanya User Baru</option>
-            <option value="bidder">Hanya Bidder</option>
-          </select>
-          <select 
-            className="search-box" 
+          <select
+            className="search-box"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
           >
             <option value="">Semua Status</option>
-            <option value="active">Approved (Active)</option>
-            <option value="pending">Pending (Need Approval)</option>
-            <option value="suspended">Other (Suspended)</option>
+            <option value="antri">Menunggu Verifikasi (Antri)</option>
+            <option value="aktif">Aktif</option>
+            <option value="ditolak">Ditolak</option>
+            <option value="nonaktif">Nonaktif</option>
           </select>
-          <input type="text" placeholder="Cari bidder..." className="search-box" />
+          <input
+            type="text"
+            placeholder="Cari nama/email/telepon..."
+            className="search-box"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <Button variant="primary" size="sm" onClick={() => router.push('/users/bidder/new')}>
             + Tambah Bidder
           </Button>
@@ -243,76 +221,71 @@ export default function BidderListPage() {
                 <th>Nama Lengkap</th>
                 <th>Email</th>
                 <th>Nomor Telepon</th>
-                <th>Tipe Akun</th>
                 <th>NIPL Aktif</th>
                 <th>Status</th>
-                <th>Tanggal Daftar</th>
+                <th>Tanggal Ajukan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center">
-                    Memuat data...
-                  </td>
+                  <td colSpan={7} className="text-center">Memuat data...</td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : bidders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center">
-                    Tidak ada pengguna terdaftar.
-                  </td>
+                  <td colSpan={7} className="text-center">Tidak ada bidder ditemukan.</td>
                 </tr>
               ) : (
-                users.map((bidder) => (
+                bidders.map((bidder) => (
                   <tr key={bidder.id}>
+                    <td><strong>{bidder.user?.full_name}</strong></td>
+                    <td>{bidder.user?.email}</td>
+                    <td>{bidder.user?.phone || '-'}</td>
                     <td>
-                      <strong>{bidder.full_name}</strong>
-                    </td>
-                    <td>{bidder.email}</td>
-                    <td>{bidder.phone}</td>
-                    <td>
-                      <Badge variant={(bidder as any).role === 'bidder' ? 'info' : 'default'}>
-                        {((bidder as any).role || '').toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge variant={(bidder as any).active_nipl_count > 0 ? 'success' : 'default'}>
-                        {(bidder as any).active_nipl_count || 0} NIPL
+                      <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
+                        {bidder.active_nipl_count || 0} NIPL
                       </Badge>
                     </td>
                     <td>{getStatusBadge(bidder.status)}</td>
-                    <td>{bidder.created_at.split('T')[0]}</td>
+                    <td>{bidder.submitted_at.split('T')[0]}</td>
                     <td>
                       <div className="d-flex gap-1" style={{ display: 'flex', gap: '0.5rem' }}>
-                        {bidder.status === 'pending' && bidder.kyc && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                        {bidder.status === 'antri' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
-                              setSelectedUser(bidder);
-                              setShowKycModal(true);
+                              setSelectedBidder(bidder);
+                              setShowReviewModal(true);
                             }}
                           >
-                            View KYC
+                            Tinjau
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => {
-                          setSelectedUser(bidder);
-                          setFormData({ 
-                            full_name: bidder.full_name, 
-                            email: bidder.email, 
-                            phone: bidder.phone || '', 
-                            password: '' 
-                          });
-                          setShowEditModal(true);
-                        }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBidder(bidder);
+                            setFormData({
+                              full_name: bidder.user?.full_name || '',
+                              email: bidder.user?.email || '',
+                              phone: bidder.user?.phone || '',
+                            });
+                            setShowEditModal(true);
+                          }}
+                        >
                           Edit
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => {
-                          setSelectedUser(bidder);
-                          setShowDeleteModal(true);
-                        }}>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBidder(bidder);
+                            setShowDeleteModal(true);
+                          }}
+                        >
                           Delete
                         </Button>
                       </div>
@@ -325,8 +298,6 @@ export default function BidderListPage() {
         </div>
       </Card>
 
-
-
       {/* EDIT MODAL */}
       {showEditModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
@@ -335,15 +306,15 @@ export default function BidderListPage() {
             <form onSubmit={handleEdit}>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Lengkap</label>
-                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
-                <input required type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                <input required type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Batal</Button>
@@ -354,34 +325,33 @@ export default function BidderListPage() {
         </div>
       )}
 
-      {/* KYC VIEW MODAL */}
-      {showKycModal && selectedUser && selectedUser.kyc && (
+      {/* REVIEW MODAL (KYC + profil) */}
+      {showReviewModal && selectedBidder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '2rem' }}>
           <div style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <Card>
-              <h3 style={{ marginBottom: '1rem' }}>Peninjauan KYC Bidder</h3>
+              <h3 style={{ marginBottom: '1rem' }}>Peninjauan Pengajuan Bidder</h3>
               <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
-                <div>
-                  <strong>Nama:</strong> {selectedUser.full_name}
-                </div>
-                <div>
-                  <strong>Email:</strong> {selectedUser.email}
-                </div>
+                <div><strong>Nama:</strong> {selectedBidder.user?.full_name}</div>
+                <div><strong>Email:</strong> {selectedBidder.user?.email}</div>
+                <div><strong>Telepon:</strong> {selectedBidder.user?.phone || '-'}</div>
               </div>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                 <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
                   <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto KTP</h4>
-                  {selectedUser.kyc.ktp_url ? (
-                    <img src={selectedUser.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                  {selectedBidder.kyc?.ktp_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selectedBidder.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada KTP</div>
                   )}
                 </div>
                 <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
                   <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto Selfie</h4>
-                  {selectedUser.kyc.selfie_url ? (
-                    <img src={selectedUser.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                  {selectedBidder.kyc?.selfie_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selectedBidder.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada Selfie</div>
                   )}
@@ -389,12 +359,12 @@ export default function BidderListPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="outline" type="button" onClick={() => setShowKycModal(false)}>Tutup</Button>
-                <Button variant="danger" type="button" onClick={() => handleRejectKyc(selectedUser.kyc!.id)}>
+                <Button variant="outline" type="button" onClick={() => setShowReviewModal(false)}>Tutup</Button>
+                <Button variant="danger" type="button" onClick={() => handleReject(selectedBidder.id)}>
                   Tolak (Reject)
                 </Button>
-                <Button variant="primary" type="button" onClick={() => handleApproveKyc(selectedUser.kyc!.id)}>
-                  Setujui (Approve KYC)
+                <Button variant="primary" type="button" onClick={() => handleApprove(selectedBidder.id)}>
+                  Setujui (Approve)
                 </Button>
               </div>
             </Card>
@@ -408,7 +378,7 @@ export default function BidderListPage() {
           <Card>
             <h3 style={{ marginBottom: '1rem', color: 'var(--color-danger)' }}>Hapus Bidder</h3>
             <p style={{ marginBottom: '1.5rem' }}>
-              Apakah Anda yakin ingin menghapus <strong>{selectedUser?.full_name}</strong>? Tindakan ini akan menonaktifkan pengguna.
+              Apakah Anda yakin ingin menghapus <strong>{selectedBidder?.user?.full_name}</strong>? Tindakan ini akan menonaktifkan pengguna.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <Button variant="outline" type="button" onClick={() => setShowDeleteModal(false)}>Batal</Button>

@@ -74,6 +74,36 @@ export class LotsController {
       next(error);
     }
   }
+
+  /**
+   * Remove a lot from its session (Admin/Operator only)
+   */
+  async deleteLot(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const oldLot = await lotsService.getLotById(id);
+      await lotsService.deleteLot(id);
+
+      logAdminAction(req, 'DELETE_LOT', 'lots', id, oldLot, null);
+
+      sendSuccess(res, null, 'Lot berhasil dihapus dari sesi');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markAsPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const invoiceId = await lotsService.markAsPaid(id);
+      
+      logAdminAction(req, 'MARK_LOT_PAID', 'lots', id, null, { invoiceId });
+      
+      sendSuccess(res, { invoice_id: invoiceId }, 'Lot berhasil ditandai sebagai sudah dibayar');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default LotsController;

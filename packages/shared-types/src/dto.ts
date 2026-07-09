@@ -124,9 +124,66 @@ export interface UserDTO {
   updated_at: string;
 }
 
+export interface BidderDTO {
+  id: string;
+  user_id: string;
+  status: string;
+  address?: string;
+  occupation?: string;
+  bank_name?: string;
+  bank_account_no?: string;
+  bank_account_name?: string;
+  rejection_reason?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+  active_nipl_count?: number;
+  kyc?: {
+    id: string;
+    status: string;
+    ktp_url?: string;
+    selfie_url?: string;
+  };
+  user?: UserDTO;
+}
+
+export interface ProviderDTO {
+  id: string;
+  user_id: string;
+  status: string;
+  company_name?: string;
+  npwp?: string;
+  npwp_url?: string;
+  pks_number?: string;
+  provider_type?: string;
+  provider_fee_type?: string;
+  provider_fee_amount?: number;
+  pmk41_paid_by_provider?: boolean;
+  address?: string;
+  bank_name?: string;
+  bank_account_no?: string;
+  bank_account_name?: string;
+  rejection_reason?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+  kyc?: {
+    id: string;
+    status: string;
+    ktp_url?: string;
+    selfie_url?: string;
+  };
+  user?: UserDTO;
+}
+
 export interface KycDocumentDTO {
   id: string;
   user_id: string;
+  nik?: string;
   ktp_url?: string;
   selfie_url?: string;
   ktp_selfie_url?: string;
@@ -174,6 +231,19 @@ export interface AssetDTO {
   base_price: number;
   images?: string[];
   status: string;
+  branch_id?: string;
+  pool_status?: string;
+  notes?: string;
+  rejection_reason?: string;
+  photo_front?: string;
+  photo_back?: string;
+  photo_right?: string;
+  photo_left?: string;
+  photo_engine?: string;
+  photo_interior?: string;
+  photo_stnk?: string;
+  inspection_pic_name?: string;
+  inspection_doc_url?: string;
   created_at: string;
   updated_at: string;
 }

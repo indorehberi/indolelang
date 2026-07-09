@@ -80,6 +80,30 @@ export default function AuctionResultsPage() {
     return true;
   });
 
+  const handleMarkAsPaid = async (lotId: string) => {
+    if (!confirm('Tandai lot ini sebagai sudah dibayar dan generate BAPL?')) return;
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/lots/${lotId}/paid`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        alert('Berhasil! BAPL akan diunduh secara otomatis.');
+        // Automatically download BAPL
+        window.open(apiUrl(`/documents/bapl/${data.data.invoice_id}/download`), '_blank');
+        fetchLots(); // Refresh
+      } else {
+        alert(data.error?.message || 'Gagal menandai sebagai dibayar');
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan.');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Lelang" breadcrumbCurrent="Hasil Sesi">
       <div className="toolbar">
@@ -172,13 +196,14 @@ export default function AuctionResultsPage() {
                 <th>Kendaraan (merk, tipe, tahun, no)</th>
                 <th>Harga Limit</th>
                 <th>Status</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center">Memuat data hasil lelang...</td></tr>
+                <tr><td colSpan={8} className="text-center">Memuat data hasil lelang...</td></tr>
               ) : filteredLots.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
               ) : (
                 filteredLots.map((lot) => {
                   const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'}) - ${lot.asset.police_number || '-'}` : '-';
@@ -211,6 +236,17 @@ export default function AuctionResultsPage() {
                         <Badge variant={lot.status === 'sold' ? 'success' : 'default'}>
                           {lot.status === 'sold' ? 'Sold' : 'Unsold'}
                         </Badge>
+                      </td>
+                      <td>
+                        {lot.status === 'sold' && (
+                          <button 
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleMarkAsPaid(lot.id)}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            Sudah Dibayar & BAPL
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

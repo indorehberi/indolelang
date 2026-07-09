@@ -49,7 +49,6 @@ export default function RegisterPage() {
           password: formData.password,
           confirm_password: formData.confirmPassword,
           full_name: formData.nama,
-          role: "bidder",
         }),
       });
 

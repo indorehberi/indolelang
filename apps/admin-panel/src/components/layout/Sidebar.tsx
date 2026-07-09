@@ -38,7 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const router = typeof window !== 'undefined' ? require('next/navigation').useRouter() : null;
 
-  const [kycCount, setKycCount] = useState<number>(0);
+  const [bidderQueueCount, setBidderQueueCount] = useState<number>(0);
+  const [providerQueueCount, setProviderQueueCount] = useState<number>(0);
   const [assetCount, setAssetCount] = useState<number>(0);
   const [liveSession, setLiveSession] = useState<boolean>(false);
   const [showAnalytics, setShowAnalytics] = useState<boolean>(true);
@@ -46,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     if (kycPendingCount !== undefined) {
-      setKycCount(kycPendingCount);
+      setBidderQueueCount(kycPendingCount);
     }
     if (assetPendingCount !== undefined) {
       setAssetCount(assetPendingCount);
@@ -63,12 +64,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const fetchCounts = async () => {
       try {
         if (kycPendingCount === undefined) {
-          const res = await fetch(apiUrl('/admin/kyc/queue?status=pending&per_page=1'), {
+          const res = await fetch(apiUrl('/admin/bidders?status=antri&per_page=1'), {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            setKycCount(data.meta?.total ?? data.data?.length ?? 0);
+            setBidderQueueCount(data.meta?.total ?? data.data?.length ?? 0);
+          }
+        }
+
+        {
+          const res = await fetch(apiUrl('/admin/providers?status=antri&per_page=1'), {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setProviderQueueCount(data.meta?.total ?? data.data?.length ?? 0);
           }
         }
 
@@ -179,14 +190,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Pengguna',
       items: [
-        { href: '/users/bidder', icon: 'person', iconColor: '#10b981', label: 'Bidder' },
-        { href: '/users/provider', icon: 'storefront', iconColor: '#a855f7', label: 'Provider' },
         {
-          href: '/kyc/verification',
-          icon: 'verified_user',
-          iconColor: '#14b8a6',
-          label: 'Verifikasi KYC',
-          badge: kycCount,
+          href: '/users/bidder',
+          icon: 'person',
+          iconColor: '#10b981',
+          label: 'Bidder',
+          badge: bidderQueueCount || undefined,
+          badgeTone: 'danger',
+        },
+        {
+          href: '/users/provider',
+          icon: 'storefront',
+          iconColor: '#a855f7',
+          label: 'Provider',
+          badge: providerQueueCount || undefined,
           badgeTone: 'danger',
         },
         { href: '/pesan', icon: 'mail', iconColor: '#3b82f6', label: 'Pesan Masuk' },

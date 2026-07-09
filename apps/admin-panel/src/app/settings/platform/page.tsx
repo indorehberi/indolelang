@@ -25,6 +25,11 @@ export default function PlatformSettingsPage() {
   const [feeBearerSettlement, setFeeBearerSettlement] = useState('provider');
   const [antiSnipeSecs, setAntiSnipeSecs] = useState('120');
   
+  // BAPL Settings
+  const [pejabatPenjual, setPejabatPenjual] = useState('');
+  const [pejabatLelang, setPejabatLelang] = useState('');
+  const [isSavingBapl, setIsSavingBapl] = useState(false);
+  
   // Auction Automation Settings
   const [auctionLotDuration, setAuctionLotDuration] = useState('30');
   const [auctionLotNextDelay, setAuctionLotNextDelay] = useState('10');
@@ -34,6 +39,13 @@ export default function PlatformSettingsPage() {
   const [auctionSessionEndTrigger, setAuctionSessionEndTrigger] = useState('admin');
   
   const [isSavingAuction, setIsSavingAuction] = useState(false);
+
+  // Bidding Room Settings
+  const [bidIncrement1, setBidIncrement1] = useState('500000');
+  const [bidIncrement2, setBidIncrement2] = useState('1000000');
+  const [bidIncrement3, setBidIncrement3] = useState('2000000');
+  const [bidCountdownInitial, setBidCountdownInitial] = useState('120');
+  const [isSavingBidding, setIsSavingBidding] = useState(false);
 
   // New financial settings
   const [pmk41, setPmk41] = useState('1.1');
@@ -176,6 +188,18 @@ export default function PlatformSettingsPage() {
               try {
                 setAdminFeeTiers(JSON.parse(item.value));
               } catch(e) {}
+            } else if (item.key === 'bapl_pejabat_penjual') {
+              setPejabatPenjual(item.value);
+            } else if (item.key === 'bapl_pejabat_lelang') {
+              setPejabatLelang(item.value);
+            } else if (item.key === 'bid_increment_1') {
+              setBidIncrement1(item.value);
+            } else if (item.key === 'bid_increment_2') {
+              setBidIncrement2(item.value);
+            } else if (item.key === 'bid_increment_3') {
+              setBidIncrement3(item.value);
+            } else if (item.key === 'bid_countdown_initial') {
+              setBidCountdownInitial(item.value);
             } else if (item.key in newApiKeys) {
               (newApiKeys as any)[item.key] = item.value;
             }
@@ -328,6 +352,63 @@ export default function PlatformSettingsPage() {
     }
   };
 
+  const handleSaveBaplSettings = async () => {
+    setIsSavingBapl(true);
+    const token = localStorage.getItem('accessToken');
+    try {
+      const updates = [
+        { key: 'bapl_pejabat_penjual', value: pejabatPenjual },
+        { key: 'bapl_pejabat_lelang', value: pejabatLelang },
+      ];
+
+      for (const update of updates) {
+        await fetch(apiUrl(`/admin/settings/${update.key}`), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ value: update.value }),
+        });
+      }
+      alert('Pengaturan Pejabat BAPL berhasil disimpan!');
+      fetchSettings();
+    } catch (e) {
+      alert('Gagal menyimpan pengaturan Pejabat BAPL.');
+    } finally {
+      setIsSavingBapl(false);
+    }
+  };
+
+  const handleSaveBiddingSettings = async () => {
+    setIsSavingBidding(true);
+    try {
+      const updates = [
+        { key: 'bid_increment_1', value: bidIncrement1.toString() },
+        { key: 'bid_increment_2', value: bidIncrement2.toString() },
+        { key: 'bid_increment_3', value: bidIncrement3.toString() },
+        { key: 'bid_countdown_initial', value: bidCountdownInitial.toString() },
+      ];
+
+      const token = localStorage.getItem('accessToken');
+      for (const update of updates) {
+        await fetch(apiUrl('/admin/settings'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(update),
+        });
+      }
+      alert('Pengaturan Bidding berhasil disimpan!');
+    } catch (e) {
+      alert('Gagal menyimpan pengaturan Bidding.');
+    } finally {
+      setIsSavingBidding(false);
+    }
+  };
+
   const handleSaveFinancials = async () => {
     if (!tax || !nipl || !niplMotor) {
       alert('Semua bidang (PPN, NIPL) harus diisi dan tidak boleh kosong atau dihapus.');
@@ -440,6 +521,59 @@ export default function PlatformSettingsPage() {
               {isSavingAuction ? 'Menyimpan...' : 'Simpan Otomatisasi'}
             </button>
           </Card>
+
+          <div className="mt-4" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', borderRadius: 'var(--radius)', border: '1px solid', padding: '1.5rem' }}>
+            <h2 className="card-title text-green-800">Pengaturan Dokumen BAPL</h2>
+            <div className="alert alert-info mt-3 mb-4 text-xs">
+              Pengaturan ini akan digunakan untuk dokumen Berita Acara Pemenang Lelang.
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-green-900">Pejabat Penjual <span className="required">*</span></label>
+              <input type="text" className="form-input border-green-200 focus:border-green-400" value={pejabatPenjual} onChange={(e) => setPejabatPenjual(e.target.value)} required placeholder="Contoh: Budi Santoso" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-green-900">Pejabat Lelang Kelas II <span className="required">*</span></label>
+              <input type="text" className="form-input border-green-200 focus:border-green-400" value={pejabatLelang} onChange={(e) => setPejabatLelang(e.target.value)} required placeholder="Contoh: CARI AZHARI, S.H." />
+            </div>
+
+            <button className="btn btn-primary w-100 mt-2 !bg-green-600 hover:!bg-green-700" onClick={handleSaveBaplSettings} disabled={isSavingBapl}>
+              {isSavingBapl ? 'Menyimpan...' : 'Simpan Pengaturan BAPL'}
+            </button>
+          </div>
+
+          <div className="mt-4" style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderRadius: 'var(--radius)', border: '1px solid', padding: '1.5rem' }}>
+            <h2 className="card-title text-purple-800">Pengaturan Bidding Room</h2>
+            <div className="alert alert-info mt-3 mb-4 text-xs">
+              Parameter yang digunakan pada layar Bidding Bidder (opsi kelipatan bid dan countdown awal).
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-purple-900">Bid Increment 1 (Rp)</label>
+              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement1} onChange={(e) => setBidIncrement1(e.target.value)} required />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-purple-900">Bid Increment 2 (Rp)</label>
+              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement2} onChange={(e) => setBidIncrement2(e.target.value)} required />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-purple-900">Bid Increment 3 (Rp)</label>
+              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement3} onChange={(e) => setBidIncrement3(e.target.value)} required />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label text-purple-900">Countdown Awal (Detik)</label>
+              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidCountdownInitial} onChange={(e) => setBidCountdownInitial(e.target.value)} required />
+              <p className="text-xs text-muted mt-1">Countdown pada Bidding Room saat lot baru dibuka (sebelum ada bid).</p>
+            </div>
+
+            <button className="btn btn-primary w-100 mt-2 !bg-purple-600 hover:!bg-purple-700" onClick={handleSaveBiddingSettings} disabled={isSavingBidding}>
+              {isSavingBidding ? 'Menyimpan...' : 'Simpan Pengaturan Bidding'}
+            </button>
+          </div>
 
           <Card className="mt-4">
             <h2 className="card-title">Aturan Keuangan Balai Lelang</h2>

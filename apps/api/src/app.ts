@@ -32,6 +32,9 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import contactMessagesRoutes from './modules/contact-messages/contact-messages.routes';
 import checkoutRoutes from './modules/checkout/checkout.routes';
 import galleryRoutes from './modules/galleries/galleries.routes';
+import bidderRoutes from './modules/bidders/bidders.routes';
+import providerRoutes from './modules/providers/providers.routes';
+import referralRoutes from './modules/referrals/referrals.routes';
 const app = express();
 
 // Security and utility middleware
@@ -94,6 +97,9 @@ app.use(apiPrefix, campaignRoutes);
 app.use(apiPrefix, dashboardRoutes);
 app.use(apiPrefix, contactMessagesRoutes);
 app.use(apiPrefix, checkoutRoutes);
+app.use(apiPrefix, bidderRoutes);
+app.use(apiPrefix, providerRoutes);
+app.use(apiPrefix, referralRoutes);
 app.use(`${apiPrefix}/galleries`, galleryRoutes);
 
 // Routes mounted with specific resource prefixes

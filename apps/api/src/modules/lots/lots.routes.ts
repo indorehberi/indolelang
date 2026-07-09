@@ -34,4 +34,18 @@ router.put(
   controller.updateLot
 );
 
+router.delete(
+  '/admin/lots/:id',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.deleteLot
+);
+
+router.post(
+  '/admin/lots/:id/paid',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.markAsPaid
+);
+
 export default router;

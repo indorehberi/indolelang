@@ -65,5 +65,35 @@ export function initCronJobs() {
     }
   });
 
+  // Auto-expire unpaid invoices after 3 days
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const now = new Date();
+      
+      // Find invoices that are unpaid and created > 3 days ago
+      const expireTime = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+      
+      const expiredInvoices = await prisma.invoices.findMany({
+        where: {
+          status: 'unpaid',
+          created_at: { lt: expireTime }
+        }
+      });
+
+      if (expiredInvoices.length > 0) {
+        logger.info({ count: expiredInvoices.length }, 'CRON: Auto-expiring unpaid invoices');
+        
+        await prisma.invoices.updateMany({
+          where: {
+            id: { in: expiredInvoices.map((inv) => inv.id) }
+          },
+          data: { status: 'expired' }
+        });
+      }
+    } catch (err) {
+      logger.error({ err }, 'CRON: Error in invoice auto-expire job');
+    }
+  });
+
   logger.info('Cron jobs initialized successfully');
 }

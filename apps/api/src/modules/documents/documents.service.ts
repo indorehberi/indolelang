@@ -646,6 +646,165 @@ export class DocumentsService {
       },
     };
   }
+
+  /**
+   * Generate BAPL (Berita Acara Pemenang Lelang) PDF
+   */
+  async generateBaplPdf(invoiceId: string): Promise<any> {
+    const existingDoc = await prisma.documents.findFirst({
+      where: { invoice_id: invoiceId, type: 'bapl' },
+    });
+    if (existingDoc) return existingDoc;
+
+    const invoice = await prisma.invoices.findUnique({
+      where: { id: invoiceId },
+      include: {
+        bidder: true,
+        lot: {
+          include: {
+            asset: true,
+            session: {
+              include: {
+                branch: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Invoice tidak ditemukan');
+    }
+
+    if (invoice.status !== 'paid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'BAPL hanya bisa diterbitkan setelah invoice lunas dibayar.');
+    }
+
+    // Generate Sequence Number
+    const year = new Date().getFullYear();
+    const countThisYear = await prisma.documents.count({
+      where: {
+        type: 'bapl',
+        created_at: {
+          gte: new Date(`${year}-01-01T00:00:00.000Z`),
+          lte: new Date(`${year}-12-31T23:59:59.999Z`),
+        }
+      }
+    });
+
+    const seq = countThisYear + 1;
+    const baplNumber = `${seq}/BAPL/${year}`;
+
+    // Get Platform Settings
+    const settings = await prisma.platform_settings.findMany({
+      where: { key: { in: ['bapl_pejabat_penjual', 'bapl_pejabat_lelang', 'pmk41_percentage'] } }
+    });
+    
+    const settingMap: Record<string, string> = {};
+    settings.forEach(s => settingMap[s.key] = s.value);
+
+    const pejabatPenjual = settingMap['bapl_pejabat_penjual'] || '..................';
+    const pejabatLelang = settingMap['bapl_pejabat_lelang'] || '..................';
+    const pmk41 = settingMap['pmk41_percentage'] || '1.1';
+
+    const qrHash = crypto
+      .createHash('sha256')
+      .update(`bapl-${invoiceId}-${Date.now()}`)
+      .digest('hex');
+
+    const qrDataUrl = await QRCode.toDataURL(`http://localhost:3000/verify/${qrHash}`);
+
+    const htmlContent = `
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Inter', sans-serif; color: #2d3748; padding: 20px; line-height: 1.5; font-size: 14px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .title { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; }
+          .subtitle { font-size: 14px; margin-top: 5px; }
+          .content { text-align: justify; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+          .sig-box { width: 30%; text-align: center; }
+          .sig-line { height: 60px; }
+          .qr-container { text-align: center; margin-top: 30px; }
+          .qr-img { width: 90px; height: 90px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 class="title">BERITA ACARA PEMENANG LELANG</h1>
+          <div class="subtitle">Nomor : ${baplNumber}</div>
+        </div>
+        <div class="content">
+          <p>Pada hari ini, ${new Date().toLocaleDateString('id-ID', { weekday: 'long' })} tanggal ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} bertempat di ${invoice.lot.session.branch.city}. Saya <strong>${pejabatLelang}</strong> selaku Pejabat Lelang Kelas II wilayah ${invoice.lot.session.branch.city}, Direktorat Jenderal Kekayaan Negara telah menunjuk dan menetapkan :</p>
+          
+          <p>NIPL : ${invoice.bidder.id.substring(0, 8).toUpperCase()}</p>
+          <p>Sebagai pemenang lelang Nomor Lot : ${invoice.lot.lot_number}</p>
+          
+          <table style="width: 100%; margin: 10px 0;">
+            <tr><td style="width: 150px;">Jenis Barang</td><td>: ${invoice.lot.asset.category.toUpperCase()}</td></tr>
+            <tr><td>No Polisi</td><td>: ${invoice.lot.asset.police_number} Tahun : ${invoice.lot.asset.year}</td></tr>
+            <tr><td>Merk/Type</td><td>: ${invoice.lot.asset.brand} ${invoice.lot.asset.model} Warna : ${invoice.lot.asset.color}</td></tr>
+          </table>
+
+          <p>Dengan penawaran tertinggi sebagai berikut :</p>
+          <table style="width: 100%; margin: 10px 0;">
+            <tr><td style="width: 200px;">Harga Terbentuk Lelang</td><td>: ${this.formatRupiah(Number(invoice.hammer_price))}</td></tr>
+            <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.commission))}</td></tr>
+            <tr><td>Biaya PMK</td><td>: PMK${pmk41.replace('.', '')}</td></tr>
+            <tr><td><strong>Sisa Pelunasan</strong></td><td><strong>: ${this.formatRupiah(Number(invoice.total))}</strong></td></tr>
+          </table>
+
+          <p style="margin-top: 20px;">Bahwa pelunasan harga lelang harus dibayar selambat-lambatnya 3 (tiga) hari kerja setelah tanggal pelaksanaan lelang ke Rekening PT. INDO LELANG SEJAHTERA di BCA Mutiara Taman Palem Jakarta No. Rekening : 7015-886-161. Apabila batas waktu pembayaran tersebut dilampaui, maka pemenang lelang dianggap mengundurkan diri. Uang jaminan dan semua pembayaran yang telah dilakukan akan menjadi hangus dan pemenang yang bersangkutan akan dimasukkan dalam Daftar Hitam Kantor Pelayanan Kekayaan Negara dan Lelang di seluruh Indonesia.</p>
+
+          <div style="margin-top: 30px; text-align: right;">
+            <div>Ditetapkan di : ${invoice.lot.session.branch.city}</div>
+            <div>Tanggal : ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>
+        </div>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div>Pemenang Lelang</div>
+            <div class="sig-line"></div>
+            <div style="font-weight: bold;">${invoice.bidder.full_name}</div>
+          </div>
+          <div class="sig-box">
+            <div>Pejabat Penjual</div>
+            <div class="sig-line"></div>
+            <div style="font-weight: bold;">${pejabatPenjual}</div>
+          </div>
+          <div class="sig-box">
+            <div>Pejabatan Lelang Kelas II</div>
+            <div class="sig-line"></div>
+            <div style="font-weight: bold;">${pejabatLelang}</div>
+          </div>
+        </div>
+
+        <div class="qr-container">
+          <img class="qr-img" src="${qrDataUrl}" alt="QR Verification" />
+          <div style="font-size: 10px; color: #a0aec0; margin-top: 6px;">Pindai QR Code untuk memverifikasi keaslian dokumen ini</div>
+          <div style="font-family: monospace; font-size: 9px; color: #cbd5e0; margin-top: 2px;">Hash: ${qrHash}</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const pdfBuffer = await htmlToPdf(htmlContent);
+    const filename = `bapl-${qrHash}.pdf`;
+    const filepath = path.join(this.getUploadsDir(), filename);
+    fs.writeFileSync(filepath, pdfBuffer);
+
+    return await prisma.documents.create({
+      data: {
+        invoice_id: invoiceId,
+        type: 'bapl',
+        file_url: `/uploads/documents/${filename}`,
+        qr_hash: qrHash,
+      },
+    });
+  }
 }
 
 export const documentsService = new DocumentsService();

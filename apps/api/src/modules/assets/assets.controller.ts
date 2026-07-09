@@ -14,10 +14,10 @@ export class AssetsController {
     try {
       const page = parseInt(req.query.page as string || '1', 10);
       const perPage = parseInt(req.query.per_page as string || '20', 10);
-      const { status, category, search } = req.query as any;
+      const { status, category, search, branch_id, pool_status, date_from, date_to } = req.query as any;
 
-      const providerId = req.user!.role === Role.PROVIDER 
-        ? req.user!.id 
+      const providerId = req.user!.role === Role.PROVIDER
+        ? req.user!.id
         : (req.query.provider_id as string || undefined);
 
       const { assets, meta } = await assetsService.getAssets(
@@ -26,7 +26,11 @@ export class AssetsController {
         status,
         category,
         search,
-        providerId
+        providerId,
+        branch_id,
+        pool_status,
+        date_from,
+        date_to
       );
       sendSuccess(res, assets, 'Daftar barang berhasil dimuat', meta);
     } catch (error) {
@@ -82,7 +86,17 @@ export class AssetsController {
         res.status(403).json({ success: false, error: { message: 'Inspector hanya dapat mengedit unit dengan status pending' } });
         return;
       }
-      
+      if (userRole === Role.PROVIDER) {
+        if (asset.provider_id !== req.user!.id) {
+          res.status(403).json({ success: false, error: { message: 'Anda hanya dapat mengedit barang milik Anda sendiri' } });
+          return;
+        }
+        if (asset.status !== 'rejected') {
+          res.status(403).json({ success: false, error: { message: 'Hanya barang berstatus ditolak yang dapat diedit' } });
+          return;
+        }
+      }
+
       const updatedAsset = await assetsService.updateAsset(id, req.body);
       
       if (userRole !== Role.PROVIDER) {
@@ -139,26 +153,52 @@ export class AssetsController {
   async rejectAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const asset = await assetsService.rejectAsset(id);
+      const { reason } = req.body;
+      const asset = await assetsService.rejectAsset(id, reason);
 
       // Log admin audit trail
       logAdminAction(req, 'REJECT_ASSET', 'assets', id, null, asset);
 
-      sendSuccess(res, asset, 'Barang ditolak dan dikembalikan ke provider');
+      sendSuccess(res, asset, 'Barang ditolak');
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Delete asset (Inspector)
+   * Provider/Admin withdraws an approved/listed asset ("dikembalikan")
+   */
+  async returnAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      if (req.user!.role === Role.PROVIDER) {
+        const existing = await assetsService.getAssetById(id);
+        if (existing.provider_id !== req.user!.id) {
+          res.status(403).json({ success: false, error: { message: 'Anda hanya dapat mengembalikan barang milik Anda sendiri' } });
+          return;
+        }
+      }
+
+      const asset = await assetsService.returnAsset(id);
+
+      logAdminAction(req, 'RETURN_ASSET', 'assets', id, null, asset);
+
+      sendSuccess(res, asset, 'Barang berhasil dikembalikan');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete asset (Provider: own + rejected only; Inspector/Admin: unrestricted)
    */
   async deleteAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const asset = await assetsService.getAssetById(id);
-      await assetsService.deleteAsset(id);
-      
+      await assetsService.deleteAsset(id, { role: req.user!.role, userId: req.user!.id });
+
       logAdminAction(req, 'DELETE_ASSET', 'assets', id, asset, null);
 
       res.status(200).json({ success: true, message: 'Barang berhasil dihapus' });
@@ -168,11 +208,24 @@ export class AssetsController {
   }
 
   /**
-   * Re-review asset (Inspector)
+   * Re-review asset — provider resubmits a rejected asset, or Inspector/Admin re-opens one
    */
   async reviewAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
+      const existing = await assetsService.getAssetById(id);
+
+      if (req.user!.role === Role.PROVIDER) {
+        if (existing.provider_id !== req.user!.id) {
+          res.status(403).json({ success: false, error: { message: 'Anda hanya dapat mengajukan ulang barang milik Anda sendiri' } });
+          return;
+        }
+        if (existing.status !== 'rejected') {
+          res.status(403).json({ success: false, error: { message: 'Hanya barang berstatus ditolak yang dapat diajukan kembali' } });
+          return;
+        }
+      }
+
       const asset = await assetsService.reviewAsset(id);
 
       logAdminAction(req, 'REVIEW_ASSET', 'assets', id, null, asset);

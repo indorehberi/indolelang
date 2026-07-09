@@ -16,31 +16,6 @@ export default function BidderDashboard() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
-  const [watchlistCount, setWatchlistCount] = useState<number>(0);
-
-  useEffect(() => {
-    const updateWatchlist = () => {
-      if (typeof window !== "undefined") {
-        try {
-          const stored = localStorage.getItem("watchlist");
-          if (stored) {
-            const list = JSON.parse(stored);
-            setWatchlistCount(Array.isArray(list) ? list.length : 0);
-          } else {
-            setWatchlistCount(0);
-          }
-        } catch (e) {
-          setWatchlistCount(0);
-        }
-      }
-    };
-
-    updateWatchlist();
-    window.addEventListener("watchlist-updated", updateWatchlist);
-    return () => {
-      window.removeEventListener("watchlist-updated", updateWatchlist);
-    };
-  }, []);
 
   // Upgrade Provider Modal State
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -50,6 +25,8 @@ export default function BidderDashboard() {
   const [providerType, setProviderType] = useState("Perusahaan Swasta");
   const [address, setAddress] = useState("");
   const [npwpFile, setNpwpFile] = useState<File | null>(null);
+  const [npwpUrl, setNpwpUrl] = useState("");
+  const [uploadingNpwp, setUploadingNpwp] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   const loadDashboardData = async () => {
@@ -76,6 +53,10 @@ export default function BidderDashboard() {
           router.push("/provider/dashboard");
           return;
         }
+
+        // Autofill shared fields for the "upgrade to provider" form from the
+        // bidder's own profile data (per spec: don't ask twice for the same data).
+        if (user.address) setAddress(user.address);
 
         const isComplete = !!(user.phone && user.address && user.bank_account_no && user.bank_name);
         setIsProfileComplete(isComplete);
@@ -158,10 +139,40 @@ export default function BidderDashboard() {
     return <span className="badge-ui warning">Pending</span>;
   };
 
+  const handleUploadNpwp = async () => {
+    if (!npwpFile) return;
+    setUploadingNpwp(true);
+    const token = localStorage.getItem("accessToken");
+    const formData = new FormData();
+    formData.append("file", npwpFile);
+
+    try {
+      const response = await fetch(apiUrl("/upload/single"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setNpwpUrl(resData.data.url);
+      } else {
+        alert(resData.error?.message || "Gagal mengunggah dokumen NPWP.");
+      }
+    } catch (err) {
+      alert("Koneksi gagal saat mengunggah dokumen.");
+    } finally {
+      setUploadingNpwp(false);
+    }
+  };
+
   const handleUpgradeProvider = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim() || !npwp.trim() || !pksNumber.trim() || !address.trim()) {
       alert("Mohon isi semua data yang diperlukan.");
+      return;
+    }
+    if (!npwpUrl) {
+      alert("Mohon unggah dokumen NPWP terlebih dahulu.");
       return;
     }
 
@@ -180,6 +191,7 @@ export default function BidderDashboard() {
           role: "provider",
           company_name: companyName,
           npwp: npwp,
+          npwp_url: npwpUrl,
           pks_number: pksNumber,
           provider_type: providerType,
           address: address
@@ -292,7 +304,7 @@ export default function BidderDashboard() {
       ) : null}
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         <div className="kpi-card success">
           <div className="kpi-label">NIPL Motor Aktif</div>
           <div className="kpi-value">{niplMotorCount} NIPL</div>
@@ -302,13 +314,6 @@ export default function BidderDashboard() {
           <div className="kpi-label">NIPL Mobil Aktif</div>
           <div className="kpi-value">{niplMobilCount} NIPL</div>
           <div className="kpi-trend up">Siap Menawar Lot</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Watchlist Aset</div>
-          <div className="kpi-value">{watchlistCount} Unit</div>
-          <div className="kpi-trend text-slate-500">
-            {watchlistCount > 0 ? "Memantau penawaran lot" : "Belum ada unit disimpan"}
-          </div>
         </div>
         <div className="kpi-card danger">
           <div className="kpi-label">Lelang Menang</div>
@@ -488,6 +493,36 @@ export default function BidderDashboard() {
               </div>
 
               <div>
+                <label className="text-body-xs font-semibold text-on-surface-variant block mb-1">Upload Dokumen NPWP *</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setNpwpFile(e.target.files[0]);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer outline-none flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUploadNpwp}
+                    disabled={!npwpFile || uploadingNpwp}
+                    className="px-3 py-2 bg-secondary text-white font-bold rounded-xl disabled:opacity-50 text-xs whitespace-nowrap"
+                  >
+                    {uploadingNpwp ? "Upload..." : "Upload"}
+                  </button>
+                </div>
+                {npwpUrl && (
+                  <div className="text-xs text-success mt-1.5 font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    Dokumen NPWP tersimpan
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <label className="text-body-xs font-semibold text-on-surface-variant block mb-1">Nomor PKS *</label>
                 <input
                   type="text"
@@ -522,6 +557,13 @@ export default function BidderDashboard() {
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-outline-variant/60 text-body-md focus:border-premium focus:ring-1 focus:ring-premium outline-none min-h-[80px]"
                 />
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-xl">
+                <span className="material-symbols-outlined text-warning text-lg mt-0.5">warning</span>
+                <p className="text-body-xs text-on-surface-variant leading-relaxed">
+                  <strong>Perhatian:</strong> Jika pengajuan ini disetujui, akun bidder Anda akan otomatis dinonaktifkan dan Anda <strong>tidak dapat lagi mengikuti lelang sebagai bidder</strong> selama akun Provider Anda aktif.
+                </p>
               </div>
 
               <div className="pt-2 flex gap-3">

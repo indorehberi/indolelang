@@ -5,7 +5,9 @@ export const createLotSchema = z.object({
   body: z.object({
     session_id: z.string().uuid('ID Sesi Lelang tidak valid'),
     asset_id: z.string().uuid('ID Barang tidak valid'),
-    lot_number: z.number().int().positive('Nomor lot harus berupa angka positif'),
+    // Opsional: jika tidak diisi (mode otomatis), nomor lot berikutnya yang
+    // tersedia akan dihitung otomatis di server.
+    lot_number: z.number().int().positive('Nomor lot harus berupa angka positif').optional(),
     starting_price: z.number().positive('Harga mulai harus lebih besar dari 0'),
   }),
 });

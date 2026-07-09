@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
 import { apiUrl, fetchWithRetry } from "@/lib/api";
 
@@ -36,13 +36,35 @@ const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
 const COLORS = ['Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
 const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
 
-export default function ProviderAjukanBarang() {
+interface Branch {
+  id: string;
+  name: string;
+  city: string;
+}
+
+const PHOTO_FIELDS = [
+  { key: "photo_front", label: "Foto Depan" },
+  { key: "photo_back", label: "Foto Belakang" },
+  { key: "photo_right", label: "Foto Samping Kanan" },
+  { key: "photo_left", label: "Foto Samping Kiri" },
+  { key: "photo_engine", label: "Foto Mesin" },
+  { key: "photo_interior", label: "Foto Interior" },
+  { key: "photo_stnk", label: "Foto STNK" },
+] as const;
+
+function ProviderAjukanBarangContent() {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
   const initialFormState = {
     category: "mobil",
     title: "", // akan digenerate dari brand + model + year
     description: "",
     base_price: "",
-    
+    branch_id: "",
+    pool_status: "in_pool",
+    notes: "",
+
     // Spesifikasi Kendaraan
     brand: "",
     model: "",
@@ -73,24 +95,133 @@ export default function ProviderAjukanBarang() {
     doc_keur: false,
     doc_sph: false,
 
-    // Foto Aset
-    img_depan: null as File | null,
-    img_belakang: null as File | null,
-    img_kanan: null as File | null,
-    img_kiri: null as File | null,
-    img_mesin: null as File | null,
-    img_interior: null as File | null,
+    // Foto Aset (URL setelah diunggah)
+    photo_front: "",
+    photo_back: "",
+    photo_right: "",
+    photo_left: "",
+    photo_engine: "",
+    photo_interior: "",
+    photo_stnk: "",
   };
 
   const [formData, setFormData] = useState<typeof initialFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
   const [auctionType, setAuctionType] = useState("English Auction");
   const [enabledTypes, setEnabledTypes] = useState<string[]>(["English Auction", "Dutch Auction", "Sealed-Bid", "Timed Auction", "Buy Now + Auction", "Group/Bundle"]);
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
 
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetchWithRetry(apiUrl("/branches"));
+        const resData = await res.json();
+        if (res.ok && resData.success) {
+          setBranches(resData.data || []);
+        }
+      } catch (err) {
+        console.error("Gagal memuat daftar cabang", err);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  useEffect(() => {
+    if (!editId) return;
+
+    const fetchAssetForEdit = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        const res = await fetchWithRetry(apiUrl(`/assets/${editId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const resData = await res.json();
+        if (res.ok && resData.success) {
+          const a = resData.data;
+          setFormData((prev) => ({
+            ...prev,
+            category: a.category ?? prev.category,
+            description: (a.description || "").split("\n\nJenis Lelang:")[0],
+            base_price: a.base_price ?? prev.base_price,
+            branch_id: a.branch_id || "",
+            pool_status: a.pool_status || "in_pool",
+            notes: a.notes || "",
+            brand: a.brand || "",
+            model: a.model || "",
+            color: a.color || "",
+            fuel_type: a.fuel_type || "Bensin",
+            transmission: a.transmission || "Otomatis",
+            body_type: a.body_type || "",
+            year: a.year || prev.year,
+            cylinder: a.cylinder ? String(a.cylinder) : "",
+            odometer: a.odometer ? String(a.odometer) : "",
+            police_number: a.police_number || "",
+            bpkb_number: a.bpkb_number || "",
+            frame_number: a.frame_number || "",
+            engine_number: a.engine_number || "",
+            stnk_date: a.stnk_date ? a.stnk_date.slice(0, 10) : "",
+            stnk_tax_date: a.stnk_tax_date ? a.stnk_tax_date.slice(0, 10) : "",
+            keur_date: a.keur_date ? a.keur_date.slice(0, 10) : "",
+            doc_stnk: !!a.doc_stnk,
+            doc_bpkb: !!a.doc_bpkb,
+            doc_faktur: !!a.doc_faktur,
+            doc_kwitansi: !!a.doc_kwitansi,
+            doc_form_a: !!a.doc_form_a,
+            doc_copy_ktp: !!a.doc_copy_ktp,
+            doc_keur: !!a.doc_keur,
+            doc_sph: !!a.doc_sph,
+            photo_front: a.photo_front || "",
+            photo_back: a.photo_back || "",
+            photo_right: a.photo_right || "",
+            photo_left: a.photo_left || "",
+            photo_engine: a.photo_engine || "",
+            photo_interior: a.photo_interior || "",
+            photo_stnk: a.photo_stnk || "",
+          }));
+        } else {
+          alert("Gagal memuat data barang untuk diedit.");
+          router.push("/provider/daftar-barang");
+        }
+      } catch (err) {
+        console.error("Gagal memuat data barang", err);
+      }
+    };
+
+    fetchAssetForEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
+
+  const handlePhotoUpload = async (field: string, file: File | null) => {
+    if (!file) return;
+    setUploadingPhoto(field);
+    const token = localStorage.getItem("accessToken");
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    try {
+      const response = await fetch(apiUrl("/upload/single"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: uploadData,
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        handleChange(field, resData.data.url);
+      } else {
+        alert(resData.error?.message || "Gagal mengunggah foto.");
+      }
+    } catch (err) {
+      alert("Koneksi gagal saat mengunggah foto.");
+    } finally {
+      setUploadingPhoto(null);
+    }
+  };
 
   React.useEffect(() => {
     if (typeof document !== "undefined") {
@@ -162,6 +293,13 @@ export default function ProviderAjukanBarang() {
         return;
       }
 
+      const missingPhotos = PHOTO_FIELDS.filter((p) => !formData[p.key]).map((p) => p.label);
+      if (missingPhotos.length > 0) {
+        alert(`Harap unggah semua foto wajib: ${missingPhotos.join(", ")}`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
@@ -171,11 +309,10 @@ export default function ProviderAjukanBarang() {
         stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,
         stnk_tax_date: formData.stnk_tax_date ? new Date(formData.stnk_tax_date).toISOString() : undefined,
         keur_date: formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined,
-        images: "[]" // Mock images for now since form doesn't support uploads
       };
 
-      const response = await fetchWithRetry(apiUrl("/assets"), {
-        method: "POST",
+      const response = await fetchWithRetry(apiUrl(editId ? `/assets/${editId}` : "/assets"), {
+        method: editId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
@@ -185,8 +322,13 @@ export default function ProviderAjukanBarang() {
 
       const resData = await response.json();
       if (response.ok && resData.success) {
-        setIsSuccess(true);
-        setFormData(initialFormState);
+        if (editId) {
+          alert("Perubahan berhasil disimpan.");
+          router.push("/provider/daftar-barang");
+        } else {
+          setIsSuccess(true);
+          setFormData(initialFormState);
+        }
       } else {
         alert(resData.error?.message || "Gagal mengajukan aset");
       }
@@ -210,8 +352,10 @@ export default function ProviderAjukanBarang() {
   );
 
   return (
-    <ProviderLayout pageTitle="Ajukan Titip Jual Aset">
-      <p className="page-subtitle">Ajukan barang atau kendaraan baru untuk masuk antrean kurasi lelang</p>
+    <ProviderLayout pageTitle={editId ? "Edit Titip Jual Aset" : "Ajukan Titip Jual Aset"}>
+      <p className="page-subtitle">
+        {editId ? "Perbarui data pengajuan yang ditolak, lalu ajukan kembali dari halaman Daftar Barang" : "Ajukan barang atau kendaraan baru untuk masuk antrean kurasi lelang"}
+      </p>
 
       <div className="grid-2-1">
         <div>
@@ -330,6 +474,34 @@ export default function ProviderAjukanBarang() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="panel-form-group">
+                    <label className="panel-form-label">Cabang</label>
+                    <select
+                      value={formData.branch_id}
+                      onChange={(e) => handleChange('branch_id', e.target.value)}
+                      className="panel-form-select"
+                      required
+                    >
+                      <option value="" disabled>Pilih Cabang...</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name} ({b.city})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="panel-form-group">
+                    <label className="panel-form-label">Status</label>
+                    <select
+                      value={formData.pool_status}
+                      onChange={(e) => handleChange('pool_status', e.target.value)}
+                      className="panel-form-select"
+                    >
+                      <option value="in_pool">In Pool</option>
+                      <option value="out_pool">Out Pool</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="panel-form-group mt-4">
                   <label className="panel-form-label">Deskripsi &amp; Kondisi Fisik Singkat</label>
                   <textarea
@@ -338,6 +510,16 @@ export default function ProviderAjukanBarang() {
                     placeholder="Keterangan kondisi mesin, body, dll."
                     className="panel-form-textarea h-24"
                     required
+                  />
+                </div>
+
+                <div className="panel-form-group mt-4">
+                  <label className="panel-form-label">Catatan</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => handleChange('notes', e.target.value)}
+                    placeholder="Catatan tambahan untuk tim kurator (opsional)"
+                    className="panel-form-textarea h-20"
                   />
                 </div>
               </div>
@@ -458,25 +640,25 @@ export default function ProviderAjukanBarang() {
               <div className="pt-4 border-t">
                 <h3 className="font-semibold text-lg text-primary mb-3">5. Foto Aset</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { key: 'img_depan', label: 'Foto Depan' },
-                    { key: 'img_belakang', label: 'Foto Belakang' },
-                    { key: 'img_kanan', label: 'Foto Samping Kanan' },
-                    { key: 'img_kiri', label: 'Foto Samping Kiri' },
-                    { key: 'img_mesin', label: 'Foto Mesin' },
-                    { key: 'img_interior', label: 'Foto Interior' },
-                  ].map((item) => (
+                  {PHOTO_FIELDS.map((item) => (
                     <div key={item.key} className="panel-form-group">
-                      <label className="panel-form-label">{item.label}</label>
-                      <input 
-                        type="file" 
+                      <label className="panel-form-label">{item.label} <span className="text-error">*</span></label>
+                      <input
+                        type="file"
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          handleChange(item.key, file);
-                        }}
+                        onChange={(e) => handlePhotoUpload(item.key, e.target.files?.[0] || null)}
+                        disabled={uploadingPhoto === item.key}
                         className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       />
+                      {uploadingPhoto === item.key && (
+                        <span className="text-xs text-slate-500 mt-1 block">Mengunggah...</span>
+                      )}
+                      {formData[item.key] && uploadingPhoto !== item.key && (
+                        <span className="text-xs text-success font-bold mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">check_circle</span>
+                          Foto tersimpan
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -491,12 +673,12 @@ export default function ProviderAjukanBarang() {
                   {isSubmitting ? (
                     <>
                       <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Mengirim Pengajuan...
+                      {editId ? "Menyimpan Perubahan..." : "Mengirim Pengajuan..."}
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined">publish</span>
-                      Ajukan Titip Jual
+                      <span className="material-symbols-outlined">{editId ? "save" : "publish"}</span>
+                      {editId ? "Simpan Perubahan" : "Ajukan Titip Jual"}
                     </>
                   )}
                 </button>
@@ -527,5 +709,13 @@ export default function ProviderAjukanBarang() {
         </div>
       </div>
     </ProviderLayout>
+  );
+}
+
+export default function ProviderAjukanBarang() {
+  return (
+    <Suspense fallback={null}>
+      <ProviderAjukanBarangContent />
+    </Suspense>
   );
 }

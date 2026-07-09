@@ -13,7 +13,7 @@ export class KycService {
    */
   async uploadDocuments(
     userId: string,
-    data: { ktp_url?: string; selfie_url?: string; ktp_selfie_url?: string }
+    data: { nik?: string; ktp_url?: string; selfie_url?: string; ktp_selfie_url?: string }
   ): Promise<KycDocumentDTO> {
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) {
@@ -24,12 +24,14 @@ export class KycService {
       where: { user_id: userId },
       create: {
         user_id: userId,
+        nik: data.nik,
         ktp_url: data.ktp_url,
         selfie_url: data.selfie_url,
         ktp_selfie_url: data.ktp_selfie_url,
         status: KycStatus.PENDING,
       },
       update: {
+        nik: data.nik ?? undefined,
         ktp_url: data.ktp_url ?? undefined,
         selfie_url: data.selfie_url ?? undefined,
         ktp_selfie_url: data.ktp_selfie_url ?? undefined,
@@ -38,6 +40,14 @@ export class KycService {
         reviewed_at: null,
         rejection_reason: null,
       },
+    });
+
+    // Keep the relational bidder application row in sync: submitting KYC
+    // documents is, today, the moment a user actually "applies" as a bidder.
+    await prisma.bidders.upsert({
+      where: { user_id: userId },
+      create: { user_id: userId, status: 'antri' },
+      update: { status: 'antri', rejection_reason: null, reviewed_by: null, reviewed_at: null },
     });
 
     return this.mapToDTO(doc);
@@ -93,15 +103,22 @@ export class KycService {
       doc.ktp_selfie_url?.includes('fail');
 
     if (shouldFail) {
-      const updated = await prisma.kyc_documents.update({
-        where: { user_id: userId },
-        data: {
-          status: KycStatus.REJECTED,
-          rejection_reason: 'Foto KTP atau Selfie buram / tidak terdeteksi oleh sistem eKYC otomatis',
-          reviewed_at: new Date(),
-          provider_ref_id: 'vh-err-' + Math.random().toString(36).substring(7),
-        },
-      });
+      const rejectionReason = 'Foto KTP atau Selfie buram / tidak terdeteksi oleh sistem eKYC otomatis';
+      const [updated] = await prisma.$transaction([
+        prisma.kyc_documents.update({
+          where: { user_id: userId },
+          data: {
+            status: KycStatus.REJECTED,
+            rejection_reason: rejectionReason,
+            reviewed_at: new Date(),
+            provider_ref_id: 'vh-err-' + Math.random().toString(36).substring(7),
+          },
+        }),
+        prisma.bidders.updateMany({
+          where: { user_id: userId },
+          data: { status: 'ditolak', rejection_reason: rejectionReason, reviewed_at: new Date() },
+        }),
+      ]);
 
       return {
         success: false,
@@ -123,6 +140,10 @@ export class KycService {
       prisma.users.update({
         where: { id: userId },
         data: { status: UserStatus.ACTIVE },
+      }),
+      prisma.bidders.updateMany({
+        where: { user_id: userId },
+        data: { status: 'aktif', reviewed_at: new Date() },
       }),
     ]);
 
@@ -197,6 +218,10 @@ export class KycService {
         where: { id: doc.user_id },
         data: { status: UserStatus.ACTIVE },
       }),
+      prisma.bidders.updateMany({
+        where: { user_id: doc.user_id },
+        data: { status: 'aktif', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: null },
+      }),
     ]);
 
     await notificationsService.createNotification({
@@ -221,15 +246,21 @@ export class KycService {
       throw new AppError(404, ErrorCode.KYC_NOT_FOUND, 'Dokumen KYC tidak ditemukan');
     }
 
-    const updatedDoc = await prisma.kyc_documents.update({
-      where: { id },
-      data: {
-        status: KycStatus.REJECTED,
-        reviewer_id: reviewerId,
-        reviewed_at: new Date(),
-        rejection_reason: reason,
-      },
-    });
+    const [updatedDoc] = await prisma.$transaction([
+      prisma.kyc_documents.update({
+        where: { id },
+        data: {
+          status: KycStatus.REJECTED,
+          reviewer_id: reviewerId,
+          reviewed_at: new Date(),
+          rejection_reason: reason,
+        },
+      }),
+      prisma.bidders.updateMany({
+        where: { user_id: doc.user_id },
+        data: { status: 'ditolak', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: reason },
+      }),
+    ]);
 
     await notificationsService.createNotification({
       userId: doc.user_id,
@@ -245,6 +276,7 @@ export class KycService {
     return {
       id: doc.id,
       user_id: doc.user_id,
+      nik: doc.nik || undefined,
       ktp_url: doc.ktp_url || undefined,
       selfie_url: doc.selfie_url || undefined,
       ktp_selfie_url: doc.ktp_selfie_url || undefined,

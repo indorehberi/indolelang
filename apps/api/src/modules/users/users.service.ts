@@ -161,6 +161,41 @@ export class UsersService {
       }
 
       providerStatus = 'pending';
+
+      // Keep the relational `providers` application row in sync with the
+      // legacy flat-field profile update (until the unified form ships).
+      await prisma.providers.upsert({
+        where: { user_id: id },
+        create: {
+          user_id: id,
+          status: 'antri',
+          company_name: data.company_name ?? user.company_name ?? undefined,
+          npwp: data.npwp ?? user.npwp ?? undefined,
+          npwp_url: data.npwp_url ?? user.npwp_url ?? undefined,
+          pks_number: data.pks_number ?? user.pks_number ?? undefined,
+          provider_type: data.provider_type ?? user.provider_type ?? undefined,
+          address: data.address ?? user.address ?? undefined,
+          bank_name: data.bank_name ?? user.bank_name ?? undefined,
+          bank_account_no: data.bank_account_no ?? user.bank_account_no ?? undefined,
+          bank_account_name: data.bank_account_name ?? user.bank_account_name ?? undefined,
+        },
+        update: {
+          status: 'antri',
+          company_name: data.company_name ?? user.company_name ?? undefined,
+          npwp: data.npwp ?? user.npwp ?? undefined,
+          npwp_url: data.npwp_url ?? user.npwp_url ?? undefined,
+          pks_number: data.pks_number ?? user.pks_number ?? undefined,
+          provider_type: data.provider_type ?? user.provider_type ?? undefined,
+          address: data.address ?? user.address ?? undefined,
+          bank_name: data.bank_name ?? user.bank_name ?? undefined,
+          bank_account_no: data.bank_account_no ?? user.bank_account_no ?? undefined,
+          bank_account_name: data.bank_account_name ?? user.bank_account_name ?? undefined,
+          rejection_reason: null,
+          reviewed_by: null,
+          reviewed_at: null,
+          submitted_at: new Date(),
+        },
+      });
     }
 
     const updated = await prisma.users.update({
@@ -248,7 +283,8 @@ export class UsersService {
       provider_fee_amount?: number;
       pmk41_paid_by_provider?: boolean;
     },
-    rejectionReason?: string
+    rejectionReason?: string,
+    reviewerId?: string
   ): Promise<UserDTO> {
     const user = await prisma.users.findFirst({
       where: { id, deleted_at: null },
@@ -265,6 +301,27 @@ export class UsersService {
     }
 
     if (status === 'approved') {
+      await prisma.providers.updateMany({
+        where: { user_id: id },
+        data: {
+          status: 'aktif',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          rejection_reason: null,
+          ...(feeConfig?.provider_fee_type !== undefined ? { provider_fee_type: feeConfig.provider_fee_type } : {}),
+          ...(feeConfig?.provider_fee_amount !== undefined
+            ? { provider_fee_amount: new Prisma.Decimal(feeConfig.provider_fee_amount) }
+            : {}),
+          ...(feeConfig?.pmk41_paid_by_provider !== undefined
+            ? { pmk41_paid_by_provider: feeConfig.pmk41_paid_by_provider }
+            : {}),
+        },
+      });
+      // A provider becoming active can no longer bid — deactivate any bidder profile.
+      await prisma.bidders.updateMany({
+        where: { user_id: id, status: 'aktif' },
+        data: { status: 'nonaktif' },
+      });
       await notificationsService.createNotification({
         userId: id,
         type: 'provider_approved',
@@ -272,6 +329,15 @@ export class UsersService {
         body: 'Selamat, pengajuan upgrade akun Anda menjadi Mitra Provider Aset telah disetujui. Silakan login kembali untuk mengakses panel provider.',
       });
     } else if (status === 'rejected') {
+      await prisma.providers.updateMany({
+        where: { user_id: id },
+        data: {
+          status: 'ditolak',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          rejection_reason: rejectionReason || 'Dokumen tidak lengkap',
+        },
+      });
       await notificationsService.createNotification({
         userId: id,
         type: 'provider_rejected',
@@ -279,7 +345,7 @@ export class UsersService {
         body: `Pengajuan upgrade akun menjadi Provider ditolak. Alasan: ${rejectionReason || 'Dokumen tidak lengkap'}. Silakan ajukan kembali.`,
       });
     }
-    
+
     if (feeConfig?.provider_fee_type !== undefined) updateData.provider_fee_type = feeConfig.provider_fee_type;
     if (feeConfig?.provider_fee_amount !== undefined) updateData.provider_fee_amount = feeConfig.provider_fee_amount;
     if (feeConfig?.pmk41_paid_by_provider !== undefined) updateData.pmk41_paid_by_provider = feeConfig.pmk41_paid_by_provider;
@@ -364,6 +430,41 @@ export class UsersService {
           ktp_url: data.ktp_url || null,
           selfie_url: data.selfie_url || null,
           status: 'approved',
+          reviewed_at: new Date(),
+        },
+      });
+    }
+
+    // Admin-created accounts are immediately active — keep the relational
+    // bidder/provider application tables in sync so they show up in the lists.
+    if (user.role === Role.PROVIDER) {
+      await prisma.providers.create({
+        data: {
+          user_id: user.id,
+          status: 'aktif',
+          company_name: data.company_name || null,
+          npwp: data.npwp || null,
+          npwp_url: data.npwp_url || null,
+          provider_fee_type: data.provider_fee_type || null,
+          provider_fee_amount: data.provider_fee_amount ? new Prisma.Decimal(data.provider_fee_amount) : null,
+          pmk41_paid_by_provider: data.pmk41_paid_by_provider || false,
+          address: data.address || null,
+          bank_name: data.bank_name || null,
+          bank_account_no: data.bank_account_no || null,
+          bank_account_name: data.bank_account_name || null,
+          reviewed_at: new Date(),
+        },
+      });
+    } else {
+      await prisma.bidders.create({
+        data: {
+          user_id: user.id,
+          status: 'aktif',
+          address: data.address || null,
+          occupation: data.occupation || null,
+          bank_name: data.bank_name || null,
+          bank_account_no: data.bank_account_no || null,
+          bank_account_name: data.bank_account_name || null,
           reviewed_at: new Date(),
         },
       });

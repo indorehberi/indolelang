@@ -44,9 +44,9 @@ interface RecentTransaction {
 
 const getQuickActions = (kycCount: number, assetCount: number) => [
   {
-    title: 'Antrian Verifikasi KYC',
+    title: 'Antrian Pengajuan Bidder',
     subtitle: `${kycCount} akun menunggu review`,
-    href: '/kyc/verification',
+    href: '/users/bidder',
     icon: '🔍',
   },
   {
@@ -160,7 +160,7 @@ export default function DashboardPage() {
           setStatsData(dataStats.data);
         }
 
-        const resKyc = await fetch(apiUrl('/admin/kyc/queue?status=pending&per_page=1'), {
+        const resKyc = await fetch(apiUrl('/admin/bidders?status=antri&per_page=1'), {
           headers: {
             Authorization: `Bearer ${token}`
           }

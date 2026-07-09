@@ -14,11 +14,25 @@ router.get(
   controller.getCart
 );
 
+router.get(
+  '/orders',
+  authenticate,
+  authorize(Role.BIDDER),
+  controller.getOrders
+);
+
 router.post(
   '/checkout',
   authenticate,
   authorize(Role.BIDDER),
   controller.processCheckout
+);
+
+router.post(
+  '/:id/proof',
+  authenticate,
+  authorize(Role.BIDDER),
+  controller.uploadProof
 );
 
 export default router;

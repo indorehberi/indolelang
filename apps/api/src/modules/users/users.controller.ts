@@ -161,14 +161,15 @@ export class UsersController {
   async updateProviderStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status, provider_fee_type, provider_fee_amount, pmk41_paid_by_provider, rejection_reason } = req.body; 
+      const { status, provider_fee_type, provider_fee_amount, pmk41_paid_by_provider, rejection_reason } = req.body;
+      const reviewerId = (req as any).user!.id;
 
       const oldUser = await usersService.getUserById(id);
       const updatedUser = await usersService.updateProviderStatus(id, status, {
         provider_fee_type,
         provider_fee_amount,
         pmk41_paid_by_provider,
-      }, rejection_reason);
+      }, rejection_reason, reviewerId);
 
       // Write admin action audit trail
       logAdminAction(

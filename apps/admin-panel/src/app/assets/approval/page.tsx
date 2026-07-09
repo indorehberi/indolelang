@@ -29,6 +29,10 @@ export default function AssetsApprovalPage() {
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
+  const [poolFilter, setPoolFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [search, setSearch] = useState('');
   const [providers, setProviders] = useState<any[]>([]);
 
   const fetchProviders = async () => {
@@ -52,6 +56,10 @@ export default function AssetsApprovalPage() {
       let query = `?status=approved&per_page=100`;
       if (categoryFilter) query += `&category=${categoryFilter}`;
       if (providerFilter) query += `&provider_id=${providerFilter}`;
+      if (poolFilter) query += `&pool_status=${poolFilter}`;
+      if (dateFrom) query += `&date_from=${dateFrom}`;
+      if (dateTo) query += `&date_to=${dateTo}`;
+      if (search) query += `&search=${encodeURIComponent(search)}`;
 
       const response = await fetch(apiUrl(`/assets${query}`), {
         headers: {
@@ -72,8 +80,10 @@ export default function AssetsApprovalPage() {
   };
 
   useEffect(() => {
-    fetchApprovedAssets();
-  }, [categoryFilter, providerFilter]);
+    const t = setTimeout(() => fetchApprovedAssets(), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter, providerFilter, poolFilter, dateFrom, dateTo, search]);
 
   useEffect(() => {
     fetchProviders();
@@ -110,7 +120,12 @@ export default function AssetsApprovalPage() {
   };
 
   const handleReject = async (id: string) => {
-    if (!confirm('Apakah Anda yakin menolak barang ini? Barang akan dikembalikan ke daftar barang dengan status dikembalikan.')) return;
+    const reason = window.prompt('Masukkan alasan penolakan barang ini:');
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert('Alasan penolakan wajib diisi.');
+      return;
+    }
     setProcessingId(id);
     setToast(null);
 
@@ -122,6 +137,7 @@ export default function AssetsApprovalPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ reason: reason.trim() }),
       });
 
       const data = await response.json();
@@ -129,7 +145,7 @@ export default function AssetsApprovalPage() {
         throw new Error(data.error?.message || 'Gagal menolak barang');
       }
 
-      setToast({ message: 'Barang ditolak dan dikembalikan ke Daftar Barang dengan status dikembalikan.', variant: 'success' });
+      setToast({ message: 'Barang ditolak dan dikeluarkan dari daftar approved. Provider telah diberi notifikasi.', variant: 'success' });
       fetchApprovedAssets();
     } catch (err: any) {
       setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
@@ -166,6 +182,18 @@ export default function AssetsApprovalPage() {
       <Card className="mb-2">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Nama Barang</label>
+            <input
+              type="text"
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              placeholder="Masukkan kata kunci..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Kategori</label>
             <select
               className="form-select"
@@ -192,6 +220,42 @@ export default function AssetsApprovalPage() {
                 <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Pool</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={poolFilter}
+              onChange={(e) => setPoolFilter(e.target.value)}
+            >
+              <option value="">Semua Pool</option>
+              <option value="in_pool">In Pool</option>
+              <option value="out_pool">Out Pool</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
           </div>
         </div>
       </Card>

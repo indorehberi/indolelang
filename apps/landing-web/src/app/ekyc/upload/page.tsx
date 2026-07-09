@@ -8,7 +8,14 @@ import { apiUrl } from "@/lib/api";
 export default function EkycUploadPage() {
   const router = useRouter();
   const [nik, setNik] = useState("");
-  
+
+  // Unified profile fields (previously a separate "Profil Bidder" form/page)
+  const [address, setAddress] = useState("");
+  const [occupation, setOccupation] = useState("Pegawai Swasta");
+  const [bankName, setBankName] = useState("");
+  const [bankAccountNo, setBankAccountNo] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+
   // File states (native files)
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
@@ -43,40 +50,43 @@ export default function EkycUploadPage() {
       }
 
       try {
+        // Prefill from existing profile data, if any (e.g. re-submission after rejection).
         const response = await fetch(apiUrl("/users/profile"), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const resData = await response.json();
-        
         if (response.ok && resData.success) {
           const user = resData.data;
-          const isComplete = !!(user.phone && user.address && user.bank_account_no && user.bank_name);
-          
-          if (!isComplete) {
-            alert("Harap lengkapi Profil Anda (No. HP, Alamat, dan Rekening Bank) terlebih dahulu sebelum verifikasi eKYC.");
-            router.push("/bidder/profile");
-            return;
-          }
+          setAddress(user.address || "");
+          setOccupation(user.occupation || "Pegawai Swasta");
+          setBankName(user.bank_name || "");
+          setBankAccountNo(user.bank_account_no || "");
+          setBankAccountName(user.bank_account_name || "");
         }
 
-        // Check if already pending or approved
-        const kycRes = await fetch(apiUrl("/kyc/status"), {
+        // Check if an application already exists and where it's at.
+        const bidderRes = await fetch(apiUrl("/bidders/me"), {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (kycRes.ok) {
-          const kycData = await kycRes.json();
-          if (kycData.success && kycData.data) {
-            const status = kycData.data.status;
-            if (status === "pending") {
-              alert("Dokumen Anda sedang dalam antrean verifikasi. Anda tidak perlu mengunggah ulang saat ini.");
+        if (bidderRes.ok) {
+          const bidderData = await bidderRes.json();
+          const bidder = bidderData.success ? bidderData.data : null;
+          if (bidder) {
+            if (bidder.status === "antri") {
+              alert("Pengajuan Anda sedang dalam antrean verifikasi. Anda tidak perlu mengajukan ulang saat ini.");
               router.push("/ekyc/status");
               return;
-            } else if (status === "approved" || status === "verified") {
-              alert("Akun Anda sudah terverifikasi. Tidak perlu mengunggah ulang.");
+            } else if (bidder.status === "aktif") {
+              alert("Akun Anda sudah terverifikasi. Tidak perlu mengajukan ulang.");
               router.push("/ekyc/status");
               return;
             }
-            // If rejected, it will just pass through and allow re-upload
+            // If ditolak/nonaktif, fall through and allow re-submission.
+            setAddress(bidder.address || address);
+            setOccupation(bidder.occupation || occupation);
+            setBankName(bidder.bank_name || bankName);
+            setBankAccountNo(bidder.bank_account_no || bankAccountNo);
+            setBankAccountName(bidder.bank_account_name || bankAccountName);
           }
         }
       } catch (error) {
@@ -87,6 +97,7 @@ export default function EkycUploadPage() {
     };
 
     checkProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const startCamera = async () => {
@@ -257,18 +268,28 @@ export default function EkycUploadPage() {
       return;
     }
 
+    if (!address.trim() || !bankName.trim() || !bankAccountNo.trim() || !bankAccountName.trim()) {
+      alert("Harap lengkapi Alamat dan Data Rekening Bank Anda.");
+      return;
+    }
+
     const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
 
     try {
-      // Submit KYC documents
-      const response = await fetch(apiUrl("/kyc/upload-documents"), {
+      // Submit unified profile + KYC application in a single call
+      const response = await fetch(apiUrl("/bidders/apply"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          address,
+          occupation,
+          bank_name: bankName,
+          bank_account_no: bankAccountNo,
+          bank_account_name: bankAccountName,
           ktp_url: ktpUrl,
           selfie_url: selfieUrl,
         }),
@@ -278,7 +299,7 @@ export default function EkycUploadPage() {
       if (response.ok && resData.success) {
         router.push("/ekyc/status");
       } else {
-        alert(resData.error?.message || "Gagal mengirim dokumen eKYC.");
+        alert(resData.error?.message || "Gagal mengirim pengajuan bidder.");
       }
     } catch (err) {
       alert("Koneksi gagal saat mengirim dokumen. Pastikan server aktif.");
@@ -312,12 +333,12 @@ export default function EkycUploadPage() {
             />
           </Link>
           <h2 className="text-heading-md font-bold text-on-surface font-serif mt-2">
-            Lengkapi eKYC &amp; Identitas
+            Pengajuan Menjadi Bidder
           </h2>
         </div>
 
         <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-6">
-          Untuk keamanan transaksi lelang, harap upload data e-KTP dan ambil foto selfie memegang KTP Anda.
+          Lengkapi data profil dan verifikasi identitas Anda dalam satu pengajuan. Tim Admin akan meninjau data Anda.
         </p>
 
         {/* Hidden inputs */}
@@ -350,6 +371,74 @@ export default function EkycUploadPage() {
               onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
               placeholder="Masukkan 16 digit NIK KTP"
               className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+            />
+          </div>
+
+          <div>
+            <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+              Alamat Lengkap <span className="text-error">*</span>
+            </label>
+            <textarea
+              required
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Alamat domisili saat ini"
+              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm min-h-[70px] resize-y focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+            />
+          </div>
+
+          <div>
+            <label className="text-body-sm font-bold text-on-surface block mb-1.5">Pekerjaan</label>
+            <select
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value)}
+              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+            >
+              <option value="ASN">ASN</option>
+              <option value="Pegawai Swasta">Pegawai Swasta</option>
+              <option value="Wiraswasta">Wiraswasta</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                Bank <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="Contoh: BCA"
+                className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              />
+            </div>
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                No Rekening <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={bankAccountNo}
+                onChange={(e) => setBankAccountNo(e.target.value)}
+                className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+              A/N Rekening <span className="text-error">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={bankAccountName}
+              onChange={(e) => setBankAccountName(e.target.value)}
+              className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
             />
           </div>
 
@@ -483,10 +572,10 @@ export default function EkycUploadPage() {
             {isSubmitting ? (
               <>
                 <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Mengirim Dokumen...
+                Mengirim Pengajuan...
               </>
             ) : (
-              "Kirim Dokumen eKYC"
+              "Kirim Pengajuan Bidder"
             )}
           </button>
         </form>

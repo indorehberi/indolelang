@@ -11,9 +11,7 @@ export const registerSchema = z.object({
 		password: z.string().min(8, 'Password minimal 8 karakter'),
 		confirm_password: z.string().min(1, 'Konfirmasi password harus diisi'),
 		full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
-		role: z.enum([Role.BIDDER, Role.PROVIDER], {
-			errorMap: () => ({ message: 'Role harus bidder atau provider' }),
-		}),
+		role: z.enum([Role.BIDDER, Role.PROVIDER]).optional(),
 		company_name: z.string().optional(),
 		npwp: z.string().optional(),
 	}).refine((data) => data.password === data.confirm_password, {

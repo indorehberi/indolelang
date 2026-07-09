@@ -8,6 +8,7 @@ import { activeLots, startActiveLot, closeActiveLot, cancelActiveLot, getSocketI
 import { LotStatus, SessionStatus, DepositStatus } from '@indo-lelang/shared-types';
 import { logger } from '../../lib/logger';
 import { isFeatureEnabled } from '../../lib/featureToggle';
+import { SettingsService } from '../settings/settings.service';
 
 export class ControlController {
   /**
@@ -58,13 +59,59 @@ export class ControlController {
         include: { asset: true },
       });
 
-      // 5. Trigger Socket.io countdown start (120s duration)
-      startActiveLot(updatedLot, 120);
+      // 5. Fetch lot duration from settings or default to 120
+      const settingsService = new SettingsService();
+      let lotDuration = 120;
+      try {
+        const durationSetting = await settingsService.getSettingByKey('lot_duration_seconds');
+        if (durationSetting && !isNaN(Number(durationSetting.value))) {
+          lotDuration = Number(durationSetting.value);
+        }
+      } catch (err) {
+        // use default 120
+      }
+
+      // 6. Trigger Socket.io countdown start
+      startActiveLot(updatedLot, lotDuration);
 
       // Audit Log
       logAdminAction(req, 'ACTIVATE_LOT', 'lots', lotId, lot, updatedLot);
 
       sendSuccess(res, updatedLot, 'Lot berhasil diaktifkan. Bidding dimulai.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Start an auction session manually (change status to live)
+   */
+  async startSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const sessionId = req.params.id;
+
+      const session = await prisma.auction_sessions.findUnique({ where: { id: sessionId } });
+      if (!session) {
+        throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
+      }
+
+      if (session.status === SessionStatus.LIVE) {
+        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Sesi lelang sudah dimulai');
+      }
+
+      if (session.status !== SessionStatus.PUBLISHED) {
+        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya sesi yang sudah di-publish yang bisa dimulai');
+      }
+
+      const updatedSession = await prisma.auction_sessions.update({
+        where: { id: sessionId },
+        data: { status: SessionStatus.LIVE },
+      });
+
+      // Audit Log
+      logAdminAction(req, 'START_AUCTION_SESSION', 'auction_sessions', sessionId, session, updatedSession);
+
+      sendSuccess(res, updatedSession, 'Sesi lelang berhasil dimulai.');
     } catch (error) {
       next(error);
     }

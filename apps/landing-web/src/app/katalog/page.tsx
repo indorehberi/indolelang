@@ -43,8 +43,6 @@ function KatalogContent() {
   const [urutan, setUrutan] = useState("Urutkan Terbaru");
   const [minHarga, setMinHarga] = useState("");
   const [maxHarga, setMaxHarga] = useState("");
-  const [wishlist, setWishlist] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
@@ -133,32 +131,8 @@ function KatalogContent() {
         properti: cookieMap["feat_category_properti"] === "true",
         heavy: cookieMap["feat_category_heavy"] === "true",
       });
-
-      // Load watchlist
-      try {
-        const stored = localStorage.getItem("watchlist");
-        if (stored) {
-          setWishlist(JSON.parse(stored));
-        }
-      } catch (e) {
-        // ignore
-      }
     }
   }, []);
-
-  const toggleWishlist = (id: string) => {
-    let nextWishlist: string[];
-    if (wishlist.includes(id)) {
-      nextWishlist = wishlist.filter((x) => x !== id);
-    } else {
-      nextWishlist = [...wishlist, id];
-    }
-    setWishlist(nextWishlist);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("watchlist", JSON.stringify(nextWishlist));
-      window.dispatchEvent(new Event("watchlist-updated"));
-    }
-  };
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -513,7 +487,7 @@ function KatalogContent() {
                           {lot.badge}
                         </span>
                         {/* Jenis Lelang Badge */}
-                        <span className="absolute top-3 right-14 px-2.5 py-1 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                        <span className="absolute top-3 right-3 px-2.5 py-1 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded-full flex items-center gap-1">
                           <span className="material-symbols-outlined text-[10px] filled text-secondary-fixed">
                             {lot.jenisLelang === "English Auction" ? "gavel" : 
                              lot.jenisLelang === "Dutch Auction" ? "trending_down" :
@@ -524,21 +498,7 @@ function KatalogContent() {
                           </span>
                           {lot.jenisLelang}
                         </span>
-                        {/* Wishlist */}
-                        <button
-                          onClick={() => toggleWishlist(lot.id)}
-                          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center transition-colors ${
-                            wishlist.includes(lot.id)
-                              ? "text-error"
-                              : "text-outline hover:text-primary"
-                          }`}
-                          aria-label={wishlist.includes(lot.id) ? "Hapus dari favorit" : "Tambah ke favorit"}
-                        >
-                          <span className={`material-symbols-outlined text-lg ${wishlist.includes(lot.id) ? "filled" : ""}`}>
-                            favorite
-                          </span>
-                        </button>
-                      </div>
+                        </div>
 
                       {/* Body */}
                       <div className="p-5">

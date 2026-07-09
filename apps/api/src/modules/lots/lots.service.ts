@@ -155,7 +155,25 @@ export class LotsService {
   }
 
   /**
-   * Create a new lot (Assigns asset to a session, sets status to pending)
+   * Compute the next auto lot number for a session: the smallest positive
+   * integer not already used (by manual or previous auto entries), so manual
+   * numbers are simply skipped rather than shifting the auto sequence.
+   */
+  private async getNextAutoLotNumber(sessionId: string): Promise<number> {
+    const existing = await prisma.lots.findMany({
+      where: { session_id: sessionId },
+      select: { lot_number: true },
+      orderBy: { lot_number: 'asc' },
+    });
+    const used = new Set(existing.map((l) => l.lot_number));
+    let candidate = 1;
+    while (used.has(candidate)) candidate++;
+    return candidate;
+  }
+
+  /**
+   * Create a new lot (Assigns asset to a session, sets status to pending).
+   * If `lot_number` is omitted, the next available number is auto-assigned.
    */
   async createLot(data: any): Promise<LotDTO> {
     // 1. Verify session exists
@@ -178,13 +196,25 @@ export class LotsService {
       );
     }
 
+    let lotNumber = data.lot_number;
+    if (lotNumber) {
+      const clash = await prisma.lots.findFirst({
+        where: { session_id: data.session_id, lot_number: lotNumber },
+      });
+      if (clash) {
+        throw new AppError(409, ErrorCode.VALIDATION_ERROR, `Nomor lot ${lotNumber} sudah digunakan pada sesi ini`);
+      }
+    } else {
+      lotNumber = await this.getNextAutoLotNumber(data.session_id);
+    }
+
     // 3. Perform database operations in transaction
     const [lot] = await prisma.$transaction([
       prisma.lots.create({
         data: {
           session_id: data.session_id,
           asset_id: data.asset_id,
-          lot_number: data.lot_number,
+          lot_number: lotNumber,
           starting_price: new Prisma.Decimal(data.starting_price),
           status: LotStatus.PENDING,
         },
@@ -271,4 +301,64 @@ export class LotsService {
       updated_at: updated.updated_at.toISOString(),
     };
   }
+
+  /**
+   * Remove a lot from its session, reverting the asset back to "approved"
+   * so it reappears in the Aset Siap Dilelang list.
+   */
+  async deleteLot(id: string): Promise<void> {
+    const lot = await prisma.lots.findUnique({ where: { id } });
+    if (!lot) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
+    }
+    if (lot.status !== LotStatus.PENDING) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Hanya lot berstatus pending yang dapat dihapus dari sesi');
+    }
+
+    await prisma.$transaction([
+      prisma.lots.delete({ where: { id } }),
+      prisma.assets.update({ where: { id: lot.asset_id }, data: { status: AssetStatus.APPROVED } }),
+    ]);
+  }
+
+  /**
+   * Admin explicitly marks lot as paid (manual bypass)
+   */
+  async markAsPaid(id: string): Promise<string> {
+    const lot = await prisma.lots.findUnique({ where: { id } });
+    if (!lot) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
+    }
+    if (lot.status !== LotStatus.SOLD) {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Lot belum terjual');
+    }
+
+    const invoice = await prisma.invoices.findFirst({
+      where: { lot_id: id },
+    });
+
+    if (!invoice) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Tagihan (invoice) belum terbentuk untuk lot ini');
+    }
+
+    if (invoice.status !== 'paid') {
+      await prisma.invoices.update({
+        where: { id: invoice.id },
+        data: {
+          status: 'paid',
+          paid_at: new Date(),
+        }
+      });
+      if (invoice.order_id) {
+        await prisma.checkout_orders.update({
+          where: { id: invoice.order_id },
+          data: { status: 'paid' }
+        });
+      }
+    }
+
+    return invoice.id;
+  }
 }
+
+export const lotsService = new LotsService();

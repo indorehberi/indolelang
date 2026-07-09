@@ -10,22 +10,22 @@ generator client {
 // --- Models ---
 
 model users {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  phone         String?   @unique
-  password_hash String
-  full_name     String
-  role          String
-  status        String    @default("pending")
-  company_name  String?
-  npwp          String?
-  provider_status String?
-  provider_fee_type String?
-  provider_fee_amount Decimal?
-  pmk41_paid_by_provider Boolean @default(false)
-  pks_number    String?
-  provider_type String?
-  
+  id                     String   @id @default(uuid())
+  email                  String   @unique
+  phone                  String?  @unique
+  password_hash          String
+  full_name              String
+  role                   String
+  status                 String   @default("pending")
+  company_name           String?
+  npwp                   String?
+  provider_status        String?
+  provider_fee_type      String?
+  provider_fee_amount    Decimal?
+  pmk41_paid_by_provider Boolean  @default(false)
+  pks_number             String?
+  provider_type          String?
+
   // Profile Fields (Bidder & Provider)
   address           String?
   occupation        String?
@@ -33,28 +33,34 @@ model users {
   bank_account_no   String?
   bank_account_name String?
   npwp_url          String?
-  
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  deleted_at    DateTime?
 
-  kyc_document  kyc_documents?
-  assets        assets[]
-  lots_won      lots[]          @relation("LotWinner")
-  bids          bids[]
-  deposits      deposits[]
-  invoices      invoices[]
-  settlements   settlements[]
-  notifications notifications[]
-  audit_logs    audit_logs[]
-  blog_posts    blog_posts[]
-  testimonials  testimonials[]
-  checkout_orders checkout_orders[]
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  kyc_document     kyc_documents?
+  bidder           bidders?
+  provider_app     providers?
+  assets           assets[]
+  lots_won         lots[]             @relation("LotWinner")
+  bids             bids[]
+  deposits         deposits[]
+  invoices         invoices[]
+  settlements      settlements[]
+  notifications    notifications[]
+  audit_logs       audit_logs[]
+  blog_posts       blog_posts[]
+  testimonials     testimonials[]
+  checkout_orders  checkout_orders[]
+  nipl_allocations nipl_allocations[]
+  my_referral      referrals?         @relation("Referrer")
+  referred_by      referral_usages?   @relation("ReferredUser")
 }
 
 model kyc_documents {
   id               String    @id @default(uuid())
   user_id          String    @unique
+  nik              String?
   ktp_url          String?
   selfie_url       String?
   ktp_selfie_url   String?
@@ -65,6 +71,51 @@ model kyc_documents {
   provider_ref_id  String?
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model bidders {
+  id                String    @id @default(uuid())
+  user_id           String    @unique
+  status            String    @default("antri") // antri | aktif | ditolak | nonaktif
+  address           String?
+  occupation        String?
+  bank_name         String?
+  bank_account_no   String?
+  bank_account_name String?
+  rejection_reason  String?
+  reviewed_by       String?
+  reviewed_at       DateTime?
+  submitted_at      DateTime  @default(now())
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model providers {
+  id                     String    @id @default(uuid())
+  user_id                String    @unique
+  status                 String    @default("antri") // antri | aktif | ditolak | nonaktif
+  company_name           String?
+  npwp                   String?
+  npwp_url               String?
+  pks_number             String?
+  provider_type          String?
+  provider_fee_type      String?
+  provider_fee_amount    Decimal?
+  pmk41_paid_by_provider Boolean   @default(false)
+  address                String?
+  bank_name              String?
+  bank_account_no        String?
+  bank_account_name      String?
+  rejection_reason       String?
+  reviewed_by            String?
+  reviewed_at            DateTime?
+  submitted_at           DateTime  @default(now())
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
 
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
@@ -81,6 +132,7 @@ model branches {
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   auction_sessions auction_sessions[]
+  assets           assets[]
 }
 
 model auction_sessions {
@@ -94,64 +146,97 @@ model auction_sessions {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  branch   branches   @relation(fields: [branch_id], references: [id])
-  lots     lots[]
-  deposits deposits[]
+  branch           branches           @relation(fields: [branch_id], references: [id])
+  lots             lots[]
+  deposits         deposits[]
+  nipl_allocations nipl_allocations[]
+}
+
+model nipl_allocations {
+  id                 String   @id @default(uuid())
+  user_id            String
+  session_id         String
+  allocated_quantity Int      @default(1)
+  used_quantity      Int      @default(0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  user    users            @relation(fields: [user_id], references: [id])
+  session auction_sessions @relation(fields: [session_id], references: [id])
+
+  @@unique([user_id, session_id])
 }
 
 model assets {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   provider_id String
   category    String
   title       String
   description String?
   base_price  Decimal
   images      String?
-  status          String    @default("pending")
-  
+  status      String  @default("pending")
+
   // Detail Kendaraan / Inspeksi
-  inspector_id    String?
-  inspection_date DateTime?
-  grade_interior  String?
-  grade_exterior  String?
-  grade_engine    String?
-  inspection_doc_url String?
-  brand           String?
-  model           String?
-  color           String?
-  fuel_type       String?
-  transmission    String?
-  body_type       String?
-  year            Int?
-  police_number   String?
-  bpkb_number     String?
-  frame_number    String?
-  cylinder        Int?
-  odometer        Int?
+  inspector_id        String?
+  inspection_date     DateTime?
+  inspection_pic_name String?
+  grade_interior      String?
+  grade_exterior      String?
+  grade_engine        String?
+  inspection_doc_url  String?
+  brand               String?
+  model               String?
+  color               String?
+  fuel_type           String?
+  transmission        String?
+  body_type           String?
+  year                Int?
+  police_number       String?
+  bpkb_number         String?
+  frame_number        String?
+  cylinder            Int?
+  odometer            Int?
 
   // --- NEW FIELDS FOR PROVIDER FORM ---
-  is_recommended  Boolean?  @default(false)
-  engine_number   String?
-  
+  is_recommended Boolean? @default(false)
+  engine_number  String?
+
   // Data Dokumen (Tanggal)
-  stnk_date       DateTime?
-  stnk_tax_date   DateTime?
-  keur_date       DateTime?
-  
+  stnk_date     DateTime?
+  stnk_tax_date DateTime?
+  keur_date     DateTime?
+
   // Data Dokumen (Status: Ada/Tidak Ada)
-  doc_stnk        Boolean?  @default(false)
-  doc_bpkb        Boolean?  @default(false)
-  doc_faktur      Boolean?  @default(false)
-  doc_kwitansi    Boolean?  @default(false)
-  doc_form_a      Boolean?  @default(false)
-  doc_copy_ktp    Boolean?  @default(false)
-  doc_keur        Boolean?  @default(false)
-  doc_sph         Boolean?  @default(false)
+  doc_stnk     Boolean? @default(false)
+  doc_bpkb     Boolean? @default(false)
+  doc_faktur   Boolean? @default(false)
+  doc_kwitansi Boolean? @default(false)
+  doc_form_a   Boolean? @default(false)
+  doc_copy_ktp Boolean? @default(false)
+  doc_keur     Boolean? @default(false)
+  doc_sph      Boolean? @default(false)
 
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
+  // --- Titip Jual: cabang/pool, catatan, alasan ditolak ---
+  branch_id        String?
+  pool_status      String? @default("in_pool")
+  notes            String?
+  rejection_reason String?
 
-  provider users  @relation(fields: [provider_id], references: [id])
+  // --- Foto per-sudut ---
+  photo_front    String?
+  photo_back     String?
+  photo_right    String?
+  photo_left     String?
+  photo_engine   String?
+  photo_interior String?
+  photo_stnk     String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  provider users     @relation(fields: [provider_id], references: [id])
+  branch   branches? @relation(fields: [branch_id], references: [id])
   lots     lots[]
 }
 
@@ -173,6 +258,8 @@ model lots {
   bids        bids[]
   invoices    invoices[]
   settlements settlements[]
+
+  @@unique([session_id, lot_number])
 }
 
 model bids {
@@ -229,27 +316,28 @@ model invoices {
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
 
-  lot       lots        @relation(fields: [lot_id], references: [id])
-  bidder    users       @relation(fields: [bidder_id], references: [id])
+  lot       lots             @relation(fields: [lot_id], references: [id])
+  bidder    users            @relation(fields: [bidder_id], references: [id])
   order     checkout_orders? @relation(fields: [order_id], references: [id])
   documents documents[]
 }
 
 model checkout_orders {
-  id                String   @id @default(uuid())
-  bidder_id         String
-  total_invoices    Int
-  subtotal_amount   Decimal
-  deposit_deduction Decimal
-  final_amount      Decimal
-  gateway_fee       Decimal? @default(0)
-  status            String   @default("unpaid")
-  payment_method    String?
-  va_number         String?
-  va_bank           String?
-  paid_at           DateTime?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  bidder_id          String
+  total_invoices     Int
+  subtotal_amount    Decimal
+  deposit_deduction  Decimal
+  final_amount       Decimal
+  gateway_fee        Decimal?  @default(0)
+  status             String    @default("unpaid")
+  payment_method     String?
+  va_number          String?
+  va_bank            String?
+  paid_at            DateTime?
+  transfer_proof_url String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
 
   bidder   users      @relation(fields: [bidder_id], references: [id])
   invoices invoices[]
@@ -342,33 +430,33 @@ model blog_posts {
   updated_at   DateTime  @updatedAt
   deleted_at   DateTime?
 
-  author       users     @relation(fields: [author_id], references: [id])
+  author users @relation(fields: [author_id], references: [id])
 }
 
 model testimonials {
-  id           String    @id @default(uuid())
-  user_id      String
-  rating       Int
-  content      String
-  image_url    String?
-  status       String    @default("pending")
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
-  deleted_at   DateTime?
+  id         String    @id @default(uuid())
+  user_id    String
+  rating     Int
+  content    String
+  image_url  String?
+  status     String    @default("pending")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
 
-  user         users     @relation(fields: [user_id], references: [id])
+  user users @relation(fields: [user_id], references: [id])
 }
 
 model campaigns {
-  id           String    @id @default(uuid())
-  title        String
-  message      String    @db.Text
-  target_role  String
-  status       String    @default("draft")
-  sent_count   Int       @default(0)
-  sent_at      DateTime?
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  title       String
+  message     String    @db.Text
+  target_role String
+  status      String    @default("draft")
+  sent_count  Int       @default(0)
+  sent_at     DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 }
 
 model contact_messages {
@@ -387,4 +475,30 @@ model galleries {
   image_url  String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model referrals {
+  id           String   @id @default(uuid())
+  referrer_id  String   @unique
+  code         String   @unique
+  total_reward Decimal  @default(0)
+  status       String   @default("active")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  referrer users             @relation("Referrer", fields: [referrer_id], references: [id])
+  usages   referral_usages[]
+}
+
+model referral_usages {
+  id            String   @id @default(uuid())
+  referral_id   String
+  referred_id   String   @unique
+  reward_amount Decimal
+  status        String   @default("pending")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  referral referrals @relation(fields: [referral_id], references: [id])
+  referred users     @relation("ReferredUser", fields: [referred_id], references: [id])
 }

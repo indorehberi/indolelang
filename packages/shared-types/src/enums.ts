@@ -36,6 +36,15 @@ export enum KycProvider {
   PRIVY = 'privy',
 }
 
+// --- Bidder / Provider Application ---
+
+export enum ApplicationStatus {
+  ANTRI = 'antri',
+  AKTIF = 'aktif',
+  DITOLAK = 'ditolak',
+  NONAKTIF = 'nonaktif',
+}
+
 // --- Auction ---
 
 export enum SessionStatus {
@@ -51,7 +60,13 @@ export enum AssetStatus {
   APPROVED = 'approved',
   LISTED = 'listed',
   SOLD = 'sold',
+  REJECTED = 'rejected',
   RETURNED = 'returned',
+}
+
+export enum PoolStatus {
+  IN_POOL = 'in_pool',
+  OUT_POOL = 'out_pool',
 }
 
 export enum AssetCategory {

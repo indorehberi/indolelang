@@ -34,6 +34,16 @@ export const createAssetSchema = z.object({
     doc_copy_ktp: z.any().optional(),
     doc_keur: z.any().optional(),
     doc_sph: z.any().optional(),
+    branch_id: z.string().uuid().optional(),
+    pool_status: z.enum(['in_pool', 'out_pool']).optional(),
+    notes: z.string().optional(),
+    photo_front: z.string().optional(),
+    photo_back: z.string().optional(),
+    photo_right: z.string().optional(),
+    photo_left: z.string().optional(),
+    photo_engine: z.string().optional(),
+    photo_interior: z.string().optional(),
+    photo_stnk: z.string().optional(),
   }),
 });
 
@@ -58,10 +68,11 @@ export const updateAssetSchema = z.object({
         AssetStatus.APPROVED,
         AssetStatus.LISTED,
         AssetStatus.SOLD,
+        AssetStatus.REJECTED,
         AssetStatus.RETURNED,
       ])
       .optional(),
-      
+
     inspector_id: z.string().uuid().optional(),
     inspection_date: z.string().datetime().optional(),
     grade_interior: z.enum(['A', 'B', 'C', 'D']).optional(),
@@ -78,6 +89,23 @@ export const updateAssetSchema = z.object({
     frame_number: z.string().optional(),
     cylinder: z.number().int().positive().optional(),
     odometer: z.number().int().nonnegative().optional(),
+    branch_id: z.string().uuid().optional(),
+    pool_status: z.enum(['in_pool', 'out_pool']).optional(),
+    notes: z.string().optional(),
+    rejection_reason: z.string().optional(),
+    photo_front: z.string().optional(),
+    photo_back: z.string().optional(),
+    photo_right: z.string().optional(),
+    photo_left: z.string().optional(),
+    photo_engine: z.string().optional(),
+    photo_interior: z.string().optional(),
+    photo_stnk: z.string().optional(),
+  }),
+});
+
+export const rejectAssetSchema = z.object({
+  body: z.object({
+    reason: z.string().min(3, 'Alasan penolakan wajib diisi'),
   }),
 });
 
@@ -94,15 +122,21 @@ export const getAssetsQuerySchema = z.object({
       AssetCategory.PROPERTI,
     ]).optional(),
     search: z.string().optional(),
+    branch_id: z.string().uuid().optional(),
+    pool_status: z.enum(['in_pool', 'out_pool']).optional(),
+    date_from: z.string().optional(),
+    date_to: z.string().optional(),
   }),
 });
 
 export const inspectAssetSchema = z.object({
   body: z.object({
     inspection_date: z.string().datetime(),
+    inspection_pic_name: z.string().min(1, 'PIC Inspeksi wajib diisi'),
     grade_interior: z.enum(['A', 'B', 'C', 'D', 'E']),
     grade_exterior: z.enum(['A', 'B', 'C', 'D', 'E']),
     grade_engine: z.enum(['A', 'B', 'C', 'D', 'E']),
+    inspection_doc_url: z.string().optional(),
     category: z.nativeEnum(AssetCategory),
     brand: z.string().min(1, 'Merek wajib diisi'),
     model: z.string().min(1, 'Tipe wajib diisi'),

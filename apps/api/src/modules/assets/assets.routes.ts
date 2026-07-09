@@ -9,6 +9,7 @@ import {
   updateAssetSchema,
   getAssetsQuerySchema,
   inspectAssetSchema,
+  rejectAssetSchema,
 } from './assets.schema';
 
 const router = Router();
@@ -56,21 +57,29 @@ router.put(
   '/admin/assets/:id/reject',
   authenticate,
   authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  validate(rejectAssetSchema),
   controller.rejectAsset
 );
 
+// Provider (own asset) or Admin/Operator withdraws an approved/listed asset
+router.put(
+  '/assets/:id/return',
+  authenticate,
+  authorize(Role.PROVIDER, Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.returnAsset
+);
 
 router.delete(
   '/assets/:id',
   authenticate,
-  authorize(Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
+  authorize(Role.PROVIDER, Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
   controller.deleteAsset
 );
 
 router.put(
   '/assets/:id/review',
   authenticate,
-  authorize(Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
+  authorize(Role.PROVIDER, Role.INSPECTOR, Role.ADMIN, Role.SUPERADMIN),
   controller.reviewAsset
 );
 

@@ -15,42 +15,25 @@ interface BidLog {
   isMe?: boolean;
 }
 
-export default function BidderBiddingRoom() {
-  const router = useRouter();
-  const [activeLot, setActiveLot] = useState<any>(null);
-  const [currentPrice, setCurrentPrice] = useState<number>(0);
+// Sub-component to manage a single active lot
+function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: { 
+  lot: any; 
+  token: string; 
+  bidIncrements: number[];
+  socket: Socket | null;
+  onLotClosed: () => void;
+}) {
+  const [currentPrice, setCurrentPrice] = useState<number>(Number(lot.starting_price));
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [hasNipl, setHasNipl] = useState<boolean>(true);
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [bidCooldown, setBidCooldown] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const socketRef = useRef<Socket | null>(null);
-
-  // Fetch current active lot
-  const fetchActiveLot = async () => {
-    if (typeof window === "undefined") return;
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Fetch active lots
-      const res = await fetch(apiUrl("/lots?status=active&per_page=1"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const resData = await res.json();
-
-      if (res.ok && resData.success && resData.data?.length > 0) {
-        const lot = resData.data[0];
-        setActiveLot(lot);
-        setCurrentPrice(Number(lot.starting_price));
-
-        // Check if user has NIPL for this session
+  // Check NIPL
+  useEffect(() => {
+    const fetchNipl = async () => {
+      try {
         const resDeposits = await fetch(apiUrl("/deposits"), {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -62,45 +45,19 @@ export default function BidderBiddingRoom() {
           );
           setHasNipl(activeNipl);
         }
-      } else {
-        setActiveLot(null);
-      }
-    } catch (err) {
-      console.error("Failed to load active lot", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } catch(e) {}
+    };
+    fetchNipl();
+  }, [lot.session_id, token]);
 
   useEffect(() => {
-    fetchActiveLot();
-  }, []);
+    if (!socket) return;
 
-  // Connect to WebSocket once activeLot is fetched
-  useEffect(() => {
-    if (!activeLot) return;
-
-    const token = localStorage.getItem("accessToken");
-    const socket: Socket = io(API_BASE_URL, {
-      auth: { token },
-      transports: ["websocket"],
-    });
-
-    socketRef.current = socket;
-
-    // Join room for this lot
-    socket.emit("bid:watch", {
-      lot_id: activeLot.id,
-      session_id: activeLot.session_id,
-    });
-
-    // Listen for events
-    socket.on("bid:update", (data: any) => {
-      if (data.lot_id !== activeLot.id) return;
+    const handleBidUpdate = (data: any) => {
+      if (data.lot_id !== lot.id) return;
       setCurrentPrice(data.current_price);
       setTimeLeft(data.time_remaining);
 
-      // Add to bid logs
       const user = localStorage.getItem("user");
       const currentUserName = user ? JSON.parse(user).full_name : "";
       const isMe = data.bidder_id && data.bidder_id.includes(currentUserName);
@@ -114,48 +71,45 @@ export default function BidderBiddingRoom() {
       };
 
       setBidLogs((prev) => {
-        // Prevent duplicate bid log at same amount
         if (prev.length > 0 && prev[0].amount === data.current_price) return prev;
         return [newLog, ...prev.slice(0, 9)];
       });
-    });
+    };
 
-    socket.on("bid:error", (data: any) => {
+    const handleBidError = (data: any) => {
+      // Note: bid:error is broadcasted to the specific socket that sent it?
+      // Or if broadcasted room-wide, we might need a way to filter, but let's assume it has lot_id
+      if (data.lot_id && data.lot_id !== lot.id) return; 
       setErrorMessage(data.message || "Gagal mengajukan penawaran.");
       setTimeout(() => setErrorMessage(""), 4000);
-    });
+    };
 
-    socket.on("lot:closed", (data: any) => {
-      if (data.lot_id !== activeLot.id) return;
-      alert(`Bidding lot selesai. Hasil: ${data.result === "sold" ? "TERJUAL" : "TIDAK LAKU"}`);
-      fetchActiveLot(); // reload lot state
-    });
+    const handleLotClosed = (data: any) => {
+      if (data.lot_id !== lot.id) return;
+      alert(`Bidding lot ${lot.lot_number} selesai. Hasil: ${data.result === "sold" ? "TERJUAL" : "TIDAK LAKU"}`);
+      onLotClosed();
+    };
+
+    socket.on("bid:update", handleBidUpdate);
+    socket.on("bid:error", handleBidError);
+    socket.on("lot:closed", handleLotClosed);
 
     return () => {
-      socket.emit("bid:unwatch", { lot_id: activeLot.id });
-      socket.disconnect();
+      socket.off("bid:update", handleBidUpdate);
+      socket.off("bid:error", handleBidError);
+      socket.off("lot:closed", handleLotClosed);
     };
-  }, [activeLot]);
-
-  // Kelipatan Bid minimum based on pricing rules
-  const getMinIncrement = (price: number) => {
-    if (price < 10000000) return 500000;
-    if (price < 50000000) return 1000000;
-    if (price < 200000000) return 2500000;
-    return 5000000;
-  };
+  }, [socket, lot.id, onLotClosed]);
 
   const handlePlaceBid = (incrementAmount: number) => {
-    if (!socketRef.current || !activeLot || bidCooldown) return;
-
-    // Enable cooldown (prevent click spam for 1.2 seconds)
+    if (!socket || bidCooldown) return;
     setBidCooldown(true);
     setTimeout(() => setBidCooldown(false), 1200);
 
     const nextBidAmount = currentPrice + incrementAmount;
-    socketRef.current.emit("bid:submit", {
-      lot_id: activeLot.id,
-      session_id: activeLot.session_id,
+    socket.emit("bid:submit", {
+      lot_id: lot.id,
+      session_id: lot.session_id,
       amount: nextBidAmount,
     });
   };
@@ -168,6 +122,263 @@ export default function BidderBiddingRoom() {
     }).format(value);
   };
 
+  return (
+    <div className="card mb-6 shadow-sm border-l-4 border-l-danger">
+      <div className="card-header flex justify-between items-center">
+        <span>
+          LOT #{lot.lot_number} &bull; {lot.asset?.title}
+        </span>
+        <span className="badge-ui danger animate-pulse">LIVE ACTIVE</span>
+      </div>
+
+      {errorMessage && (
+        <div className="alert-box danger mb-4 flex items-center gap-2 transition-all mx-5 mt-4">
+          <span className="material-symbols-outlined">error</span>
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      {/* Refactored Layout: Left (Bidding + Logs) - Right (Asset Image + Data) */}
+      <div className="p-5 flex flex-col md:flex-row gap-6">
+        
+        {/* LEFT COLUMN: Bidding Control Panel */}
+        <div className="w-full md:w-1/2 flex flex-col gap-6">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Harga Tertinggi Saat Ini</span>
+                <div className="text-4xl text-primary font-black">{formatRupiah(currentPrice)}</div>
+              </div>
+              
+              <div className="pt-2 border-t border-slate-200">
+                <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Sisa Waktu Penawaran</span>
+                <div
+                  className={`text-2xl font-bold flex items-center gap-2 ${
+                    timeLeft <= 15 ? "text-error" : "text-slate-800"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-3xl">timer</span>
+                  {timeLeft > 0 ? `${timeLeft} detik` : "Sesi Ditutup / Menunggu Ketok Palu"}
+                </div>
+              </div>
+            </div>
+
+            {hasNipl ? (
+              <div className="mt-6 space-y-3">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold block text-center bg-slate-200 py-1 rounded">Quick Bid Options</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {bidIncrements.map((inc, i) => (
+                    <button
+                      key={i}
+                      disabled={bidCooldown || timeLeft <= 0}
+                      onClick={() => handlePlaceBid(inc)}
+                      className={`py-3 px-1 text-xs font-bold rounded-lg transition-all shadow ${
+                        bidCooldown || timeLeft <= 0
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : i === 0 
+                            ? "bg-slate-900 hover:bg-slate-800 text-white active:scale-95 cursor-pointer"
+                            : i === 1
+                              ? "bg-primary hover:bg-primary/95 text-white active:scale-95 cursor-pointer"
+                              : "bg-orange-500 hover:bg-orange-600 text-white active:scale-95 cursor-pointer"
+                      }`}
+                    >
+                      + {formatRupiah(inc)}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 text-center italic mt-2">
+                  Setiap bid di bawah 30 detik memperpanjang timer otomatis.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 alert-box warning text-xs text-center">
+                Anda tidak terdaftar dalam sesi NIPL ini. Silakan melakukan deposit terlebih dahulu.
+              </div>
+            )}
+          </div>
+
+          {/* Live Bid logs */}
+          <div className="flex-1 flex flex-col">
+            <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-2 px-1">Log Penawaran Terakhir</span>
+            <div className="space-y-2 flex-1 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {bidLogs.length === 0 ? (
+                <div className="bg-slate-50 border border-dashed border-slate-300 p-6 rounded-xl flex flex-col items-center justify-center text-slate-400">
+                  <span className="material-symbols-outlined text-3xl mb-1">history</span>
+                  <p className="text-xs">Belum ada penawaran diajukan.</p>
+                </div>
+              ) : (
+                bidLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className={`flex justify-between items-center p-3 rounded-lg border shadow-sm ${
+                      log.isMe
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        {log.bidder} 
+                        {log.isMe && <span className="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded uppercase">Anda</span>}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{log.time}</div>
+                    </div>
+                    <div className="text-base font-black text-slate-900">{formatRupiah(log.amount)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Asset Data */}
+        <div className="w-full md:w-1/2 flex flex-col gap-4">
+          <img
+            src={
+              lot.asset?.images
+                ? JSON.parse(lot.asset.images as string)[0]
+                : "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=600"
+            }
+            alt={lot.asset?.title}
+            className="rounded-xl object-cover w-full h-[240px] shadow-sm border border-slate-200"
+          />
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex-1">
+            <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Kendaraan</h4>
+            <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Merk / Tipe</span>
+                <span className="font-medium text-slate-800">{lot.asset?.brand || "-"} / {lot.asset?.type || "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Tahun</span>
+                <span className="font-medium text-slate-800">{lot.asset?.year || "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No. Polisi</span>
+                <span className="font-medium text-slate-800">{lot.asset?.license_plate || "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Warna</span>
+                <span className="font-medium text-slate-800">{lot.asset?.color || "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Transmisi</span>
+                <span className="font-medium text-slate-800">{lot.asset?.transmission || "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Lokasi</span>
+                <span className="font-medium text-slate-800">{lot.asset?.location || "-"}</span>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">Harga Dasar (Limit)</span>
+              <span className="font-black text-xl text-slate-900">{formatRupiah(Number(lot.starting_price))}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export default function BidderBiddingRoom() {
+  const router = useRouter();
+  const [activeLots, setActiveLots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Settings for bidding
+  const [bidIncrements, setBidIncrements] = useState<number[]>([500000, 1000000, 2000000]);
+
+  const socketRef = useRef<Socket | null>(null);
+
+  const fetchActiveLots = async () => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Providers cannot bid — bounce them
+      const resProfile = await fetch(apiUrl("/users/profile"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const profileData = await resProfile.json();
+      if (resProfile.ok && profileData.success && profileData.data.role === "provider") {
+        router.push("/provider/dashboard");
+        return;
+      }
+
+      // Fetch ALL active lots
+      const res = await fetch(apiUrl("/lots?status=active"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resData = await res.json();
+
+      if (res.ok && resData.success && resData.data?.length > 0) {
+        setActiveLots(resData.data);
+      } else {
+        setActiveLots([]);
+      }
+
+      // Fetch settings for bid increments
+      try {
+        const resSettings = await fetch(apiUrl("/settings/public"));
+        const setgData = await resSettings.json();
+        if (resSettings.ok && setgData.success) {
+          let b1 = 500000, b2 = 1000000, b3 = 2000000;
+          setgData.data.forEach((item: any) => {
+            if (item.key === 'bid_increment_1') b1 = Number(item.value);
+            if (item.key === 'bid_increment_2') b2 = Number(item.value);
+            if (item.key === 'bid_increment_3') b3 = Number(item.value);
+          });
+          setBidIncrements([b1, b2, b3]);
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error("Failed to load active lots", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveLots();
+  }, []);
+
+  // Central Socket Connection
+  useEffect(() => {
+    if (activeLots.length === 0) return;
+
+    const token = localStorage.getItem("accessToken");
+    const socket = io(API_BASE_URL, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+    socketRef.current = socket;
+
+    // Join room for each active lot
+    activeLots.forEach((lot) => {
+      socket.emit("bid:watch", {
+        lot_id: lot.id,
+        session_id: lot.session_id,
+      });
+    });
+
+    return () => {
+      activeLots.forEach((lot) => {
+        socket.emit("bid:unwatch", { lot_id: lot.id });
+      });
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [activeLots.map(l => l.id).join(",")]); // Re-connect only if the active lot IDs change
+
   if (loading) {
     return (
       <BidderLayout pageTitle="Ruang Lelang Live">
@@ -179,141 +390,28 @@ export default function BidderBiddingRoom() {
     );
   }
 
-  const minInc = activeLot ? getMinIncrement(currentPrice) : 500000;
-
   return (
     <BidderLayout pageTitle="Ruang Lelang Live">
-      <p className="page-subtitle">Ikuti penawaran unit lot aktif secara real-time</p>
+      <p className="page-subtitle mb-6">Ikuti penawaran unit lot aktif secara real-time</p>
 
-      {errorMessage && (
-        <div className="alert-box danger mb-4 flex items-center gap-2 transition-all">
-          <span className="material-symbols-outlined">error</span>
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      {activeLot ? (
-        <div className="grid-2-1">
-          <div>
-            {/* Active Lot Info */}
-            <div className="card">
-              <div className="card-header">
-                <span>
-                  LOT #{activeLot.lot_number} &bull; {activeLot.asset?.title}
-                </span>
-                <span className="badge-ui danger">LIVE ACTIVE</span>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-6">
-                {/* Asset Image */}
-                <div className="w-full md:w-1/2">
-                  <img
-                    src={
-                      activeLot.asset?.images
-                        ? JSON.parse(activeLot.asset.images as string)[0]
-                        : "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=600"
-                    }
-                    alt={activeLot.asset?.title}
-                    className="rounded-xl object-cover w-full h-48 shadow-inner"
-                  />
-                </div>
-
-                {/* Bidding Control Panel */}
-                <div className="w-full md:w-1/2 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Harga Tertinggi Saat Ini</span>
-                      <div className="text-heading-2xl text-primary font-black mt-0.5">{formatRupiah(currentPrice)}</div>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Sisa Waktu Penawaran</span>
-                      <div
-                        className={`text-xl font-bold flex items-center gap-1.5 mt-0.5 ${
-                          timeLeft <= 15 ? "text-error" : "text-slate-800"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined animate-pulse">timer</span>
-                        {timeLeft > 0 ? `${timeLeft} detik` : "Sesi Ditutup / Menunggu Ketok Palu"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {hasNipl ? (
-                    <div className="mt-6 space-y-3">
-                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold block">Ajukan Penawaran Harga</span>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          disabled={bidCooldown || timeLeft <= 0}
-                          onClick={() => handlePlaceBid(minInc)}
-                          className={`py-3 text-xs font-bold rounded-xl transition-all shadow ${
-                            bidCooldown || timeLeft <= 0
-                              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                              : "bg-slate-900 hover:bg-slate-800 text-white active:scale-95 cursor-pointer"
-                          }`}
-                        >
-                          + {formatRupiah(minInc)}
-                        </button>
-                        <button
-                          disabled={bidCooldown || timeLeft <= 0}
-                          onClick={() => handlePlaceBid(minInc * 2)}
-                          className={`py-3 text-xs font-bold rounded-xl transition-all shadow ${
-                            bidCooldown || timeLeft <= 0
-                              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                              : "bg-primary hover:bg-primary/95 text-white active:scale-95 cursor-pointer"
-                          }`}
-                        >
-                          + {formatRupiah(minInc * 2)}
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-slate-500 text-center italic mt-1 leading-normal">
-                        *Kelipatan bid minimal {formatRupiah(minInc)}.<br />
-                        Setiap bid di bawah 30 detik memperpanjang timer otomatis (anti-sniping).
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-6 alert-box warning text-xs">
-                      Anda tidak terdaftar dalam sesi NIPL ini. Silakan melakukan deposit terlebih dahulu.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Live Bid logs */}
-          <div>
-            <div className="card">
-              <div className="card-header">Log Penawaran Realtime</div>
-              <div className="space-y-3">
-                {bidLogs.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">Belum ada penawaran diajukan.</p>
-                ) : (
-                  bidLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className={`flex justify-between items-center p-2.5 rounded-xl border ${
-                        log.isMe
-                          ? "border-primary/20 bg-primary/[0.02]"
-                          : "border-outline-variant/20 bg-slate-50"
-                      }`}
-                    >
-                      <div className="text-xs">
-                        <div className="font-bold text-slate-800">{log.bidder}</div>
-                        <div className="text-[9px] text-slate-500 mt-0.5">{log.time}</div>
-                      </div>
-                      <div className="text-sm font-black text-slate-950">{formatRupiah(log.amount)}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+      {activeLots.length > 0 ? (
+        <div className="space-y-8">
+          {activeLots.map((lot) => (
+            <ActiveLotCard 
+              key={lot.id} 
+              lot={lot} 
+              token={localStorage.getItem("accessToken") || ""}
+              bidIncrements={bidIncrements}
+              socket={socketRef.current}
+              onLotClosed={fetchActiveLots}
+            />
+          ))}
         </div>
       ) : (
-        <div className="card py-12 text-center text-body-md text-on-surface-variant flex flex-col items-center justify-center gap-3">
-          <span className="material-symbols-outlined text-5xl text-slate-300">gavel</span>
-          <span>Belum ada lot lelang aktif yang dibuka untuk penawaran saat ini.</span>
-          <p className="text-body-sm text-on-surface-variant/70 max-w-md">
+        <div className="card py-16 text-center flex flex-col items-center justify-center gap-4">
+          <span className="material-symbols-outlined text-6xl text-slate-300">gavel</span>
+          <span className="text-xl font-bold text-slate-700">Belum ada lot lelang aktif saat ini</span>
+          <p className="text-sm text-slate-500 max-w-md">
             Harap menunggu operator admin mengaktifkan lot lelang berikutnya dari Control Room.
           </p>
         </div>

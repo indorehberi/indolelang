@@ -27,6 +27,9 @@ export default function BidderProfile() {
   const [ekycStatus, setEkycStatus] = useState("unverified"); // unverified, pending, approved, rejected
   const [ktpUploaded, setKtpUploaded] = useState(false);
   const [selfieUploaded, setSelfieUploaded] = useState(false);
+  const [nik, setNik] = useState("");
+  const [ktpUrl, setKtpUrl] = useState("");
+  const [selfieUrl, setSelfieUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -70,11 +73,17 @@ export default function BidderProfile() {
         setEkycStatus(kyc.status || "pending");
         setKtpUploaded(!!kyc.ktp_url);
         setSelfieUploaded(!!kyc.selfie_url);
+        setNik(kyc.nik || "");
+        setKtpUrl(kyc.ktp_url || "");
+        setSelfieUrl(kyc.selfie_url || "");
       } else if (resKyc.status === 404) {
         // KYC documents not uploaded yet
         setEkycStatus("unverified");
         setKtpUploaded(false);
         setSelfieUploaded(false);
+        setNik("");
+        setKtpUrl("");
+        setSelfieUrl("");
       }
     } catch (err) {
       console.error("Failed to load profile/kyc data", err);
@@ -251,6 +260,16 @@ export default function BidderProfile() {
                 onChange={(e) => setName(e.target.value)}
                 className="panel-form-input"
                 required
+              />
+            </div>
+            <div className="panel-form-group">
+              <label className="panel-form-label">Nomor Induk Kependudukan (NIK)</label>
+              <input
+                type="text"
+                value={nik || (ekycStatus !== "unverified" ? "Belum diisi" : "")}
+                disabled
+                className="panel-form-input bg-slate-50 cursor-not-allowed"
+                placeholder="Disubmit melalui halaman eKYC"
               />
             </div>
             <div className="panel-form-group">
@@ -504,12 +523,18 @@ export default function BidderProfile() {
                     {ktpUploaded ? "Telah Diunggah" : "Belum Diunggah"}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                {ktpUrl && (
+                  <img src={ktpUrl} alt="KTP" className="w-full max-h-32 object-cover rounded mt-2 mb-2 border border-slate-200" />
+                )}
+                <div className="flex justify-between mt-3">
                   <span className="text-slate-500">Foto Selfie:</span>
                   <span className={`font-bold ${selfieUploaded ? "text-success" : "text-error"}`}>
                     {selfieUploaded ? "Telah Diunggah" : "Belum Diunggah"}
                   </span>
                 </div>
+                {selfieUrl && (
+                  <img src={selfieUrl} alt="Selfie" className="w-full max-h-48 object-cover rounded mt-2 border border-slate-200" />
+                )}
               </div>
 
               {ekycStatus === "unverified" && (
