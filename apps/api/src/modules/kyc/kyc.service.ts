@@ -118,6 +118,10 @@ export class KycService {
           where: { user_id: userId },
           data: { status: 'ditolak', rejection_reason: rejectionReason, reviewed_at: new Date() },
         }),
+        prisma.providers.updateMany({
+          where: { user_id: userId },
+          data: { status: 'ditolak', rejection_reason: rejectionReason, reviewed_at: new Date() },
+        }),
       ]);
 
       return {
@@ -142,6 +146,10 @@ export class KycService {
         data: { status: UserStatus.ACTIVE },
       }),
       prisma.bidders.updateMany({
+        where: { user_id: userId },
+        data: { status: 'aktif', reviewed_at: new Date() },
+      }),
+      prisma.providers.updateMany({
         where: { user_id: userId },
         data: { status: 'aktif', reviewed_at: new Date() },
       }),
@@ -222,6 +230,10 @@ export class KycService {
         where: { user_id: doc.user_id },
         data: { status: 'aktif', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: null },
       }),
+      prisma.providers.updateMany({
+        where: { user_id: doc.user_id },
+        data: { status: 'aktif', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: null },
+      }),
     ]);
 
     await notificationsService.createNotification({
@@ -257,6 +269,10 @@ export class KycService {
         },
       }),
       prisma.bidders.updateMany({
+        where: { user_id: doc.user_id },
+        data: { status: 'ditolak', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: reason },
+      }),
+      prisma.providers.updateMany({
         where: { user_id: doc.user_id },
         data: { status: 'ditolak', reviewed_by: reviewerId, reviewed_at: new Date(), rejection_reason: reason },
       }),

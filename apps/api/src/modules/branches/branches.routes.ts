@@ -30,4 +30,11 @@ router.put(
   controller.updateBranch
 );
 
+router.patch(
+  '/admin/branches/:id/status',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.toggleBranchStatus
+);
+
 export default router;

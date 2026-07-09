@@ -25,11 +25,22 @@ export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
+    name: '',
+    city: '',
+    address: '',
+    phone: '',
+    pic_name: '',
+  });
+
+  const [editData, setEditData] = useState({
+    id: '',
     name: '',
     city: '',
     address: '',
@@ -99,6 +110,72 @@ export default function BranchesPage() {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editData.name || !editData.city || !editData.address || !editData.phone || !editData.pic_name) {
+      alert('Mohon isi semua bidang yang diwajibkan.');
+      return;
+    }
+
+    setEditing(true);
+    setToast(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/branches/${editData.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editData.name,
+          city: editData.city,
+          address: editData.address,
+          phone: editData.phone,
+          pic_name: editData.pic_name,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal mengubah cabang');
+      }
+
+      setToast({ message: 'Cabang berhasil diubah', variant: 'success' });
+      setShowEditModal(false);
+      fetchBranches();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    if (!confirm(`Apakah Anda yakin ingin ${currentStatus ? 'menutup (nonaktifkan)' : 'mengaktifkan'} cabang ini?`)) return;
+
+    setToast(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl(`/admin/branches/${id}/status`), {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal mengubah status cabang');
+      }
+
+      setToast({ message: data.message || 'Status cabang berhasil diubah', variant: 'success' });
+      fetchBranches();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengaturan" breadcrumbCurrent="Manajemen Cabang">
       <div className="toolbar">
@@ -149,8 +226,28 @@ export default function BranchesPage() {
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div className="d-flex gap-1 justify-content-center">
-                        <button className="btn btn-xs btn-outline">Ubah</button>
-                        <button className="btn btn-xs btn-danger">Tutup</button>
+                        <button 
+                          className="btn btn-xs btn-outline"
+                          onClick={() => {
+                            setEditData({
+                              id: br.id,
+                              name: br.name,
+                              city: br.city,
+                              address: br.address,
+                              phone: br.phone,
+                              pic_name: br.pic_name,
+                            });
+                            setShowEditModal(true);
+                          }}
+                        >
+                          Ubah
+                        </button>
+                        <button 
+                          className={`btn btn-xs ${br.is_active ? 'btn-danger' : 'btn-success'}`}
+                          onClick={() => handleToggleStatus(br.id, br.is_active)}
+                        >
+                          {br.is_active ? 'Tutup' : 'Aktifkan'}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -235,6 +332,81 @@ export default function BranchesPage() {
               </Button>
               <Button type="submit" variant="primary" disabled={adding}>
                 {adding ? 'Menyimpan...' : 'Simpan Cabang'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Edit Branch Modal */}
+      {showEditModal && (
+        <Modal
+          isOpen={showEditModal}
+          title="Ubah Cabang"
+          onClose={() => setShowEditModal(false)}
+        >
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-2">
+              <Input
+                label="Nama Cabang"
+                type="text"
+                required
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <Input
+                label="Kota"
+                type="text"
+                required
+                value={editData.city}
+                onChange={(e) => setEditData({ ...editData, city: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <label className="form-label" style={{ fontWeight: 'bold' }}>
+                Alamat Lengkap <span className="text-danger">*</span>
+              </label>
+              <textarea
+                className="form-control"
+                required
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '0.5rem',
+                  border: '1px solid var(--wf-border)',
+                  borderRadius: 'var(--radius)',
+                  fontFamily: 'inherit',
+                }}
+                value={editData.address}
+                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+              />
+            </div>
+            <div className="mb-2">
+              <Input
+                label="Nomor Telepon"
+                type="text"
+                required
+                value={editData.phone}
+                onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <Input
+                label="Nama Kepala Cabang (PIC)"
+                type="text"
+                required
+                value={editData.pic_name}
+                onChange={(e) => setEditData({ ...editData, pic_name: e.target.value })}
+              />
+            </div>
+            <div className="d-flex justify-end gap-1">
+              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={editing}>
+                Batal
+              </Button>
+              <Button type="submit" variant="primary" disabled={editing}>
+                {editing ? 'Menyimpan...' : 'Simpan Perubahan'}
               </Button>
             </div>
           </form>

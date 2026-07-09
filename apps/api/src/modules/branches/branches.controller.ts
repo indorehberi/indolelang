@@ -72,6 +72,25 @@ export class BranchesController {
       next(error);
     }
   }
+
+  /**
+   * Toggle branch status (Admin only)
+   */
+  async toggleBranchStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const oldBranch = await branchesService.getBranchById(id);
+      const newStatus = !oldBranch.is_active;
+      const branch = await branchesService.updateBranch(id, { is_active: newStatus });
+
+      // Log admin audit trail
+      logAdminAction(req, 'TOGGLE_BRANCH_STATUS', 'branches', id, oldBranch, branch);
+
+      sendSuccess(res, branch, `Status cabang berhasil diubah menjadi ${newStatus ? 'Aktif' : 'Nonaktif'}`);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default BranchesController;
