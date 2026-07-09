@@ -53,7 +53,7 @@ export default function BidderInvoices() {
   };
 
   return (
-    <BidderLayout>
+    <BidderLayout pageTitle="Riwayat Tagihan & Pembayaran">
       <div className="space-y-6">
         <div className="flex justify-between items-end">
           <div>

@@ -47,7 +47,15 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
     }
   };
 
-  const menuItems = [
+  type MenuItem = {
+    name: string;
+    href: string;
+    icon: string;
+    isLive?: boolean;
+    badge?: string;
+  };
+
+  const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/bidder/dashboard", icon: "dashboard" },
     { name: "Katalog Lelang", href: "/katalog", icon: "gavel" },
     { name: "Ruang Lelang Live", href: "/bidder/bidding-room", icon: "play_circle", isLive: true },

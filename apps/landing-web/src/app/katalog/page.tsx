@@ -46,6 +46,7 @@ function KatalogContent() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (searchParams) {
