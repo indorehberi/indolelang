@@ -224,42 +224,57 @@ function ProviderAjukanBarangContent() {
   };
 
   React.useEffect(() => {
-    if (typeof document !== "undefined") {
-      const cookieMap: Record<string, string> = {};
-      document.cookie.split(";").forEach((c) => {
-        const parts = c.trim().split("=");
-        if (parts[0]) cookieMap[parts[0]] = parts[1] || "";
-      });
+    const fetchPlatformSettings = async () => {
+      try {
+        const response = await fetchWithRetry(apiUrl("/public/settings"));
+        const data = await response.json();
+        
+        let settingsMap: Record<string, string> = {};
+        if (response.ok && data.success) {
+          settingsMap = data.data || {};
+        } else {
+          // Fallback to cookies if API fails
+          if (typeof document !== "undefined") {
+            document.cookie.split(";").forEach((c) => {
+              const parts = c.trim().split("=");
+              if (parts[0]) settingsMap[parts[0]] = parts[1] || "";
+            });
+          }
+        }
 
-      const list = [];
-      if (cookieMap["feat_auction_english"] !== "false") list.push("English Auction");
-      if (cookieMap["feat_auction_dutch"] !== "false") list.push("Dutch Auction");
-      if (cookieMap["feat_auction_sealed"] !== "false") list.push("Sealed-Bid");
-      if (cookieMap["feat_auction_timed"] !== "false") list.push("Timed Auction");
-      if (cookieMap["feat_auction_buynow"] !== "false") list.push("Buy Now + Auction");
-      if (cookieMap["feat_auction_group"] !== "false") list.push("Group/Bundle");
+        const list = [];
+        if (settingsMap["feat_auction_english"] !== "false") list.push("English Auction");
+        if (settingsMap["feat_auction_dutch"] === "true") list.push("Dutch Auction");
+        if (settingsMap["feat_auction_sealed"] === "true") list.push("Sealed-Bid");
+        if (settingsMap["feat_auction_timed"] === "true") list.push("Timed Auction");
+        if (settingsMap["feat_auction_buynow"] === "true") list.push("Buy Now + Auction");
+        if (settingsMap["feat_auction_group"] === "true") list.push("Group/Bundle");
 
-      if (list.length > 0) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setEnabledTypes(list);
-        setAuctionType(list[0]);
+        if (list.length > 0) {
+          setEnabledTypes(list);
+          if (!editId) setAuctionType(list[0]);
+        }
+
+        const cats = {
+          mobil: settingsMap["feat_category_mobil"] !== "false",
+          motor: settingsMap["feat_category_motor"] !== "false",
+          properti: settingsMap["feat_category_properti"] === "true",
+          heavy: settingsMap["feat_category_heavy"] === "true",
+        };
+        setEnabledCategories(cats);
+
+        if (!cats.mobil) {
+          if (cats.motor) setFormData((prev) => ({ ...prev, category: "motor" }));
+          else if (cats.heavy) setFormData((prev) => ({ ...prev, category: "alat-berat" }));
+          else if (cats.properti) setFormData((prev) => ({ ...prev, category: "properti" }));
+        }
+      } catch (err) {
+        console.error("Gagal mengambil pengaturan platform", err);
       }
-
-      const cats = {
-        mobil: cookieMap["feat_category_mobil"] !== "false",
-        motor: cookieMap["feat_category_motor"] !== "false",
-        properti: cookieMap["feat_category_properti"] === "true",
-        heavy: cookieMap["feat_category_heavy"] === "true",
-      };
-      setEnabledCategories(cats);
-
-      if (!cats.mobil) {
-        if (cats.motor) setFormData((prev) => ({ ...prev, category: "motor" }));
-        else if (cats.heavy) setFormData((prev) => ({ ...prev, category: "alat-berat" }));
-        else if (cats.properti) setFormData((prev) => ({ ...prev, category: "properti" }));
-      }
-    }
-  }, []);
+    };
+    
+    fetchPlatformSettings();
+  }, [editId]);
 
   const handleChange = (field: string, value: string | number | boolean | File | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

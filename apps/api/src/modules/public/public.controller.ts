@@ -65,4 +65,16 @@ export class PublicController {
       next(error);
     }
   }
+
+  async getSettings(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await publicService.getPublicSettings();
+      sendSuccess(res, {
+        data,
+        message: 'Berhasil mengambil pengaturan platform publik',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

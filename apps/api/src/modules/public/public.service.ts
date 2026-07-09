@@ -156,4 +156,28 @@ export class PublicService {
       total_sales: sumResult._sum.hammer_price ? Number(sumResult._sum.hammer_price) : 0,
     };
   }
+
+  /**
+   * Get public platform settings (feature toggles)
+   */
+  async getPublicSettings() {
+    const settings = await prisma.platform_settings.findMany({
+      where: {
+        key: {
+          startsWith: 'feat_',
+        },
+      },
+      select: {
+        key: true,
+        value: true,
+      },
+    });
+    
+    // Convert to a key-value object
+    const result: Record<string, string> = {};
+    for (const setting of settings) {
+      result[setting.key] = setting.value;
+    }
+    return result;
+  }
 }

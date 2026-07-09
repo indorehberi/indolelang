@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots } from "@/hooks/usePublicData";
+import { apiUrl } from "@/lib/api";
 
 /* -------------------------------------------------------------------------- */
 /* Data                                                                         */
@@ -46,6 +47,7 @@ function KatalogContent() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [lotsList, setLotsList] = useState<any[]>(initialLots);
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
+  const [enabledTypes, setEnabledTypes] = useState<string[]>(["English Auction"]);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -118,21 +120,48 @@ function KatalogContent() {
   const uniqueLocations = Array.from(new Set(lotsList.map((l) => l.location))).filter(Boolean);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Load enabled categories from cookies
-      const cookieMap: Record<string, string> = {};
-      document.cookie.split(";").forEach((c) => {
-        const parts = c.trim().split("=");
-        if (parts[0]) cookieMap[parts[0]] = parts[1] || "";
-      });
+    const fetchPlatformSettings = async () => {
+      try {
+        const response = await fetch(apiUrl("/public/settings"));
+        const data = await response.json();
+        
+        let settingsMap: Record<string, string> = {};
+        if (response.ok && data.success) {
+          settingsMap = data.data || {};
+        } else {
+          // Fallback to cookies
+          if (typeof document !== "undefined") {
+            document.cookie.split(";").forEach((c) => {
+              const parts = c.trim().split("=");
+              if (parts[0]) settingsMap[parts[0]] = parts[1] || "";
+            });
+          }
+        }
 
-      setEnabledCategories({
-        mobil: cookieMap["feat_category_mobil"] !== "false",
-        motor: cookieMap["feat_category_motor"] !== "false",
-        properti: cookieMap["feat_category_properti"] === "true",
-        heavy: cookieMap["feat_category_heavy"] === "true",
-      });
-    }
+        setEnabledCategories({
+          mobil: settingsMap["feat_category_mobil"] !== "false",
+          motor: settingsMap["feat_category_motor"] !== "false",
+          properti: settingsMap["feat_category_properti"] === "true",
+          heavy: settingsMap["feat_category_heavy"] === "true",
+        });
+
+        const list = [];
+        if (settingsMap["feat_auction_english"] !== "false") list.push("English Auction");
+        if (settingsMap["feat_auction_dutch"] === "true") list.push("Dutch Auction");
+        if (settingsMap["feat_auction_sealed"] === "true") list.push("Sealed-Bid");
+        if (settingsMap["feat_auction_timed"] === "true") list.push("Timed Auction");
+        if (settingsMap["feat_auction_buynow"] === "true") list.push("Buy Now + Auction");
+        if (settingsMap["feat_auction_group"] === "true") list.push("Group/Bundle");
+
+        if (list.length > 0) {
+          setEnabledTypes(list);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil pengaturan platform", err);
+      }
+    };
+    
+    fetchPlatformSettings();
   }, []);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
@@ -332,7 +361,9 @@ function KatalogContent() {
                     className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-body-md px-3 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                   >
                     <option>Semua Jenis Lelang</option>
-                    <option>English Auction</option>
+                    {enabledTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                   </select>
                   <select
                     value={urutan}

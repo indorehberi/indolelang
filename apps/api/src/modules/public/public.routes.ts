@@ -9,5 +9,6 @@ router.get('/sessions/:id', controller.getSessionDetail);
 router.get('/lots/featured', controller.getFeaturedLots);
 router.get('/categories/stats', controller.getCategoryStats);
 router.get('/stats', controller.getPlatformStats);
+router.get('/settings', controller.getSettings);
 
 export default router;
