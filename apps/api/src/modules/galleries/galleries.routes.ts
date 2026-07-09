@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth';
 import { authorize } from '../../middleware/rbac';
 import { validate } from '../../middleware/validator';
 import { createGallerySchema } from './galleries.validator';
+import { Role } from '@indo-lelang/shared-types';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ router.get('/public', galleriesController.getPublicGalleries);
 router.get(
   '/admin',
   authenticate,
-  authorize('admin', 'superadmin'),
+  authorize(Role.ADMIN, Role.SUPERADMIN),
   galleriesController.getAdminGalleries
 );
 
@@ -34,7 +35,7 @@ router.get(
 router.post(
   '/admin',
   authenticate,
-  authorize('admin', 'superadmin'),
+  authorize(Role.ADMIN, Role.SUPERADMIN),
   validate(createGallerySchema),
   galleriesController.createGallery
 );
@@ -47,7 +48,7 @@ router.post(
 router.delete(
   '/admin/:id',
   authenticate,
-  authorize('admin', 'superadmin'),
+  authorize(Role.ADMIN, Role.SUPERADMIN),
   galleriesController.deleteGallery
 );
 
