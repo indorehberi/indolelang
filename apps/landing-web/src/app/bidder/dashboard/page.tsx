@@ -9,6 +9,8 @@ import BidderLayout from "../../../components/layout/BidderLayout";
 export default function BidderDashboard() {
   const router = useRouter();
   const [ekycStatus, setEkycStatus] = useState<string>("pending");
+  const [bidderStatus, setBidderStatus] = useState<string>("nonaktif");
+  const [rejectionReason, setRejectionReason] = useState<string>("");
   const [niplMotorCount, setNiplMotorCount] = useState<number>(0);
   const [niplMobilCount, setNiplMobilCount] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -71,6 +73,20 @@ export default function BidderDashboard() {
         setEkycStatus(resKycData.data.status || "pending");
       } else if (resKyc.status === 404) {
         setEkycStatus("unverified");
+      }
+
+      // Fetch Bidder Application Status
+      const resBidder = await fetch(apiUrl("/bidders/me"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const resBidderData = await resBidder.json();
+      if (resBidder.ok && resBidderData.success && resBidderData.data) {
+        setBidderStatus(resBidderData.data.status);
+        if (resBidderData.data.rejection_reason) {
+          setRejectionReason(resBidderData.data.rejection_reason);
+        }
+      } else {
+        setBidderStatus("nonaktif");
       }
 
       // 2. Fetch Deposits & Transactions Data
@@ -180,15 +196,14 @@ export default function BidderDashboard() {
     try {
       const token = localStorage.getItem("accessToken");
 
-      // Update Profile
-      const response = await fetch(apiUrl("/users/profile"), {
-        method: "PUT",
+      // Apply for Provider
+      const response = await fetch(apiUrl("/providers/apply"), {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          role: "provider",
           company_name: companyName,
           npwp: npwp,
           npwp_url: npwpUrl,
@@ -202,7 +217,9 @@ export default function BidderDashboard() {
       if (response.ok && resData.success) {
         alert("Pendaftaran berhasil! Pengajuan upgrade Anda telah dikirim dan sedang menunggu persetujuan Admin.");
         setIsUpgradeModalOpen(false);
-        router.push("/provider/dashboard");
+        // Do not redirect to provider dashboard yet, because they are still 'menunggu approval'.
+        // Refresh the page or fetch data again.
+        window.location.reload();
       } else {
         alert(resData.error?.message || "Gagal melakukan upgrade akun.");
       }
@@ -277,28 +294,19 @@ export default function BidderDashboard() {
             <Link href="/bidder/profile" className="ml-2 font-bold underline hover:text-red-950">Lengkapi Profil</Link>
           </div>
         </div>
-      ) : ekycStatus === "rejected" ? (
+      ) : bidderStatus === "nonaktif" || bidderStatus === "ditolak" ? (
         <div className="alert-box danger">
           <span className="material-symbols-outlined">report</span>
           <div>
-            <strong>❌ Verifikasi eKYC Ditolak:</strong> Dokumen yang Anda unggah ditolak oleh admin. Harap unggah kembali dokumen KTP & selfie Anda yang terbaru.
-            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-red-950">Unggah Ulang Dokumen</Link>
+            <strong>❌ Akun Bidder Belum Aktif:</strong> {rejectionReason ? `Pengajuan Anda ditolak admin: ${rejectionReason}. Harap lengkapi ulang profil & KYC Anda.` : 'Anda belum melengkapi pendaftaran Bidder atau KYC. Anda belum bisa ikut lelang.'}
+            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-red-950">Verifikasi KYC</Link>
           </div>
         </div>
-      ) : ekycStatus === "pending" ? (
+      ) : bidderStatus === "antri" ? (
         <div className="alert-box warning">
           <span className="material-symbols-outlined">schedule</span>
           <div>
-            <strong>⏳ Dokumen eKYC Sedang Diverifikasi:</strong> Data identitas Anda sedang diverifikasi secara manual oleh Tim Admin. Silakan tunggu beberapa saat.
-            <Link href="/ekyc/status" className="ml-2 font-bold underline hover:text-yellow-950">Lihat Status</Link>
-          </div>
-        </div>
-      ) : ekycStatus !== "verified" && ekycStatus !== "approved" ? (
-        <div className="alert-box warning">
-          <span className="material-symbols-outlined">error</span>
-          <div>
-            <strong>⚠️ Akun Belum Terverifikasi (eKYC Belum Aktif):</strong> Anda belum dapat membeli tiket NIPL atau menawar lot lelang sebelum data identitas KTP Anda diverifikasi.
-            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-yellow-950">Lengkapi eKYC</Link>
+            <strong>⏳ Menunggu Approval Admin:</strong> Data Anda telah kami terima dan sedang diverifikasi secara manual oleh Tim Admin. Silakan tunggu beberapa saat.
           </div>
         </div>
       ) : null}
@@ -367,12 +375,18 @@ export default function BidderDashboard() {
             <div className="card-header">Navigasi Panel Cepat</div>
             <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
               <Link 
-                href={ekycStatus === "approved" || ekycStatus === "verified" ? "/bidder/deposit" : "#"} 
-                className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${ekycStatus !== "approved" && ekycStatus !== "verified" ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={(e) => { if (ekycStatus !== "approved" && ekycStatus !== "verified") { e.preventDefault(); alert("Verifikasi eKYC Anda belum disetujui."); } }}
+                href={bidderStatus === "aktif" ? "/bidder/deposit" : "/ekyc/upload"} 
+                className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
+                onClick={(e) => { 
+                  if (bidderStatus !== "aktif") { 
+                    e.preventDefault(); 
+                    alert("Verifikasi KYC Bidder Anda belum disetujui. Silakan lengkapi KYC.");
+                    router.push("/ekyc/upload");
+                  } 
+                }}
               >
                 <span className="text-xl mb-1 block">💳</span>
-                <span className="leading-tight whitespace-nowrap">Setor NIPL</span>
+                <span className="leading-tight whitespace-nowrap">Beli NIPL</span>
               </Link>
               <Link href="/katalog" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
                 <span className="text-xl mb-1 block">🔍</span>
@@ -394,13 +408,13 @@ export default function BidderDashboard() {
               </p>
               <button
                 onClick={() => {
-                  if (ekycStatus !== "approved" && ekycStatus !== "verified") {
-                    alert("Verifikasi eKYC Anda belum disetujui. Lengkapi profil terlebih dahulu.");
+                  if (bidderStatus !== "aktif") {
+                    alert("Hanya Bidder yang sudah Aktif yang dapat mengajukan diri sebagai Provider. Lengkapi profil dan tunggu persetujuan Admin.");
                   } else {
                     setIsUpgradeModalOpen(true);
                   }
                 }}
-                className={`panel-btn panel-btn-gold justify-center w-full shadow-sm hover:shadow ${ekycStatus !== "approved" && ekycStatus !== "verified" ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`panel-btn panel-btn-gold justify-center w-full shadow-sm hover:shadow ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 🤝 Daftar Sebagai Provider
               </button>

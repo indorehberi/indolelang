@@ -195,7 +195,7 @@ export class ProvidersService {
     const updated = await prisma.providers.update({
       where: { id },
       data: {
-        status: ApplicationStatus.DITOLAK,
+        status: ApplicationStatus.NONAKTIF,
         reviewed_by: reviewerId,
         reviewed_at: new Date(),
         rejection_reason: reason,

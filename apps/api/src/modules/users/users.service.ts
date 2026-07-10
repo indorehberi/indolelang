@@ -209,7 +209,6 @@ export class UsersService {
         npwp_url: data.npwp_url ?? user.npwp_url,
         pks_number: data.pks_number ?? user.pks_number,
         provider_type: data.provider_type ?? user.provider_type,
-        provider_status: providerStatus,
         occupation: data.occupation ?? user.occupation,
         bank_name: data.bank_name ?? user.bank_name,
         bank_account_no: data.bank_account_no ?? user.bank_account_no,

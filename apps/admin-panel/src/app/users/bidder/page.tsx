@@ -80,11 +80,9 @@ export default function BidderListPage() {
       case 'aktif':
         return <Badge variant="success">Aktif</Badge>;
       case 'antri':
-        return <Badge variant="warning">Menunggu Verifikasi</Badge>;
-      case 'ditolak':
-        return <Badge variant="danger">Ditolak</Badge>;
+        return <Badge variant="warning">Menunggu Approval</Badge>;
       default:
-        return <Badge variant="default">Nonaktif</Badge>;
+        return <Badge variant="danger">Non Aktif</Badge>;
     }
   };
 

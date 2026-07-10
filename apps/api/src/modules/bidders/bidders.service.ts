@@ -178,7 +178,7 @@ export class BiddersService {
     const updated = await prisma.bidders.update({
       where: { id },
       data: {
-        status: ApplicationStatus.DITOLAK,
+        status: ApplicationStatus.NONAKTIF,
         reviewed_by: reviewerId,
         reviewed_at: new Date(),
         rejection_reason: reason,

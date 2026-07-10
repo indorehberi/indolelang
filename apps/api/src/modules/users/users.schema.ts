@@ -68,9 +68,9 @@ export const adminCreateUserSchema = z.object({
     bank_name: z.string().optional(),
     bank_account_no: z.string().optional(),
     bank_account_name: z.string().optional(),
-    ktp_url: z.string().optional(),
-    selfie_url: z.string().optional(),
-    npwp_url: z.string().optional(),
+    ktp_url: z.string().nullable().optional(),
+    selfie_url: z.string().nullable().optional(),
+    npwp_url: z.string().nullable().optional(),
   }),
 });
 
@@ -92,8 +92,8 @@ export const adminUpdateUserInfoSchema = z.object({
     bank_name: z.string().optional(),
     bank_account_no: z.string().optional(),
     bank_account_name: z.string().optional(),
-    ktp_url: z.string().optional(),
-    selfie_url: z.string().optional(),
-    npwp_url: z.string().optional(),
+    ktp_url: z.string().nullable().optional(),
+    selfie_url: z.string().nullable().optional(),
+    npwp_url: z.string().nullable().optional(),
   }),
 });
