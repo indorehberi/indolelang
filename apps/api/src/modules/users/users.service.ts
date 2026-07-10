@@ -527,6 +527,22 @@ export class UsersService {
       },
     });
 
+    // Sync fields that live in both users and providers tables
+    // This ensures the provider list page (which reads providers table) reflects the changes
+    const providerUpdateData: Record<string, unknown> = {};
+    if (data.company_name !== undefined) providerUpdateData.company_name = data.company_name;
+    if (data.npwp !== undefined) providerUpdateData.npwp = data.npwp;
+    if (data.provider_fee_type !== undefined) providerUpdateData.provider_fee_type = data.provider_fee_type;
+    if (data.provider_fee_amount !== undefined) providerUpdateData.provider_fee_amount = Number(data.provider_fee_amount);
+    if (data.pmk41_paid_by_provider !== undefined) providerUpdateData.pmk41_paid_by_provider = data.pmk41_paid_by_provider;
+
+    if (Object.keys(providerUpdateData).length > 0) {
+      await prisma.providers.updateMany({
+        where: { user_id: id },
+        data: providerUpdateData,
+      });
+    }
+
     return {
       id: updated.id,
       email: updated.email,
@@ -541,6 +557,7 @@ export class UsersService {
       updated_at: updated.updated_at.toISOString(),
     };
   }
+
 
   /**
    * Admin soft deletes a user
