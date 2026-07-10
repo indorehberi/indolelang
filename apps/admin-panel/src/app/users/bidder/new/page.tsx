@@ -74,13 +74,30 @@ export default function NewBidderPage() {
       setErrors(validationErrors);
       return;
     }
+    setErrors({});
     setLoading(true);
 
-    let ktp_url = null;
-    let selfie_url = null;
+    let ktp_url: string | undefined = undefined;
+    let selfie_url: string | undefined = undefined;
 
-    if (ktpFile) ktp_url = await uploadFile(ktpFile);
-    if (selfieFile) selfie_url = await uploadFile(selfieFile);
+    if (ktpFile) ktp_url = (await uploadFile(ktpFile)) ?? undefined;
+    if (selfieFile) selfie_url = (await uploadFile(selfieFile)) ?? undefined;
+
+    // Build payload — omit optional empty string fields so they don't fail min-length validation
+    const payload: Record<string, unknown> = {
+      full_name: form.full_name,
+      email: form.email,
+      password: form.password,
+      role: 'bidder',
+    };
+    if (form.phone.trim()) payload.phone = form.phone.trim();
+    if (form.address.trim()) payload.address = form.address.trim();
+    if (form.occupation.trim()) payload.occupation = form.occupation.trim();
+    if (form.bank_name.trim()) payload.bank_name = form.bank_name.trim();
+    if (form.bank_account_no.trim()) payload.bank_account_no = form.bank_account_no.trim();
+    if (form.bank_account_name.trim()) payload.bank_account_name = form.bank_account_name.trim();
+    if (ktp_url) payload.ktp_url = ktp_url;
+    if (selfie_url) payload.selfie_url = selfie_url;
 
     try {
       const token = localStorage.getItem('accessToken');
@@ -90,12 +107,7 @@ export default function NewBidderPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...form,
-          role: 'bidder',
-          ktp_url,
-          selfie_url
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -103,6 +115,14 @@ export default function NewBidderPage() {
         setTimeout(() => router.push('/users/bidder'), 1500);
       } else {
         const data = await res.json();
+        // If server returns field-level details, show them inline
+        if (data?.error?.details && typeof data.error.details === 'object') {
+          const serverErrors: Record<string, string> = {};
+          for (const [key, msg] of Object.entries(data.error.details)) {
+            serverErrors[key] = String(msg);
+          }
+          setErrors(serverErrors);
+        }
         showToast('error', data?.error?.message || 'Gagal menambahkan bidder');
       }
     } catch {

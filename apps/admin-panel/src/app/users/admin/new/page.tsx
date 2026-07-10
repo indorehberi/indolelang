@@ -61,20 +61,25 @@ export default function NewStaffPage() {
 
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+
+      // Build payload — omit optional empty string fields so they don't fail min-length validation
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        full_name: form.name,
+        email: form.email,
+        role: form.role,
+        branch_name: form.branch,
+        password: 'LelangStaf2026!',
+      };
+      if (form.phone.trim()) payload.phone = form.phone.trim();
+
       const res = await fetch(apiUrl('/admin/users'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          role: form.role,
-          branch_name: form.branch,
-          password: 'LelangStaf2026!',
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -82,6 +87,14 @@ export default function NewStaffPage() {
         setTimeout(() => router.push('/users/admin'), 1500);
       } else {
         const data = await res.json();
+        // If server returns field-level details, show them inline
+        if (data?.error?.details && typeof data.error.details === 'object') {
+          const serverErrors: Record<string, string> = {};
+          for (const [key, msg] of Object.entries(data.error.details)) {
+            serverErrors[key] = String(msg);
+          }
+          setErrors(serverErrors);
+        }
         showToast('error', data?.error?.message || 'Gagal menambahkan staf');
       }
     } catch {

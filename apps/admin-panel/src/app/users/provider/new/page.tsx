@@ -84,15 +84,38 @@ export default function NewProviderPage() {
       setErrors(validationErrors);
       return;
     }
+    setErrors({});
     setLoading(true);
 
-    let ktp_url = null;
-    let selfie_url = null;
-    let npwp_url = null;
+    let ktp_url: string | undefined = undefined;
+    let selfie_url: string | undefined = undefined;
+    let npwp_url: string | undefined = undefined;
 
-    if (ktpFile) ktp_url = await uploadFile(ktpFile);
-    if (selfieFile) selfie_url = await uploadFile(selfieFile);
-    if (npwpFile) npwp_url = await uploadFile(npwpFile);
+    if (ktpFile) ktp_url = (await uploadFile(ktpFile)) ?? undefined;
+    if (selfieFile) selfie_url = (await uploadFile(selfieFile)) ?? undefined;
+    if (npwpFile) npwp_url = (await uploadFile(npwpFile)) ?? undefined;
+
+    // Build payload — omit optional empty string fields so they don't fail min-length validation
+    const payload: Record<string, unknown> = {
+      full_name: form.full_name,
+      email: form.email,
+      password: form.password,
+      role: 'provider',
+      company_name: form.company_name,
+      npwp: form.npwp,
+      provider_fee_type: form.provider_fee_type,
+      provider_fee_amount: Number(form.provider_fee_amount),
+      pmk41_paid_by_provider: form.pmk41_paid_by_provider,
+      occupation: form.occupation,
+    };
+    if (form.phone.trim()) payload.phone = form.phone.trim();
+    if (form.address.trim()) payload.address = form.address.trim();
+    if (form.bank_name.trim()) payload.bank_name = form.bank_name.trim();
+    if (form.bank_account_no.trim()) payload.bank_account_no = form.bank_account_no.trim();
+    if (form.bank_account_name.trim()) payload.bank_account_name = form.bank_account_name.trim();
+    if (ktp_url) payload.ktp_url = ktp_url;
+    if (selfie_url) payload.selfie_url = selfie_url;
+    if (npwp_url) payload.npwp_url = npwp_url;
 
     try {
       const token = localStorage.getItem('accessToken');
@@ -102,14 +125,7 @@ export default function NewProviderPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...form,
-          role: 'provider',
-          provider_fee_amount: Number(form.provider_fee_amount),
-          ktp_url,
-          selfie_url,
-          npwp_url
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -117,6 +133,14 @@ export default function NewProviderPage() {
         setTimeout(() => router.push('/users/provider'), 1500);
       } else {
         const data = await res.json();
+        // If server returns field-level details, show them inline
+        if (data?.error?.details && typeof data.error.details === 'object') {
+          const serverErrors: Record<string, string> = {};
+          for (const [key, msg] of Object.entries(data.error.details)) {
+            serverErrors[key] = String(msg);
+          }
+          setErrors(serverErrors);
+        }
         showToast('error', data?.error?.message || 'Gagal menambahkan provider');
       }
     } catch {

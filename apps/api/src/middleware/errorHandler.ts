@@ -39,13 +39,22 @@ export function errorHandler(
   // Handle Zod validation errors
   if (err instanceof z.ZodError) {
     const details: Record<string, string> = {};
+    const messages: string[] = [];
     err.errors.forEach((e) => {
-      const pathStr = e.path.join('.');
-      details[pathStr] = e.message;
+      // Strip 'body.' prefix from path for cleaner field names
+      const rawPath = e.path.join('.');
+      const fieldPath = rawPath.replace(/^body\./, '');
+      details[fieldPath] = e.message;
+      messages.push(e.message);
     });
 
+    // Build a concise, human-readable summary
+    const summary = messages.length === 1
+      ? messages[0]
+      : `Ada ${messages.length} kesalahan: ${messages.join('; ')}`;
+
     logger.warn({ path: req.path, method: req.method, details }, 'Validation error handled');
-    sendError(res, ErrorCode.VALIDATION_ERROR, `Validasi input gagal: ${JSON.stringify(details)}`, details, 400);
+    sendError(res, ErrorCode.VALIDATION_ERROR, summary, details, 400);
     return;
   }
 
