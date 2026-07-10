@@ -9,9 +9,9 @@ export const createDepositSchema = z.object({
     package_type: z.enum(['1', '2', '3', '4', 'unlimited'], {
       errorMap: () => ({ message: 'Pilih jumlah/paket NIPL yang valid' }),
     }),
-    bank: z.enum(['bca', 'mandiri', 'bni', 'bri', 'permata', 'qris'], {
-      errorMap: () => ({ message: 'Metode pembayaran yang dipilih tidak valid' }),
-    }),
+    // Payment gateway is disabled — every deposit is a manual bank transfer,
+    // so a bank/VA choice is no longer required from the client.
+    bank: z.enum(['bca', 'mandiri', 'bni', 'bri', 'permata', 'qris']).optional(),
   }),
 });
 

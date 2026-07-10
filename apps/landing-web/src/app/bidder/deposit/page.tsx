@@ -14,14 +14,11 @@ export default function BidderDeposit() {
   const [unitType, setUnitType] = useState<"mobil" | "motor">("mobil");
   const [packageType, setPackageType] = useState<string>("1");
   
-  const [paymentMethod, setPaymentMethod] = useState<string>("bca"); // bca, mandiri, bni, bri, qris
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string>("");
-  const [feeBearer, setFeeBearer] = useState<string>("admin");
   const [showKycPopup, setShowKycPopup] = useState(false);
-  const [depositPaymentMode, setDepositPaymentMode] = useState<string>("auto");
-  const [manualTransferFee, setManualTransferFee] = useState<number>(2500);
+  const [manualTransferFee, setManualTransferFee] = useState<number>(0);
   const [manualAccountName, setManualAccountName] = useState<string>("PT Indo Lelang Sejahtera");
 
   // Response payment details
@@ -82,14 +79,6 @@ export default function BidderDeposit() {
       const response = await fetch(apiUrl("/settings/public"));
       const resData = await response.json();
       if (response.ok && resData.success) {
-        const feeSetting = resData.data.find((s: any) => s.key === "FEE_BEARER");
-        if (feeSetting) {
-          setFeeBearer(feeSetting.value);
-        }
-        
-        const pm = resData.data.find((s: any) => s.key === "deposit_payment_mode");
-        if (pm) setDepositPaymentMode(pm.value);
-
         const mFee = resData.data.find((s: any) => s.key === "manual_transfer_fee");
         if (mFee) setManualTransferFee(Number(mFee.value) || 0);
 
@@ -151,7 +140,6 @@ export default function BidderDeposit() {
         body: JSON.stringify({
           unit_type: unitType,
           package_type: packageType,
-          bank: paymentMethod,
         }),
       });
 
@@ -160,8 +148,8 @@ export default function BidderDeposit() {
         const deposit = resData.data;
         setOrderId(deposit.id);
         setVaNumber(deposit.va_number || "");
-        setVaBank(deposit.va_bank || paymentMethod);
-        setPaymentType(deposit.payment_method || "virtual_account");
+        setVaBank(deposit.va_bank || "manual");
+        setPaymentType(deposit.payment_method || "manual_transfer");
         setTotalPaid(Number(deposit.amount) + Number(deposit.transfer_fee || 0) + Number(deposit.refund_fee || 0));
         setTimeLeft(depositTimeoutMinutes * 60);
       } else {
@@ -331,58 +319,14 @@ export default function BidderDeposit() {
               </div>
 
               {/* Fee Notice */}
-              {feeBearer === 'customer' && (
+              {manualTransferFee > 0 && (
                 <div className="p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning-dark">
-                  <strong>Untuk Bidder:</strong> Segala biaya transfer dibebankan ke bidder.
-                  <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                    <li>Transfer bank: Rp 4.000 flat</li>
-                    <li>GoPay / ShopeePay: 2%</li>
-                    <li>QRIS: 0.7%</li>
-                    <li>DANA / OVO: 1.5%</li>
-                  </ul>
-                  <p className="mt-1 italic text-[10px]">Biaya ini akan otomatis ditambahkan pada saat pembayaran Midtrans.</p>
+                  <strong>Biaya transfer:</strong> {formatRupiah(manualTransferFee)} akan ditambahkan ke total deposit yang harus ditransfer.
                 </div>
               )}
 
-              {/* Payment Methods */}
-              <div className="panel-form-group">
-                <label className="panel-form-label">Metode Pembayaran</label>
-                
-                {/* Virtual Account Group */}
-                <div className="text-xs font-bold text-slate-500 mb-2">Virtual Account Bank</div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  {["bca", "mandiri", "bni", "bri"].map((b) => (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() => setPaymentMethod(b)}
-                      className={`p-3 border rounded-xl font-bold text-center transition-all uppercase text-xs ${
-                        paymentMethod === b
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {b} VA
-                    </button>
-                  ))}
-                </div>
-
-                {/* Instant QRIS Group */}
-                <div className="text-xs font-bold text-slate-500 mb-2">Instant E-Wallet / QRIS</div>
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("qris")}
-                    className={`p-3 border rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-xs ${
-                      paymentMethod === "qris"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base">qr_code_2</span>
-                    QRIS (Gopay, OVO, ShopeePay, LinkAja)
-                  </button>
-                </div>
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs text-slate-600">
+                Pembayaran dilakukan lewat <strong>transfer bank manual</strong>. Setelah mengajukan, Anda akan melihat nomor rekening tujuan dan bisa langsung mengunggah bukti transfer di halaman ini.
               </div>
 
               <button
@@ -393,12 +337,12 @@ export default function BidderDeposit() {
                 {isSubmitting ? (
                   <>
                     <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Memproses Transaksi...
+                    Memproses...
                   </>
                 ) : (
                   <>
                     <span className="material-symbols-outlined">payments</span>
-                    Bayar Sekarang
+                    Ajukan Deposit
                   </>
                 )}
               </button>

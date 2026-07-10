@@ -344,22 +344,9 @@ function CartGroupCard({
 
             <div className="card">
               <div className="card-header">Metode Pembayaran Sisa Tagihan</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                {["bca", "mandiri", "bni", "bri"].map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => setPaymentMethod(b)}
-                    className={`p-3 border rounded-xl font-bold text-center transition-all uppercase text-xs ${
-                      paymentMethod === b
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {b} VA
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-slate-600">
+                Pembayaran dilakukan lewat <strong>transfer bank manual</strong>. Nomor rekening tujuan akan tampil di ringkasan setelah Anda menekan "Proses Pembayaran".
+              </p>
             </div>
           </>
         )}

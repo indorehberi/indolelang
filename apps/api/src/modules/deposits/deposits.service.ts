@@ -3,11 +3,10 @@ import { AppError } from '../../lib/appError';
 import { logger } from '../../lib/logger';
 import { ErrorCode } from '@indo-lelang/utils';
 import { DepositDTO, PaginationMeta, DepositStatus, Role } from '@indo-lelang/shared-types';
-import { midtransClient } from '../../lib/midtrans';
 import { sendEmail } from '../../lib/email';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
-import { calculateGatewayFee } from '../../utils/paymentCalculator';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 export class DepositsService {
   /**
@@ -108,17 +107,18 @@ export class DepositsService {
     const targetSessionId = null;
 
 
-    // Fetch settings for Fee Bearer and NIPL Amounts
+    // Fetch settings for NIPL Amounts and manual transfer details.
+    // Payment gateway is currently disabled platform-wide (not ready yet) —
+    // every deposit goes through manual bank transfer regardless of any
+    // stored 'deposit_payment_mode' setting.
     const settings = await prisma.platform_settings.findMany({
       where: {
-        key: { in: ['FEE_BEARER', 'nipl_deposit_amount', 'nipl_motor_deposit_amount', 'deposit_payment_mode', 'manual_payment_bank', 'manual_payment_account', 'manual_payment_name', 'manual_transfer_fee', 'manual_refund_fee'] }
+        key: { in: ['nipl_deposit_amount', 'nipl_motor_deposit_amount', 'manual_payment_bank', 'manual_payment_account', 'manual_payment_name', 'manual_transfer_fee', 'manual_refund_fee'] }
       }
     });
 
-    const feeBearer = settings.find(s => s.key === 'FEE_BEARER')?.value || 'admin';
     const niplMobilBase = parseInt(settings.find(s => s.key === 'nipl_deposit_amount')?.value || '5000000', 10);
     const niplMotorBase = parseInt(settings.find(s => s.key === 'nipl_motor_deposit_amount')?.value || '1000000', 10);
-    const depositPaymentMode = settings.find(s => s.key === 'deposit_payment_mode')?.value || 'auto';
     const manualPaymentBank = settings.find(s => s.key === 'manual_payment_bank')?.value || 'BCA';
     const manualPaymentAccount = settings.find(s => s.key === 'manual_payment_account')?.value || '7015886161';
     const manualPaymentName = settings.find(s => s.key === 'manual_payment_name')?.value || 'PT Indo Lelang Sejahtera';
@@ -143,53 +143,19 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Jenis unit tidak valid');
     }
 
-    let gatewayFee = 0;
-    let transferFee = 0;
-    let refundFee = 0;
-    
-    if (depositPaymentMode === 'manual') {
-      transferFee = manualTransferFee;
-      refundFee = manualRefundFee;
-    } else if (feeBearer === 'customer') {
-      gatewayFee = calculateGatewayFee(amount, bank);
-    }
-    
-    const grossAmount = amount + gatewayFee + transferFee + refundFee;
+    const transferFee = manualTransferFee;
+    const refundFee = manualRefundFee;
 
-    // Generate deposit record ID beforehand to use as Midtrans order ID
+    // Generate deposit record ID
     const depositId = crypto.randomUUID();
-    const orderId = `NIPL-${depositId}`;
 
-    // 4. Request Midtrans for VA details with a mock fallback for local testing, or bypass if manual mode
-    let midtransRes;
-    
-    if (depositPaymentMode === 'manual') {
-      midtransRes = {
-        order_id: orderId,
-        va_number: manualPaymentAccount,
-        va_bank: `manual_${manualPaymentBank.toLowerCase()}`,
-        payment_method: 'manual_transfer',
-        raw_response: { status_message: 'Manual payment instructed', account_name: manualPaymentName }
-      };
-    } else {
-      try {
-        midtransRes = await midtransClient.chargeVirtualAccount({
-          orderId,
-          amount: grossAmount, // pass the new total including fee
-          bank,
-        });
-      } catch (error) {
-        logger.warn({ error, orderId }, 'Midtrans charge failed. Falling back to Mock Payment Details.');
-        const dummyVa = `70088${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-        midtransRes = {
-          order_id: orderId,
-          va_number: bank === 'qris' ? 'https://midtrans.com/qris-mock' : dummyVa,
-          va_bank: bank,
-          payment_method: bank === 'qris' ? 'qris' : 'virtual_account',
-          raw_response: { status_message: 'Mock payment created due to inactive midtrans channel' }
-        };
-      }
-    }
+    // Manual transfer instructions — payment gateway is disabled, so this is
+    // the only path.
+    const midtransRes = {
+      va_number: manualPaymentAccount,
+      va_bank: `manual_${manualPaymentBank.toLowerCase()}`,
+      payment_method: 'manual_transfer',
+    };
 
     // 5. Expire any old pending deposits for the same session/free and user
     await prisma.deposits.updateMany({
@@ -210,10 +176,10 @@ export class DepositsService {
         user_id: userId,
         session_id: targetSessionId,
         amount: new Prisma.Decimal(amount),
-        gateway_fee: new Prisma.Decimal(gatewayFee),
+        gateway_fee: new Prisma.Decimal(0),
         transfer_fee: new Prisma.Decimal(transferFee),
         refund_fee: new Prisma.Decimal(refundFee),
-        is_manual: depositPaymentMode === 'manual',
+        is_manual: true,
         unit_type,
         package_type,
         va_number: midtransRes.va_number,
@@ -223,22 +189,20 @@ export class DepositsService {
       },
     });
 
-    // 7. Send notification email with VA details asynchronously
+    // 7. Send notification email with manual transfer instructions
     const formattedAmount = new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-    
-    const isManual = depositPaymentMode === 'manual';
-    const emailMethod = isManual ? `Transfer Manual ${manualPaymentBank}` : (bank === 'qris' ? 'QRIS' : bank.toUpperCase() + ' Virtual Account');
-    const emailNumberTitle = isManual ? 'No. Rekening Tujuan' : (bank === 'qris' ? 'QR Code URL' : 'Nomor Virtual Account');
-    const emailNumberValue = isManual ? `${manualPaymentAccount} a.n ${manualPaymentName}` : midtransRes.va_number;
+
+    const emailMethod = `Transfer Manual ${manualPaymentBank}`;
+    const emailNumberValue = `${manualPaymentAccount} a.n ${manualPaymentName}`;
 
     sendEmail({
       to: user.email,
       subject: `[Indo-Lelang] Pembayaran NIPL (Saldo Bebas Lintas Sesi)`,
-      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL Bebas (Saldo Terbuka). Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\n${emailNumberTitle}: ${emailNumberValue}\nStatus: Menunggu Pembayaran (Berlaku 60 menit)\n\nTerima kasih,\nTim Indo-Lelang`,
+      text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL Bebas (Saldo Terbuka). Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\nNo. Rekening Tujuan: ${emailNumberValue}\nStatus: Menunggu Transfer\n\nSetelah transfer, unggah bukti transfer Anda di halaman Deposit NIPL agar tim kami dapat memverifikasi dan mengaktifkan NIPL Anda.\n\nTerima kasih,\nTim Indo-Lelang`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <h2 style="color: #2b6cb0;">Pendaftaran NIPL Indo-Lelang</h2>
@@ -255,16 +219,16 @@ export class DepositsService {
                 <td style="padding: 6px 0; font-weight: bold; color: #2d3748;">${emailMethod}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #718096;">${emailNumberTitle}:</td>
+                <td style="padding: 6px 0; color: #718096;">No. Rekening Tujuan:</td>
                 <td style="padding: 6px 0; font-size: 1.1rem; font-weight: bold; color: #e53e3e; word-break: break-all;">${emailNumberValue}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #718096;">Status:</td>
-                <td style="padding: 6px 0; font-weight: bold; color: #dd6b20;">Menunggu Pembayaran</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #dd6b20;">Menunggu Transfer</td>
               </tr>
             </table>
           </div>
-          <p style="color: #718096; font-size: 0.9rem;">Catatan: Metode pembayaran ini berlaku selama 60 menit. Harap segera menyelesaikan pembayaran sebelum batas waktu berakhir.</p>
+          <p style="color: #718096; font-size: 0.9rem;">Setelah transfer, unggah bukti transfer Anda di halaman Deposit NIPL agar tim kami dapat memverifikasi dan mengaktifkan NIPL Anda.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="font-size: 0.8rem; color: #a0aec0; text-align: center;">Email ini dikirimkan secara otomatis oleh sistem Indo-Lelang. Harap tidak membalas email ini.</p>
         </div>
@@ -296,6 +260,7 @@ export class DepositsService {
   async requestRefund(userId: string, depositId: string): Promise<any> {
     const deposit = await prisma.deposits.findUnique({
       where: { id: depositId },
+      include: { user: { select: { full_name: true } } },
     });
 
     if (!deposit || deposit.user_id !== userId) {
@@ -338,6 +303,14 @@ export class DepositsService {
       data: { status: 'pending_refund' }
     });
 
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(deposit.amount));
+    await notifyAdmins(
+      'refund_requested',
+      'Permintaan Refund NIPL',
+      `${deposit.user.full_name} mengajukan refund NIPL sebesar ${formattedAmount}.`,
+      '/finance/refunds'
+    );
+
     return updated;
   }
 
@@ -373,6 +346,16 @@ export class DepositsService {
       },
     });
 
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(deposit.amount));
+    await prisma.notifications.create({
+      data: {
+        user_id: deposit.user_id,
+        type: 'deposit_approved',
+        title: 'NIPL Aktif',
+        body: `Transfer deposit NIPL Anda sebesar ${formattedAmount} telah diverifikasi. NIPL Anda kini aktif dan bisa dipakai untuk mengikuti lelang.`,
+      },
+    });
+
     return updated;
   }
 
@@ -382,6 +365,7 @@ export class DepositsService {
   async uploadTransferProof(userId: string, depositId: string, proofUrl: string): Promise<any> {
     const deposit = await prisma.deposits.findUnique({
       where: { id: depositId },
+      include: { user: { select: { full_name: true } } },
     });
 
     if (!deposit || deposit.user_id !== userId) {
@@ -398,11 +382,19 @@ export class DepositsService {
 
     const updated = await prisma.deposits.update({
       where: { id: depositId },
-      data: { 
+      data: {
         transfer_proof_url: proofUrl,
         status: 'pending_approval'
       },
     });
+
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(deposit.amount));
+    await notifyAdmins(
+      'deposit_proof_uploaded',
+      'Bukti Transfer NIPL Masuk',
+      `${deposit.user.full_name} mengunggah bukti transfer NIPL sebesar ${formattedAmount}. Mohon diverifikasi.`,
+      '/finance/deposits'
+    );
 
     return updated;
   }

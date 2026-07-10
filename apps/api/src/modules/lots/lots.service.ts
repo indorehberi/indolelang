@@ -3,6 +3,8 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { LotDTO, PaginationMeta, LotStatus, AssetStatus } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
+import { paymentsService } from '../payments/payments.service';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 export class LotsService {
   /**
@@ -342,13 +344,26 @@ export class LotsService {
 
     const invoice = await prisma.invoices.findFirst({
       where: { lot_id: id },
+      include: {
+        lot: {
+          include: {
+            asset: {
+              include: {
+                provider: { select: { full_name: true, company_name: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!invoice) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Tagihan (invoice) belum terbentuk untuk lot ini');
     }
 
-    if (invoice.status !== 'paid') {
+    const wasAlreadyPaid = invoice.status === 'paid';
+
+    if (!wasAlreadyPaid) {
       await prisma.invoices.update({
         where: { id: invoice.id },
         data: {
@@ -362,6 +377,30 @@ export class LotsService {
           data: { status: 'paid' }
         });
       }
+
+      await prisma.notifications.create({
+        data: {
+          user_id: invoice.bidder_id,
+          type: 'invoice_paid',
+          title: 'Pelunasan Diterima',
+          body: `Pelunasan Anda untuk unit "${invoice.lot.asset.title}" telah diverifikasi. Dokumen BAPL, Surat Jalan, dan BAST kini dapat diunduh.`,
+        },
+      });
+    }
+
+    // Provider settlement (pencairan) — created here for the manual payment
+    // flow; idempotent, so re-calling this endpoint is always safe.
+    const settlement = await paymentsService.createSettlementForInvoice(invoice.id);
+
+    if (!wasAlreadyPaid) {
+      const providerName = invoice.lot.asset.provider.company_name || invoice.lot.asset.provider.full_name;
+      const formattedNet = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(settlement.net_amount));
+      await notifyAdmins(
+        'lot_sold_settlement',
+        'Barang Terjual — Pencairan ke Provider',
+        `Unit "${invoice.lot.asset.title}" terjual dan lunas dibayar. Total yang harus ditransfer ke ${providerName}: ${formattedNet}.`,
+        '/finance/settlements'
+      );
     }
 
     return invoice.id;

@@ -1,11 +1,108 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { midtransClient } from '../../lib/midtrans';
 import { logger } from '../../lib/logger';
 import { Prisma } from '@prisma/client';
 
+/**
+ * Parse a settings value that may be a plain number or a "a/b" fraction
+ * (e.g. the default dpp_lain_multiplier "11/12"), without eval().
+ */
+function parseFractionSetting(value: string, fallback: number): number {
+  const parts = value.split('/');
+  if (parts.length === 2) {
+    const num = Number(parts[0]);
+    const den = Number(parts[1]);
+    if (Number.isFinite(num) && Number.isFinite(den) && den !== 0) {
+      return num / den;
+    }
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export class PaymentsService {
+  /**
+   * Compute and persist the provider settlement (pencairan) for a sold lot's
+   * invoice. Shared by the Midtrans webhook path and the manual "tandai
+   * lunas" admin action, so both produce the same numbers. Idempotent: if a
+   * settlement already exists for this lot, it's returned as-is.
+   */
+  async createSettlementForInvoice(invoiceId: string): Promise<any> {
+    const invoice = await prisma.invoices.findUnique({
+      where: { id: invoiceId },
+      include: {
+        lot: {
+          include: {
+            asset: { include: { provider: true } },
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Invoice tidak ditemukan');
+    }
+
+    const existing = await prisma.settlements.findFirst({ where: { lot_id: invoice.lot_id } });
+    if (existing) return existing;
+
+    const hammerPrice = Number(invoice.hammer_price);
+    const provider = invoice.lot.asset.provider;
+
+    const settings = await prisma.platform_settings.findMany({
+      where: {
+        key: { in: ['tax_percentage', 'dpp_lain_multiplier', 'ppn_dpp_lain_percentage', 'pph23_percentage', 'pmk41_percentage'] }
+      }
+    });
+    const taxPct = parseFloat(settings.find(s => s.key === 'tax_percentage')?.value || '11.0');
+    const dppLainMultiplier = parseFractionSetting(settings.find(s => s.key === 'dpp_lain_multiplier')?.value || '11/12', 11 / 12);
+    const ppnDppLainPct = parseFloat(settings.find(s => s.key === 'ppn_dpp_lain_percentage')?.value || '12.0') / 100;
+    const pph23Pct = parseFloat(settings.find(s => s.key === 'pph23_percentage')?.value || '2.0') / 100;
+    const pmk41Pct = parseFloat(settings.find(s => s.key === 'pmk41_percentage')?.value || '1.1') / 100;
+
+    let totalInvoiceFeeLelang = 0;
+    if (provider.provider_fee_type === 'flat') {
+      totalInvoiceFeeLelang = Number(provider.provider_fee_amount || 0);
+    } else {
+      const percentage = Number(provider.provider_fee_amount || 0) / 100;
+      totalInvoiceFeeLelang = Math.round(hammerPrice * percentage);
+    }
+
+    const feeDpp = Math.round(totalInvoiceFeeLelang / (1 + (taxPct / 100)));
+    const feeDppLain = Math.round(feeDpp * dppLainMultiplier);
+    const feePpn = Math.round(feeDppLain * ppnDppLainPct);
+    const feePph23 = Math.round((totalInvoiceFeeLelang - feePpn) * pph23Pct);
+    const totalTerimaFeeLelang = totalInvoiceFeeLelang - feePph23;
+
+    // Kept as-is per client confirmation: PMK41 is added, not subtracted,
+    // when a provider is configured to bear it themselves.
+    let pmk41 = 0;
+    if (provider.pmk41_paid_by_provider) {
+      pmk41 = Math.round(hammerPrice * pmk41Pct);
+    }
+
+    const netAmount = hammerPrice - totalTerimaFeeLelang + pmk41;
+
+    const settlement = await prisma.settlements.create({
+      data: {
+        lot_id: invoice.lot_id,
+        provider_id: provider.id,
+        gross_amount: new Prisma.Decimal(hammerPrice),
+        commission_deducted: new Prisma.Decimal(totalTerimaFeeLelang),
+        net_amount: new Prisma.Decimal(netAmount),
+        fee_dpp: new Prisma.Decimal(feeDpp),
+        fee_dpp_lain: new Prisma.Decimal(feeDppLain),
+        fee_ppn: new Prisma.Decimal(feePpn),
+        fee_pph23: new Prisma.Decimal(feePph23),
+        pmk41_amount: new Prisma.Decimal(pmk41),
+        status: 'pending',
+      },
+    });
+
+    return settlement;
+  }
+
   /**
    * List provider settlements with filters and pagination
    */
@@ -88,7 +185,9 @@ export class PaymentsService {
   }
 
   /**
-   * Approve and execute provider settlement disbursement via Xendit
+   * Mark a provider settlement as disbursed. Payment gateway is disabled —
+   * the admin transfers the net_amount to the provider's bank account
+   * manually outside the system, then calls this to record it as done.
    */
   async disburseSettlement(settlementId: string): Promise<any> {
     const settlement = await prisma.settlements.findUnique({
@@ -115,57 +214,35 @@ export class PaymentsService {
       );
     }
 
-    try {
-      // Check fee bearer setting
-      const settingRecord = await prisma.platform_settings.findFirst({
-        where: { key: 'FEE_BEARER' }
-      });
-      const feeBearer = settingRecord?.value || 'admin';
-      
-      let payoutAmount = Number(settlement.net_amount);
-      let gatewayFee = 0;
-      
-      if (feeBearer === 'customer') {
-        gatewayFee = 3200; // Midtrans Iris standard fee
-        payoutAmount = payoutAmount - gatewayFee;
-      }
+    const updated = await prisma.settlements.update({
+      where: { id: settlementId },
+      data: {
+        status: 'processed',
+        transferred_at: new Date(),
+        gateway_fee: 0,
+      },
+    });
 
-      // Execute the payout using the Midtrans Iris Client
-      const response = await midtransClient.createPayout({
-        reference_no: `SETTLE-${settlementId}`,
-        amount: payoutAmount,
-        bank_code: settlement.provider.bank_name || 'BCA', // Fallback
-        account_name: settlement.provider.bank_account_name || settlement.provider.full_name,
-        account_number: settlement.provider.bank_account_no || '1234567890',
-        description: `Pelunasan lelang unit ${settlement.lot.asset.title.substring(0, 30)}`,
-        email: settlement.provider.email
-      });
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(settlement.net_amount));
+    await prisma.notifications.create({
+      data: {
+        user_id: settlement.provider_id,
+        type: 'settlement_disbursed',
+        title: 'Dana Pencairan Terkirim',
+        body: `Dana hasil penjualan unit "${settlement.lot.asset.title}" sebesar ${formattedAmount} telah ditransfer ke rekening Anda.`,
+      },
+    });
 
-      if (response.status === 'FAILED') {
-        const failedSettle = await prisma.settlements.update({
-          where: { id: settlementId },
-          data: {
-            status: 'failed',
-          },
-        });
-        throw new AppError(502, 'DISBURSEMENT_FAILED', 'Disbursement ditolak oleh Midtrans Iris');
-      }
+    await prisma.audit_logs.create({
+      data: {
+        action: 'DISBURSE_SETTLEMENT',
+        resource_type: 'settlement',
+        resource_id: settlementId,
+        new_value: 'processed',
+      },
+    });
 
-      // If pending or completed, mark as transferred
-      const updated = await prisma.settlements.update({
-        where: { id: settlementId },
-        data: {
-          status: response.status === 'COMPLETED' ? 'processed' : 'pending',
-          transferred_at: response.status === 'COMPLETED' ? new Date() : null,
-          gateway_fee: gatewayFee
-        },
-      });
-
-      return updated;
-    } catch (error) {
-      logger.error({ error, settlementId }, 'Disbursement exception handled');
-      throw error;
-    }
+    return updated;
   }
 
   /**
@@ -219,26 +296,9 @@ export class PaymentsService {
     }
 
     try {
-      // Execute refund via Midtrans Iris ONLY if not manual transfer
-      if (deposit.payment_method !== 'manual_transfer') {
-        const response = await midtransClient.createPayout({
-          reference_no: `REFUND-${depositId}`,
-          amount: Number(deposit.amount),
-          bank_code: deposit.user.bank_name || 'BCA', // Fallback
-          account_name: deposit.user.bank_account_name || deposit.user.full_name,
-          account_number: deposit.user.bank_account_no || '1234567890',
-          description: `Refund NIPL Sesi ${deposit.session?.title || ''}`.substring(0, 50),
-          email: deposit.user.email
-        });
-
-        if (response.status === 'FAILED') {
-          throw new AppError(502, 'REFUND_FAILED', 'Refund ditolak oleh Midtrans Iris');
-        }
-      }
-
-      // If manual_transfer, we assume the Admin has transferred manually before clicking this button.
-      // So we just update the status to refunded.
-      
+      // Payment gateway is disabled — refunds are always manual transfer.
+      // We assume the Admin has transferred the money manually before
+      // clicking this button; this call just records that fact.
       const updated = await prisma.$transaction([
         prisma.deposits.update({
           where: { id: depositId },

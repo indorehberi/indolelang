@@ -240,6 +240,7 @@ export default function FinanceManager({
   };
 
   const handleApproveRefund = async (depositId: string) => {
+    if (!confirm('Pastikan Anda sudah mentransfer dana refund ke rekening bidder secara manual sebelum menandai ini selesai. Lanjutkan?')) return;
     setProcessingId(depositId);
     try {
       const token = localStorage.getItem('accessToken');
@@ -255,7 +256,7 @@ export default function FinanceManager({
         throw new Error(data.error?.message || 'Gagal menyetujui refund');
       }
 
-      alert('Refund uang jaminan deposit berhasil diproses!');
+      alert('Refund ditandai selesai. Bidder telah menerima notifikasi.');
       fetchRefundQueue();
     } catch (error: any) {
       alert(error.message || 'Terjadi kesalahan saat memproses refund.');
@@ -265,6 +266,7 @@ export default function FinanceManager({
   };
 
   const handleDisburseSettlement = async (settlementId: string) => {
+    if (!confirm('Pastikan Anda sudah mentransfer dana pencairan ke rekening provider secara manual sebelum menandai ini selesai. Lanjutkan?')) return;
     setProcessingId(settlementId);
     try {
       const token = localStorage.getItem('accessToken');
@@ -280,7 +282,7 @@ export default function FinanceManager({
         throw new Error(data.error?.message || 'Gagal mencairkan dana settlement');
       }
 
-      alert('Pencairan dana transfer bank partner via sistem berhasil diselesaikan!');
+      alert('Pencairan ditandai selesai. Provider telah menerima notifikasi.');
       fetchSettlements();
     } catch (error: any) {
       alert(error.message || 'Terjadi kesalahan saat mencairkan dana.');
@@ -741,7 +743,7 @@ export default function FinanceManager({
                     <th>Potongan Balai (5%)</th>
                     <th>Penerimaan Bersih (Net)</th>
                     <th>Status</th>
-                    <th style={{ textAlign: 'center', width: '200px' }}>Pencairan Dana (Sistem)</th>
+                    <th style={{ textAlign: 'center', width: '200px' }}>Pencairan Dana (Transfer Manual)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -783,9 +785,9 @@ export default function FinanceManager({
                             className="btn btn-xs btn-primary"
                             disabled={settle.status !== 'pending' || processingId !== null}
                             style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '600' }}
-                            title={settle.status !== 'pending' ? 'Sudah dicairkan' : 'Cairkan dana via sistem'}
+                            title={settle.status !== 'pending' ? 'Sudah dicairkan' : 'Tandai sudah ditransfer manual ke provider'}
                           >
-                            {processingId === settle.id ? 'Memproses...' : settle.status === 'processed' ? '✓ Transferred' : '🏦 Cairkan Dana'}
+                            {processingId === settle.id ? 'Memproses...' : settle.status === 'processed' ? '✓ Sudah Ditransfer' : '🏦 Tandai Sudah Ditransfer'}
                           </button>
                         </td>
                       </tr>

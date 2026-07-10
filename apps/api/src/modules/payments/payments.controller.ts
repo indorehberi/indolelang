@@ -202,63 +202,12 @@ export class PaymentsController {
         }
 
         if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
-          const hammerPrice = Number(invoice.hammer_price);
-          const provider = invoice.lot.asset.provider;
-          
-          // Fetch settings from DB
-          const settings = await prisma.platform_settings.findMany({
-            where: {
-              key: { in: ['tax_percentage', 'dpp_lain_multiplier', 'ppn_dpp_lain_percentage', 'pph23_percentage', 'pmk41_percentage'] }
-            }
-          });
-          const taxPct = parseFloat(settings.find(s => s.key === 'tax_percentage')?.value || '11.0');
-          const dppLainMultiplier = eval(settings.find(s => s.key === 'dpp_lain_multiplier')?.value || '11/12');
-          const ppnDppLainPct = parseFloat(settings.find(s => s.key === 'ppn_dpp_lain_percentage')?.value || '12.0') / 100;
-          const pph23Pct = parseFloat(settings.find(s => s.key === 'pph23_percentage')?.value || '2.0') / 100;
-          const pmk41Pct = parseFloat(settings.find(s => s.key === 'pmk41_percentage')?.value || '1.1') / 100;
-          
-          let totalInvoiceFeeLelang = 0;
-          if (provider.provider_fee_type === 'flat') {
-            totalInvoiceFeeLelang = Number(provider.provider_fee_amount || 0);
-          } else { // percentage or default
-            const percentage = Number(provider.provider_fee_amount || 0) / 100;
-            totalInvoiceFeeLelang = Math.round(hammerPrice * percentage);
-          }
-          
-          const feeDpp = Math.round(totalInvoiceFeeLelang / (1 + (taxPct / 100)));
-          const feeDppLain = Math.round(feeDpp * dppLainMultiplier);
-          const feePpn = Math.round(feeDppLain * ppnDppLainPct);
-          const feePph23 = Math.round((totalInvoiceFeeLelang - feePpn) * pph23Pct);
-          const totalTerimaFeeLelang = totalInvoiceFeeLelang - feePph23;
-          
-          let pmk41 = 0;
-          if (provider.pmk41_paid_by_provider) {
-            pmk41 = Math.round(hammerPrice * pmk41Pct);
-          }
-          
-          const netAmount = hammerPrice - totalTerimaFeeLelang + pmk41;
-
           await prisma.$transaction([
             prisma.invoices.update({
               where: { id: invoiceId },
               data: {
                 status: 'paid',
                 paid_at: new Date(),
-              },
-            }),
-            prisma.settlements.create({
-              data: {
-                lot_id: invoice.lot_id,
-                provider_id: provider.id,
-                gross_amount: new Prisma.Decimal(hammerPrice),
-                commission_deducted: new Prisma.Decimal(totalTerimaFeeLelang),
-                net_amount: new Prisma.Decimal(netAmount),
-                fee_dpp: new Prisma.Decimal(feeDpp),
-                fee_dpp_lain: new Prisma.Decimal(feeDppLain),
-                fee_ppn: new Prisma.Decimal(feePpn),
-                fee_pph23: new Prisma.Decimal(feePph23),
-                pmk41_amount: new Prisma.Decimal(pmk41),
-                status: 'pending',
               },
             }),
             prisma.notifications.create({
@@ -278,6 +227,9 @@ export class PaymentsController {
               },
             }),
           ]);
+
+          // Provider settlement — shared formula with the manual "tandai lunas" path.
+          await paymentsService.createSettlementForInvoice(invoiceId);
 
           const formattedTotal = new Intl.NumberFormat('id-ID', {
             style: 'currency',

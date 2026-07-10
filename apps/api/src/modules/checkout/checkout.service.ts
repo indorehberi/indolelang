@@ -2,10 +2,8 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { Prisma } from '@prisma/client';
-import { calculateGatewayFee } from '../../utils/paymentCalculator';
-import { midtransClient } from '../../lib/midtrans';
 import crypto from 'crypto';
-import { logger } from '../../lib/logger';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 export class CheckoutService {
   /**
@@ -217,39 +215,20 @@ export class CheckoutService {
     }
 
     const orderId = crypto.randomUUID();
-    const gatewayFee = finalAmount.greaterThan(0) ? calculateGatewayFee(Number(finalAmount), bank) : 0;
-    const grandTotal = finalAmount.add(gatewayFee);
-    
-    // Midtrans / Manual Logic
-    let vaNumber = null;
-    let vaBank = null;
-    let paymentMethod = null;
-    
+    // Payment gateway is disabled — there's no gateway fee to charge since
+    // there's no gateway involved; the bidder always pays the invoice amount
+    // net of deposit deduction, transferred manually.
+    const grandTotal = finalAmount;
+
+    let vaNumber: string | null = null;
+    let vaBank: string | null = null;
+    let paymentMethod: string | null = null;
+
     if (Number(grandTotal) > 0) {
       const settings = await prisma.platform_settings.findMany();
-      const pMode = settings.find(s => s.key === 'deposit_payment_mode')?.value || 'auto';
-      
-      if (pMode === 'manual') {
-         vaNumber = settings.find(s => s.key === 'manual_payment_account')?.value || '0000';
-         vaBank = `manual_${settings.find(s=>s.key === 'manual_payment_bank')?.value || 'bca'}`;
-         paymentMethod = 'manual_transfer';
-      } else {
-         try {
-           const midtransRes = await midtransClient.chargeVirtualAccount({
-             orderId: `CHK-${orderId}`,
-             amount: Number(grandTotal),
-             bank: bank as any,
-           });
-           vaNumber = midtransRes.va_number;
-           vaBank = midtransRes.va_bank;
-           paymentMethod = midtransRes.payment_method;
-         } catch (error) {
-           logger.error({ error }, 'Failed to create midtrans for checkout');
-           vaNumber = '700881234569';
-           vaBank = bank;
-           paymentMethod = 'virtual_account';
-         }
-      }
+      vaNumber = settings.find(s => s.key === 'manual_payment_account')?.value || '0000';
+      vaBank = `manual_${settings.find(s=>s.key === 'manual_payment_bank')?.value || 'bca'}`;
+      paymentMethod = 'manual_transfer';
     }
 
     // Transaction
@@ -263,7 +242,7 @@ export class CheckoutService {
              subtotal_amount: totalInvoices,
              deposit_deduction: depositDeduction,
              final_amount: grandTotal,
-             gateway_fee: gatewayFee,
+             gateway_fee: 0,
              status: Number(grandTotal) === 0 ? 'paid' : 'unpaid',
              payment_method: paymentMethod,
              va_number: vaNumber,
@@ -316,7 +295,8 @@ export class CheckoutService {
    */
   async uploadProof(orderId: string, userId: string, proofUrl: string) {
     const order = await prisma.checkout_orders.findUnique({
-      where: { id: orderId }
+      where: { id: orderId },
+      include: { bidder: { select: { full_name: true } } },
     });
 
     if (!order) {
@@ -335,8 +315,17 @@ export class CheckoutService {
       where: { id: orderId },
       data: {
         transfer_proof_url: proofUrl,
+        status: 'pending_approval',
       }
     });
+
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(order.final_amount));
+    await notifyAdmins(
+      'checkout_proof_uploaded',
+      'Bukti Transfer Pelunasan Masuk',
+      `${order.bidder.full_name} mengunggah bukti transfer pelunasan sebesar ${formattedAmount}. Mohon diverifikasi di Hasil Sesi.`,
+      '/auction/results'
+    );
 
     return {
       id: updated.id,
