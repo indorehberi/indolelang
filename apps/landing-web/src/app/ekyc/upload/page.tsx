@@ -14,6 +14,7 @@ export default function EkycUploadPage() {
   const [occupation, setOccupation] = useState("Pegawai Swasta");
   const [bankName, setBankName] = useState("");
   const [bankAccountNo, setBankAccountNo] = useState("");
+  const [confirmBankAccountNo, setConfirmBankAccountNo] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
 
   // File states (native files)
@@ -61,6 +62,7 @@ export default function EkycUploadPage() {
           setOccupation(user.occupation || "Pegawai Swasta");
           setBankName(user.bank_name || "");
           setBankAccountNo(user.bank_account_no || "");
+          setConfirmBankAccountNo(user.bank_account_no || "");
           setBankAccountName(user.bank_account_name || "");
         }
 
@@ -86,6 +88,7 @@ export default function EkycUploadPage() {
             setOccupation(bidder.occupation || occupation);
             setBankName(bidder.bank_name || bankName);
             setBankAccountNo(bidder.bank_account_no || bankAccountNo);
+            setConfirmBankAccountNo(bidder.bank_account_no || bankAccountNo);
             setBankAccountName(bidder.bank_account_name || bankAccountName);
           }
         }
@@ -273,6 +276,11 @@ export default function EkycUploadPage() {
       return;
     }
 
+    if (bankAccountNo !== confirmBankAccountNo) {
+      alert("Nomor rekening dan konfirmasi nomor rekening tidak cocok.");
+      return;
+    }
+
     const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
 
@@ -401,19 +409,28 @@ export default function EkycUploadPage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
               <label className="text-body-sm font-bold text-on-surface block mb-1.5">
                 Bank <span className="text-error">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
-                placeholder="Contoh: BCA"
                 className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
-              />
+              >
+                <option value="" disabled>Pilih Bank</option>
+                <option value="BCA">BCA (Bank Central Asia)</option>
+                <option value="Mandiri">Mandiri</option>
+                <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                <option value="CIMB Niaga">CIMB Niaga</option>
+                <option value="Permata">Permata Bank</option>
+                <option value="Danamon">Bank Danamon</option>
+                <option value="Lainnya">Lainnya...</option>
+              </select>
             </div>
             <div>
               <label className="text-body-sm font-bold text-on-surface block mb-1.5">
@@ -424,6 +441,18 @@ export default function EkycUploadPage() {
                 required
                 value={bankAccountNo}
                 onChange={(e) => setBankAccountNo(e.target.value)}
+                className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              />
+            </div>
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                Konfirmasi No Rekening <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={confirmBankAccountNo}
+                onChange={(e) => setConfirmBankAccountNo(e.target.value)}
                 className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-sm focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
               />
             </div>
