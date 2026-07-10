@@ -58,6 +58,16 @@ export default function AssetsPage() {
   
   const [userRole, setUserRole] = useState<string>('');
 
+  const [availableProviderIds, setAvailableProviderIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!providerFilter) {
+      setAvailableProviderIds(new Set(assets.map(a => a.provider_id)));
+    }
+  }, [assets, providerFilter]);
+
+  const displayedProviders = providers.filter(p => availableProviderIds.has(p.id) || providerFilter === p.id);
+
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -600,9 +610,6 @@ export default function AssetsPage() {
               <option value="rejected">Ditolak</option>
               <option value="returned">Dikembalikan</option>
               <option value="sold">Terjual</option>
-            </select>
-          </div>
-
           {['admin', 'superadmin', 'inspector'].includes(userRole) && (
             <div>
               <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
@@ -613,7 +620,7 @@ export default function AssetsPage() {
                 onChange={(e) => setProviderFilter(e.target.value)}
               >
                 <option value="">Semua Provider</option>
-                {providers.map((p) => (
+                {displayedProviders.map((p) => (
                   <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
                 ))}
               </select>

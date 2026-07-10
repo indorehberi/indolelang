@@ -35,6 +35,16 @@ export default function AssetsApprovalPage() {
   const [search, setSearch] = useState('');
   const [providers, setProviders] = useState<any[]>([]);
 
+  const [availableProviderIds, setAvailableProviderIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!providerFilter) {
+      setAvailableProviderIds(new Set(assets.map(a => a.provider_id)));
+    }
+  }, [assets, providerFilter]);
+
+  const displayedProviders = providers.filter(p => availableProviderIds.has(p.id) || providerFilter === p.id);
+
   const fetchProviders = async () => {
     try {
       const response = await fetch(apiUrl('/admin/users?role=provider&provider_status=approved&per_page=100'), {
@@ -207,7 +217,7 @@ export default function AssetsApprovalPage() {
             </select>
           </div>
 
-          <div>
+          <div className="filter-item">
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
             <select
               className="form-select"
@@ -216,7 +226,7 @@ export default function AssetsApprovalPage() {
               onChange={(e) => setProviderFilter(e.target.value)}
             >
               <option value="">Semua Provider</option>
-              {providers.map((p) => (
+              {displayedProviders.map((p) => (
                 <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
               ))}
             </select>

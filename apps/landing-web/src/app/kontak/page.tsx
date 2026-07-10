@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { apiUrl } from "@/lib/api";
 
 export default function KontakPage() {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ export default function KontakPage() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("http://localhost:3001/api/v1/contact-messages", {
+        const res = await fetch(apiUrl("/contact-messages"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
