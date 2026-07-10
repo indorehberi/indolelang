@@ -314,6 +314,7 @@ export class AssetsService {
       photo_engine: (updated as any).photo_engine || undefined,
       photo_interior: (updated as any).photo_interior || undefined,
       photo_stnk: (updated as any).photo_stnk || undefined,
+      created_by_admin: updated.created_by_admin,
       created_at: updated.created_at.toISOString(),
       updated_at: updated.updated_at.toISOString(),
     };

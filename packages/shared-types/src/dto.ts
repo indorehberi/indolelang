@@ -246,6 +246,7 @@ export interface AssetDTO {
   photo_stnk?: string;
   inspection_pic_name?: string;
   inspection_doc_url?: string;
+  created_by_admin: boolean;
   created_at: string;
   updated_at: string;
 }
