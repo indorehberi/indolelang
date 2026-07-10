@@ -102,7 +102,7 @@ export class UsersService {
    */
   async getUserById(id: string): Promise<UserDTO> {
     const user = await prisma.users.findFirst({
-      where: { id, deleted_at: null },
+      where: { id },
     });
 
     if (!user) {
