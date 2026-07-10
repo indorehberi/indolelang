@@ -79,6 +79,26 @@ export class SessionsController {
       next(error);
     }
   }
+
+  /**
+   * Delete auction session (Admin/Operator only)
+   * Write audit log
+   */
+  async deleteSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const oldSession = await sessionsService.getSessionById(id);
+
+      await sessionsService.deleteSession(id);
+
+      // Log admin audit trail
+      logAdminAction(req, 'DELETE_AUCTION_SESSION', 'auction_sessions', id, oldSession, null);
+
+      sendSuccess(res, null, 'Sesi lelang berhasil dihapus');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SessionsController;

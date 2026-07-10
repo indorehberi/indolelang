@@ -34,4 +34,11 @@ router.put(
   controller.updateSession
 );
 
+router.delete(
+  '/admin/sessions/:id',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.deleteSession
+);
+
 export default router;

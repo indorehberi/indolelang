@@ -241,4 +241,26 @@ export class SessionsService {
       updated_at: updated.updated_at.toISOString(),
     };
   }
+
+  /**
+   * Delete auction session (Admin/Operator only)
+   */
+  async deleteSession(id: string): Promise<void> {
+    const session = await prisma.auction_sessions.findUnique({
+      where: { id },
+      include: { _count: { select: { lots: true } } },
+    });
+
+    if (!session) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
+    }
+
+    if (session._count.lots > 0) {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Sesi lelang tidak bisa dihapus karena memiliki lot/barang');
+    }
+
+    await prisma.auction_sessions.delete({
+      where: { id },
+    });
+  }
 }
