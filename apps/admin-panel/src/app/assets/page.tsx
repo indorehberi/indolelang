@@ -610,6 +610,9 @@ export default function AssetsPage() {
               <option value="rejected">Ditolak</option>
               <option value="returned">Dikembalikan</option>
               <option value="sold">Terjual</option>
+            </select>
+          </div>
+
           {['admin', 'superadmin', 'inspector'].includes(userRole) && (
             <div>
               <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Provider</label>
