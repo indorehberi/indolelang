@@ -435,13 +435,16 @@ export class UsersService {
       });
     }
 
-    // Admin-created accounts are immediately active — keep the relational
-    // bidder/provider application tables in sync so they show up in the lists.
+    // Admin-created accounts are immediately active ONLY IF KYC is provided.
+    // Otherwise, they are put in "antri" (pending KYC) state.
+    const isKycComplete = !!(data.ktp_url || data.selfie_url);
+    const initialStatus = isKycComplete ? 'aktif' : 'antri';
+
     if (user.role === Role.PROVIDER) {
       await prisma.providers.create({
         data: {
           user_id: user.id,
-          status: 'aktif',
+          status: initialStatus,
           company_name: data.company_name || null,
           npwp: data.npwp || null,
           npwp_url: data.npwp_url || null,
@@ -452,20 +455,20 @@ export class UsersService {
           bank_name: data.bank_name || null,
           bank_account_no: data.bank_account_no || null,
           bank_account_name: data.bank_account_name || null,
-          reviewed_at: new Date(),
+          reviewed_at: isKycComplete ? new Date() : null,
         },
       });
     } else {
       await prisma.bidders.create({
         data: {
           user_id: user.id,
-          status: 'aktif',
+          status: initialStatus,
           address: data.address || null,
           occupation: data.occupation || null,
           bank_name: data.bank_name || null,
           bank_account_no: data.bank_account_no || null,
           bank_account_name: data.bank_account_name || null,
-          reviewed_at: new Date(),
+          reviewed_at: isKycComplete ? new Date() : null,
         },
       });
     }
