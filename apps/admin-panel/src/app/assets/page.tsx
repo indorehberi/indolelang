@@ -51,7 +51,7 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('pending,rejected,returned');
+  const [statusFilter, setStatusFilter] = useState('');
   const [poolFilter, setPoolFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
