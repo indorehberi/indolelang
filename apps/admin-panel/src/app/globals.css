@@ -356,7 +356,41 @@ table tbody tr:nth-child(even) { background: #fafbfc; }
   box-shadow: 0 0 0 3px rgba(46,134,193,0.1);
 }
 .form-textarea { min-height: 80px; resize: vertical; }
-.form-hint { font-size: 0.78rem; color: var(--wf-text-muted); margin-top: 0.2rem; }
+.form-hint { font-size: 0.78rem; color: var(--wf-text-muted); margin-top: 0.2rem; display: block; }
+.form-error { font-size: 0.78rem; color: var(--wf-danger, #ef4444); margin-top: 0.2rem; display: block; }
+.form-input-error {
+  border-color: var(--wf-danger, #ef4444) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Data Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.data-table thead tr {
+  background: var(--wf-bg-secondary, #f8fafc);
+  border-bottom: 1px solid var(--wf-border);
+}
+.data-table thead th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--wf-text-muted);
+  text-align: left;
+  white-space: nowrap;
+}
+.data-table tbody tr {
+  border-bottom: 1px solid var(--wf-border);
+  transition: background 0.1s;
+}
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--wf-bg-secondary, #f8fafc); }
+.data-table tbody td {
+  padding: 0.75rem 1rem;
+  color: var(--wf-text);
+  vertical-align: middle;
+}
 
 /* Upload zone */
 .upload-zone {
