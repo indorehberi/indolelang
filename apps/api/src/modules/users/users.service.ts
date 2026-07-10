@@ -487,7 +487,7 @@ export class UsersService {
    */
   async adminUpdateUser(id: string, data: any): Promise<UserDTO> {
     const user = await prisma.users.findFirst({
-      where: { id, deleted_at: null },
+      where: { id },
     });
 
     if (!user) {

@@ -56,6 +56,12 @@ export default function ProviderUsersPage() {
     provider_fee_amount: '0',
     pmk41_paid_by_provider: false,
   });
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const fetchProviders = useCallback(async () => {
     setLoading(true);
@@ -151,33 +157,43 @@ export default function ProviderUsersPage() {
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProvider?.user) return;
+    // Gunakan user.id jika ada, fallback ke user_id dari providers table
+    const userId = selectedProvider?.user?.id ?? selectedProvider?.user_id;
+    if (!userId) {
+      showToast('error', 'ID pengguna tidak ditemukan');
+      return;
+    }
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedProvider.user.id}`), {
+
+      // Hanya kirim field yang terisi untuk menghindari error validasi min-length
+      const payload: Record<string, unknown> = {
+        full_name: formData.full_name,
+        email: formData.email,
+        company_name: formData.company_name,
+        npwp: formData.npwp,
+        provider_fee_type: formData.provider_fee_type,
+        provider_fee_amount: Number(formData.provider_fee_amount),
+        pmk41_paid_by_provider: formData.pmk41_paid_by_provider,
+      };
+      if (formData.phone.trim()) payload.phone = formData.phone.trim();
+
+      const response = await fetch(apiUrl(`/admin/users/${userId}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          company_name: formData.company_name,
-          npwp: formData.npwp,
-          provider_fee_type: formData.provider_fee_type,
-          provider_fee_amount: Number(formData.provider_fee_amount),
-          pmk41_paid_by_provider: formData.pmk41_paid_by_provider,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (response.ok && data.success) {
+        showToast('success', `Data provider "${formData.company_name || formData.full_name}" berhasil diperbarui`);
         setShowEditModal(false);
         fetchProviders();
       } else {
-        alert(data.error?.message || 'Gagal mengubah provider');
+        showToast('error', data.error?.message || 'Gagal mengubah provider');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      showToast('error', 'Terjadi kesalahan sistem');
     }
   };
 
@@ -204,6 +220,19 @@ export default function ProviderUsersPage() {
 
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Mitra Provider">
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', right: '1.5rem', zIndex: 9999,
+          padding: '0.875rem 1.25rem', borderRadius: '0.75rem',
+          background: toast.type === 'success' ? '#22c55e' : '#ef4444',
+          color: '#fff', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', maxWidth: '400px',
+        }}>
+          <span>{toast.type === 'success' ? '✅' : '❌'}</span>
+          {toast.message}
+        </div>
+      )}
       <div className="toolbar">
         <div className="toolbar-left">
           <h1 className="page-title">Manajemen Mitra Provider Aset</h1>
