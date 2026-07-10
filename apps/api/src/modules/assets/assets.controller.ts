@@ -57,9 +57,11 @@ export class AssetsController {
   async createAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let providerId = req.user!.id;
-      if (req.user!.role !== Role.PROVIDER && req.body.provider_id) {
+      const isAdmin = req.user!.role !== Role.PROVIDER;
+      if (isAdmin && req.body.provider_id) {
         providerId = req.body.provider_id;
       }
+      req.body.created_by_admin = isAdmin;
       const asset = await assetsService.createAsset(req.body, providerId);
       
       if (req.user!.role !== Role.PROVIDER) {
@@ -93,6 +95,11 @@ export class AssetsController {
         }
         if (asset.status !== 'rejected') {
           res.status(403).json({ success: false, error: { message: 'Hanya barang berstatus ditolak yang dapat diedit' } });
+          return;
+        }
+      } else {
+        if (!asset.created_by_admin) {
+          res.status(403).json({ success: false, error: { message: 'Admin tidak dapat mengedit detail dasar barang yang diajukan oleh provider' } });
           return;
         }
       }

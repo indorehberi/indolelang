@@ -25,6 +25,7 @@ interface Asset {
   base_price: number;
   images?: string[];
   status: 'pending' | 'inspected' | 'approved' | 'listed' | 'sold' | 'rejected' | 'returned';
+  created_by_admin: boolean;
   created_at: string;
 }
 
@@ -182,7 +183,7 @@ export default function AssetsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1rem' }}>
         {/* Kolom 1: Data Dasar */}
         <div>
-          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Data Dasar Unit</h4>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Data Dasar Barang</h4>
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Provider (Pemilik)</label>
             <select required value={formData.provider_id} onChange={(e) => setFormData({...formData, provider_id: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
@@ -238,7 +239,7 @@ export default function AssetsPage() {
 
         {/* Kolom 2: Spesifikasi Kendaraan */}
         <div>
-          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Spesifikasi Unit</h4>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Spesifikasi Barang</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div style={{ marginBottom: '0.5rem' }}>
@@ -455,41 +456,6 @@ export default function AssetsPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const payload = { ...formData };
-      payload.base_price = Number(payload.base_price);
-      if (payload.year) payload.year = Number(payload.year);
-      if (payload.cylinder) payload.cylinder = Number(payload.cylinder);
-      if (payload.odometer) payload.odometer = Number(payload.odometer);
-      
-      // Clean empty strings
-      Object.keys(payload).forEach(k => { if(payload[k] === '') delete payload[k] });
-
-      const response = await fetch(apiUrl('/assets'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setShowCreateModal(false);
-        setFormData({ provider_id: '', category: 'mobil', title: '', description: '', base_price: '' });
-        fetchAssets();
-      } else {
-        alert(data.error?.message || 'Gagal membuat unit barang');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan sistem');
-    }
-  };
-
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAsset) return;
@@ -542,7 +508,9 @@ export default function AssetsPage() {
   };
 
   const canEdit = (asset: Asset) => {
-    if (['admin', 'superadmin'].includes(userRole)) return true;
+    if (['admin', 'superadmin'].includes(userRole)) {
+      return asset.created_by_admin;
+    }
     if (userRole === 'inspector' && asset.status === 'pending') return true;
     return false;
   };
@@ -551,16 +519,13 @@ export default function AssetsPage() {
     <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Barang">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Katalog Barang Titip Lelang</h1>
+          <h1 className="page-title">Katalog Barang</h1>
           <p className="page-subtitle">Daftar semua unit aset barang yang didaftarkan.</p>
         </div>
         <div className="toolbar-right">
           {['admin', 'superadmin', 'inspector'].includes(userRole) && (
-            <Button variant="primary" size="sm" onClick={() => {
-              setFormData(initialFormState);
-              setShowCreateModal(true);
-            }}>
-              + Tambah Unit
+            <Button variant="primary" size="sm" onClick={() => router.push('/assets/new')}>
+              + Tambah Barang
             </Button>
           )}
         </div>
@@ -731,7 +696,7 @@ export default function AssetsPage() {
                         {['inspector', 'provider'].includes(userRole) && ['rejected', 'returned'].includes(asset.status) && (
                           <Button variant="primary" size="sm" onClick={() => handleReviewUlang(asset.id)}>Ajukan</Button>
                         )}
-                        {userRole === 'inspector' && (
+                        {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.created_by_admin && (
                           <Button variant="danger" size="sm" onClick={() => handleDelete(asset.id)}>Delete</Button>
                         )}
                       </div>
@@ -744,30 +709,14 @@ export default function AssetsPage() {
         </div>
       </Card>
 
-      {/* CREATE MODAL */}
-      {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ width: '90%', maxWidth: '900px' }}>
-            <Card>
-              <h3 style={{ marginBottom: '1rem' }}>Tambah Unit Baru (Inspeksi)</h3>
-            <form onSubmit={handleCreate}>
-              {renderFormFields()}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>Batal</Button>
-                <Button variant="primary" type="submit">Submit Unit</Button>
-              </div>
-            </form>
-          </Card>
-          </div>
-        </div>
-      )}
+      {/* CREATE MODAL REMOVED */}
 
       {/* EDIT MODAL */}
       {showEditModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ width: '90%', maxWidth: '900px' }}>
             <Card>
-              <h3 style={{ marginBottom: '1rem' }}>Edit Unit Barang (Inspeksi)</h3>
+              <h3 style={{ marginBottom: '1rem' }}>Edit Barang Barang (Inspeksi)</h3>
             <form onSubmit={handleEdit}>
               {renderFormFields()}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

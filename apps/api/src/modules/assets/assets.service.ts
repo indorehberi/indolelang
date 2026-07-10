@@ -136,6 +136,7 @@ export class AssetsService {
         
         is_recommended: data.is_recommended === true || data.is_recommended === 'true' ? true : false,
         engine_number: data.engine_number || null,
+        created_by_admin: data.created_by_admin || false,
         
         stnk_date: data.stnk_date ? new Date(data.stnk_date) : null,
         stnk_tax_date: data.stnk_tax_date ? new Date(data.stnk_tax_date) : null,
@@ -395,6 +396,10 @@ export class AssetsService {
       }
       if (asset.status !== AssetStatus.REJECTED) {
         throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Hanya barang berstatus ditolak yang dapat dihapus');
+      }
+    } else if (caller && caller.role !== 'provider') {
+      if (!asset.created_by_admin) {
+        throw new AppError(403, ErrorCode.FORBIDDEN, 'Admin tidak dapat menghapus barang yang diajukan oleh provider');
       }
     }
 

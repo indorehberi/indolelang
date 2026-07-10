@@ -95,7 +95,7 @@ function ProviderAjukanBarangContent() {
     doc_keur: false,
     doc_sph: false,
 
-    // Foto Aset (URL setelah diunggah)
+    // Foto Barang (URL setelah diunggah)
     photo_front: "",
     photo_back: "",
     photo_right: "",
@@ -345,7 +345,7 @@ function ProviderAjukanBarangContent() {
           setFormData(initialFormState);
         }
       } else {
-        alert(resData.error?.message || "Gagal mengajukan aset");
+        alert(resData.error?.message || "Gagal mengajukan Barang");
       }
     } catch {
       alert("Terjadi kesalahan koneksi.");
@@ -367,7 +367,7 @@ function ProviderAjukanBarangContent() {
   );
 
   return (
-    <ProviderLayout pageTitle={editId ? "Edit Titip Jual Aset" : "Ajukan Titip Jual Aset"}>
+    <ProviderLayout pageTitle={editId ? "Edit Titip Jual Barang" : "Ajukan Titip Jual Barang"}>
       <p className="page-subtitle">
         {editId ? "Perbarui data pengajuan yang ditolak, lalu ajukan kembali dari halaman Daftar Barang" : "Ajukan barang atau kendaraan baru untuk masuk antrean kurasi lelang"}
       </p>
@@ -378,13 +378,13 @@ function ProviderAjukanBarangContent() {
             <div className="alert-box success mb-4">
               <span className="material-symbols-outlined">check_circle</span>
               <div>
-                <strong>Pengajuan Berhasil Diajukan!</strong> Aset Anda telah terdaftar dan menunggu proses verifikasi dokumen &amp; fisik oleh tim kurator kami. Status approval dapat dipantau di halaman Inventori.
+                <strong>Pengajuan Berhasil Diajukan!</strong> Barang Anda telah terdaftar dan menunggu proses verifikasi dokumen &amp; fisik oleh tim kurator kami. Status approval dapat dipantau di halaman Inventori.
               </div>
             </div>
           )}
 
           <div className="card">
-            <div className="card-header border-b pb-4 mb-4">Form Pengisian Detail Aset</div>
+            <div className="card-header border-b pb-4 mb-4">Form Pengisian Detail Barang</div>
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {/* SECTION: DATA DASAR */}
@@ -392,7 +392,7 @@ function ProviderAjukanBarangContent() {
                 <h3 className="font-semibold text-lg text-primary mb-3">1. Data Dasar</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Kategori Aset</label>
+                    <label className="panel-form-label">Kategori Barang</label>
                     <select
                       value={formData.category}
                       onChange={(e) => {
@@ -438,7 +438,7 @@ function ProviderAjukanBarangContent() {
                     </select>
                   </div>
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Model / Tipe Aset</label>
+                    <label className="panel-form-label">Model / Tipe Barang</label>
                     {formData.brand && formData.brand !== 'Lainnya' && getAvailableModels().length > 0 ? (
                       <select 
                         value={formData.model} 
@@ -651,9 +651,9 @@ function ProviderAjukanBarangContent() {
                 </div>
               </div>
 
-              {/* SECTION: FOTO ASET */}
+              {/* SECTION: FOTO Barang */}
               <div className="pt-4 border-t">
-                <h3 className="font-semibold text-lg text-primary mb-3">5. Foto Aset</h3>
+                <h3 className="font-semibold text-lg text-primary mb-3">5. Foto Barang</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {PHOTO_FIELDS.map((item) => (
                     <div key={item.key} className="panel-form-group">

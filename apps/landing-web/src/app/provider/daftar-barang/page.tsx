@@ -191,12 +191,12 @@ export default function ProviderDaftarBarang() {
   };
 
   return (
-    <ProviderLayout pageTitle="Daftar Inventori Aset">
+    <ProviderLayout pageTitle="Daftar Inventori Barang">
       <p className="page-subtitle">Kelola dan pantau status seluruh unit lelang Anda</p>
 
       <div className="card">
         <div className="card-header" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
-          <span>Tabel Inventori Unit Aset</span>
+          <span>Tabel Inventori Unit Barang</span>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
             <input
               type="text"
@@ -249,8 +249,8 @@ export default function ProviderDaftarBarang() {
           <table className="dashboard-table">
             <thead>
               <tr>
-                <th>ID Aset</th>
-                <th>Nama Unit Aset</th>
+                <th>ID Barang</th>
+                <th>Nama Unit Barang</th>
                 <th>Kategori</th>
                 <th>Cabang</th>
                 <th>Harga Dasar Limit</th>
@@ -262,11 +262,11 @@ export default function ProviderDaftarBarang() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Memuat data aset...</td>
+                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Memuat data Barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Belum ada aset terdaftar.</td>
+                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Belum ada Barang terdaftar.</td>
                 </tr>
               ) : assets.map((asset) => (
                 <tr key={asset.id}>
