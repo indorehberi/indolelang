@@ -458,9 +458,7 @@ export class AuthService {
 	async forgotPassword(email: string): Promise<void> {
 		const user = await prisma.users.findUnique({ where: { email } });
 		if (!user) {
-			// return success even if email not found to prevent user enumeration
-			logger.info({ email }, 'Forgot password email lookup missed (hidden)');
-			return;
+			throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Email anda belum terdaftar, gunakan email yang sudah didaftarkan');
 		}
 
 		const resetToken = crypto.randomBytes(32).toString('hex');
