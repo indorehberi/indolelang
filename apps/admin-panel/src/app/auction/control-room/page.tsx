@@ -32,6 +32,7 @@ interface Lot {
     title: string;
     category: string;
     base_price: number;
+    images?: string[];
   };
   session?: any;
 }
@@ -174,6 +175,7 @@ export default function ControlRoomPage() {
           title: data.lot_data.asset_title,
           category: data.lot_data.category,
           base_price: data.lot_data.starting_price,
+          images: data.lot_data.images || [],
         },
       });
       setCurrentPrice(data.lot_data.starting_price);
@@ -591,6 +593,46 @@ export default function ControlRoomPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Photos */}
+                {activeLot.asset.images && activeLot.asset.images.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{
+                      width: '100%',
+                      height: '300px',
+                      borderRadius: 'var(--radius)',
+                      overflow: 'hidden',
+                      border: '1px solid var(--wf-border)',
+                      background: '#f8f9fa'
+                    }}>
+                      <img 
+                        src={activeLot.asset.images[0]} 
+                        alt={activeLot.asset.title} 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+                    {activeLot.asset.images.length > 1 && (
+                      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {activeLot.asset.images.slice(1).map((imgUrl, idx) => (
+                          <div key={idx} style={{
+                            width: '80px',
+                            height: '60px',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            border: '1px solid var(--wf-border)',
+                            flexShrink: 0
+                          }}>
+                            <img 
+                              src={imgUrl} 
+                              alt={`Thumbnail ${idx}`} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Pricing and Highest Bidder Info */}
                 <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>

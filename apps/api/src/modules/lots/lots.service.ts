@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { LotDTO, PaginationMeta, LotStatus, AssetStatus } from '@indo-lelang/shared-types';
+import { LotDTO, PaginationMeta, LotStatus, AssetStatus, SessionStatus } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
 import { paymentsService } from '../payments/payments.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
@@ -316,12 +316,18 @@ export class LotsService {
    * so it reappears in the Aset Siap Dilelang list.
    */
   async deleteLot(id: string): Promise<void> {
-    const lot = await prisma.lots.findUnique({ where: { id } });
+    const lot = await prisma.lots.findUnique({ 
+      where: { id },
+      include: { session: true } 
+    });
     if (!lot) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
     }
-    if (lot.status !== LotStatus.PENDING) {
-      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Hanya lot berstatus pending yang dapat dihapus dari sesi');
+    if (lot.session.status === SessionStatus.LIVE) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Tidak dapat menghapus lot karena sesi sedang live');
+    }
+    if (lot.status === LotStatus.SOLD) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot yang sudah terjual tidak dapat dihapus');
     }
 
     await prisma.$transaction([

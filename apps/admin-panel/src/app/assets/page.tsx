@@ -593,10 +593,10 @@ export default function AssetsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="pending,rejected,returned">Semua</option>
+              <option value="">Semua</option>
               <option value="pending">Menunggu (Pending)</option>
               <option value="inspected">Sudah Diinspeksi</option>
-              <option value="approved,listed">Disetujui</option>
+              <option value="approved,listed">Disetujui/Listed</option>
               <option value="rejected">Ditolak</option>
               <option value="returned">Dikembalikan</option>
               <option value="sold">Terjual</option>
