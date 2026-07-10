@@ -1,19 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../../components/layout/DashboardLayout';
 import Card from '../../../../components/ui/Card';
 import Button from '../../../../components/ui/Button';
 import { apiUrl } from '../../../../lib/api';
-
-const BRANCHES = [
-  'Jakarta (HQ)',
-  'Bandung',
-  'Surabaya',
-  'Medan',
-  'Makassar',
-];
 
 const ROLES = [
   { value: 'superadmin', label: 'Superadmin' },
@@ -25,15 +17,37 @@ const ROLES = [
 export default function NewStaffPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [branches, setBranches] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: '',
     email: '',
     phone: '',
     role: 'operator',
-    branch: 'Jakarta (HQ)',
+    branch: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch(apiUrl('/branches?per_page=100'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setBranches(data.data);
+          if (data.data.length > 0) {
+            setForm((prev) => ({ ...prev, branch: data.data[0].name }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch branches', err);
+      }
+    };
+    fetchBranches();
+  }, []);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -222,8 +236,9 @@ export default function NewStaffPage() {
                   value={form.branch}
                   onChange={(e) => setForm({ ...form, branch: e.target.value })}
                 >
-                  {BRANCHES.map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                  {branches.length === 0 && <option value="" disabled>Memuat cabang...</option>}
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
                   ))}
                 </select>
               </div>
