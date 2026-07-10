@@ -176,6 +176,12 @@ async function main() {
       key: 'fee_bearer_settlement',
       value: 'provider',
       is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'referral_reward_amount',
+      value: '100000',
+      is_encrypted: false,
     }
   );
 

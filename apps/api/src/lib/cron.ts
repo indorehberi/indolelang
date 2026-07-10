@@ -65,18 +65,18 @@ export function initCronJobs() {
     }
   });
 
-  // Auto-expire unpaid invoices after 3 days
+  // Auto-expire unpaid invoices past their due date (due_date is set to +3 days
+  // at invoice creation — checked here directly instead of re-deriving a separate
+  // fixed window from created_at, so the two stay in sync if the payment window
+  // is ever changed).
   cron.schedule('0 * * * *', async () => {
     try {
       const now = new Date();
-      
-      // Find invoices that are unpaid and created > 3 days ago
-      const expireTime = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
-      
+
       const expiredInvoices = await prisma.invoices.findMany({
         where: {
           status: 'unpaid',
-          created_at: { lt: expireTime }
+          due_date: { lt: now }
         }
       });
 

@@ -24,6 +24,16 @@ export class CheckoutController {
     }
   }
 
+  async getInvoiceHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const invoices = await checkoutService.getInvoiceHistory(userId);
+      sendSuccess(res, invoices, 'Riwayat tagihan berhasil dimuat');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async processCheckout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;

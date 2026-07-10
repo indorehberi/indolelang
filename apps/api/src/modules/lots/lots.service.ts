@@ -54,6 +54,11 @@ export class LotsService {
               phone: true,
             },
           },
+          invoices: {
+            select: { id: true, status: true },
+            take: 1,
+            orderBy: { created_at: 'desc' },
+          },
         },
       }),
     ]);
@@ -98,6 +103,8 @@ export class LotsService {
         email: l.winner.email,
         phone: l.winner.phone,
       } : undefined,
+      invoice_id: l.invoices?.[0]?.id,
+      payment_status: l.invoices?.[0]?.status,
       created_at: l.created_at.toISOString(),
       updated_at: l.updated_at.toISOString(),
     }));

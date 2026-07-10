@@ -161,18 +161,28 @@ export default function ControlRoomPage() {
         )
       );
 
-      // Set active lot state
-      const targetLot = lots.find((l) => l.id === data.lot_id);
-      if (targetLot) {
-        setActiveLot({ ...targetLot, status: 'active' });
-        setCurrentPrice(data.lot_data.starting_price);
-        setTimeRemaining(data.duration);
-        setBidsCount(0);
-        setHighestBidder('-');
-        setExtensionCount(0);
-        setIsExtended(false);
-        setBidLogs([]);
-      }
+      // Build active lot state directly from the broadcast payload instead of
+      // looking it up in the `lots` closure, which can be stale (this listener
+      // is registered once per effect run and doesn't see later setLots calls).
+      setActiveLot({
+        id: data.lot_id,
+        session_id: selectedSessionId,
+        lot_number: data.lot_data.lot_number,
+        starting_price: data.lot_data.starting_price,
+        status: 'active',
+        asset: {
+          title: data.lot_data.asset_title,
+          category: data.lot_data.category,
+          base_price: data.lot_data.starting_price,
+        },
+      });
+      setCurrentPrice(data.lot_data.starting_price);
+      setTimeRemaining(data.duration);
+      setBidsCount(0);
+      setHighestBidder('-');
+      setExtensionCount(0);
+      setIsExtended(false);
+      setBidLogs([]);
     });
 
     socket.on('bid:update', (data: any) => {
@@ -225,11 +235,17 @@ export default function ControlRoomPage() {
       setBidLogs([]);
     });
 
+    socket.on('lot:cancelled', (data: any) => {
+      setLots((prevLots) =>
+        prevLots.map((l) => (l.id === data.lot_id ? { ...l, status: 'pending' } : l))
+      );
+      setActiveLot((prev) => (prev?.id === data.lot_id ? null : prev));
+      setBidLogs([]);
+    });
+
     socket.on('session:ended', (data: any) => {
       setToast({ message: 'Sesi lelang resmi ditutup oleh operator!', variant: 'success' });
-      if (sessionDetails) {
-        setSessionDetails({ ...sessionDetails, status: 'closed' });
-      }
+      setSessions((prev) => prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'closed' } : s)));
     });
 
     socket.on('bid:error', (data: any) => {
@@ -256,6 +272,10 @@ export default function ControlRoomPage() {
   const handleActivateLot = async (lotId: string) => {
     setProcessingId(lotId);
     setToast(null);
+    // Join the lot's socket room *before* calling activate — the server broadcasts
+    // `lot:activated` synchronously while handling that request, i.e. before this
+    // fetch's response comes back, so joining afterwards would miss it.
+    watchLotSocket(lotId);
     try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch(apiUrl(`/admin/lots/${lotId}/activate`), {
@@ -266,18 +286,15 @@ export default function ControlRoomPage() {
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal mengaktifkan lot');
       }
-      
-      // Update local state in case socket is delayed
-      watchLotSocket(lotId);
-      
-      // Trigger simulation in fallback mode if socket is not connected
+
+      // If the socket isn't connected we won't receive the real-time
+      // `lot:activated` broadcast — force a refetch so the UI reflects the
+      // real backend state instead of fabricating one.
       if (socketRef.current?.disconnected) {
-        simulateLotActive(lotId);
+        setRefreshTrigger((prev) => prev + 1);
       }
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
-      // Offline fallback simulation
-      simulateLotActive(lotId);
     } finally {
       setProcessingId(null);
     }
@@ -296,9 +313,11 @@ export default function ControlRoomPage() {
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menutup lot');
       }
+      if (socketRef.current?.disconnected) {
+        setRefreshTrigger((prev) => prev + 1);
+      }
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
-      simulateLotClose(lotId, 'sold');
     } finally {
       setProcessingId(null);
     }
@@ -344,15 +363,14 @@ export default function ControlRoomPage() {
         throw new Error(data.error?.message || 'Gagal menghentikan sesi');
       }
       setToast({ message: 'Sesi lelang berhasil dihentikan.', variant: 'success' });
-      if (sessionDetails) {
-        setSessionDetails({ ...sessionDetails, status: 'closed' });
-      }
+      // Patch the `sessions` list (not just sessionDetails) — the lots/socket effect
+      // re-derives sessionDetails from `sessions` on every refreshTrigger bump, so if
+      // only sessionDetails were patched here it would get clobbered back to the old
+      // status as soon as the refetch below runs.
+      setSessions((prev) => prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'closed' } : s)));
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
-      if (sessionDetails) {
-        setSessionDetails({ ...sessionDetails, status: 'closed' });
-      }
     } finally {
       setProcessingId(null);
     }
@@ -373,9 +391,7 @@ export default function ControlRoomPage() {
         throw new Error(data.error?.message || 'Gagal memulai sesi');
       }
       setToast({ message: 'Sesi lelang berhasil dimulai.', variant: 'success' });
-      if (sessionDetails) {
-        setSessionDetails({ ...sessionDetails, status: 'live' });
-      }
+      setSessions((prev) => prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'live' } : s)));
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       setToast({ message: err.message, variant: 'danger' });
@@ -384,45 +400,7 @@ export default function ControlRoomPage() {
     }
   };
 
-  // --- Offline Simulation Handlers for Premium Demo Feel ---
-  let simInterval: NodeJS.Timeout;
-  const simulateLotActive = (lotId: string) => {
-    const targetLot = lots.find((l) => l.id === lotId);
-    if (!targetLot) return;
-
-    setActiveLot({ ...targetLot, status: 'active' });
-    setCurrentPrice(targetLot.starting_price);
-    setTimeRemaining(120);
-    setBidsCount(0);
-    setHighestBidder('-');
-    setExtensionCount(0);
-    setIsExtended(false);
-    setBidLogs([]);
-
-    setLots((prev) => prev.map((l) => (l.id === lotId ? { ...l, status: 'active' } : l)));
-    setToast({ message: `[Simulasi] Lot #${targetLot.lot_number} aktif!`, variant: 'success' });
-  };
-
-  const simulateLotClose = (lotId: string, result: 'sold' | 'unsold') => {
-    setLots((prev) =>
-      prev.map((l) =>
-        l.id === lotId
-          ? {
-              ...l,
-              status: result,
-              hammer_price: result === 'sold' ? currentPrice : undefined,
-              winner_id: result === 'sold' ? 'Peserta #3CD1' : undefined,
-            }
-          : l
-      )
-    );
-    setActiveLot(null);
-    setToast({
-      message: `[Simulasi] Lot ditutup! Status: ${result === 'sold' ? 'SOLD (Terjual)' : 'UNSOLD'}`,
-      variant: result === 'sold' ? 'success' : 'danger',
-    });
-  };
-
+  // --- Offline Simulation Handler (manual, opt-in only — never triggered automatically) ---
   const simulateIncomingBid = () => {
     if (!activeLot) return;
     const increment = currentPrice < 50000000 ? 1000000 : 2500000;
@@ -586,7 +564,7 @@ export default function ControlRoomPage() {
                   }}
                 >
                   <div>
-                    <span className="text-muted" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Lot #${activeLot.lot_number}</span>
+                    <span className="text-muted" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Lot #{activeLot.lot_number}</span>
                     <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0' }}>{activeLot.asset.title}</h2>
                     <span style={{ fontSize: '0.85rem' }} className="badge badge-outline">{activeLot.asset.category.toUpperCase()}</span>
                   </div>

@@ -698,15 +698,14 @@ export class DocumentsService {
 
     // Get Platform Settings
     const settings = await prisma.platform_settings.findMany({
-      where: { key: { in: ['bapl_pejabat_penjual', 'bapl_pejabat_lelang', 'pmk41_percentage'] } }
+      where: { key: { in: ['bapl_pejabat_penjual', 'bapl_pejabat_lelang'] } }
     });
-    
+
     const settingMap: Record<string, string> = {};
     settings.forEach(s => settingMap[s.key] = s.value);
 
     const pejabatPenjual = settingMap['bapl_pejabat_penjual'] || '..................';
     const pejabatLelang = settingMap['bapl_pejabat_lelang'] || '..................';
-    const pmk41 = settingMap['pmk41_percentage'] || '1.1';
 
     const qrHash = crypto
       .createHash('sha256')
@@ -752,7 +751,7 @@ export class DocumentsService {
           <table style="width: 100%; margin: 10px 0;">
             <tr><td style="width: 200px;">Harga Terbentuk Lelang</td><td>: ${this.formatRupiah(Number(invoice.hammer_price))}</td></tr>
             <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.commission))}</td></tr>
-            <tr><td>Biaya PMK</td><td>: PMK${pmk41.replace('.', '')}</td></tr>
+            <tr><td>Biaya PMK</td><td>: PMK41</td></tr>
             <tr><td><strong>Sisa Pelunasan</strong></td><td><strong>: ${this.formatRupiah(Number(invoice.total))}</strong></td></tr>
           </table>
 

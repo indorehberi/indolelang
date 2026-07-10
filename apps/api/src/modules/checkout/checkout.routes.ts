@@ -21,6 +21,13 @@ router.get(
   controller.getOrders
 );
 
+router.get(
+  '/invoices',
+  authenticate,
+  authorize(Role.BIDDER),
+  controller.getInvoiceHistory
+);
+
 router.post(
   '/checkout',
   authenticate,

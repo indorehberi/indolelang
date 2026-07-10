@@ -22,11 +22,29 @@ export class CheckoutService {
         lot: {
           include: {
             asset: true,
+            session: true,
           },
         },
       },
       orderBy: { created_at: 'desc' }
     });
+
+    // One checkout cart is scoped to a single auction day (spec: "satu keranjang
+    // checkout adalah untuk lelang satu hari") — group won lots by the date of
+    // the session they were won in so the bidder pays each day's lots separately.
+    const groupsByDate = new Map<string, { session_date: string; invoices: typeof unpaidInvoices; subtotal: Prisma.Decimal }>();
+    for (const inv of unpaidInvoices) {
+      const sessionDate = inv.lot.session.scheduled_at.toISOString().slice(0, 10);
+      if (!groupsByDate.has(sessionDate)) {
+        groupsByDate.set(sessionDate, { session_date: sessionDate, invoices: [], subtotal: new Prisma.Decimal(0) });
+      }
+      const group = groupsByDate.get(sessionDate)!;
+      group.invoices.push(inv);
+      group.subtotal = group.subtotal.add(inv.total);
+    }
+    const groups = Array.from(groupsByDate.values())
+      .sort((a, b) => (a.session_date < b.session_date ? 1 : -1))
+      .map((g) => ({ ...g, subtotal: Number(g.subtotal) }));
 
     // Grouping active NIPL
     const activeDeposits = await prisma.deposits.findMany({
@@ -51,6 +69,7 @@ export class CheckoutService {
 
     return {
       invoices: unpaidInvoices,
+      groups,
       active_deposits: activeDeposits.map(d => ({
         id: d.id,
         amount: Number(d.amount),
@@ -90,6 +109,24 @@ export class CheckoutService {
   }
 
   /**
+   * Get invoice-level payment history for a bidder (menunggu/expired/sudah dibayar).
+   * Unlike getOrders(), this also surfaces invoices that expired before the bidder
+   * ever started a checkout (so they never got a checkout_orders row).
+   */
+  async getInvoiceHistory(userId: string) {
+    const invoices = await prisma.invoices.findMany({
+      where: { bidder_id: userId },
+      include: {
+        lot: { include: { asset: true } },
+        order: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return invoices;
+  }
+
+  /**
    * Process checkout
    */
   async processCheckout(userId: string, invoiceIds: string[], bank: string) {
@@ -103,11 +140,19 @@ export class CheckoutService {
         id: { in: invoiceIds },
         bidder_id: userId,
         status: 'unpaid',
-      }
+      },
+      include: { lot: { include: { session: true } } },
     });
 
     if (invoices.length !== invoiceIds.length) {
        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Beberapa tagihan tidak valid, atau sudah masuk ke order lain');
+    }
+
+    // A checkout order is scoped to a single auction day — reject attempts to
+    // combine lots won on different session dates into one order.
+    const sessionDates = new Set(invoices.map((inv) => inv.lot.session.scheduled_at.toISOString().slice(0, 10)));
+    if (sessionDates.size > 1) {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tagihan yang dipilih berasal dari sesi lelang yang berbeda hari. Selesaikan pembayaran per hari lelang.');
     }
 
     // Calculate total

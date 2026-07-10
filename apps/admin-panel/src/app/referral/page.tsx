@@ -30,7 +30,24 @@ export default function ReferralPage() {
 
   React.useEffect(() => {
     fetchReferrals();
+    fetchRewardSetting();
   }, [search]);
+
+  const fetchRewardSetting = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/admin/settings'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const setting = (data.data || []).find((s: any) => s.key === 'referral_reward_amount');
+        if (setting) setRewardPerReferral(setting.value);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchReferrals = async () => {
     setLoading(true);
@@ -63,12 +80,29 @@ export default function ReferralPage() {
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     setSavingConfig(true);
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(apiUrl('/admin/settings/referral_reward_amount'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ value: rewardPerReferral }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        showToast('success', 'Konfigurasi program referral berhasil disimpan');
+      } else {
+        showToast('error', data.error?.message || 'Gagal menyimpan konfigurasi');
+      }
+    } catch (e) {
+      showToast('error', 'Koneksi gagal saat menyimpan konfigurasi');
+    } finally {
       setSavingConfig(false);
-      showToast('success', 'Konfigurasi program referral berhasil disimpan');
-    }, 1000);
+    }
   };
 
   const totalRewardsGiven = filtered.reduce((acc, r) => acc + r.total_reward, 0);
@@ -167,43 +201,9 @@ export default function ReferralPage() {
               <span className="form-hint">Reward yang diberikan ke referrer ketika referral berhasil daftar & KYC.</span>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Minimum Referral untuk Klaim</label>
-              <select className="form-select">
-                <option>1 Referral</option>
-                <option>3 Referral</option>
-                <option>5 Referral</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Masa Berlaku Kode Referral</label>
-              <select className="form-select">
-                <option>Tidak Terbatas</option>
-                <option>30 Hari</option>
-                <option>90 Hari</option>
-                <option>1 Tahun</option>
-              </select>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.75rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: '0.5rem',
-              }}
-            >
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                Status Program
-              </span>
-              <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input type="checkbox" defaultChecked />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Aktif</span>
-              </label>
-            </div>
+            <span className="form-hint">
+              Untuk mengaktifkan/nonaktifkan program referral secara keseluruhan, gunakan toggle fitur "Program Referral" di halaman Pengaturan Platform.
+            </span>
 
             <button
               onClick={handleSaveConfig}

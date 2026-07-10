@@ -54,7 +54,14 @@ export function initSocket(server: HttpServer): SocketIoServer {
     logger.debug({ socketId: socket.id, user: socket.data.user }, 'Client connected to WebSocket');
 
     // 1. Join room/unwatch events
-    socket.on('bid:watch', (data: { lot_id: string; session_id: string }) => {
+    socket.on('bid:watch', (data: { lot_id?: string; session_id?: string }) => {
+      // Session room: control-room viewers join this on connect (before any lot
+      // is known) so they receive session/lot-wide broadcasts like `lot:activated`,
+      // `lot:closed` and `session:ended` regardless of which specific lot they're on.
+      if (data.session_id) {
+        socket.join(`session:${data.session_id}`);
+      }
+
       if (!data.lot_id) return;
       socket.join(`lot:${data.lot_id}`);
       logger.debug({ socketId: socket.id, lot_id: data.lot_id }, 'Client watching lot');
@@ -251,8 +258,10 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
 
   activeLots.set(lot.id, state);
 
-  // Broadcast activation event
-  ioServer.to(`lot:${lot.id}`).emit('lot:activated', {
+  // Broadcast activation event — also to the session room, so control-room
+  // viewers who haven't joined this specific lot's room yet (e.g. they were
+  // watching the queue, not this lot) still see it go active in real time.
+  ioServer.to(`lot:${lot.id}`).to(`session:${lot.session_id}`).emit('lot:activated', {
     lot_id: lot.id,
     lot_data: {
       lot_number: lot.lot_number,
@@ -286,8 +295,8 @@ export async function closeActiveLot(lotId: string): Promise<any> {
     return settled;
   }
 
-  // Broadcast closed event to room
-  ioServer.to(`lot:${lotId}`).emit('lot:closed', {
+  // Broadcast closed event to room (and session room, see startActiveLot comment)
+  ioServer.to(`lot:${lotId}`).to(`session:${settled.session_id}`).emit('lot:closed', {
     lot_id: lotId,
     result: settled.status,
     final_price: settled.hammer_price ? Number(settled.hammer_price) : undefined,
@@ -323,7 +332,7 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
   });
 
   if (ioServer) {
-    ioServer.to(`lot:${lotId}`).emit('lot:cancelled', {
+    ioServer.to(`lot:${lotId}`).to(`session:${updated.session_id}`).emit('lot:cancelled', {
       lot_id: lotId,
     });
   }

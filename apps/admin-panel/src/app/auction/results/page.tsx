@@ -70,7 +70,13 @@ export default function AuctionResultsPage() {
       const scheduledDate = lot.session?.scheduled_at?.split('T')[0];
       if (scheduledDate !== dateFilter) return false;
     }
-    if (statusFilter && lot.status !== statusFilter) return false;
+    if (statusFilter === 'sold' || statusFilter === 'unsold') {
+      if (lot.status !== statusFilter) return false;
+    } else if (statusFilter === 'paid') {
+      if (lot.payment_status !== 'paid') return false;
+    } else if (statusFilter === 'unpaid') {
+      if (lot.status !== 'sold' || lot.payment_status === 'paid') return false;
+    }
     if (searchBidder) {
       const query = searchBidder.toLowerCase();
       const matchesName = lot.winner?.full_name?.toLowerCase().includes(query);
@@ -179,6 +185,8 @@ export default function AuctionResultsPage() {
               <option value="">Semua Status</option>
               <option value="sold">Terjual (Sold)</option>
               <option value="unsold">Tidak Laku (Unsold)</option>
+              <option value="paid">Sudah Terbayar</option>
+              <option value="unpaid">Belum Terbayar</option>
             </select>
           </div>
         </div>
@@ -196,14 +204,15 @@ export default function AuctionResultsPage() {
                 <th>Kendaraan (merk, tipe, tahun, no)</th>
                 <th>Harga Limit</th>
                 <th>Status</th>
+                <th>Pembayaran</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat data hasil lelang...</td></tr>
+                <tr><td colSpan={9} className="text-center">Memuat data hasil lelang...</td></tr>
               ) : filteredLots.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
+                <tr><td colSpan={9} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
               ) : (
                 filteredLots.map((lot) => {
                   const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'}) - ${lot.asset.police_number || '-'}` : '-';
@@ -239,12 +248,28 @@ export default function AuctionResultsPage() {
                       </td>
                       <td>
                         {lot.status === 'sold' && (
-                          <button 
+                          <Badge variant={lot.payment_status === 'paid' ? 'success' : 'warning'}>
+                            {lot.payment_status === 'paid' ? 'Terbayar' : 'Belum Terbayar'}
+                          </Badge>
+                        )}
+                      </td>
+                      <td>
+                        {lot.status === 'sold' && lot.payment_status !== 'paid' && (
+                          <button
                             className="btn btn-sm btn-primary"
                             onClick={() => handleMarkAsPaid(lot.id)}
                             style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                           >
                             Sudah Dibayar & BAPL
+                          </button>
+                        )}
+                        {lot.status === 'sold' && lot.payment_status === 'paid' && lot.invoice_id && (
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => window.open(apiUrl(`/documents/bapl/${lot.invoice_id}/download`), '_blank')}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            Unduh BAPL
                           </button>
                         )}
                       </td>

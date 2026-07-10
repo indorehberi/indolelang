@@ -281,7 +281,7 @@ export class BiddingService {
             admin_fee: new Prisma.Decimal(adminFee),
             pmk41_amount: new Prisma.Decimal(pmk41Amount),
             total: new Prisma.Decimal(total),
-            due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days payment window
+            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days payment window
             status: 'unpaid',
           },
         }),
@@ -327,7 +327,7 @@ export class BiddingService {
         sendEmail({
           to: winnerUser.email,
           subject: `[Indo-Lelang] Selamat! Anda memenangkan Lot #${lot.lot_number}`,
-          text: `Halo ${winnerUser.full_name},\n\nSelamat! Anda telah memenangkan lelang untuk unit "${lot.asset.title}" dengan harga ketok palu sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}.\n\nTotal kewajiban pembayaran (termasuk komisi dan PPN) adalah ${formattedTotal}. Invoice pelunasan telah dibuat dan dapat Anda akses di dasbor keuangan Anda.\n\nHarap lakukan pelunasan dalam waktu 5 hari kerja.\n\nTerima kasih,\nTim Indo-Lelang`,
+          text: `Halo ${winnerUser.full_name},\n\nSelamat! Anda telah memenangkan lelang untuk unit "${lot.asset.title}" dengan harga ketok palu sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}.\n\nTotal kewajiban pembayaran (termasuk komisi dan PPN) adalah ${formattedTotal}. Invoice pelunasan telah dibuat dan dapat Anda akses di dasbor keuangan Anda.\n\nHarap lakukan pelunasan dalam waktu 3 hari kerja.\n\nTerima kasih,\nTim Indo-Lelang`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
               <h2 style="color: #2b6cb0; text-align: center;">Selamat! Anda Memenangkan Lelang 🏆</h2>

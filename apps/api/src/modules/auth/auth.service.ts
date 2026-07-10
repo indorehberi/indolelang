@@ -65,6 +65,27 @@ export class AuthService {
 			},
 		});
 
+		// 5. Track referral usage if a valid referral code was supplied
+		const referralCode = (data as any).referral_code as string | undefined;
+		if (referralCode) {
+			const referral = await prisma.referrals.findUnique({ where: { code: referralCode.trim().toUpperCase() } });
+			if (referral && referral.referrer_id !== user.id) {
+				const rewardSetting = await prisma.platform_settings.findFirst({ where: { key: 'referral_reward_amount' } });
+				const rewardAmount = rewardSetting ? Number(rewardSetting.value) || 0 : 0;
+				await prisma.referral_usages.create({
+					data: {
+						referral_id: referral.id,
+						referred_id: user.id,
+						reward_amount: rewardAmount,
+						status: 'pending',
+					},
+				}).catch((err) => {
+					// Non-fatal: registration should still succeed even if referral tracking fails
+					logger.error({ err }, 'Failed to record referral usage during registration');
+				});
+			}
+		}
+
 		const kyc = await prisma.kyc_documents.findUnique({ where: { user_id: user.id } });
 
 		return {

@@ -14,6 +14,7 @@ export const registerSchema = z.object({
 		role: z.enum([Role.BIDDER, Role.PROVIDER]).optional(),
 		company_name: z.string().optional(),
 		npwp: z.string().optional(),
+		referral_code: z.string().optional(),
 	}).refine((data) => data.password === data.confirm_password, {
 		message: 'Konfirmasi password tidak cocok',
 		path: ['confirm_password'],

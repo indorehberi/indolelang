@@ -50,6 +50,7 @@ export interface RegisterBidderRequest {
   password: string;
   full_name: string;
   role: 'bidder';
+  referral_code?: string;
 }
 
 export interface RegisterProviderRequest {
@@ -60,6 +61,7 @@ export interface RegisterProviderRequest {
   role: 'provider';
   company_name: string;
   npwp: string;
+  referral_code?: string;
 }
 
 export type RegisterRequest = RegisterBidderRequest | RegisterProviderRequest;

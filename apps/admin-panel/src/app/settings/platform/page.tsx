@@ -44,7 +44,6 @@ export default function PlatformSettingsPage() {
   const [bidIncrement1, setBidIncrement1] = useState('500000');
   const [bidIncrement2, setBidIncrement2] = useState('1000000');
   const [bidIncrement3, setBidIncrement3] = useState('2000000');
-  const [bidCountdownInitial, setBidCountdownInitial] = useState('120');
   const [isSavingBidding, setIsSavingBidding] = useState(false);
 
   // New financial settings
@@ -198,8 +197,6 @@ export default function PlatformSettingsPage() {
               setBidIncrement2(item.value);
             } else if (item.key === 'bid_increment_3') {
               setBidIncrement3(item.value);
-            } else if (item.key === 'bid_countdown_initial') {
-              setBidCountdownInitial(item.value);
             } else if (item.key in newApiKeys) {
               (newApiKeys as any)[item.key] = item.value;
             }
@@ -387,7 +384,6 @@ export default function PlatformSettingsPage() {
         { key: 'bid_increment_1', value: bidIncrement1.toString() },
         { key: 'bid_increment_2', value: bidIncrement2.toString() },
         { key: 'bid_increment_3', value: bidIncrement3.toString() },
-        { key: 'bid_countdown_initial', value: bidCountdownInitial.toString() },
       ];
 
       const token = localStorage.getItem('accessToken');
@@ -564,11 +560,9 @@ export default function PlatformSettingsPage() {
               <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement3} onChange={(e) => setBidIncrement3(e.target.value)} required />
             </div>
 
-            <div className="form-group">
-              <label className="form-label text-purple-900">Countdown Awal (Detik)</label>
-              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidCountdownInitial} onChange={(e) => setBidCountdownInitial(e.target.value)} required />
-              <p className="text-xs text-muted mt-1">Countdown pada Bidding Room saat lot baru dibuka (sebelum ada bid).</p>
-            </div>
+            <p className="text-xs text-muted mt-1">
+              Durasi countdown awal lot mengikuti pengaturan "Waktu Tiap Lot (Detik)" di atas (Otomatisasi Mesin Lelang) — satu sumber kebenaran untuk Ruang Kontrol maupun Bidding Room.
+            </p>
 
             <button className="btn btn-primary w-100 mt-2 !bg-purple-600 hover:!bg-purple-700" onClick={handleSaveBiddingSettings} disabled={isSavingBidding}>
               {isSavingBidding ? 'Menyimpan...' : 'Simpan Pengaturan Bidding'}

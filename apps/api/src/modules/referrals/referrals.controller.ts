@@ -18,7 +18,7 @@ class ReferralsController {
 
   async getMyReferral(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user.userId;
+      const userId = req.user!.id;
       const result = await referralsService.getMyReferral(userId);
       sendSuccess(res, result, 'Berhasil mengambil info referral');
     } catch (error) {
@@ -28,7 +28,7 @@ class ReferralsController {
 
   async generateReferral(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user.userId;
+      const userId = req.user!.id;
       const result = await referralsService.generateReferral(userId);
       sendSuccess(res, result, 'Berhasil meng-generate kode referral');
     } catch (error) {

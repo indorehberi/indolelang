@@ -41,7 +41,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         if (resDeposits.ok && resDepData.success) {
           const list = resDepData.data || [];
           const activeNipl = list.some(
-            (d: any) => d.session_id === lot.session_id && d.status === "success"
+            (d: any) => d.session_id === lot.session_id && d.status === "paid"
           );
           setHasNipl(activeNipl);
         }
@@ -58,9 +58,13 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
       setCurrentPrice(data.current_price);
       setTimeLeft(data.time_remaining);
 
-      const user = localStorage.getItem("user");
-      const currentUserName = user ? JSON.parse(user).full_name : "";
-      const isMe = data.bidder_id && data.bidder_id.includes(currentUserName);
+      // `bidder_id` in the broadcast is the server's masked id ("Peserta #XXXX",
+      // see maskUserId() in lib/socket.ts) — never the bidder's name — so compare
+      // against the same mask computed from our own user id, not full_name.
+      const storedUser = localStorage.getItem("user");
+      const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
+      const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
+      const isMe = !!data.bidder_id && data.bidder_id === myMaskedId;
 
       const newLog: BidLog = {
         id: Math.random().toString(),
@@ -349,6 +353,13 @@ export default function BidderBiddingRoom() {
 
   useEffect(() => {
     fetchActiveLots();
+
+    // Poll periodically so a bidder who opens this page while no lot is active
+    // still finds out once the operator activates one — the socket connection
+    // below only exists once we already know about at least one active lot, so
+    // without this poll there'd be no way to discover the first one going live.
+    const interval = setInterval(fetchActiveLots, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Central Socket Connection

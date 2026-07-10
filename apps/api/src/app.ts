@@ -96,7 +96,7 @@ app.use(apiPrefix, niplRoutes);
 app.use(apiPrefix, campaignRoutes);
 app.use(apiPrefix, dashboardRoutes);
 app.use(apiPrefix, contactMessagesRoutes);
-app.use(apiPrefix, checkoutRoutes);
+app.use(`${apiPrefix}/checkout`, checkoutRoutes);
 app.use(apiPrefix, bidderRoutes);
 app.use(apiPrefix, providerRoutes);
 app.use(apiPrefix, referralRoutes);

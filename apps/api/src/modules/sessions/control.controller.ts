@@ -59,16 +59,18 @@ export class ControlController {
         include: { asset: true },
       });
 
-      // 5. Fetch lot duration from settings or default to 120
+      // 5. Fetch lot duration from settings (same key used by the auto-next/auto-start
+      // cron paths — see cron.ts and lib/socket.ts's handleAutoNextAndSessionEnd — so
+      // manual activation via the control room respects the same configured duration).
       const settingsService = new SettingsService();
-      let lotDuration = 120;
+      let lotDuration = 30;
       try {
-        const durationSetting = await settingsService.getSettingByKey('lot_duration_seconds');
+        const durationSetting = await settingsService.getSettingByKey('auction_lot_duration_secs');
         if (durationSetting && !isNaN(Number(durationSetting.value))) {
           lotDuration = Number(durationSetting.value);
         }
       } catch (err) {
-        // use default 120
+        // use default 30
       }
 
       // 6. Trigger Socket.io countdown start
@@ -195,7 +197,32 @@ export class ControlController {
         data: { status: SessionStatus.CLOSED },
       });
 
-      // 2. Cancel any remaining pending lots in this session
+      // 2a. Force-stop any lot still actively being bid on — otherwise its in-memory
+      // timer keeps running and bidders can keep bidding on a lot that belongs to a
+      // session already marked closed.
+      const stillActiveLots = await prisma.lots.findMany({
+        where: { session_id: sessionId, status: LotStatus.ACTIVE },
+        select: { id: true },
+      });
+
+      if (stillActiveLots.length > 0) {
+        const io = getSocketIo();
+        for (const { id: activeLotId } of stillActiveLots) {
+          const state = activeLots.get(activeLotId);
+          if (state?.timerInterval) {
+            clearInterval(state.timerInterval);
+          }
+          activeLots.delete(activeLotId);
+          io?.to(`lot:${activeLotId}`).emit('lot:cancelled', { lot_id: activeLotId });
+        }
+
+        await prisma.lots.updateMany({
+          where: { id: { in: stillActiveLots.map((l) => l.id) } },
+          data: { status: LotStatus.CANCELLED },
+        });
+      }
+
+      // 2b. Cancel any remaining pending lots in this session
       await prisma.lots.updateMany({
         where: {
           session_id: sessionId,
