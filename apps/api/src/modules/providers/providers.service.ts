@@ -5,6 +5,7 @@ import { ProviderDTO, PaginationMeta, ApplicationStatus } from '@indo-lelang/sha
 import { Prisma } from '@prisma/client';
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 const kycService = new KycService();
 
@@ -75,6 +76,13 @@ export class ProvidersService {
         selfie_url: data.selfie_url,
       });
     }
+
+    await notifyAdmins(
+      'provider_application_submitted',
+      'Pengajuan Provider Baru',
+      `${data.company_name} mengajukan diri sebagai provider. Mohon ditinjau.`,
+      '/users/provider'
+    );
 
     return this.mapToDTO(provider);
   }

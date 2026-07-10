@@ -4,6 +4,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { AssetDTO, PaginationMeta, AssetStatus, AssetCategory, NotificationType } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
 import { notificationsService } from '../notifications/notifications.service';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 export class AssetsService {
   /**
@@ -161,6 +162,14 @@ export class AssetsService {
         photo_stnk: data.photo_stnk || null,
       } as any,
     });
+
+    const provider = await prisma.users.findUnique({ where: { id: providerId }, select: { full_name: true, company_name: true } });
+    await notifyAdmins(
+      'asset_submitted',
+      'Pengajuan Barang Titip Jual Baru',
+      `${provider?.company_name || provider?.full_name || 'Provider'} mengajukan "${a.title}" untuk dititipjualkan. Mohon diinspeksi.`,
+      '/assets/inspection'
+    );
 
     return {
       ...a,

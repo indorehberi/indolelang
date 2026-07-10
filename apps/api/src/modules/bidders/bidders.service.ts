@@ -4,6 +4,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { BidderDTO, PaginationMeta, ApplicationStatus } from '@indo-lelang/shared-types';
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 const kycService = new KycService();
 
@@ -64,6 +65,14 @@ export class BiddersService {
         selfie_url: data.selfie_url,
       });
     }
+
+    const user = await prisma.users.findUnique({ where: { id: userId }, select: { full_name: true } });
+    await notifyAdmins(
+      'bidder_application_submitted',
+      'Pengajuan Bidder Baru',
+      `${user?.full_name || 'Seorang pengguna'} mengajukan diri sebagai bidder. Mohon ditinjau.`,
+      '/users/bidder'
+    );
 
     return this.mapToDTO(bidder);
   }
