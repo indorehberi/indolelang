@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-export default function SessionTimeout({ timeoutMinutes = 10 }: { timeoutMinutes?: number }) {
+export default function SessionTimeout({ timeoutMinutes = 15 }: { timeoutMinutes?: number }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -20,7 +20,7 @@ export default function SessionTimeout({ timeoutMinutes = 10 }: { timeoutMinutes
     const logout = () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
-      alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 10 menit. Silakan login kembali.');
+      alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 15 menit. Silakan login kembali.');
       router.push('/login');
     };
 

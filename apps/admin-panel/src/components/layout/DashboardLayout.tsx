@@ -42,8 +42,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      // 10 minutes = 600000 ms
-      timeoutId = setTimeout(handleLogout, 10 * 60 * 1000);
+      // 15 minutes = 900000 ms
+      timeoutId = setTimeout(handleLogout, 15 * 60 * 1000);
     };
 
     const events = ['mousemove', 'keydown', 'wheel', 'mousedown', 'touchstart', 'touchmove'];
