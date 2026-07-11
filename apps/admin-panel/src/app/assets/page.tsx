@@ -129,7 +129,7 @@ export default function AssetsPage() {
 
   
   
-  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz'];
+  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz', 'Ford'];
   const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
   
   const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
@@ -140,6 +140,7 @@ export default function AssetsPage() {
     Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
     Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
     Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
+    Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
     Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Stargazer'],
     Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
     Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV'],

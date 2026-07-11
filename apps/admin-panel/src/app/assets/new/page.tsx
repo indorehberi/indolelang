@@ -17,7 +17,7 @@ const GRADE_OPTIONS = [
 const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV'];
 const TRANSMISSION_OPTIONS = ['Otomatis', 'Manual'];
 const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
-const BRAND_OPTIONS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Lainnya'];
+const BRAND_OPTIONS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'Lainnya'];
 const MODEL_OPTIONS = ['Avanza', 'Xenia', 'Brio', 'Innova', 'Calya', 'Sigra', 'Ertiga', 'Xpander', 'HR-V', 'CR-V', 'Pajero Sport', 'Fortuner', 'Lainnya'];
 const COLOR_OPTIONS = ['Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
 
