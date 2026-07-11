@@ -1,6 +1,42 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const API_PREFIX = '/api/v1';
 
+/**
+ * If the build-time API URL was baked in as localhost (common when the same
+ * image is built once and deployed to multiple hosts) but the page itself is
+ * being viewed from a real domain, rewrite the host to match so requests
+ * don't try to reach the visitor's own machine.
+ */
+function resolveDynamicBase(base: string): string {
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (base.includes('localhost') || base.includes('127.0.0.1')) {
+      let dynamicBase = base.replace('localhost', window.location.hostname).replace('127.0.0.1', window.location.hostname);
+      if (window.location.protocol === 'https:' && dynamicBase.startsWith('http://')) {
+        dynamicBase = dynamicBase.replace('http://', 'https://');
+      }
+      return dynamicBase;
+    }
+  }
+  return base;
+}
+
+/**
+ * Build a base URL (without API prefix) for WebSocket connections. Returns
+ * just the origin — socket.io-client treats any path segment of the URL as
+ * a namespace to connect to, and the server only registers the default '/'
+ * namespace, so passing anything beyond the origin (e.g. a '/api' prefix)
+ * causes the connection to silently fail to join any room in production.
+ * @example wsBaseUrl() => 'http://localhost:8000'
+ */
+export function wsBaseUrl(): string {
+  const base = resolveDynamicBase(API_BASE_URL);
+  try {
+    return new URL(base).origin;
+  } catch (e) {
+    return base;
+  }
+}
+
 const ASSET_PHOTO_FIELDS = ['photo_front', 'photo_left', 'photo_right', 'photo_back', 'photo_interior', 'photo_engine'] as const;
 
 // Real photos are uploaded per-angle into photo_front/photo_back/etc, not the legacy `images` field.
@@ -23,37 +59,15 @@ export function getAssetImages(asset: any): string[] {
 export function getImageUrl(url: string | undefined): string {
   if (!url) return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  
+
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
-  
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
-      let dynamicBase = API_BASE_URL.replace('localhost', window.location.hostname).replace('127.0.0.1', window.location.hostname);
-      if (window.location.protocol === 'https:' && dynamicBase.startsWith('http://')) {
-        dynamicBase = dynamicBase.replace('http://', 'https://');
-      }
-      return `${dynamicBase}${cleanPath}`;
-    }
-  }
-  
-  return `${API_BASE_URL}${cleanPath}`;
+  return `${resolveDynamicBase(API_BASE_URL)}${cleanPath}`;
 }
 
 export function apiUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  
   // Dynamic host replacement for mobile device testing on local network
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
-      let dynamicBase = API_BASE_URL.replace('localhost', window.location.hostname).replace('127.0.0.1', window.location.hostname);
-      if (window.location.protocol === 'https:' && dynamicBase.startsWith('http://')) {
-        dynamicBase = dynamicBase.replace('http://', 'https://');
-      }
-      return `${dynamicBase}${API_PREFIX}${cleanPath}`;
-    }
-  }
-  
-  return `${API_BASE_URL}${API_PREFIX}${cleanPath}`;
+  return `${resolveDynamicBase(API_BASE_URL)}${API_PREFIX}${cleanPath}`;
 }
 
 export async function fetchWithRetry(url: string, options?: RequestInit, retries = 3, delayMs = 1000): Promise<Response> {

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken, getAssetImages, getImageUrl } from "@/lib/api";
+import { apiFetch, apiUrl, refreshAccessToken, getAssetImages, getImageUrl, wsBaseUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -292,9 +292,9 @@ export default function BidderBiddingRoom() {
   const [loading, setLoading] = useState(true);
   
   // Settings for bidding
-  const [bidIncrements, setBidIncrements] = useState<number[]>([500000, 1000000, 2000000]);
-
+  const [bidIncrements, setBidIncrements] = useState<number[]>([]);
   const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const fetchActiveLots = async () => {
     if (typeof window === "undefined") return;
@@ -362,7 +362,7 @@ export default function BidderBiddingRoom() {
     if (activeLots.length === 0) return;
 
     let cancelled = false;
-    let socket: Socket | null = null;
+    let localSocket: Socket | null = null;
 
     const connect = async () => {
       // Always connect with a fresh access token — a page can sit open past
@@ -371,20 +371,16 @@ export default function BidderBiddingRoom() {
       const freshToken = (await refreshAccessToken()) || localStorage.getItem("accessToken");
       if (cancelled) return;
 
-      let socketUrl = API_BASE_URL;
-      try {
-        socketUrl = new URL(API_BASE_URL).origin;
-      } catch (e) {}
-
-      socket = io(socketUrl, {
+      localSocket = io(wsBaseUrl(), {
         auth: { token: freshToken },
         transports: ["websocket"],
       });
-      socketRef.current = socket;
+      socketRef.current = localSocket;
+      setSocket(localSocket);
 
       // Join room for each active lot
       activeLots.forEach((lot) => {
-        socket!.emit("bid:watch", {
+        localSocket!.emit("bid:watch", {
           lot_id: lot.id,
           session_id: lot.session_id,
         });
@@ -395,13 +391,14 @@ export default function BidderBiddingRoom() {
 
     return () => {
       cancelled = true;
-      if (socket) {
+      if (localSocket) {
         activeLots.forEach((lot) => {
-          socket!.emit("bid:unwatch", { lot_id: lot.id });
+          localSocket!.emit("bid:unwatch", { lot_id: lot.id });
         });
-        socket.disconnect();
+        localSocket.disconnect();
       }
       socketRef.current = null;
+      setSocket(null);
     };
   }, [activeLots.map(l => l.id).join(",")]); // Re-connect only if the active lot IDs change
 
@@ -428,7 +425,7 @@ export default function BidderBiddingRoom() {
               lot={lot} 
               token={localStorage.getItem("accessToken") || ""}
               bidIncrements={bidIncrements}
-              socket={socketRef.current}
+              socket={socket}
               onLotClosed={fetchActiveLots}
             />
           ))}
