@@ -70,7 +70,7 @@ function KatalogContent() {
           images = [];
         }
         const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
-        const isLiveRaw = dbLot.status === "active";
+        const isLiveRaw = dbLot.status?.toLowerCase() === "active";
         let isLive = isLiveRaw;
         let timerText = "Akan Datang";
         
@@ -109,7 +109,7 @@ function KatalogContent() {
           deposit: "Rp 5 Juta",
           timer: timerText,
           action: isLive ? "Bid" : "Detail",
-          category: dbLot.asset.category === "MOBIL" ? "Mobil" : (dbLot.asset.category === "MOTOR" ? "Motor" : (dbLot.asset.category === "PROPERTI" ? "Properti" : "Alat Berat")),
+          category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
           sessionId: dbLot.session_id,
         };

@@ -173,7 +173,7 @@ export default function Home() {
           images = [];
         }
         const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
-        const isLive = dbLot.status === "active";
+        const isLive = dbLot.status.toLowerCase() === "active";
         
         return {
           id: dbLot.id,
