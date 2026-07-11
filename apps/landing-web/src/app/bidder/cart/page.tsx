@@ -267,7 +267,7 @@ function CartGroupCard({
 
     try {
       // 1. Upload File
-      const uploadRes = await apiFetch("/upload/image", {
+      const uploadRes = await apiFetch("/upload/single", {
         method: "POST",
         body: formData,
       });
