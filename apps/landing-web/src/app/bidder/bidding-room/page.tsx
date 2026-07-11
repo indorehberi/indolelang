@@ -237,43 +237,46 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
 
         {/* RIGHT COLUMN: Asset Data */}
         <div className="w-full md:w-1/2 flex flex-col gap-4">
-          <img
-            src={getImageUrl(getAssetImages(lot.asset)[0])}
-            alt={lot.asset?.title}
-            className="rounded-xl object-cover w-full h-[240px] shadow-sm border border-slate-200"
-          />
-          <div className="bg-white p-4 rounded-xl border border-slate-200 flex-1">
-            <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Kendaraan</h4>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Merk / Tipe</span>
-                <span className="font-medium text-slate-800">{lot.asset?.brand || "-"} / {lot.asset?.type || "-"}</span>
+          <div className="bg-white rounded-xl border border-slate-200 flex-1 overflow-hidden">
+            {/* Primary Photo inside the card */}
+            <img
+              src={getImageUrl(getAssetImages(lot.asset)[0])}
+              alt={lot.asset?.title}
+              className="object-cover w-full h-[220px]"
+            />
+            <div className="p-4">
+              <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Kendaraan</h4>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Merk / Tipe</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.brand || "-"} / {lot.asset?.type || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Tahun</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.year || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No. Polisi</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.license_plate || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Warna</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.color || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Transmisi</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.transmission || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Lokasi</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.location || "-"}</span>
+                </div>
               </div>
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Tahun</span>
-                <span className="font-medium text-slate-800">{lot.asset?.year || "-"}</span>
-              </div>
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No. Polisi</span>
-                <span className="font-medium text-slate-800">{lot.asset?.license_plate || "-"}</span>
-              </div>
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Warna</span>
-                <span className="font-medium text-slate-800">{lot.asset?.color || "-"}</span>
-              </div>
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Transmisi</span>
-                <span className="font-medium text-slate-800">{lot.asset?.transmission || "-"}</span>
-              </div>
-              <div>
-                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Lokasi</span>
-                <span className="font-medium text-slate-800">{lot.asset?.location || "-"}</span>
-              </div>
-            </div>
             
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">Harga Dasar (Limit)</span>
-              <span className="font-black text-xl text-slate-900">{formatRupiah(Number(lot.starting_price))}</span>
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">Harga Dasar (Limit)</span>
+                <span className="font-black text-xl text-slate-900">{formatRupiah(Number(lot.starting_price))}</span>
+              </div>
             </div>
           </div>
         </div>

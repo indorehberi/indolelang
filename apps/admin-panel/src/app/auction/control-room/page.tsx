@@ -628,46 +628,24 @@ export default function ControlRoomPage() {
                   </div>
                 </div>
 
-                {/* Photos */}
+                {/* Primary Photo */}
                 {(() => {
                   const photos = getAssetImages(activeLot.asset);
                   if (photos.length === 0) return null;
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <div style={{
-                        width: '100%',
-                        height: '300px',
-                        borderRadius: 'var(--radius)',
-                        overflow: 'hidden',
-                        border: '1px solid var(--wf-border)',
-                        background: '#f8f9fa'
-                      }}>
-                        <img 
-                          src={getImageUrl(photos[0])} 
-                          alt={activeLot.asset.title} 
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      </div>
-                      {photos.length > 1 && (
-                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                          {photos.slice(1).map((imgUrl, idx) => (
-                            <div key={idx} style={{
-                              width: '80px',
-                              height: '60px',
-                              borderRadius: '4px',
-                              overflow: 'hidden',
-                              border: '1px solid var(--wf-border)',
-                              flexShrink: 0
-                            }}>
-                              <img 
-                                src={getImageUrl(imgUrl)} 
-                                alt={`Thumbnail ${idx}`} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    <div style={{
+                      width: '100%',
+                      height: '220px',
+                      borderRadius: 'var(--radius)',
+                      overflow: 'hidden',
+                      border: '1px solid var(--wf-border)',
+                      background: '#f8f9fa'
+                    }}>
+                      <img 
+                        src={getImageUrl(photos[0])} 
+                        alt={activeLot.asset.title} 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
                     </div>
                   );
                 })()}
