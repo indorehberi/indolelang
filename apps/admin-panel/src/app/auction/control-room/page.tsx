@@ -150,7 +150,16 @@ export default function ControlRoomPage() {
     fetchInitialData();
   }, []);
 
-  // Fetch Lots when session changes & Connect Socket
+  // Fetch lot list/details whenever the session changes or a refetch is requested.
+  // Deliberately does NOT touch the socket connection (see the effect below) — it
+  // used to live in the same effect as the socket setup, keyed on `refreshTrigger`,
+  // which meant every refreshTrigger bump (e.g. after "Mulai Lelang") tore down and
+  // recreated the *entire* socket connection. If the operator then activated a lot
+  // moments later, that reconnect could still be in flight and the client would
+  // never (re)join the lot's socket room — it'd show the correct starting duration
+  // once (via the session-room broadcast) but then never receive another tick,
+  // leaving the countdown frozen. Splitting this out lets refreshTrigger just
+  // re-fetch lots over REST without disturbing an already-connected socket.
   useEffect(() => {
     if (!selectedSessionId) return;
 
@@ -196,6 +205,13 @@ export default function ControlRoomPage() {
     };
 
     fetchLots();
+  }, [selectedSessionId, sessions, refreshTrigger]);
+
+  // Connect the socket — scoped to selectedSessionId ONLY, so it survives
+  // refreshTrigger bumps from the effect above instead of being torn down and
+  // reconnected on every one (see comment there for why that mattered).
+  useEffect(() => {
+    if (!selectedSessionId) return;
 
     // Setup Socket Connection — refresh the access token first so the socket
     // doesn't connect with a token that's already expired (sockets can't
@@ -344,9 +360,10 @@ export default function ControlRoomPage() {
       cancelled = true;
       if (socketRef.current) {
         socketRef.current.disconnect();
+        socketRef.current = null;
       }
     };
-  }, [selectedSessionId, sessions, refreshTrigger]);
+  }, [selectedSessionId]);
 
   const watchLotSocket = (lotId: string) => {
     if (socketRef.current) {

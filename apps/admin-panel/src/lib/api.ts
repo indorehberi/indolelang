@@ -49,7 +49,11 @@ export function getImageUrl(url: string | undefined): string {
  * @example wsBaseUrl() => 'http://localhost:8000'
  */
 export function wsBaseUrl(): string {
-  return API_BASE_URL;
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch (e) {
+    return API_BASE_URL;
+  }
 }
 
 /**

@@ -371,7 +371,12 @@ export default function BidderBiddingRoom() {
       const freshToken = (await refreshAccessToken()) || localStorage.getItem("accessToken");
       if (cancelled) return;
 
-      socket = io(API_BASE_URL, {
+      let socketUrl = API_BASE_URL;
+      try {
+        socketUrl = new URL(API_BASE_URL).origin;
+      } catch (e) {}
+
+      socket = io(socketUrl, {
         auth: { token: freshToken },
         transports: ["websocket"],
       });
