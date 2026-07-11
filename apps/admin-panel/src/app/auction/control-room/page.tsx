@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
-import { apiFetch, wsBaseUrl, refreshAccessToken, getAuthToken } from '../../../lib/api';
+import { apiFetch, wsBaseUrl, refreshAccessToken, getAuthToken, getImageUrl } from '../../../lib/api';
 
 interface Session {
   id: string;
@@ -612,7 +612,7 @@ export default function ControlRoomPage() {
                       background: '#f8f9fa'
                     }}>
                       <img 
-                        src={activeLot.asset.images[0]} 
+                        src={getImageUrl(activeLot.asset.images[0])} 
                         alt={activeLot.asset.title} 
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       />
@@ -629,7 +629,7 @@ export default function ControlRoomPage() {
                             flexShrink: 0
                           }}>
                             <img 
-                              src={imgUrl} 
+                              src={getImageUrl(imgUrl)} 
                               alt={`Thumbnail ${idx}`} 
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
