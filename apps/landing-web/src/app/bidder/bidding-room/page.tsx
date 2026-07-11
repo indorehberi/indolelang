@@ -201,7 +201,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
               </div>
             ) : (
               <div className="mt-6 alert-box warning text-xs text-center">
-                Anda tidak terdaftar dalam sesi NIPL ini. Silakan melakukan deposit terlebih dahulu.
+                Anda tidak memiliki NIPL aktif untuk jenis unit ini. Silakan melakukan deposit terlebih dahulu.
               </div>
             )}
           </div>
@@ -297,7 +297,7 @@ export default function BidderBiddingRoom() {
   const [loading, setLoading] = useState(true);
   
   // Settings for bidding
-  const [bidIncrements, setBidIncrements] = useState<number[]>([]);
+  const [bidIncrements, setBidIncrements] = useState<number[]>([500000, 1000000, 2000000]);
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
 
