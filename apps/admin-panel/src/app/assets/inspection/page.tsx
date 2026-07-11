@@ -491,6 +491,7 @@ export default function AssetsInspectionPage() {
                       <select
                         className={`form-select${errors.category ? ' form-input-error' : ''}`}
                         value={formData.category}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       >
                         <option value="">Pilih Kategori</option>
@@ -506,6 +507,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.brand ? ' form-input-error' : ''}`}
                         placeholder="Toyota, Honda, dll."
                         value={formData.brand}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                       />
                     </Field>
@@ -515,6 +517,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.model ? ' form-input-error' : ''}`}
                         placeholder="Avanza, Civic, dll."
                         value={formData.model}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                       />
                     </Field>
@@ -524,6 +527,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.color ? ' form-input-error' : ''}`}
                         placeholder="Putih, Hitam, dll."
                         value={formData.color}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       />
                     </Field>
@@ -531,6 +535,7 @@ export default function AssetsInspectionPage() {
                       <select
                         className={`form-select${errors.fuel_type ? ' form-input-error' : ''}`}
                         value={formData.fuel_type}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, fuel_type: e.target.value })}
                       >
                         <option value="">Pilih Bahan Bakar</option>
@@ -541,6 +546,7 @@ export default function AssetsInspectionPage() {
                       <select
                         className={`form-select${errors.transmission ? ' form-input-error' : ''}`}
                         value={formData.transmission}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
                       >
                         <option value="">Pilih Transmisi</option>
@@ -551,6 +557,7 @@ export default function AssetsInspectionPage() {
                       <select
                         className={`form-select${errors.body_type ? ' form-input-error' : ''}`}
                         value={formData.body_type}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, body_type: e.target.value })}
                       >
                         <option value="">Pilih Body Type</option>
@@ -565,6 +572,7 @@ export default function AssetsInspectionPage() {
                         min={1900}
                         max={new Date().getFullYear()}
                         value={formData.year}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                       />
                     </Field>
@@ -575,6 +583,7 @@ export default function AssetsInspectionPage() {
                         placeholder="50000"
                         min={0}
                         value={formData.odometer}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, odometer: e.target.value })}
                       />
                     </Field>
@@ -590,6 +599,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.police_number ? ' form-input-error' : ''}`}
                         placeholder="B 1234 ABC"
                         value={formData.police_number}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, police_number: e.target.value })}
                       />
                     </Field>
@@ -599,6 +609,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.bpkb_number ? ' form-input-error' : ''}`}
                         placeholder="Nomor BPKB"
                         value={formData.bpkb_number}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, bpkb_number: e.target.value })}
                       />
                     </Field>
@@ -608,6 +619,7 @@ export default function AssetsInspectionPage() {
                         className={`form-input${errors.frame_number ? ' form-input-error' : ''}`}
                         placeholder="Nomor Rangka"
                         value={formData.frame_number}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, frame_number: e.target.value })}
                       />
                     </Field>
@@ -618,6 +630,7 @@ export default function AssetsInspectionPage() {
                         placeholder="1500"
                         min={1}
                         value={formData.cylinder}
+                        disabled
                         onChange={(e) => setFormData({ ...formData, cylinder: e.target.value })}
                       />
                     </Field>
