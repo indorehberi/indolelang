@@ -206,7 +206,7 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     sessionId: lot.session_id,
     currentPrice: startPrice,
     bidsCount: 0,
-    timeRemaining: durationSeconds,
+    timeRemaining: durationSeconds > 0 ? durationSeconds : -1,
     extensionCount: 0,
     autoEndTrigger: 'admin', // will be fetched asynchronously
   };
@@ -218,6 +218,19 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
 
   // Start interval loop
   state.timerInterval = setInterval(async () => {
+    // If -1, it means Manual mode (no timer limit)
+    if (state.timeRemaining === -1) {
+      ioServer.to(`lot:${lot.id}`).emit('bid:update', {
+        lot_id: state.lotId,
+        current_price: state.currentPrice,
+        bidder_id: state.highestBidderMasked || '-',
+        bidder_count: state.bidsCount,
+        time_remaining: -1,
+        extension_count: state.extensionCount,
+      });
+      return;
+    }
+
     if (state.timeRemaining > 0) {
       state.timeRemaining -= 1;
     }

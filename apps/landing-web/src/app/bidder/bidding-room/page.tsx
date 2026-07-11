@@ -155,14 +155,18 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
               </div>
               
               <div className="pt-2 border-t border-slate-200">
-                <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Sisa Waktu Penawaran</span>
+                <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Status Penawaran</span>
                 <div
                   className={`text-2xl font-bold flex items-center gap-2 ${
-                    timeLeft <= 15 ? "text-error" : "text-slate-800"
+                    timeLeft === 0 ? "text-error" : "text-slate-800"
                   }`}
                 >
                   <span className="material-symbols-outlined text-3xl">timer</span>
-                  {timeLeft > 0 ? `${timeLeft} detik` : "Sesi Ditutup / Menunggu Ketok Palu"}
+                  {timeLeft < 0 
+                    ? "Lelang Manual (Sedang Berlangsung)" 
+                    : timeLeft > 0 
+                      ? `${timeLeft} detik` 
+                      : "Sesi Ditutup / Menunggu Ketok Palu"}
                 </div>
               </div>
             </div>
@@ -174,10 +178,10 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
                   {bidIncrements.map((inc, i) => (
                     <button
                       key={i}
-                      disabled={bidCooldown || timeLeft <= 0}
+                      disabled={bidCooldown || timeLeft === 0}
                       onClick={() => handlePlaceBid(inc)}
                       className={`py-3 px-1 text-xs font-bold rounded-lg transition-all shadow ${
-                        bidCooldown || timeLeft <= 0
+                        bidCooldown || timeLeft === 0
                           ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                           : i === 0 
                             ? "bg-slate-900 hover:bg-slate-800 text-white active:scale-95 cursor-pointer"

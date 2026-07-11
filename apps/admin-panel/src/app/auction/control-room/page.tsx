@@ -586,11 +586,13 @@ export default function ControlRoomPage() {
                         fontWeight: '800',
                         fontFamily: 'monospace',
                         lineHeight: '1',
-                        color: timeRemaining < 10 ? 'var(--wf-danger)' : 'var(--wf-text)',
-                        animation: timeRemaining < 10 ? 'pulse 1s infinite' : 'none',
+                        color: timeRemaining > 0 && timeRemaining < 10 ? 'var(--wf-danger)' : 'var(--wf-text)',
+                        animation: timeRemaining > 0 && timeRemaining < 10 ? 'pulse 1s infinite' : 'none',
                       }}
                     >
-                      {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                      {timeRemaining < 0 
+                        ? 'Manual' 
+                        : `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`}
                     </div>
                     {isExtended && (
                       <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
