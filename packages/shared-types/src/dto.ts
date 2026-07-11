@@ -277,6 +277,14 @@ export interface LotDTO {
   winner_id?: string;
   status: string;
   asset?: AssetDTO;
+  session?: AuctionSessionDTO;
+  winner?: {
+    full_name: string;
+    email: string;
+    phone?: string | null;
+  };
+  invoice_id?: string;
+  payment_status?: string;
   created_at: string;
   updated_at: string;
 }
