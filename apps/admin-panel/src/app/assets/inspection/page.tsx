@@ -30,6 +30,13 @@ interface Asset {
   engine_number?: string;
   cylinder?: number;
   odometer?: number;
+  photo_front?: string;
+  photo_back?: string;
+  photo_right?: string;
+  photo_left?: string;
+  photo_engine?: string;
+  photo_interior?: string;
+  photo_stnk?: string;
 }
 
 const GRADE_OPTIONS = [
@@ -617,8 +624,58 @@ export default function AssetsInspectionPage() {
                   </div>
                 </Card>
 
-                {/* ── Section 4: Keputusan Tolak ── */}
-                <Card title="4. Alasan Penolakan (isi jika akan menolak)">
+                {/* ── Section 4: Foto Fisik Barang ── */}
+                <Card title="4. Foto Fisik Barang">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
+                    {[
+                      { key: 'photo_front', label: 'Depan' },
+                      { key: 'photo_back', label: 'Belakang' },
+                      { key: 'photo_right', label: 'Kanan' },
+                      { key: 'photo_left', label: 'Kiri' },
+                      { key: 'photo_engine', label: 'Mesin' },
+                      { key: 'photo_interior', label: 'Interior' },
+                      { key: 'photo_stnk', label: 'STNK' }
+                    ].map(photo => {
+                      const url = selectedAsset?.[photo.key as keyof Asset] as string | undefined;
+                      return (
+                        <div key={photo.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--wf-text-secondary)' }}>{photo.label}</span>
+                          {url ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer" style={{ 
+                              width: '100%', 
+                              aspectRatio: '4/3', 
+                              backgroundColor: '#f1f5f9', 
+                              borderRadius: '0.5rem', 
+                              overflow: 'hidden',
+                              border: '1px solid var(--wf-border)',
+                              display: 'block'
+                            }}>
+                              <img src={url} alt={photo.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </a>
+                          ) : (
+                            <div style={{ 
+                              width: '100%', 
+                              aspectRatio: '4/3', 
+                              backgroundColor: '#f1f5f9', 
+                              borderRadius: '0.5rem', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              border: '1px dashed var(--wf-border)',
+                              color: 'var(--wf-text-muted)',
+                              fontSize: '0.8rem'
+                            }}>
+                              Tidak ada foto
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+
+                {/* ── Section 5: Keputusan Tolak ── */}
+                <Card title="5. Alasan Penolakan (isi jika akan menolak)">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <textarea
                       className="form-textarea"
