@@ -275,6 +275,27 @@ export default function FinanceManager({
     }
   };
 
+  const handleMarkRefunded = async (depositId: string) => {
+    if (!confirm('Tandai deposit ini sebagai Refunded?')) return;
+    
+    setProcessingId(depositId);
+    try {
+      const response = await apiFetch(`/deposits/${depositId}/mark-refunded`, { method: 'PUT' });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal mengubah status deposit');
+      }
+
+      toast.success('Deposit berhasil ditandai telah dikembalikan (Refunded)');
+      fetchDeposits();
+    } catch (error: any) {
+      toast.error(error.message || 'Terjadi kesalahan saat memproses refund.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -407,11 +428,13 @@ export default function FinanceManager({
               <p className="page-subtitle">Daftar transaksi Virtual Account (VA) untuk pembelian Nomor Induk Peserta Lelang (NIPL).</p>
             </div>
             <div className="toolbar-right">
-              <div className="filter-group d-flex gap-1">
+              <div className="filter-group d-flex gap-1" style={{ flexWrap: 'wrap' }}>
                 <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
                 <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
                 <button onClick={() => setStatusFilter('pending')} className={`btn btn-sm ${statusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending</button>
                 <button onClick={() => setStatusFilter('pending_approval')} className={`btn btn-sm ${statusFilter === 'pending_approval' ? 'btn-warning' : 'btn-outline'}`}>Menunggu Approval</button>
+                <button onClick={() => setStatusFilter('pending_refund')} className={`btn btn-sm ${statusFilter === 'pending_refund' ? 'btn-warning' : 'btn-outline'}`}>Menunggu Refund</button>
+                <button onClick={() => setStatusFilter('refunded')} className={`btn btn-sm ${statusFilter === 'refunded' ? 'btn-info' : 'btn-outline'}`}>Refunded</button>
                 <button onClick={() => setStatusFilter('expired')} className={`btn btn-sm ${statusFilter === 'expired' ? 'btn-danger' : 'btn-outline'}`}>Expired</button>
               </div>
             </div>
@@ -485,6 +508,17 @@ export default function FinanceManager({
                                 title="Tandai Paid untuk deposit manual"
                               >
                                 {processingId === deposit.id ? 'Memproses...' : '✓ Setujui (Paid)'}
+                              </button>
+                            )}
+                            {deposit.status === 'pending_refund' && (
+                              <button
+                                onClick={() => handleMarkRefunded(deposit.id)}
+                                className="btn btn-xs btn-warning"
+                                disabled={processingId !== null}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                                title="Tandai sebagai Refunded"
+                              >
+                                {processingId === deposit.id ? 'Memproses...' : '💸 Tandai Refunded'}
                               </button>
                             )}
                           </div>

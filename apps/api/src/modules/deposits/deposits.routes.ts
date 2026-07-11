@@ -42,6 +42,14 @@ router.put(
   controller.markAsPaid
 );
 
+// Mark Deposit as Refunded (Admin only)
+router.put(
+  '/deposits/:id/mark-refunded',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.markAsRefunded
+);
+
 // Upload transfer proof for manual deposit (Bidder only)
 router.post(
   '/deposits/:id/proof',

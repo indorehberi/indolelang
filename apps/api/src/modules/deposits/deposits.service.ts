@@ -361,6 +361,42 @@ export class DepositsService {
   }
 
   /**
+   * Mark deposit as refunded (Admin only)
+   */
+  async markAsRefunded(depositId: string, adminId: string): Promise<any> {
+    const deposit = await prisma.deposits.findUnique({
+      where: { id: depositId },
+    });
+
+    if (!deposit) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Deposit tidak ditemukan');
+    }
+
+    if (deposit.status !== 'pending_refund' && deposit.status !== 'paid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya deposit berstatus pending_refund atau paid yang dapat ditandai refunded');
+    }
+
+    const updated = await prisma.deposits.update({
+      where: { id: depositId },
+      data: {
+        status: 'refunded',
+      },
+    });
+
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(deposit.amount));
+    await prisma.notifications.create({
+      data: {
+        user_id: deposit.user_id,
+        type: 'refund_processed',
+        title: 'Refund NIPL Selesai',
+        body: `Pengembalian dana (refund) deposit NIPL Anda sebesar ${formattedAmount} telah selesai ditransfer ke rekening Anda.`,
+      },
+    });
+
+    return updated;
+  }
+
+  /**
    * Upload transfer proof and mark deposit as pending approval
    */
   async uploadTransferProof(userId: string, depositId: string, proofUrl: string): Promise<any> {
