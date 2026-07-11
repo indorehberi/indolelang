@@ -180,16 +180,8 @@ export default function AssetsInspectionPage() {
     if (!formData.category) e.category = 'Kategori wajib dipilih';
     if (!formData.brand.trim()) e.brand = 'Merek wajib diisi';
     if (!formData.model.trim()) e.model = 'Tipe/Model wajib diisi';
-    if (!formData.color.trim()) e.color = 'Warna wajib diisi';
-    if (!formData.fuel_type) e.fuel_type = 'Bahan bakar wajib dipilih';
-    if (!formData.transmission) e.transmission = 'Transmisi wajib dipilih';
-    if (!formData.body_type) e.body_type = 'Jenis body wajib dipilih';
     if (!formData.year) e.year = 'Tahun wajib diisi';
     if (!formData.police_number.trim()) e.police_number = 'No Polisi wajib diisi';
-    if (!formData.bpkb_number.trim()) e.bpkb_number = 'No BPKB wajib diisi';
-    if (!formData.frame_number.trim()) e.frame_number = 'No Rangka wajib diisi';
-    if (!formData.cylinder) e.cylinder = 'CC wajib diisi';
-    if (!formData.odometer && formData.odometer !== '0') e.odometer = 'Odometer wajib diisi';
     return e;
   };
 
@@ -535,7 +527,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                       />
                     </Field>
-                    <Field label="Warna" required error={errors.color}>
+                    <Field label="Warna" error={errors.color}>
                       <input
                         type="text"
                         className={`form-input${errors.color ? ' form-input-error' : ''}`}
@@ -545,7 +537,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       />
                     </Field>
-                    <Field label="Bahan Bakar" required error={errors.fuel_type}>
+                    <Field label="Bahan Bakar" error={errors.fuel_type}>
                       <select
                         className={`form-select${errors.fuel_type ? ' form-input-error' : ''}`}
                         value={formData.fuel_type}
@@ -556,7 +548,7 @@ export default function AssetsInspectionPage() {
                         {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                       </select>
                     </Field>
-                    <Field label="Transmisi" required error={errors.transmission}>
+                    <Field label="Transmisi" error={errors.transmission}>
                       <select
                         className={`form-select${errors.transmission ? ' form-input-error' : ''}`}
                         value={formData.transmission}
@@ -567,7 +559,7 @@ export default function AssetsInspectionPage() {
                         {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </Field>
-                    <Field label="Jenis Body" required error={errors.body_type}>
+                    <Field label="Jenis Body" error={errors.body_type}>
                       <select
                         className={`form-select${errors.body_type ? ' form-input-error' : ''}`}
                         value={formData.body_type}
@@ -590,7 +582,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                       />
                     </Field>
-                    <Field label="Odometer (KM)" required error={errors.odometer}>
+                    <Field label="Odometer (KM)" error={errors.odometer}>
                       <input
                         type="number"
                         className={`form-input${errors.odometer ? ' form-input-error' : ''}`}
@@ -617,7 +609,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, police_number: e.target.value })}
                       />
                     </Field>
-                    <Field label="No BPKB" required error={errors.bpkb_number}>
+                    <Field label="No BPKB" error={errors.bpkb_number}>
                       <input
                         type="text"
                         className={`form-input${errors.bpkb_number ? ' form-input-error' : ''}`}
@@ -627,7 +619,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, bpkb_number: e.target.value })}
                       />
                     </Field>
-                    <Field label="No Rangka" required error={errors.frame_number}>
+                    <Field label="No Rangka" error={errors.frame_number}>
                       <input
                         type="text"
                         className={`form-input${errors.frame_number ? ' form-input-error' : ''}`}
@@ -637,7 +629,7 @@ export default function AssetsInspectionPage() {
                         onChange={(e) => setFormData({ ...formData, frame_number: e.target.value })}
                       />
                     </Field>
-                    <Field label="Kapasitas Mesin (CC)" required error={errors.cylinder}>
+                    <Field label="Kapasitas Mesin (CC)" error={errors.cylinder}>
                       <input
                         type="number"
                         className={`form-input${errors.cylinder ? ' form-input-error' : ''}`}
