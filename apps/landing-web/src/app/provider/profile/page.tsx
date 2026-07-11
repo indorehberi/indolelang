@@ -1,22 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
 import { useToast } from "@/providers/ToastProvider";
+import { apiFetch } from "@/lib/api";
 
 export default function ProviderProfile() {
   const toast = useToast();
-  const [companyName, setCompanyName] = useState("PT Astra Mitra");
-  const [npwp, setNpwp] = useState("01.234.567.8-012.000");
-  const [picName, setPicName] = useState("Hendra Wijaya");
-  const [phone, setPhone] = useState("081234567890");
-  const [bankAccount, setBankAccount] = useState("BCA - 8923-9012-92");
-  const [bankOwner, setBankOwner] = useState("PT Astra Mitra");
+  const [companyName, setCompanyName] = useState("");
+  const [npwp, setNpwp] = useState("");
+  const [picName, setPicName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankOwner, setBankOwner] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setPicName(user.full_name || "");
+          setPhone(user.phone || "");
+        }
+
+        const res = await apiFetch("/providers/me");
+        const data = await res.json();
+        if (res.ok && data.success && data.data) {
+          setCompanyName(data.data.company_name || "");
+          setNpwp(data.data.npwp || "");
+          
+          let bankInfo = "";
+          if (data.data.bank_account_no) {
+            bankInfo = data.data.bank_name ? `${data.data.bank_name} - ${data.data.bank_account_no}` : data.data.bank_account_no;
+          }
+          setBankAccount(bankInfo);
+          setBankOwner(data.data.bank_account_name || "");
+        }
+      } catch (err) {
+        console.error("Failed to load profile", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    // Belum ada endpoint update profile di backend, simulasi success
     setTimeout(() => {
       setIsSaving(false);
       toast.success("Profil perusahaan berhasil diperbarui!");
