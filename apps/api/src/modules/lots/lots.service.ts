@@ -5,6 +5,7 @@ import { LotDTO, PaginationMeta, LotStatus, AssetStatus, SessionStatus } from '@
 import { Prisma } from '@prisma/client';
 import { paymentsService } from '../payments/payments.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
+import { activeLots } from '../../lib/socket';
 
 export class LotsService {
   /**
@@ -65,75 +66,88 @@ export class LotsService {
       }),
     ]);
 
-    const lots = records.map((l: any) => ({
-      id: l.id,
-      session_id: l.session_id,
-      asset_id: l.asset_id,
-      lot_number: l.lot_number,
-      starting_price: Number(l.starting_price),
-      hammer_price: l.hammer_price ? Number(l.hammer_price) : undefined,
-      winner_id: l.winner_id || undefined,
-      status: l.status,
-      asset: {
-        id: l.asset.id,
-        provider_id: l.asset.provider_id,
-        category: l.asset.category,
-        title: l.asset.title,
-        description: l.asset.description || undefined,
-        base_price: Number(l.asset.base_price),
-        images: l.asset.images ? JSON.parse(l.asset.images as string) : undefined,
-        status: l.asset.status,
-        brand: l.asset.brand || undefined,
-        model: l.asset.model || undefined,
-        year: l.asset.year ? Number(l.asset.year) : undefined,
-        police_number: l.asset.police_number || undefined,
-        color: l.asset.color || undefined,
-        transmission: l.asset.transmission || undefined,
-        fuel_type: l.asset.fuel_type || undefined,
-        body_type: l.asset.body_type || undefined,
-        odometer: l.asset.odometer ? Number(l.asset.odometer) : undefined,
-        cylinder: l.asset.cylinder ? Number(l.asset.cylinder) : undefined,
-        photo_front: l.asset.photo_front || undefined,
-        photo_back: l.asset.photo_back || undefined,
-        photo_right: l.asset.photo_right || undefined,
-        photo_left: l.asset.photo_left || undefined,
-        photo_engine: l.asset.photo_engine || undefined,
-        photo_interior: l.asset.photo_interior || undefined,
-        photo_stnk: l.asset.photo_stnk || undefined,
-        created_at: l.asset.created_at.toISOString(),
-        updated_at: l.asset.updated_at.toISOString(),
-      },
-      session: l.session ? {
-        id: l.session.id,
-        branch_id: l.session.branch_id,
-        title: l.session.title,
-        scheduled_at: l.session.scheduled_at.toISOString(),
-        status: l.session.status,
-        branch: l.session.branch ? {
-          id: l.session.branch.id,
-          tenant_id: l.session.branch.tenant_id,
-          name: l.session.branch.name,
-          city: l.session.branch.city,
-          address: l.session.branch.address,
-          phone: l.session.branch.phone,
-          pic_name: l.session.branch.pic_name,
-          is_active: l.session.branch.is_active,
-          created_at: l.session.branch.created_at.toISOString(),
-          updated_at: l.session.branch.updated_at.toISOString(),
+    const lots = records.map((l: any) => {
+      // For lots currently being bid on, merge in the live in-memory countdown
+      // state (socket.ts's activeLots map) — the DB row alone has no notion of
+      // "seconds remaining", so without this the control room has nothing to
+      // show until a bid:update tick arrives over the socket.
+      const live = l.status === 'active' ? activeLots.get(l.id) : undefined;
+
+      return {
+        id: l.id,
+        session_id: l.session_id,
+        asset_id: l.asset_id,
+        lot_number: l.lot_number,
+        starting_price: Number(l.starting_price),
+        hammer_price: l.hammer_price ? Number(l.hammer_price) : undefined,
+        winner_id: l.winner_id || undefined,
+        status: l.status,
+        current_price: live ? live.currentPrice : undefined,
+        time_remaining: live ? live.timeRemaining : undefined,
+        bidder_count: live ? live.bidsCount : undefined,
+        extension_count: live ? live.extensionCount : undefined,
+        bidder_id: live ? (live.highestBidderMasked || '-') : undefined,
+        asset: {
+          id: l.asset.id,
+          provider_id: l.asset.provider_id,
+          category: l.asset.category,
+          title: l.asset.title,
+          description: l.asset.description || undefined,
+          base_price: Number(l.asset.base_price),
+          images: l.asset.images ? JSON.parse(l.asset.images as string) : undefined,
+          status: l.asset.status,
+          brand: l.asset.brand || undefined,
+          model: l.asset.model || undefined,
+          year: l.asset.year ? Number(l.asset.year) : undefined,
+          police_number: l.asset.police_number || undefined,
+          color: l.asset.color || undefined,
+          transmission: l.asset.transmission || undefined,
+          fuel_type: l.asset.fuel_type || undefined,
+          body_type: l.asset.body_type || undefined,
+          odometer: l.asset.odometer ? Number(l.asset.odometer) : undefined,
+          cylinder: l.asset.cylinder ? Number(l.asset.cylinder) : undefined,
+          photo_front: l.asset.photo_front || undefined,
+          photo_back: l.asset.photo_back || undefined,
+          photo_right: l.asset.photo_right || undefined,
+          photo_left: l.asset.photo_left || undefined,
+          photo_engine: l.asset.photo_engine || undefined,
+          photo_interior: l.asset.photo_interior || undefined,
+          photo_stnk: l.asset.photo_stnk || undefined,
+          created_at: l.asset.created_at.toISOString(),
+          updated_at: l.asset.updated_at.toISOString(),
+        },
+        session: l.session ? {
+          id: l.session.id,
+          branch_id: l.session.branch_id,
+          title: l.session.title,
+          scheduled_at: l.session.scheduled_at.toISOString(),
+          status: l.session.status,
+          branch: l.session.branch ? {
+            id: l.session.branch.id,
+            tenant_id: l.session.branch.tenant_id,
+            name: l.session.branch.name,
+            city: l.session.branch.city,
+            address: l.session.branch.address,
+            phone: l.session.branch.phone,
+            pic_name: l.session.branch.pic_name,
+            is_active: l.session.branch.is_active,
+            created_at: l.session.branch.created_at.toISOString(),
+            updated_at: l.session.branch.updated_at.toISOString(),
+          } : undefined,
+          created_at: l.session.created_at.toISOString(),
+          updated_at: l.session.updated_at.toISOString(),
         } : undefined,
-        created_at: l.session.created_at.toISOString(),
-        updated_at: l.session.updated_at.toISOString(),
-      } : undefined,
-      winner: l.winner ? {
-        full_name: l.winner.full_name,
-        email: l.winner.email,
-        phone: l.winner.phone,
-      } : undefined,
-      invoice_id: l.invoices?.[0]?.id,
-      payment_status: l.invoices?.[0]?.status,
-      created_at: l.created_at.toISOString(),
-      updated_at: l.updated_at.toISOString(),
-    }));
+        winner: l.winner ? {
+          full_name: l.winner.full_name,
+          email: l.winner.email,
+          phone: l.winner.phone,
+        } : undefined,
+        invoice_id: l.invoices?.[0]?.id,
+        payment_status: l.invoices?.[0]?.status,
+        created_at: l.created_at.toISOString(),
+        updated_at: l.updated_at.toISOString(),
+      };
+    });
 
     const totalPages = Math.ceil(total / perPage);
 

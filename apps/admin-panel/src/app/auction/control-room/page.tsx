@@ -28,6 +28,13 @@ interface Lot {
   hammer_price?: number;
   winner_id?: string;
   status: 'pending' | 'active' | 'sold' | 'unsold' | 'cancelled';
+  // Live countdown/bidding state — only present for the currently active lot,
+  // merged in server-side from the in-memory activeLots map (see lots.service.ts).
+  current_price?: number;
+  time_remaining?: number;
+  bidder_count?: number;
+  extension_count?: number;
+  bidder_id?: string;
   asset: {
     title: string;
     category: string;
@@ -90,6 +97,15 @@ export default function ControlRoomPage() {
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  // Mirrors `lots` for use inside socket callbacks registered by the effect below.
+  // Those callbacks close over `lots` from whatever render was active when the
+  // effect last (re-)ran — since `lots` isn't in that effect's dependency array,
+  // reading `lots` directly inside them would see a stale value if fetchLots()
+  // updates state afterwards. A ref's `.current` is always up to date.
+  const lotsRef = useRef<Lot[]>([]);
+  useEffect(() => {
+    lotsRef.current = lots;
+  }, [lots]);
 
   // Dummy Fallbacks
 
@@ -154,7 +170,15 @@ export default function ControlRoomPage() {
           const active = data.data.find((l: Lot) => l.status === 'active');
           if (active) {
             setActiveLot(active);
-            setCurrentPrice(active.starting_price);
+            // Seed from the server's live in-memory state (merged into the REST
+            // response) so the countdown shows the real remaining time right away
+            // instead of sitting at its default 0 until a socket tick arrives.
+            setCurrentPrice(active.current_price ?? active.starting_price);
+            setTimeRemaining(active.time_remaining ?? 0);
+            setBidsCount(active.bidder_count ?? 0);
+            setExtensionCount(active.extension_count ?? 0);
+            setHighestBidder(active.bidder_id ?? '-');
+            setIsExtended((active.extension_count ?? 0) > 0);
             watchLotSocket(active.id);
           } else {
             setActiveLot(null);
@@ -182,8 +206,11 @@ export default function ControlRoomPage() {
         // Watch session room for session-wide broadcasts (lot:activated, lot:closed, session:ended)
         socket.emit('bid:watch', { session_id: selectedSessionId });
         // If a lot is already active (discovered via REST before socket connected),
-        // join its room now so we receive bid:update ticks immediately.
-        const currentLots = lots;
+        // join its room now so we receive bid:update ticks immediately. Read from
+        // the ref, not the `lots` state closed over by this effect — that closure
+        // is fixed at whatever `lots` was when the effect last ran, and never sees
+        // the setLots() call from this same effect's fetchLots() resolving later.
+        const currentLots = lotsRef.current;
         const active = currentLots.find((l: Lot) => l.status === 'active');
         if (active) {
           socket.emit('bid:watch', { lot_id: active.id, session_id: selectedSessionId });
