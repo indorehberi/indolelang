@@ -99,6 +99,22 @@ export default function DepositHistoryPage() {
 
   return (
     <BidderLayout pageTitle="Riwayat Deposit & Refund">
+      {/* Page Title & Tabs */}
+      <div className="flex border-b border-outline-variant/60 mb-6 gap-6">
+        <Link
+          href="/bidder/deposit"
+          className="py-3 font-bold text-body-md text-slate-500 hover:text-slate-800 transition-all"
+        >
+          💳 Setor Deposit NIPL (Saldo Bebas)
+        </Link>
+        <Link
+          href="/bidder/deposit/history"
+          className="py-3 font-bold text-body-md text-primary border-b-2 border-primary relative transition-all"
+        >
+          🕒 Riwayat Deposit & Refund
+        </Link>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <p className="page-subtitle mb-0">Daftar transaksi pembelian NIPL dan status refund Anda</p>
         <Link href="/bidder/deposit" className="panel-btn panel-btn-gold">

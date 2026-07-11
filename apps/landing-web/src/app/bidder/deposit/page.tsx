@@ -230,6 +230,12 @@ export default function BidderDeposit() {
         >
           💳 Setor Deposit NIPL (Saldo Bebas)
         </Link>
+        <Link
+          href="/bidder/deposit/history"
+          className="py-3 font-bold text-body-md text-slate-500 hover:text-slate-800 transition-all"
+        >
+          🕒 Riwayat Deposit & Refund
+        </Link>
       </div>
 
       <div className="grid-2-1">
