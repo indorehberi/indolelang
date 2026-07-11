@@ -67,6 +67,7 @@ export class DepositsService {
       va_number: r.va_number || undefined,
       va_bank: r.va_bank || undefined,
       payment_method: r.payment_method || undefined,
+      transfer_proof_url: r.transfer_proof_url || undefined,
       status: r.status,
       paid_at: r.paid_at ? r.paid_at.toISOString() : undefined,
       created_at: r.created_at.toISOString(),
