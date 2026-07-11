@@ -312,7 +312,7 @@ export default function AssetsApprovalPage() {
                           disabled={processingId === asset.id}
                           onClick={() => handleCancel(asset.id)}
                         >
-                          {processingId === asset.id ? 'Memproses...' : 'Batal Approve'}
+                          {processingId === asset.id ? 'Memproses...' : 'Inspeksi Ulang'}
                         </Button>
                         <Button
                           variant="danger"
