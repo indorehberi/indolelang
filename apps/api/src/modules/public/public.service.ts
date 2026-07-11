@@ -9,7 +9,7 @@ export class PublicService {
     return prisma.auction_sessions.findMany({
       where: {
         status: {
-          in: ['published', 'live'],
+          in: ['published', 'PUBLISHED', 'live', 'LIVE', 'pending', 'PENDING'],
         },
       },
       include: {
@@ -61,14 +61,11 @@ export class PublicService {
     return prisma.lots.findMany({
       where: {
         status: {
-          in: ['pending', 'active'],
-        },
-        asset: {
-          category: 'MOBIL',
+          in: ['pending', 'PENDING', 'active', 'ACTIVE'],
         },
         session: {
           status: {
-            in: ['published', 'live'],
+            in: ['published', 'PUBLISHED', 'live', 'LIVE', 'pending', 'PENDING'],
           },
         },
       },
@@ -80,7 +77,7 @@ export class PublicService {
           },
         },
       },
-      take: 12,
+      take: 100,
       orderBy: {
         created_at: 'desc',
       },
