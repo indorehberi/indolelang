@@ -187,7 +187,7 @@ export default function Home() {
         const specParts = [];
         if (dbLot.asset.year) specParts.push(dbLot.asset.year);
         if (dbLot.asset.transmission) specParts.push(dbLot.asset.transmission);
-        if (dbLot.asset.license_plate) specParts.push(dbLot.asset.license_plate);
+        if (dbLot.asset.police_number) specParts.push(dbLot.asset.police_number);
         const specString = specParts.join(" | ") || "Spesifikasi tidak tersedia";
 
         return {

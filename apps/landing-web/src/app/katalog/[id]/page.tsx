@@ -110,7 +110,7 @@ export default function DetailLotPage() {
     { label: "Kategori", value: lot.asset.category || "-" },
     { label: "Merk / Tipe", value: lot.asset.title || "-" },
     { label: "Tahun", value: lot.asset.year ? String(lot.asset.year) : "-" },
-    { label: "Nomor Polisi", value: lot.asset.license_plate || "-" },
+    { label: "Nomor Polisi", value: lot.asset.police_number || "-" },
     { label: "Warna", value: lot.asset.color || "-" },
     { label: "Transmisi", value: lot.asset.transmission || "-" },
     { label: "Bahan Bakar", value: lot.asset.fuel_type || "-" },
