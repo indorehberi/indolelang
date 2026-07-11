@@ -174,9 +174,16 @@ export default function DepositHistoryPage() {
                         <button
                           onClick={() => handleRequestRefund(deposit.id)}
                           disabled={processingId === deposit.id}
-                          className="btn btn-xs btn-outline hover:bg-slate-100 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-lg transition-all shadow-sm text-xs disabled:opacity-50 flex items-center gap-1.5 justify-center mx-auto"
                         >
-                          {processingId === deposit.id ? "Memproses..." : "💸 Ajukan Refund"}
+                          {processingId === deposit.id ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Memproses...
+                            </>
+                          ) : (
+                            "💸 Ajukan Refund"
+                          )}
                         </button>
                       ) : (
                         <span className="text-slate-400 text-xs">-</span>
