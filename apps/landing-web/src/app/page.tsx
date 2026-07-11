@@ -138,12 +138,12 @@ function LotCard({
             </div>
           </div>
           <div className="flex justify-between items-end">
-            <button
-              onClick={() => router.push(`/katalog/${lot.id}`)}
+            <Link
+              href={`/katalog/${lot.id}`}
               className="w-full px-4 py-2 rounded-xl font-bold text-body-sm btn-press transition-all bg-premium text-on-premium shadow-sm hover:bg-premium/85 text-center block"
             >
               Lihat Detail
-            </button>
+            </Link>
           </div>
         </div>
     </div>
