@@ -493,7 +493,6 @@ export default function ControlRoomPage() {
                 );
               })}
             </select>
-            {console.log('Button render check:', { activeTab, sessionStatus: sessionDetails?.status, sessionStartTrigger })}
             {activeTab === 'live' && sessionDetails && (sessionDetails.status.toLowerCase() === 'published' || sessionDetails.status.toLowerCase() === 'pending') && sessionStartTrigger === 'admin' && (
               <Button
                 variant="primary"
