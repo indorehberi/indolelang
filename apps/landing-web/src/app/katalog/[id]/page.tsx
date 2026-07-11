@@ -95,21 +95,36 @@ export default function DetailLotPage() {
     );
   }
 
-  // Specs & images dynamic setup
-  const images = lot.asset.images && lot.asset.images.length > 0
-    ? lot.asset.images
+  let parsedImages = [];
+  try {
+    parsedImages = typeof lot.asset.images === 'string' ? JSON.parse(lot.asset.images) : lot.asset.images;
+  } catch (e) {
+    parsedImages = [];
+  }
+  const images = parsedImages && parsedImages.length > 0
+    ? parsedImages
     : ["https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600"];
 
   const specs = [
-    { label: "Kategori", value: lot.asset.category },
-    { label: "Merk / Model", value: lot.asset.title },
-    { label: "Tahun Pembuatan", value: lot.asset.year ? String(lot.asset.year) : "-" },
-    { label: "Nomor Polisi", value: lot.asset.police_number || "-" },
+    { label: "Cabang Lelang", value: lot.session?.branch?.name || "Pusat" },
+    { label: "Kategori", value: lot.asset.category || "-" },
+    { label: "Merk / Tipe", value: lot.asset.title || "-" },
+    { label: "Tahun", value: lot.asset.year ? String(lot.asset.year) : "-" },
+    { label: "Nomor Polisi", value: lot.asset.license_plate || "-" },
+    { label: "Warna", value: lot.asset.color || "-" },
     { label: "Transmisi", value: lot.asset.transmission || "-" },
     { label: "Bahan Bakar", value: lot.asset.fuel_type || "-" },
     { label: "Odometer", value: lot.asset.odometer ? `${lot.asset.odometer.toLocaleString("id-ID")} km` : "-" },
-    { label: "Kondisi", value: lot.asset.grade_exterior ? `Eksterior Grade ${lot.asset.grade_exterior} | Interior Grade ${lot.asset.grade_interior || "-"}` : "Grade B" },
-    { label: "Status Dokumen", value: lot.asset.bpkb_number ? `BPKB No. ${lot.asset.bpkb_number} & STNK Ready` : "STNK Ready" },
+    { label: "Kapasitas Mesin", value: lot.asset.engine_capacity || "-" },
+    { label: "Kondisi", value: lot.asset.condition || "-" },
+    { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
+    { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
+    { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
+    { label: "No. Rangka", value: lot.asset.chassis_number || "-" },
+    { label: "No. Mesin", value: lot.asset.engine_number || "-" },
+    { label: "No. BPKB", value: lot.asset.bpkb_number || "-" },
+    { label: "No. STNK", value: lot.asset.stnk_number || "-" },
+    { label: "Deskripsi", value: lot.asset.description || "-" }
   ];
 
   const isLive = lot.status === "active";
@@ -360,38 +375,6 @@ export default function DetailLotPage() {
                 </div>
               </div>
 
-              {/* Download Documents Card */}
-              <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm space-y-4">
-                <h3 className="font-bold text-body-lg text-on-surface flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-premium">download</span>
-                  Dokumen Lot &amp; Unduhan
-                </h3>
-                <div className="grid grid-cols-1 gap-2.5">
-                  <a
-                    href="#"
-                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-premium hover:bg-premium/5 transition-all group"
-                  >
-                    <span className="flex items-center gap-2.5 text-body-md text-on-surface">
-                      <span className="material-symbols-outlined text-premium">picture_as_pdf</span>
-                      Laporan Hasil Inspeksi.pdf
-                    </span>
-                    <span className="material-symbols-outlined text-outline group-hover:text-premium transition-colors">
-                      download
-                    </span>
-                  </a>
-                  <a
-                    href="#"
-                    className="flex items-center justify-between p-3.5 rounded-xl border border-outline-variant/25 hover:border-premium hover:bg-premium/5 transition-all group"
-                  >
-                    <span className="flex items-center gap-2.5 text-body-md text-on-surface">
-                      <span className="material-symbols-outlined text-premium">picture_as_pdf</span>
-                      Syarat Ketentuan Khusus.pdf
-                    </span>
-                    <span className="material-symbols-outlined text-outline group-hover:text-premium transition-colors">
-                      download
-                    </span>
-                  </a>
-                </div>
               </div>
             </div>
           </div>

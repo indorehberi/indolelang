@@ -104,39 +104,48 @@ function LotCard({
             </span>
           </div>
         </div>
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-1 gap-2">
-            <h4 className="font-bold text-body-md truncate">
-              {lot.title}
-            </h4>
-            <span className="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">
-              {lot.grade}
-            </span>
-          </div>
-          <p className="text-body-sm text-outline flex items-center gap-1 mb-3">
-            <span className="material-symbols-outlined text-sm">
-              location_on
-            </span>
-            {lot.location}
-          </p>
-        </div>
-      </div>
-      <div className="p-4 pt-0">
-        <div className="flex justify-between items-end">
-          <div>
-            <p className="text-body-sm text-outline">Harga Dasar</p>
-            <p className="text-heading-lg font-bold text-primary">
-              Rp {lot.hargaDasar.toLocaleString("id-ID")}
+          <div className="p-4 pt-4">
+            <div className="flex justify-between items-start mb-1 gap-2">
+              <h4 className="font-bold text-body-md text-on-surface hover:text-premium transition-colors truncate">
+                <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
+              </h4>
+              <span className="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">
+                Grade {lot.grade}
+              </span>
+            </div>
+            <p className="text-body-sm text-outline mt-1 mb-2 font-medium truncate">{lot.specString}</p>
+            <p className="text-body-sm text-outline flex items-center gap-1 mb-3">
+              <span className="material-symbols-outlined text-sm text-primary">
+                location_on
+              </span>
+              {lot.location}
             </p>
           </div>
-          <button
-            onClick={() => handleActionClick(`${isLive ? "Bid" : "Ingatkan"} ${lot.title}`)}
-            className={`px-4 py-2 rounded-xl font-bold text-body-sm btn-press transition-all ${isLive ? "bg-premium text-on-premium shadow-sm hover:bg-premium/85" : "border-2 border-premium/20 text-premium hover:bg-premium hover:text-on-premium"}`}
-          >
-            {isLive ? "Bid" : "Ingatkan"}
-          </button>
         </div>
-      </div>
+        <div className="p-4 pt-0">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <p className="text-body-sm text-outline">Harga Awal</p>
+              <p className="text-body-md font-bold text-primary">
+                Rp {lot.hargaDasar.toLocaleString("id-ID")}
+              </p>
+            </div>
+            <div>
+              <p className="text-body-sm text-outline">Deposit</p>
+              <p className="text-body-md font-bold text-on-surface">
+                {lot.deposit}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between items-end">
+            <button
+              onClick={() => router.push(`/katalog/${lot.id}`)}
+              className="w-full px-4 py-2 rounded-xl font-bold text-body-sm btn-press transition-all bg-premium text-on-premium shadow-sm hover:bg-premium/85 text-center block"
+            >
+              Lihat Detail
+            </button>
+          </div>
+        </div>
     </div>
   );
 }
@@ -166,19 +175,27 @@ export default function Home() {
   useEffect(() => {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
-        let images = [];
+        let parsedImages = [];
         try {
-          images = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
+          parsedImages = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
         } catch (e) {
-          images = [];
+          parsedImages = [];
         }
-        const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const image = (parsedImages && parsedImages[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
         const isLive = dbLot.status.toLowerCase() === "active";
         
+        const specParts = [];
+        if (dbLot.asset.year) specParts.push(dbLot.asset.year);
+        if (dbLot.asset.transmission) specParts.push(dbLot.asset.transmission);
+        if (dbLot.asset.license_plate) specParts.push(dbLot.asset.license_plate);
+        const specString = specParts.join(" | ") || "Spesifikasi tidak tersedia";
+
         return {
           id: dbLot.id,
           title: dbLot.asset.title,
           grade: dbLot.asset.condition === "BARU" ? "A" : "B",
+          specString,
+          deposit: "Rp 5.000.000",
           location: dbLot.session?.branch?.city || "Jakarta",
           hargaDasar: Number(dbLot.starting_price),
           status: isLive ? "Live" : "Akan Datang",

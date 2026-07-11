@@ -63,21 +63,21 @@ function KatalogContent() {
   useEffect(() => {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
-        let images = [];
+        let parsedImages = [];
         try {
-          images = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
+          parsedImages = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
         } catch (e) {
-          images = [];
+          parsedImages = [];
         }
-        const image = (images && images[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const image = (parsedImages && parsedImages[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
         const isLiveRaw = dbLot.status?.toLowerCase() === "active";
         let isLive = isLiveRaw;
         let timerText = "Akan Datang";
         
         if (dbLot.session) {
           const now = new Date();
-          const start = new Date(dbLot.session.start_time);
-          const end = new Date(dbLot.session.end_time);
+          const start = new Date(dbLot.session.start_time || dbLot.session.scheduled_at);
+          const end = new Date(dbLot.session.end_time || new Date(start.getTime() + 2 * 60 * 60 * 1000));
 
           if (now >= start && now <= end) {
             isLive = true;
@@ -96,19 +96,26 @@ function KatalogContent() {
           timerText = isLive ? "Berakhir Hari Ini" : "Akan Datang";
         }
         
+        const specParts = [];
+        if (dbLot.asset.year) specParts.push(dbLot.asset.year);
+        if (dbLot.asset.transmission) specParts.push(dbLot.asset.transmission);
+        if (dbLot.asset.license_plate) specParts.push(dbLot.asset.license_plate);
+        const specString = specParts.join(" | ") || "Spesifikasi tidak tersedia";
+
         return {
           id: dbLot.id,
           image,
           alt: dbLot.asset.title,
           badge: isLive ? "LIVE" : "OPEN",
-          badgeStyle: isLive ? "countdown-badge bg-error text-white" : "bg-secondary text-on-secondary",
+          badgeStyle: isLive ? "bg-error text-white" : "bg-primary text-on-primary",
           location: dbLot.session?.branch?.city || "Jakarta",
           title: dbLot.asset.title,
-          hargaAwal: `Rp ${(Number(dbLot.starting_price) / 1000000).toFixed(0)} Juta`,
+          specString,
+          hargaAwal: `Rp ${Number(dbLot.starting_price).toLocaleString("id-ID")}`,
           hargaValue: Number(dbLot.starting_price),
-          deposit: "Rp 5 Juta",
+          deposit: "Rp 5.000.000",
           timer: timerText,
-          action: isLive ? "Bid" : "Detail",
+          action: isLive ? "Bid" : "Lihat Detail",
           category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
           sessionId: dbLot.session_id,
@@ -542,7 +549,8 @@ function KatalogContent() {
                         <h3 className="text-heading-md font-bold text-on-surface mt-2 group-hover:text-premium transition-colors">
                           <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
                         </h3>
-                        <div className="grid grid-cols-2 gap-3 mt-4">
+                        <p className="text-body-sm text-outline mt-1 mb-2 font-medium">{lot.specString}</p>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
                           <div>
                             <p className="text-body-sm text-outline">Harga Awal</p>
                             <p className="text-body-md font-bold text-primary">{lot.hargaAwal}</p>
