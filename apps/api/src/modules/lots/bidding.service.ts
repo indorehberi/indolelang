@@ -24,27 +24,19 @@ export class BiddingService {
     return 5_000_000;
   }
 
-  /**
-   * Process anti-sniping extension check
-   */
   calculateAntiSnipe(
     timeRemaining: number,
     extensionCount: number,
-    thresholdSeconds = 30,
-    extensionSeconds = 120,
-    maxExtensions = 3
+    thresholdSeconds = 30, // not really used if we add unconditionally, but let's keep signature
+    extensionSeconds = 30, // default 30s for manual
+    maxExtensions = 999999 // effectively infinite for manual
   ): { extended: boolean; newTimeRemaining: number; extensionCount: number } {
-    if (timeRemaining < thresholdSeconds && extensionCount < maxExtensions) {
-      return {
-        extended: true,
-        newTimeRemaining: extensionSeconds,
-        extensionCount: extensionCount + 1,
-      };
-    }
+    // Unconditionally extend for manual auctions (or if under threshold for auto)
+    // The user said: "jika ada yang bidding tambahkan 30 detik"
     return {
-      extended: false,
-      newTimeRemaining: timeRemaining,
-      extensionCount,
+      extended: true,
+      newTimeRemaining: timeRemaining + extensionSeconds,
+      extensionCount: extensionCount + 1,
     };
   }
 

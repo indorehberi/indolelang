@@ -107,6 +107,7 @@ export default function PlatformSettingsPage() {
     feat_multi_branch: 'Multi Branch System',
     feat_analytics_dashboard: 'Dashboard Analitik',
     feat_audit_trail: 'Audit Trail System',
+    feat_payment_gateway_auto: 'Payment Gateway (Otomatis)',
     feat_auction_english: 'English Auction',
     feat_auction_dutch: 'Dutch Auction',
     feat_auction_sealed: 'Sealed-Bid',

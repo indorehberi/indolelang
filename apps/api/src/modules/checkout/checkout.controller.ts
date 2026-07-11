@@ -62,6 +62,26 @@ export class CheckoutController {
       next(error);
     }
   }
+
+  getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orders = await checkoutService.getAllOrders();
+      sendSuccess(res, orders);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  verifyOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orderId = req.params.id;
+      const { status } = req.body; // 'paid' or 'rejected'
+      const updatedOrder = await checkoutService.verifyOrder(orderId, status, req.user!.id);
+      sendSuccess(res, updatedOrder, 'Status pesanan berhasil diperbarui');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default CheckoutController;

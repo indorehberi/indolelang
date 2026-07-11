@@ -65,6 +65,23 @@ export class CheckoutService {
       totalInvoiceAmount = totalInvoiceAmount.add(inv.total);
     });
 
+    const pendingOrders = await prisma.checkout_orders.findMany({
+      where: {
+        bidder_id: userId,
+        status: { in: ['unpaid', 'pending_approval'] }
+      },
+      include: {
+        invoices: {
+          include: {
+            lot: {
+              include: { asset: true }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
     return {
       invoices: unpaidInvoices,
       groups,
@@ -77,7 +94,13 @@ export class CheckoutService {
       })),
       total_deposit_value: Number(totalDepositValue),
       total_invoice_amount: Number(totalInvoiceAmount),
-      has_unlimited: hasUnlimited
+      has_unlimited: hasUnlimited,
+      pending_orders: pendingOrders.map((o) => ({
+        ...o,
+        subtotal_amount: Number(o.subtotal_amount),
+        deposit_deduction: Number(o.deposit_deduction),
+        final_amount: Number(o.final_amount)
+      }))
     };
   }
 
@@ -139,7 +162,7 @@ export class CheckoutService {
         bidder_id: userId,
         status: 'unpaid',
       },
-      include: { lot: { include: { session: true } } },
+      include: { lot: { include: { session: true, asset: true } } },
     });
 
     if (invoices.length !== invoiceIds.length) {
@@ -165,49 +188,69 @@ export class CheckoutService {
       orderBy: { created_at: 'asc' }
     });
 
+    const settingsData = await prisma.platform_settings.findMany({
+      where: { key: { in: ['nipl_deposit_amount', 'nipl_motor_deposit_amount'] } }
+    });
+    const niplMobil = Number(settingsData.find(s => s.key === 'nipl_deposit_amount')?.value) || 5000000;
+    const niplMotor = Number(settingsData.find(s => s.key === 'nipl_motor_deposit_amount')?.value) || 1000000;
+
+    let requiredMotorValue = 0;
+    let requiredMobilValue = 0;
+
+    invoices.forEach(inv => {
+      const isMotor = inv.lot.asset.category.toLowerCase().includes('motor');
+      if (isMotor) {
+        requiredMotorValue += niplMotor;
+      } else {
+        requiredMobilValue += niplMobil;
+      }
+    });
+
     let depositDeduction = new Prisma.Decimal(0);
-    let remainingInvoiceAmount = new Prisma.Decimal(totalInvoices);
-    
     const consumedDepositIds: string[] = [];
     const remainderDepositsToCreate: any[] = [];
-    
-    for (const d of activeDeposits) {
-      if (remainingInvoiceAmount.lessThanOrEqualTo(0)) {
-        break; // Stop consuming if invoice is paid off
-      }
+
+    // Helper to consume deposits by unit type
+    const consumeDeposits = (deposits: any[], requiredValue: number) => {
+      let remainingRequired = new Prisma.Decimal(requiredValue);
       
-      const depositAmount = new Prisma.Decimal(d.amount);
-      if (depositAmount.lessThanOrEqualTo(remainingInvoiceAmount)) {
-        // Fully consume this deposit
-        depositDeduction = depositDeduction.add(depositAmount);
-        remainingInvoiceAmount = remainingInvoiceAmount.minus(depositAmount);
-        consumedDepositIds.push(d.id);
-      } else {
-        // Partially consume this deposit
-        depositDeduction = depositDeduction.add(remainingInvoiceAmount);
-        const remainderAmount = depositAmount.minus(remainingInvoiceAmount);
-        remainingInvoiceAmount = new Prisma.Decimal(0);
-        consumedDepositIds.push(d.id);
+      for (const d of deposits) {
+        if (remainingRequired.lessThanOrEqualTo(0)) break;
         
-        remainderDepositsToCreate.push({
-          id: crypto.randomUUID(),
-          user_id: d.user_id,
-          session_id: d.session_id,
-          amount: remainderAmount,
-          gateway_fee: 0,
-          transfer_fee: 0,
-          refund_fee: 0,
-          is_manual: d.is_manual,
-          unit_type: d.unit_type,
-          package_type: d.package_type,
-          va_number: d.va_number,
-          va_bank: d.va_bank,
-          payment_method: d.payment_method,
-          status: 'paid',
-          paid_at: new Date()
-        });
+        const depositAmount = new Prisma.Decimal(d.amount);
+        if (depositAmount.lessThanOrEqualTo(remainingRequired)) {
+          depositDeduction = depositDeduction.add(depositAmount);
+          remainingRequired = remainingRequired.minus(depositAmount);
+          consumedDepositIds.push(d.id);
+        } else {
+          depositDeduction = depositDeduction.add(remainingRequired);
+          const remainderAmount = depositAmount.minus(remainingRequired);
+          remainingRequired = new Prisma.Decimal(0);
+          consumedDepositIds.push(d.id);
+          
+          remainderDepositsToCreate.push({
+            id: crypto.randomUUID(),
+            user_id: d.user_id,
+            session_id: d.session_id,
+            amount: remainderAmount,
+            gateway_fee: 0,
+            transfer_fee: 0,
+            refund_fee: 0,
+            is_manual: d.is_manual,
+            unit_type: d.unit_type,
+            package_type: '1', // Remaining NIPL becomes standard (satuan) as per user rules
+            va_number: d.va_number,
+            va_bank: d.va_bank,
+            payment_method: d.payment_method,
+            status: 'paid',
+            paid_at: new Date()
+          });
+        }
       }
-    }
+    };
+
+    consumeDeposits(activeDeposits.filter(d => d.unit_type === 'motor'), requiredMotorValue);
+    consumeDeposits(activeDeposits.filter(d => d.unit_type === 'mobil'), requiredMobilValue);
 
     let finalAmount = totalInvoices.minus(depositDeduction);
     if (finalAmount.lessThan(0)) {
@@ -332,6 +375,83 @@ export class CheckoutService {
       status: updated.status,
       transfer_proof_url: updated.transfer_proof_url,
     };
+  }
+
+  /**
+   * Get all checkout orders (Admin view)
+   */
+  async getAllOrders() {
+    const orders = await prisma.checkout_orders.findMany({
+      include: {
+        bidder: {
+          select: { full_name: true, email: true, phone: true }
+        },
+        invoices: {
+          include: {
+            lot: {
+              include: { asset: true }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    return orders;
+  }
+
+  /**
+   * Verify order (Admin)
+   */
+  async verifyOrder(orderId: string, status: 'paid' | 'rejected', adminId: string) {
+    const order = await prisma.checkout_orders.findUnique({
+      where: { id: orderId },
+      include: { invoices: true }
+    });
+
+    if (!order) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Pesanan tidak ditemukan');
+    }
+
+    if (order.status !== 'pending_approval') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Pesanan ini tidak sedang menunggu verifikasi');
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Update order
+      const updatedOrder = await tx.checkout_orders.update({
+        where: { id: orderId },
+        data: {
+          status: status,
+          paid_at: status === 'paid' ? new Date() : null,
+        }
+      });
+
+      // 2. Update invoices
+      if (status === 'paid') {
+        for (const inv of order.invoices) {
+          await tx.invoices.update({
+            where: { id: inv.id },
+            data: { status: 'paid' }
+          });
+        }
+      }
+
+      // 3. Log audit
+      await tx.audit_logs.create({
+        data: {
+          user_id: adminId,
+          action: `verify_checkout_${status}`,
+          resource_type: 'checkout_orders',
+          resource_id: orderId,
+          new_value: JSON.stringify({ status_changed_to: status }),
+          ip_address: 'system',
+        }
+      });
+
+      return updatedOrder;
+    });
+
+    return updated;
   }
 }
 

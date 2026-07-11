@@ -42,4 +42,18 @@ router.post(
   controller.uploadProof
 );
 
+router.get(
+  '/admin/orders',
+  authenticate,
+  authorize(Role.SUPERADMIN, Role.ADMIN),
+  controller.getAllOrders
+);
+
+router.post(
+  '/admin/orders/:id/verify',
+  authenticate,
+  authorize(Role.SUPERADMIN, Role.ADMIN),
+  controller.verifyOrder
+);
+
 export default router;

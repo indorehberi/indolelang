@@ -37,6 +37,7 @@ export default function BidderCart() {
   const [activeDeposits, setActiveDeposits] = useState<any[]>([]);
   const [totalDepositValue, setTotalDepositValue] = useState<number>(0);
   const [hasUnlimited, setHasUnlimited] = useState<boolean>(false);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +58,12 @@ export default function BidderCart() {
         setActiveDeposits(resData.data.active_deposits || []);
         setTotalDepositValue(resData.data.total_deposit_value || 0);
         setHasUnlimited(resData.data.has_unlimited || false);
+        
+        if (resData.data.pending_orders?.length > 0) {
+           setPendingOrders(resData.data.pending_orders);
+        } else {
+           setPendingOrders([]);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch cart", err);
@@ -117,6 +124,29 @@ export default function BidderCart() {
           ))}
         </div>
       )}
+
+      {pendingOrders.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-slate-800 border-b border-outline-variant/60 pb-3 mb-6">Menunggu Pembayaran / Verifikasi</h2>
+          <div className="space-y-8">
+            {pendingOrders.map((order) => (
+              <CartGroupCard
+                key={order.id}
+                group={{
+                  session_date: order.created_at.split('T')[0],
+                  invoices: order.invoices,
+                  subtotal: order.subtotal_amount,
+                }}
+                totalDepositValue={order.deposit_deduction}
+                hasUnlimited={false} // Already applied
+                activeDeposits={[]} // Not needed for existing order
+                onPaid={fetchCart}
+                existingOrder={order}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </BidderLayout>
   );
 }
@@ -127,19 +157,23 @@ function CartGroupCard({
   hasUnlimited,
   activeDeposits,
   onPaid,
+  existingOrder
 }: {
   group: CartGroup;
   totalDepositValue: number;
   hasUnlimited: boolean;
   activeDeposits: any[];
   onPaid: () => void;
+  existingOrder?: any;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(group.invoices.map((i: any) => i.id));
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(
+    existingOrder ? group.invoices.map((i: any) => i.id) : group.invoices.map((i: any) => i.id)
+  );
   const [paymentMethod, setPaymentMethod] = useState<string>("bca");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderResult, setOrderResult] = useState<any>(null);
+  const [orderResult, setOrderResult] = useState<any>(existingOrder || null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -276,7 +310,11 @@ function CartGroupCard({
             </div>
             <div className="p-4 bg-success/10 rounded-xl border border-success/20 mb-4">
               <p className="text-sm font-bold text-success-dark">Pesanan Anda telah dicatat (ID: {orderResult.id.substring(0, 8)})</p>
-              <p className="text-xs text-success-dark mt-1">Silakan ikuti instruksi pembayaran di panel sebelah kanan.</p>
+              {orderResult.status === "pending_approval" ? (
+                <p className="text-xs text-success-dark mt-1">Bukti transfer telah diunggah dan sedang diverifikasi oleh Admin.</p>
+              ) : (
+                <p className="text-xs text-success-dark mt-1">Silakan ikuti instruksi pembayaran di panel sebelah kanan.</p>
+              )}
             </div>
             {orderResult.status === "paid" && (
               <div className="text-center p-8">
@@ -306,6 +344,7 @@ function CartGroupCard({
                         type="checkbox"
                         className="w-5 h-5 rounded text-primary focus:ring-primary border-outline-variant"
                         checked={selectedInvoiceIds.includes(inv.id)}
+                        disabled={!!existingOrder}
                         onChange={() => toggleInvoice(inv.id)}
                       />
                     </div>
@@ -428,6 +467,12 @@ function CartGroupCard({
                       </>
                     )}
                   </button>
+                  {orderResult.status === "pending_approval" && orderResult.transfer_proof_url && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl text-center text-xs text-blue-800">
+                      <strong>Menunggu Verifikasi Admin</strong><br />
+                      Bukti transfer sudah diunggah. <a href={orderResult.transfer_proof_url} target="_blank" rel="noreferrer" className="underline font-bold text-blue-900">Lihat Bukti</a>
+                    </div>
+                  )}
                 </form>
               ) : (
                 <button

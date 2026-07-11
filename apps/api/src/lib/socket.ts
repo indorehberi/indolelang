@@ -138,7 +138,7 @@ export function initSocket(server: HttpServer): SocketIoServer {
         const snipeSetting = await prisma.platform_settings.findFirst({
           where: { key: 'anti_sniping_extension_seconds' }
         });
-        const extensionSecs = snipeSetting ? parseInt(snipeSetting.value, 10) : 120;
+        const extensionSecs = snipeSetting ? parseInt(snipeSetting.value, 10) : 30;
         const snipeCheck = biddingService.calculateAntiSnipe(
           state.timeRemaining,
           state.extensionCount,

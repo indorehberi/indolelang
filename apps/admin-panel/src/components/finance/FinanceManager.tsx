@@ -90,12 +90,13 @@ interface Settlement {
 export default function FinanceManager({
   initialTab = 'deposits',
 }: {
-  initialTab: 'deposits' | 'invoices' | 'refunds' | 'settlements';
+    initialTab: 'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements';
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'deposits' | 'invoices' | 'refunds' | 'settlements'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements'>(initialTab);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [checkoutOrders, setCheckoutOrders] = useState<any[]>([]);
   const [refundQueue, setRefundQueue] = useState<Deposit[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +143,23 @@ export default function FinanceManager({
       }
     } catch (err) {
       setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCheckoutOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await apiFetch(`/checkout/admin/orders`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setCheckoutOrders(data.data);
+      } else {
+        setCheckoutOrders([]);
+      }
+    } catch (err) {
+      setCheckoutOrders([]);
     } finally {
       setLoading(false);
     }
@@ -296,19 +314,38 @@ export default function FinanceManager({
     }
   };
 
-
+  const handleVerifyCheckout = async (orderId: string, status: 'paid' | 'rejected') => {
+    if (!window.confirm(`Apakah Anda yakin ingin ${status === 'paid' ? 'menyetujui' : 'menolak'} pelunasan ini?`)) {
+      return;
+    }
+    setProcessingId(orderId);
+    try {
+      const res = await apiFetch(`/checkout/admin/orders/${orderId}/verify`, {
+        method: 'POST',
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        toast.success('Status pelunasan berhasil diperbarui');
+        fetchCheckoutOrders();
+      } else {
+        toast.error(json.error?.message || 'Gagal verifikasi pelunasan');
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan sistem');
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   useEffect(() => {
-    if (activeTab === 'deposits') {
-      fetchDeposits();
-    } else if (activeTab === 'invoices') {
-      fetchInvoices();
-    } else if (activeTab === 'refunds') {
-      fetchRefundQueue();
-    } else if (activeTab === 'settlements') {
-      fetchSettlements();
-    }
-  }, [statusFilter, invoiceStatusFilter, settlementStatusFilter, activeTab]);
+    if (activeTab === 'deposits') fetchDeposits();
+    if (activeTab === 'invoices') fetchInvoices();
+    if (activeTab === 'checkout_orders') fetchCheckoutOrders();
+    if (activeTab === 'refunds') fetchRefundQueue();
+    if (activeTab === 'settlements') fetchSettlements();
+  }, [activeTab, statusFilter, invoiceStatusFilter, settlementStatusFilter]);
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -397,6 +434,16 @@ export default function FinanceManager({
           style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, whiteSpace: 'nowrap' }}
         >
           📄 Invoice Pelunasan
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('checkout_orders');
+            setLoading(true);
+          }}
+          className={`btn btn-sm ${activeTab === 'checkout_orders' ? 'btn-primary' : 'btn-outline'}`}
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, whiteSpace: 'nowrap' }}
+        >
+          🧾 Verifikasi Pelunasan
         </button>
         <button
           onClick={() => {
@@ -610,6 +657,111 @@ export default function FinanceManager({
                               {downloadingId === `bast-${invoice.id}` ? 'Loading...' : '🤝 BAST'}
                             </button>
                           </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {activeTab === 'checkout_orders' && (
+        <>
+          <div className="toolbar">
+            <div className="toolbar-left">
+              <h1 className="page-title">Monitoring Pelunasan (Checkout)</h1>
+              <p className="page-subtitle">Daftar checkout pelunasan pemenang lelang dan verifikasi bukti pembayaran.</p>
+            </div>
+          </div>
+
+          <Card>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu / ID Order</th>
+                    <th>Bidder Pemenang</th>
+                    <th>Total Lot</th>
+                    <th>Total Bayar</th>
+                    <th style={{ textAlign: 'center' }}>Bukti Transfer</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={7} className="text-center">Memuat data pelunasan...</td></tr>
+                  ) : checkoutOrders.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center text-muted">Tidak ada data pelunasan ditemukan.</td></tr>
+                  ) : (
+                    checkoutOrders.map((order) => (
+                      <tr key={order.id}>
+                        <td>
+                          {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          <div className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{order.id.substring(0,8)}...</div>
+                        </td>
+                        <td>
+                          {order.bidder ? (
+                            <div>
+                              <strong>{order.bidder.full_name}</strong>
+                              <div className="text-muted" style={{ fontSize: '0.8rem' }}>{order.bidder.email}</div>
+                            </div>
+                          ) : (
+                            <span className="text-muted">Bidder ID: {order.bidder_id.substring(0, 8)}...</span>
+                          )}
+                        </td>
+                        <td>{order.total_invoices} Lot</td>
+                        <td><strong className="text-primary">{formatRupiah(Number(order.final_amount))}</strong></td>
+                        <td style={{ textAlign: 'center' }}>
+                          {order.transfer_proof_url ? (
+                            <a 
+                              href={order.transfer_proof_url} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="btn btn-xs btn-outline-primary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                            >
+                              📄 Lihat
+                            </a>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                        <td>
+                          {order.status === 'pending_approval' ? (
+                            <Badge variant="warning">Menunggu Verifikasi</Badge>
+                          ) : order.status === 'paid' ? (
+                            <Badge variant="success">Lunas</Badge>
+                          ) : order.status === 'rejected' ? (
+                            <Badge variant="danger">Ditolak</Badge>
+                          ) : (
+                            <Badge variant="default">{order.status}</Badge>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          {order.status === 'pending_approval' && (
+                            <div className="d-flex flex-column gap-1">
+                              <button
+                                onClick={() => handleVerifyCheckout(order.id, 'paid')}
+                                disabled={processingId === order.id}
+                                className="btn btn-xs btn-success"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                ✓ Setujui (Paid)
+                              </button>
+                              <button
+                                onClick={() => handleVerifyCheckout(order.id, 'rejected')}
+                                disabled={processingId === order.id}
+                                className="btn btn-xs btn-danger"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                ✕ Tolak
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))
