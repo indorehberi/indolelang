@@ -127,6 +127,20 @@ export default function AssetsInspectionPage() {
 
   useEffect(() => { fetchPendingAssets(); }, []);
 
+  useEffect(() => {
+    if (assets.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const openId = urlParams.get('open');
+      if (openId && !selectedAsset) {
+        const assetToOpen = assets.find(a => a.id === openId);
+        if (assetToOpen) {
+          openInspection(assetToOpen);
+          window.history.replaceState({}, '', '/assets/inspection');
+        }
+      }
+    }
+  }, [assets, selectedAsset]);
+
   const openInspection = (asset: Asset) => {
     setSelectedAsset(asset);
     setRejectionReason('');

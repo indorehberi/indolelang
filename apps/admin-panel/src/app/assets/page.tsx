@@ -671,11 +671,11 @@ export default function AssetsPage() {
                     </td>
                     <td>
                       <div className="d-flex gap-1 flex-wrap">
-                        {['admin', 'superadmin'].includes(userRole) && (
+                        {['admin', 'superadmin'].includes(userRole) && asset.status !== 'pending' && (
                           <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
                         )}
                         {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.status === 'pending' && (
-                          <Button variant="primary" size="sm" onClick={() => router.push('/assets/inspection')}>Inspeksi</Button>
+                          <Button variant="primary" size="sm" onClick={() => router.push(`/assets/inspection?open=${asset.id}`)}>Inspeksi</Button>
                         )}
                         {userRole === 'inspector' && (
                           <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>Edit</Button>
