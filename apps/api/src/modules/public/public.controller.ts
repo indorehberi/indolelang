@@ -8,10 +8,7 @@ export class PublicController {
   async getSessions(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await publicService.getPublicSessions();
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil daftar sesi lelang publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil daftar sesi lelang publik');
     } catch (error) {
       next(error);
     }
@@ -21,10 +18,7 @@ export class PublicController {
     try {
       const { id } = req.params;
       const data = await publicService.getPublicSessionDetail(id);
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil detail sesi lelang publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil detail sesi lelang publik');
     } catch (error) {
       next(error);
     }
@@ -33,10 +27,7 @@ export class PublicController {
   async getFeaturedLots(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await publicService.getFeaturedLots();
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil daftar lot unggulan publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil daftar lot unggulan publik');
     } catch (error) {
       next(error);
     }
@@ -45,10 +36,7 @@ export class PublicController {
   async getCategoryStats(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await publicService.getCategoryStats();
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil statistik kategori publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil statistik kategori publik');
     } catch (error) {
       next(error);
     }
@@ -57,10 +45,7 @@ export class PublicController {
   async getPlatformStats(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await publicService.getPlatformStats();
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil statistik platform publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil statistik platform publik');
     } catch (error) {
       next(error);
     }
@@ -69,10 +54,7 @@ export class PublicController {
   async getSettings(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await publicService.getPublicSettings();
-      sendSuccess(res, {
-        data,
-        message: 'Berhasil mengambil pengaturan platform publik',
-      });
+      sendSuccess(res, data, 'Berhasil mengambil pengaturan platform publik');
     } catch (error) {
       next(error);
     }
