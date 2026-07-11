@@ -123,6 +123,20 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
     });
   };
 
+  // Dynamically calculate bid increments based on backend specifications:
+  // - < 10M: 500k
+  // - 10M - 50M: 1M
+  // - 50M - 200M: 2.5M
+  // - >= 200M: 5M
+  const minIncrement = (() => {
+    if (currentPrice < 10000000) return 500000;
+    if (currentPrice < 50000000) return 1000000;
+    if (currentPrice < 200000000) return 2500000;
+    return 5000000;
+  })();
+
+  const dynamicIncrements = [minIncrement, minIncrement * 2, minIncrement * 3];
+
   const formatRupiah = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -176,7 +190,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
               <div className="mt-6 space-y-3">
                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold block text-center bg-slate-200 py-1 rounded">Quick Bid Options</span>
                 <div className="grid grid-cols-3 gap-2">
-                  {bidIncrements.map((inc, i) => (
+                  {dynamicIncrements.map((inc, i) => (
                     <button
                       key={i}
                       disabled={bidCooldown || timeLeft <= 0}
