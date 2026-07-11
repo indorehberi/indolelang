@@ -136,7 +136,12 @@ export class LotsService {
   async getLotById(id: string): Promise<LotDTO> {
     const l = await prisma.lots.findUnique({
       where: { id },
-      include: { asset: true },
+      include: { 
+        asset: true,
+        session: {
+          include: { branch: true }
+        }
+      },
     });
 
     if (!l) {
@@ -161,10 +166,36 @@ export class LotsService {
         base_price: Number(l.asset.base_price),
         images: l.asset.images ? JSON.parse(l.asset.images as string) : undefined,
         status: l.asset.status,
+        brand: l.asset.brand || undefined,
+        model: l.asset.model || undefined,
+        year: l.asset.year ? Number(l.asset.year) : undefined,
+        police_number: l.asset.police_number || undefined,
+        color: l.asset.color || undefined,
+        transmission: l.asset.transmission || undefined,
+        fuel_type: l.asset.fuel_type || undefined,
+        body_type: l.asset.body_type || undefined,
+        odometer: l.asset.odometer ? Number(l.asset.odometer) : undefined,
+        cylinder: l.asset.cylinder ? Number(l.asset.cylinder) : undefined,
+        grade_engine: l.asset.grade_engine || undefined,
+        grade_interior: l.asset.grade_interior || undefined,
+        grade_exterior: l.asset.grade_exterior || undefined,
+        bpkb_status: l.asset.bpkb_number ? "Ready" : undefined,
+        stnk_status: "Ready", // Fallback assuming usually ready if not specified
+        frame_number: l.asset.frame_number || undefined,
         created_by_admin: l.asset.created_by_admin,
         created_at: l.asset.created_at.toISOString(),
         updated_at: l.asset.updated_at.toISOString(),
       },
+      session: l.session ? {
+        id: l.session.id,
+        title: l.session.title,
+        scheduled_at: l.session.scheduled_at.toISOString(),
+        status: l.session.status,
+        branch: l.session.branch ? {
+          name: l.session.branch.name,
+          city: l.session.branch.city,
+        } : undefined,
+      } : undefined,
       created_at: l.created_at.toISOString(),
       updated_at: l.updated_at.toISOString(),
     };

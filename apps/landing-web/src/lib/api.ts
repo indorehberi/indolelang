@@ -1,6 +1,25 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const API_PREFIX = '/api/v1';
 
+export function getImageUrl(url: string | undefined): string {
+  if (!url) return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+      let dynamicBase = API_BASE_URL.replace('localhost', window.location.hostname).replace('127.0.0.1', window.location.hostname);
+      if (window.location.protocol === 'https:' && dynamicBase.startsWith('http://')) {
+        dynamicBase = dynamicBase.replace('http://', 'https://');
+      }
+      return `${dynamicBase}${cleanPath}`;
+    }
+  }
+  
+  return `${API_BASE_URL}${cleanPath}`;
+}
+
 export function apiUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   

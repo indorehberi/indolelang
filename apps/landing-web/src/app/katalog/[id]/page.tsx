@@ -5,13 +5,16 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, getImageUrl } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
+
+import { useFeaturedLots } from "@/hooks/usePublicData";
 
 export default function DetailLotPage() {
   const router = useRouter();
   const toast = useToast();
   const { id } = useParams() as { id: string };
+  const { data: dbFeaturedLots = [] } = useFeaturedLots();
 
   const [lot, setLot] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -102,8 +105,8 @@ export default function DetailLotPage() {
     parsedImages = [];
   }
   const images = parsedImages && parsedImages.length > 0
-    ? parsedImages
-    : ["https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600"];
+    ? parsedImages.map((img: string) => getImageUrl(img))
+    : [getImageUrl(undefined)];
 
   const specs = [
     { label: "Cabang Lelang", value: lot.session?.branch?.name || "Pusat" },
@@ -115,52 +118,54 @@ export default function DetailLotPage() {
     { label: "Transmisi", value: lot.asset.transmission || "-" },
     { label: "Bahan Bakar", value: lot.asset.fuel_type || "-" },
     { label: "Odometer", value: lot.asset.odometer ? `${lot.asset.odometer.toLocaleString("id-ID")} km` : "-" },
-    { label: "Kapasitas Mesin", value: lot.asset.engine_capacity || "-" },
-    { label: "Kondisi", value: lot.asset.condition || "-" },
-    { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
-    { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
+    { label: "Kapasitas Mesin", value: lot.asset.cylinder ? `${lot.asset.cylinder} cc` : "-" },
+    { label: "Nomor Rangka", value: lot.asset.frame_number || "-" },
+    { label: "Status BPKB", value: lot.asset.bpkb_status || "-" },
+    { label: "Status STNK", value: lot.asset.stnk_status || "-" },
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
-    { label: "No. Rangka", value: lot.asset.chassis_number || "-" },
-    { label: "No. Mesin", value: lot.asset.engine_number || "-" },
-    { label: "No. BPKB", value: lot.asset.bpkb_number || "-" },
-    { label: "No. STNK", value: lot.asset.stnk_number || "-" },
+    { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
+    { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
     { label: "Deskripsi", value: lot.asset.description || "-" }
   ];
+  let isLive = lot.status === "active";
+  if (lot.session) {
+    const now = new Date();
+    const start = new Date(lot.session.scheduled_at);
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    if (now >= start && now <= end) isLive = true;
+    else isLive = false;
+  }
 
-  const isLive = lot.status === "active";
+  const grade = lot.asset.grade_engine || lot.asset.grade_interior || (lot.asset.condition === "BARU" ? "A" : "B");
 
-  const similarLots = [
-    {
-      id: "dummy-similar-1",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGJyrSIiC5CrjQ9ie6mdjiTukPacM8oYuRPhzR3WM3ldKjSIPxknbMVrUcq4MZtcHRxMwYosqUSfDCT1upZc-E-WE5mYQQ9MLyH4yPLAjXLhJEawqhzcn9LV7tYkI8mZxjLzxkAg5RfzTEU5JJIsVEV9pE--k0LXtch0ZYYRBbsHN0rxel0IldTrktEIwbs_M4NpsGoUUL1gkx5fTfp80e6PSQ0Oe5YOs0KNjAKBOUR9IqXHGgADXQKHRG_n9XaNBxQIOfBJTw_fGD",
-      alt: "Honda CR-V",
-      location: "Bandung",
-      title: "Honda CR-V Prestige 2020",
-      hargaAwal: "Rp 325 Juta",
-      deposit: "Rp 10 Juta",
-      timer: "Mulai 15:30 WIB",
-    },
-    {
-      id: "dummy-similar-2",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB67l1UA3O3JqEltSt7_FoCtmkwazDVgtHh3zFH0--lZmvp7mKfkzCMLmT52NrO1D0X_UNyvrEO8wU1Y-V3crXAMKKfdKFiSVl_txDOE7P24t3idlxaEx0E9_HxZWh47SNE1mPkgtYNlJdtdgO03ZvxtVvXYjXo-jY0fmtkYKj8BSSvnVN8A8KXhatbMHKO-IuzBXbcU4N1SWJ4RyM7JwNDUmEU1-yOJtqHBm_Sv7ls52p9W4HgMu8VUCWtu9B4v7sSaGecisbNcYxW",
-      alt: "Toyota Hilux",
-      location: "Surabaya",
-      title: "Toyota Hilux Double Cabin 2019",
-      hargaAwal: "Rp 278 Juta",
-      deposit: "Rp 10 Juta",
-      timer: "Besok, 10:00 WIB",
-    },
-    {
-      id: "dummy-similar-3",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYN8O2A-8z9old1jiYKN3bl_YAgSjeeNrRfz65SyUOBZcClgtIAicB1Ef3G5ynkpckI4VeZbQ4euupLkJTi_0aOr3T_rmdoTSKwmPZoazXlnAh4I0nTlRtAvoiZJtrsvf3dRTzqXsNGpE2FX3rMHjM1YTvVRXkAVR62eV5Nm7ejEPopOiLePfyyDieJ7ak_hWwkhHnCRN1D3ouQ7Mg0Jnpq282YGoAgtZRiSIT8I4oud5JRGOokCF5DfXUp0Njgamd-sK7LQt10xZl",
-      alt: "Honda Brio",
-      location: "Semarang",
-      title: "Honda Brio RS CVT 2022",
-      hargaAwal: "Rp 142 Juta",
-      deposit: "Rp 5 Juta",
-      timer: "Jumat, 09:30 WIB",
-    },
-  ];
+  const similarLots = dbFeaturedLots
+    .filter((l: any) => l.id !== lot.id && l.asset?.category === lot.asset?.category)
+    .slice(0, 3)
+    .map((l: any) => {
+      let imgs = [];
+      try { imgs = typeof l.asset.images === 'string' ? JSON.parse(l.asset.images) : l.asset.images; } catch(e){}
+      const img = getImageUrl(imgs?.[0]);
+      
+      const sp = [];
+      if (l.asset.year) sp.push(l.asset.year);
+      if (l.asset.transmission) sp.push(l.asset.transmission);
+      if (l.asset.police_number) sp.push(l.asset.police_number);
+      
+      return {
+        id: l.id,
+        image: img,
+        alt: l.asset.title,
+        location: l.session?.branch?.city || "Jakarta",
+        title: l.asset.title,
+        hargaAwal: `Rp ${Number(l.starting_price).toLocaleString("id-ID")}`,
+        deposit: "Rp 5.000.000",
+        action: l.status === "active" ? "Bid" : "Lihat Detail",
+        badge: l.status === "active" ? "LIVE" : "OPEN",
+        specString: sp.join(" | ") || "Spesifikasi tidak tersedia",
+        jenisLelang: "English Auction",
+        grade: l.asset.grade_engine || (l.asset.condition === "BARU" ? "A" : "B")
+      };
+    });
 
   return (
     <div className="min-h-screen bg-surface">
@@ -211,35 +216,43 @@ export default function DetailLotPage() {
                   className="w-full h-full object-cover transition-all duration-300"
                 />
                 <div className="absolute top-4 left-4 flex gap-2">
+                  {/* Grade Badge */}
+                  <span className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-md text-primary flex items-center justify-center font-black shadow-sm border border-white">
+                    {grade}
+                  </span>
+                  {/* Status Badge */}
                   <span className={`px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 ${
                     isLive ? "bg-error text-white" : "bg-info text-white"
                   }`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    {isLive ? "LIVE AUCTION" : "UPCOMING"}
+                    {isLive ? "LIVE AUCTION" : (lot.status === "sold" ? "TERJUAL" : "UPCOMING")}
                   </span>
+                  {/* Lot Number */}
                   <span className="bg-white/90 backdrop-blur-md text-on-surface px-3 py-1 rounded-full text-badge-text font-bold shadow-sm">
                     LOT #{lot.lot_number}
                   </span>
                 </div>
               </div>
 
-              {/* Thumbnails Grid */}
-              <div className="grid grid-cols-4 gap-3 mt-4">
-                {images.map((img: string, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedThumb(idx)}
-                    className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all bg-surface-variant/10 ${
-                      selectedThumb === idx
-                        ? "border-primary shadow-md scale-102"
-                        : "border-transparent opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+              {/* Thumbnails Grid (Only if > 1 image) */}
+              {images.length > 1 && (
+                <div className="grid grid-cols-4 gap-3 mt-4">
+                  {images.map((img: string, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedThumb(idx)}
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all bg-surface-variant/10 ${
+                        selectedThumb === idx
+                          ? "border-primary shadow-md scale-102"
+                          : "border-transparent opacity-80 hover:opacity-100"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Specifications Card */}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials, usePublicGalleries } from "@/hooks/usePublicData";
+import { apiUrl, getImageUrl } from "@/lib/api";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -181,7 +182,7 @@ export default function Home() {
         } catch (e) {
           parsedImages = [];
         }
-        const image = (parsedImages && parsedImages[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const image = getImageUrl(parsedImages?.[0]);
         const isLive = dbLot.status.toLowerCase() === "active";
         
         const specParts = [];

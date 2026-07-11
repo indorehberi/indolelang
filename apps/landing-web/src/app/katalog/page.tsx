@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots } from "@/hooks/usePublicData";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, getImageUrl } from "@/lib/api";
 
 /* -------------------------------------------------------------------------- */
 /* Data                                                                         */
@@ -69,7 +69,7 @@ function KatalogContent() {
         } catch (e) {
           parsedImages = [];
         }
-        const image = (parsedImages && parsedImages[0]) || "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+        const image = getImageUrl(parsedImages?.[0]);
         const isLiveRaw = dbLot.status?.toLowerCase() === "active";
         let isLive = isLiveRaw;
         let timerText = "Akan Datang";
@@ -99,7 +99,7 @@ function KatalogContent() {
         const specParts = [];
         if (dbLot.asset.year) specParts.push(dbLot.asset.year);
         if (dbLot.asset.transmission) specParts.push(dbLot.asset.transmission);
-        if (dbLot.asset.license_plate) specParts.push(dbLot.asset.license_plate);
+        if (dbLot.asset.police_number) specParts.push(dbLot.asset.police_number);
         const specString = specParts.join(" | ") || "Spesifikasi tidak tersedia";
 
         return {
@@ -108,6 +108,7 @@ function KatalogContent() {
           alt: dbLot.asset.title,
           badge: isLive ? "LIVE" : "OPEN",
           badgeStyle: isLive ? "bg-error text-white" : "bg-primary text-on-primary",
+          grade: dbLot.asset.grade_engine || dbLot.asset.grade_interior || (dbLot.asset.condition === "BARU" ? "A" : "B"),
           location: dbLot.session?.branch?.city || "Jakarta",
           title: dbLot.asset.title,
           specString,
@@ -520,9 +521,13 @@ function KatalogContent() {
                           alt={lot.alt}
                           src={lot.image}
                         />
-                        {/* Badge */}
+                        {/* Grade Badge */}
+                        <span className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur text-primary flex items-center justify-center font-black shadow-sm border border-white z-10">
+                          {lot.grade}
+                        </span>
+                        {/* Status Badge */}
                         <span
-                          className={`absolute top-3 left-3 px-3 py-1 rounded-full text-badge-text font-bold ${lot.badgeStyle}`}
+                          className={`absolute top-3 left-13 px-3 py-1 rounded-full text-badge-text font-bold ${lot.badgeStyle}`}
                         >
                           {lot.badge}
                         </span>
