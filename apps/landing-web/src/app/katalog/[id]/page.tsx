@@ -21,6 +21,7 @@ export default function DetailLotPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedThumb, setSelectedThumb] = useState(0);
   const [bidAmount, setBidAmount] = useState<number>(0);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +50,15 @@ export default function DetailLotPage() {
 
     fetchLotDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (!zoomOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [zoomOpen]);
 
   const handleQuickBid = (increment: number) => {
     setBidAmount((prev) => prev + increment);
@@ -201,13 +211,20 @@ export default function DetailLotPage() {
           <div className="lg:col-span-7 space-y-6">
             {/* Gallery Wrapper */}
             <div className="bg-white rounded-3xl p-4 border border-outline-variant/20 shadow-sm">
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-surface-variant/20">
+              <button
+                type="button"
+                onClick={() => setZoomOpen(true)}
+                className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-surface-variant/20 cursor-zoom-in group block"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={images[selectedThumb]}
                   alt={`${lot.asset.title} Detail`}
                   className="w-full h-full object-cover transition-all duration-300"
                 />
+                <span className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-black/50 group-hover:bg-black/70 backdrop-blur-md text-white flex items-center justify-center transition-colors">
+                  <span className="material-symbols-outlined text-lg">zoom_in</span>
+                </span>
                 <div className="absolute top-4 left-4 flex gap-2">
                   {/* Grade Badge */}
                   <span className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-md text-primary flex items-center justify-center font-black shadow-sm border border-white">
@@ -225,16 +242,19 @@ export default function DetailLotPage() {
                     LOT #{lot.lot_number}
                   </span>
                 </div>
-              </div>
+              </button>
 
-              {/* Thumbnails Grid (Only if > 1 image) */}
+              {/* Thumbnail Strip (Only if > 1 image) - single row, click to zoom */}
               {images.length > 1 && (
-                <div className="grid grid-cols-4 gap-3 mt-4">
+                <div className="flex gap-3 mt-4 overflow-x-auto pb-1">
                   {images.map((img: string, idx: number) => (
                     <button
                       key={idx}
-                      onClick={() => setSelectedThumb(idx)}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all bg-surface-variant/10 ${
+                      onClick={() => {
+                        setSelectedThumb(idx);
+                        setZoomOpen(true);
+                      }}
+                      className={`relative shrink-0 w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all bg-surface-variant/10 cursor-zoom-in ${
                         selectedThumb === idx
                           ? "border-primary shadow-md scale-102"
                           : "border-transparent opacity-80 hover:opacity-100"
@@ -451,6 +471,65 @@ export default function DetailLotPage() {
       </main>
 
       <Footer />
+
+      {/* Photo Zoom Lightbox */}
+      {zoomOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-10"
+          onClick={() => setZoomOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setZoomOpen(false)}
+            className="absolute top-4 right-4 md:top-6 md:right-6 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            aria-label="Tutup"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedThumb((prev) => (prev - 1 + images.length) % images.length);
+              }}
+              className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+              aria-label="Foto sebelumnya"
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+          )}
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={images[selectedThumb]}
+            alt={`${lot.asset.title} - Foto ${selectedThumb + 1}`}
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedThumb((prev) => (prev + 1) % images.length);
+              }}
+              className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+              aria-label="Foto berikutnya"
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          )}
+
+          {images.length > 1 && (
+            <span className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 bg-white/10 text-white text-body-sm font-semibold px-3 py-1 rounded-full">
+              {selectedThumb + 1} / {images.length}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
