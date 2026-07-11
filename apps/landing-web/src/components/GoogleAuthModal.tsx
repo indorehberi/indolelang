@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { apiUrl } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 interface GoogleAuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function GoogleAuthModal({
   action,
 }: GoogleAuthModalProps) {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
 
@@ -74,6 +76,7 @@ export default function GoogleAuthModal({
     try {
       const response = await fetch(apiUrl("/auth/google"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -108,13 +111,13 @@ export default function GoogleAuthModal({
           }
           window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
         } else {
-          alert("Role akun Anda tidak didukung pada halaman ini.");
+          toast.error("Role akun Anda tidak didukung pada halaman ini.");
         }
       } else {
-        alert(resData.error?.message || "Google Sign-In failed.");
+        toast.error(resData.error?.message || "Google Sign-In failed.");
       }
     } catch (err) {
-      alert("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setLoading(false);
     }

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
-import { apiUrl, fetchWithRetry } from "@/lib/api";
+import { apiUrl, fetchWithRetry, apiFetch } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz'];
 const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
@@ -116,11 +117,12 @@ function ProviderAjukanBarangContent() {
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
 
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const res = await fetchWithRetry(apiUrl("/branches"));
+        const res = await fetchWithRetry(apiUrl("/branches?is_active=true"));
         const resData = await res.json();
         if (res.ok && resData.success) {
           setBranches(resData.data || []);
@@ -137,10 +139,7 @@ function ProviderAjukanBarangContent() {
 
     const fetchAssetForEdit = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-        const res = await fetchWithRetry(apiUrl(`/assets/${editId}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/assets/${editId}`);
         const resData = await res.json();
         if (res.ok && resData.success) {
           const a = resData.data;
@@ -185,7 +184,7 @@ function ProviderAjukanBarangContent() {
             photo_stnk: a.photo_stnk || "",
           }));
         } else {
-          alert("Gagal memuat data barang untuk diedit.");
+          toast.error("Gagal memuat data barang untuk diedit.");
           router.push("/provider/daftar-barang");
         }
       } catch (err) {
@@ -200,24 +199,22 @@ function ProviderAjukanBarangContent() {
   const handlePhotoUpload = async (field: string, file: File | null) => {
     if (!file) return;
     setUploadingPhoto(field);
-    const token = localStorage.getItem("accessToken");
     const uploadData = new FormData();
     uploadData.append("file", file);
 
     try {
-      const response = await fetch(apiUrl("/upload/single"), {
+      const response = await apiFetch("/upload/single", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: uploadData,
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
         handleChange(field, resData.data.url);
       } else {
-        alert(resData.error?.message || "Gagal mengunggah foto.");
+        toast.error(resData.error?.message || "Gagal mengunggah foto.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengunggah foto.");
+      toast.error("Koneksi gagal saat mengunggah foto.");
     } finally {
       setUploadingPhoto(null);
     }
@@ -303,14 +300,14 @@ function ProviderAjukanBarangContent() {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        alert("Sesi Anda telah berakhir, silakan login kembali.");
+        toast.error("Sesi Anda telah berakhir, silakan login kembali.");
         router.push("/login");
         return;
       }
 
       const missingPhotos = PHOTO_FIELDS.filter((p) => !formData[p.key]).map((p) => p.label);
       if (missingPhotos.length > 0) {
-        alert(`Harap unggah semua foto wajib: ${missingPhotos.join(", ")}`);
+        toast.warning(`Harap unggah semua foto wajib: ${missingPhotos.join(", ")}`);
         setIsSubmitting(false);
         return;
       }
@@ -326,29 +323,25 @@ function ProviderAjukanBarangContent() {
         keur_date: formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined,
       };
 
-      const response = await fetchWithRetry(apiUrl(editId ? `/assets/${editId}` : "/assets"), {
+      const response = await apiFetch(editId ? `/assets/${editId}` : "/assets", {
         method: editId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify(payload)
       });
 
       const resData = await response.json();
       if (response.ok && resData.success) {
         if (editId) {
-          alert("Perubahan berhasil disimpan.");
+          toast.success("Perubahan berhasil disimpan.");
           router.push("/provider/daftar-barang");
         } else {
           setIsSuccess(true);
           setFormData(initialFormState);
         }
       } else {
-        alert(resData.error?.message || "Gagal mengajukan Barang");
+        toast.error(resData.error?.message || "Gagal mengajukan Barang");
       }
     } catch {
-      alert("Terjadi kesalahan koneksi.");
+      toast.error("Terjadi kesalahan koneksi.");
     } finally {
       setIsSubmitting(false);
     }

@@ -6,8 +6,9 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
-import { apiUrl, apiFetch } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 import { AssetCategory } from '@indo-lelang/shared-types';
+import { useToast } from '../../providers/ToastProvider';
 
 const CATEGORY_LABELS: Record<string, string> = {
   [AssetCategory.MOBIL]: '🚗 Mobil Penumpang',
@@ -46,6 +47,7 @@ const parseJwt = (token: string) => {
 
 export default function AssetsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -344,24 +346,18 @@ export default function AssetsPage() {
   const handleReviewUlang = async (id: string) => {
     if (!confirm('Ajukan ulang barang ini untuk direview?')) return;
     try {
-      const response = await fetch(apiUrl(`/assets/${id}/review`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch(`/assets/${id}/review`, { method: 'PUT' });
       if (response.ok) fetchAssets();
-      else alert('Gagal mengajukan ulang');
+      else toast.error('Gagal mengajukan ulang');
     } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin menghapus barang ini secara permanen?')) return;
     try {
-      const response = await fetch(apiUrl(`/assets/${id}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch(`/assets/${id}`, { method: 'DELETE' });
       if (response.ok) fetchAssets();
-      else alert('Gagal menghapus barang');
+      else toast.error('Gagal menghapus barang');
     } catch (err) { console.error(err); }
   };
 
@@ -383,11 +379,7 @@ export default function AssetsPage() {
       if (dateFrom) query += `&date_from=${dateFrom}`;
       if (dateTo) query += `&date_to=${dateTo}`;
 
-      const response = await fetch(apiUrl(`/assets${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/assets${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setAssets(data.data);
@@ -460,21 +452,16 @@ export default function AssetsPage() {
     e.preventDefault();
     if (!selectedAsset) return;
     try {
-      const token = localStorage.getItem('accessToken');
       const payload = { ...formData };
       payload.base_price = Number(payload.base_price);
       if (payload.year) payload.year = Number(payload.year);
       if (payload.cylinder) payload.cylinder = Number(payload.cylinder);
       if (payload.odometer) payload.odometer = Number(payload.odometer);
-      
+
       Object.keys(payload).forEach(k => { if(payload[k] === '') delete payload[k] });
 
-      const response = await fetch(apiUrl(`/assets/${selectedAsset.id}`), {
+      const response = await apiFetch(`/assets/${selectedAsset.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -482,11 +469,11 @@ export default function AssetsPage() {
         setShowEditModal(false);
         fetchAssets();
       } else {
-        alert(data.error?.message || 'Gagal mengubah unit barang');
+        toast.error(data.error?.message || 'Gagal mengubah unit barang');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     }
   };
 

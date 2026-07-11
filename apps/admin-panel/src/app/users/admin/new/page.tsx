@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../../components/layout/DashboardLayout';
 import Card from '../../../../components/ui/Card';
 import Button from '../../../../components/ui/Button';
-import { apiUrl } from '../../../../lib/api';
+import { apiFetch } from '../../../../lib/api';
 
 const ROLES = [
   { value: 'superadmin', label: 'Superadmin' },
@@ -31,10 +31,7 @@ export default function NewStaffPage() {
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        const res = await fetch(apiUrl('/branches?per_page=100'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/branches?per_page=100&is_active=true');
         const data = await res.json();
         if (data.success) {
           setBranches(data.data);
@@ -74,8 +71,6 @@ export default function NewStaffPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-
       // Build payload — omit optional empty string fields so they don't fail min-length validation
       const payload: Record<string, unknown> = {
         name: form.name,
@@ -87,12 +82,8 @@ export default function NewStaffPage() {
       };
       if (form.phone.trim()) payload.phone = form.phone.trim();
 
-      const res = await fetch(apiUrl('/admin/users'), {
+      const res = await apiFetch('/admin/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(payload),
       });
 

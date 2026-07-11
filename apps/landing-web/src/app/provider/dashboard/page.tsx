@@ -5,7 +5,7 @@ import Link from "next/link";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
 
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 interface Settlement {
   id: string;
@@ -42,10 +42,10 @@ export default function ProviderDashboard() {
     const fetchData = async () => {
       try {
         const [resProfile, resAssets, resSettlements, resNotifications] = await Promise.all([
-          fetch(apiUrl("/users/profile"), { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(apiUrl("/assets?per_page=100"), { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(apiUrl("/payments/settlements?per_page=100"), { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(apiUrl("/notifications?is_read=false"), { headers: { Authorization: `Bearer ${token}` } })
+          apiFetch("/users/profile"),
+          apiFetch("/assets?per_page=100"),
+          apiFetch("/payments/settlements?per_page=100"),
+          apiFetch("/notifications?is_read=false"),
         ]);
 
         if (resProfile.ok) {
@@ -103,10 +103,8 @@ export default function ProviderDashboard() {
 
   const handleCloseNotification = async (id: string) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(apiUrl(`/notifications/${id}/read`), {
+      const response = await apiFetch(`/notifications/${id}/read`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         setNotifications((prev) => prev.filter((n) => n.id !== id));

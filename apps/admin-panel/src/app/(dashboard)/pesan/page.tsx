@@ -5,7 +5,7 @@ import DashboardLayout from "../../../components/layout/DashboardLayout";
 import Card from "../../../components/ui/Card";
 import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
-import { apiUrl } from "../../../lib/api";
+import { apiFetch } from "../../../lib/api";
 
 interface ContactMessage {
   id: string;
@@ -63,11 +63,7 @@ export default function PesanMasukPage() {
   const fetchMessages = async () => {
     try {
       setLoading(true);
-      const res = await fetch(apiUrl("/admin/contact-messages"), {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
+      const res = await apiFetch("/admin/contact-messages");
       const data = await res.json();
       if (res.ok && data.success) {
         setMessages(data.data);
@@ -87,12 +83,7 @@ export default function PesanMasukPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(apiUrl(`/admin/contact-messages/${id}/read`), {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
+      await apiFetch(`/admin/contact-messages/${id}/read`, { method: "PATCH" });
       fetchMessages();
     } catch (err) {
       console.error(err);
@@ -115,12 +106,7 @@ export default function PesanMasukPage() {
   const handleDelete = async () => {
     if (!selectedMessage) return;
     try {
-      await fetch(apiUrl(`/admin/contact-messages/${selectedMessage.id}`), {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
+      await apiFetch(`/admin/contact-messages/${selectedMessage.id}`, { method: "DELETE" });
       fetchMessages();
       setShowDeleteModal(false);
       setSelectedMessage(null);

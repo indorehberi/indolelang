@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl, fetchWithRetry } from "@/lib/api";
 import GoogleAuthModal from "@/components/GoogleAuthModal";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     nama: "",
     email: "",
@@ -28,12 +30,12 @@ export default function RegisterPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setErrors({ confirmPassword: "Konfirmasi password tidak cocok" });
-      alert("Konfirmasi password tidak cocok.");
+      toast.warning("Konfirmasi password tidak cocok.");
       return;
     }
 
     if (!formData.agree) {
-      alert("Anda harus menyetujui Ketentuan Umum dan Pemberitahuan Privasi.");
+      toast.warning("Anda harus menyetujui Ketentuan Umum dan Pemberitahuan Privasi.");
       return;
     }
 
@@ -55,7 +57,7 @@ export default function RegisterPage() {
       const resData = await response.json();
       if (response.ok && resData.success) {
         setErrors({});
-        alert("Pendaftaran berhasil! Silakan login untuk menyelesaikan verifikasi eKYC Anda.");
+        toast.success("Pendaftaran berhasil! Silakan login untuk menyelesaikan verifikasi eKYC Anda.");
         router.push(`/login`);
       } else {
         if (resData.error?.details) {
@@ -68,10 +70,10 @@ export default function RegisterPage() {
         }
         
         let msg = resData.error?.message || "Registrasi gagal.";
-        alert(msg);
+        toast.error(msg);
       }
     } catch (err) {
-      alert("Terjadi kesalahan koneksi. Pastikan API Server sedang aktif.");
+      toast.error("Terjadi kesalahan koneksi. Pastikan API Server sedang aktif.");
     }
   };
 

@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderDeposit() {
   const router = useRouter();
+  const toast = useToast();
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   
@@ -55,9 +57,7 @@ export default function BidderDeposit() {
 
     try {
       setLoading(true);
-      const response = await fetch(apiUrl("/sessions?per_page=50"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch("/sessions?per_page=50");
       const resData = await response.json();
       if (response.ok && resData.success) {
         const list = resData.data || [];
@@ -112,14 +112,11 @@ export default function BidderDeposit() {
   const handleCreateDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
 
     try {
       // 1. Check KYC Status first
-      const kycResponse = await fetch(apiUrl("/kyc/status"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const kycResponse = await apiFetch("/kyc/status");
       const kycData = await kycResponse.json();
       
       const kycStatus = kycData?.data?.status;
@@ -131,12 +128,8 @@ export default function BidderDeposit() {
 
       const amount = calculateTotalAmount();
 
-      const response = await fetch(apiUrl("/deposits/create"), {
+      const response = await apiFetch("/deposits/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           unit_type: unitType,
           package_type: packageType,
@@ -153,10 +146,10 @@ export default function BidderDeposit() {
         setTotalPaid(Number(deposit.amount) + Number(deposit.transfer_fee || 0) + Number(deposit.refund_fee || 0));
         setTimeLeft(depositTimeoutMinutes * 60);
       } else {
-        alert(resData.error?.message || "Gagal memproses deposit.");
+        toast.error(resData.error?.message || "Gagal memproses deposit.");
       }
     } catch (err) {
-      alert("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setIsSubmitting(false);
     }
@@ -165,20 +158,18 @@ export default function BidderDeposit() {
   const handleUploadProof = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proofFile) {
-      alert("Pilih file bukti transfer terlebih dahulu.");
+      toast.warning("Pilih file bukti transfer terlebih dahulu.");
       return;
     }
 
     setIsUploading(true);
-    const token = localStorage.getItem("accessToken");
     const formData = new FormData();
     formData.append("file", proofFile);
 
     try {
       // 1. Upload File
-      const uploadRes = await fetch(apiUrl("/upload/image"), {
+      const uploadRes = await apiFetch("/upload/image", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const uploadData = await uploadRes.json();
@@ -189,24 +180,20 @@ export default function BidderDeposit() {
 
       // 2. Submit Proof to Deposit
       const proofUrl = uploadData.data.url;
-      const submitRes = await fetch(apiUrl(`/deposits/${orderId}/proof`), {
+      const submitRes = await apiFetch(`/deposits/${orderId}/proof`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify({ transfer_proof_url: proofUrl }),
       });
 
       const submitData = await submitRes.json();
       if (submitRes.ok && submitData.success) {
-        alert("Bukti transfer berhasil diunggah! Mohon tunggu persetujuan Admin.");
+        toast.success("Bukti transfer berhasil diunggah! Mohon tunggu persetujuan Admin.");
         router.push("/bidder/dashboard");
       } else {
         throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
       }
     } catch (err: any) {
-      alert(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
+      toast.error(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
     } finally {
       setIsUploading(false);
     }

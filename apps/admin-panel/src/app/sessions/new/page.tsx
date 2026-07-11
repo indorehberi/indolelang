@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Toast from '../../../components/ui/Toast';
-import { apiUrl } from '../../../lib/api';
+import { apiUrl, apiFetch } from '../../../lib/api';
 
 interface Branch {
   id: string;
@@ -28,14 +28,14 @@ export default function NewSessionPage() {
   const [scheduledTime, setScheduledTime] = useState('');
   
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' | 'warning' } | null>(null);
 
 
   // Fetch branches
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const response = await fetch(apiUrl('/branches'));
+        const response = await fetch(apiUrl('/branches?is_active=true'));
         const data = await response.json();
         if (response.ok && data.success) {
           const central = data.data.find((b: any) => b.name.toLowerCase().includes('pusat') || b.name.toLowerCase().includes('jakarta'));
@@ -59,21 +59,21 @@ export default function NewSessionPage() {
   const handleNext = () => {
     if (step === 1) {
       if (!title.trim() || title.length < 5) {
-        alert('Judul sesi minimal 5 karakter');
+        setToast({ message: 'Judul sesi minimal 5 karakter', variant: 'warning' });
         return;
       }
       if (!branchId && branches.length > 0) {
-        alert('Cabang wajib dipilih');
+        setToast({ message: 'Cabang wajib dipilih', variant: 'warning' });
         return;
       }
     } else if (step === 2) {
       if (!scheduledDate || !scheduledTime) {
-        alert('Tanggal dan waktu jadwal wajib diisi');
+        setToast({ message: 'Tanggal dan waktu jadwal wajib diisi', variant: 'warning' });
         return;
       }
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
       if (scheduledDateTime.getTime() < Date.now()) {
-        alert('Jadwal lelang tidak boleh di masa lalu');
+        setToast({ message: 'Jadwal lelang tidak boleh di masa lalu', variant: 'warning' });
         return;
       }
     }
@@ -93,13 +93,8 @@ export default function NewSessionPage() {
     const scheduled_at = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/sessions'), {
+      const response = await apiFetch('/admin/sessions', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           branch_id: branchId || undefined,
           title,

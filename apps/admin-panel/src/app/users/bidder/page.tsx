@@ -6,7 +6,8 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface Bidder {
   id: string; // bidders table row id
@@ -31,6 +32,7 @@ interface Bidder {
 
 export default function BidderListPage() {
   const router = useRouter();
+  const toast = useToast();
   const [bidders, setBidders] = useState<Bidder[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -47,12 +49,11 @@ export default function BidderListPage() {
   const fetchBidders = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      let url = apiUrl(`/admin/bidders?per_page=200`);
-      if (filterStatus) url += `&status=${filterStatus}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
+      let query = `/admin/bidders?per_page=200`;
+      if (filterStatus) query += `&status=${filterStatus}`;
+      if (search) query += `&search=${encodeURIComponent(search)}`;
 
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await apiFetch(query);
       const data = await response.json();
       if (response.ok && data.success) {
         setBidders(data.data);
@@ -90,10 +91,8 @@ export default function BidderListPage() {
     e.preventDefault();
     if (!selectedBidder?.user) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedBidder.user.id}`), {
+      const response = await apiFetch(`/admin/users/${selectedBidder.user.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
       const data = await response.json();
@@ -101,53 +100,45 @@ export default function BidderListPage() {
         setShowEditModal(false);
         fetchBidders();
       } else {
-        alert(data.error?.message || 'Gagal mengubah bidder');
+        toast.error(data.error?.message || 'Gagal mengubah bidder');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     }
   };
 
   const handleDelete = async () => {
     if (!selectedBidder?.user) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedBidder.user.id}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/users/${selectedBidder.user.id}`, { method: 'DELETE' });
       const data = await response.json();
       if (response.ok && data.success) {
         setShowDeleteModal(false);
         fetchBidders();
       } else {
-        alert(data.error?.message || 'Gagal menghapus bidder');
+        toast.error(data.error?.message || 'Gagal menghapus bidder');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     }
   };
 
   const handleApprove = async (id: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menyetujui pengajuan bidder ini?')) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/bidders/${id}/approve`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/bidders/${id}/approve`, { method: 'PUT' });
       if (response.ok) {
         setShowReviewModal(false);
         fetchBidders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menyetujui bidder');
+        toast.error(data.error?.message || 'Gagal menyetujui bidder');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     }
   };
 
@@ -155,14 +146,12 @@ export default function BidderListPage() {
     const reason = window.prompt('Masukkan alasan penolakan pengajuan bidder:');
     if (reason === null) return;
     if (!reason.trim()) {
-      alert('Alasan penolakan wajib diisi!');
+      toast.warning('Alasan penolakan wajib diisi!');
       return;
     }
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/bidders/${id}/reject`), {
+      const response = await apiFetch(`/admin/bidders/${id}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ reason: reason.trim() }),
       });
       if (response.ok) {
@@ -170,11 +159,11 @@ export default function BidderListPage() {
         fetchBidders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menolak bidder');
+        toast.error(data.error?.message || 'Gagal menolak bidder');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     }
   };
 

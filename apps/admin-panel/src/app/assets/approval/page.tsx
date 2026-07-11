@@ -6,7 +6,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface Asset {
   id: string;
@@ -24,7 +24,7 @@ export default function AssetsApprovalPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' | 'warning' } | null>(null);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -47,9 +47,7 @@ export default function AssetsApprovalPage() {
 
   const fetchProviders = async () => {
     try {
-      const response = await fetch(apiUrl('/admin/users?role=provider&provider_status=approved&per_page=100'), {
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch('/admin/users?role=provider&provider_status=approved&per_page=100');
       const data = await response.json();
       if (response.ok && data.success) {
         setProviders(data.data);
@@ -62,7 +60,6 @@ export default function AssetsApprovalPage() {
   const fetchApprovedAssets = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       let query = `?status=approved&per_page=100`;
       if (categoryFilter) query += `&category=${categoryFilter}`;
       if (providerFilter) query += `&provider_id=${providerFilter}`;
@@ -71,11 +68,7 @@ export default function AssetsApprovalPage() {
       if (dateTo) query += `&date_to=${dateTo}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
 
-      const response = await fetch(apiUrl(`/assets${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/assets${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setAssets(data.data);
@@ -106,14 +99,7 @@ export default function AssetsApprovalPage() {
     setToast(null);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${id}/cancel`), {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiFetch(`/admin/assets/${id}/cancel`, { method: 'PUT' });
 
       const data = await response.json();
       if (!response.ok) {
@@ -133,20 +119,15 @@ export default function AssetsApprovalPage() {
     const reason = window.prompt('Masukkan alasan penolakan barang ini:');
     if (reason === null) return;
     if (!reason.trim()) {
-      alert('Alasan penolakan wajib diisi.');
+      setToast({ message: 'Alasan penolakan wajib diisi.', variant: 'warning' });
       return;
     }
     setProcessingId(id);
     setToast(null);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${id}/reject`), {
+      const response = await apiFetch(`/admin/assets/${id}/reject`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ reason: reason.trim() }),
       });
 

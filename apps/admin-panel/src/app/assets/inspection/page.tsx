@@ -5,7 +5,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface Asset {
   id: string;
@@ -43,6 +43,18 @@ const GRADE_OPTIONS = [
 const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV', 'Gas'];
 const TRANSMISSION_OPTIONS = ['Manual', 'Otomatis', 'CVT', 'DCT'];
 const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Sport', 'Lainnya'];
+
+const Field = ({ label, required, error, children }: {
+  label: string; required?: boolean; error?: string; children: React.ReactNode;
+}) => (
+  <div className="form-group">
+    <label className="form-label">
+      {label}{required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
+    </label>
+    {children}
+    {error && <span className="form-error">{error}</span>}
+  </div>
+);
 
 export default function AssetsInspectionPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -96,10 +108,7 @@ export default function AssetsInspectionPage() {
   const fetchPendingAssets = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(apiUrl('/assets?status=pending&per_page=100'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch('/assets?status=pending&per_page=100');
       const data = await res.json();
       if (res.ok && data.success) setAssets(data.data);
     } catch (err) {
@@ -166,13 +175,11 @@ export default function AssetsInspectionPage() {
   const handleUploadDoc = async (file: File | null) => {
     if (!file) return;
     setUploadingDoc(true);
-    const token = localStorage.getItem('accessToken');
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const res = await fetch(apiUrl('/upload/single'), {
+      const res = await apiFetch('/upload/single', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
       const data = await res.json();
@@ -191,16 +198,14 @@ export default function AssetsInspectionPage() {
 
   const submitInspection = async () => {
     if (!selectedAsset) return;
-    const token = localStorage.getItem('accessToken');
     const payload = {
       ...formData,
       year: parseInt(formData.year),
       cylinder: parseInt(formData.cylinder),
       odometer: parseInt(formData.odometer),
     };
-    const res = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/inspect`), {
+    const res = await apiFetch(`/admin/assets/${selectedAsset.id}/inspect`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const data = await res.json();
@@ -225,11 +230,7 @@ export default function AssetsInspectionPage() {
     setProcessing(true);
     try {
       await submitInspection();
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/approve`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/admin/assets/${selectedAsset.id}/approve`, { method: 'PUT' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'Gagal menyetujui barang');
       showToast('success', `✅ Barang "${selectedAsset.title}" diinspeksi dan disetujui!`);
@@ -258,10 +259,8 @@ export default function AssetsInspectionPage() {
     setProcessing(true);
     try {
       await submitInspection();
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(apiUrl(`/admin/assets/${selectedAsset.id}/reject`), {
+      const res = await apiFetch(`/admin/assets/${selectedAsset.id}/reject`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: rejectionReason.trim() }),
       });
       const data = await res.json();
@@ -275,18 +274,6 @@ export default function AssetsInspectionPage() {
       setProcessing(false);
     }
   };
-
-  const Field = ({ label, required, error, children }: {
-    label: string; required?: boolean; error?: string; children: React.ReactNode;
-  }) => (
-    <div className="form-group">
-      <label className="form-label">
-        {label}{required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
-      </label>
-      {children}
-      {error && <span className="form-error">{error}</span>}
-    </div>
-  );
 
   return (
     <DashboardLayout>

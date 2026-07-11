@@ -5,7 +5,8 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface RefundItem {
   id: string;
@@ -36,6 +37,7 @@ const parseJwt = (token: string) => {
 };
 
 export default function RefundsPage() {
+  const toast = useToast();
   const [refunds, setRefunds] = useState<RefundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -51,11 +53,7 @@ export default function RefundsPage() {
       }
 
       // We might need to adjust the API to accept status filter, or we fetch all and filter in frontend for simplicity
-      const response = await fetch(apiUrl(`/payments/deposits/refund-queue?page=1&per_page=100`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/deposits/refund-queue?page=1&per_page=100`);
       const data = await response.json();
       if (response.ok && data.success) {
         setRefunds(Array.isArray(data.data) ? data.data : []);
@@ -77,20 +75,17 @@ export default function RefundsPage() {
   const handleProcessRefund = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin mencairkan refund deposit ini via sistem?')) return;
     try {
-      const response = await fetch(apiUrl(`/payments/deposits/${id}/refund`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch(`/payments/deposits/${id}/refund`, { method: 'POST' });
       const data = await response.json();
       if (response.ok && data.success) {
-        alert('Refund berhasil diproses!');
+        toast.success('Refund berhasil diproses!');
         fetchRefunds();
       } else {
-        alert(data.error?.message || 'Gagal memproses refund');
+        toast.error(data.error?.message || 'Gagal memproses refund');
       }
-    } catch (err) { 
-      console.error(err); 
-      alert('Terjadi kesalahan koneksi');
+    } catch (err) {
+      console.error(err);
+      toast.error('Terjadi kesalahan koneksi');
     }
   };
 

@@ -6,7 +6,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface UserDetail {
   id: string;
@@ -62,10 +62,7 @@ export default function UserDetailPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        const res = await fetch(apiUrl(`/admin/users/${userId}`), {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await apiFetch(`/admin/users/${userId}`);
         if (res.ok) {
           const data = await res.json();
           const u = data.data?.user || data.data;
@@ -95,13 +92,8 @@ export default function UserDetailPage() {
     if (!confirm(`Anda yakin ingin ${user?.status === 'suspended' ? 'mengaktifkan' : 'mensuspend'} akun ini?`)) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/admin/users/${userId}/status`), {
+      const res = await apiFetch(`/admin/users/${userId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           status: user?.status === 'suspended' ? 'active' : 'suspended',
         }),
@@ -125,11 +117,7 @@ export default function UserDetailPage() {
     if (!confirm('Kirim ulang email reset password ke pengguna ini?')) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/admin/users/${userId}/reset-password`), {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await apiFetch(`/admin/users/${userId}/reset-password`, { method: 'POST' });
       if (res.ok) {
         showToast('success', 'Email reset password telah dikirim');
       } else {
@@ -145,13 +133,8 @@ export default function UserDetailPage() {
   const handleSaveProviderSettings = async () => {
     setSavingSettings(true);
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/admin/users/${userId}/provider-status`), {
+      const res = await apiFetch(`/admin/users/${userId}/provider-status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           status: user?.provider_status || 'approved',
           provider_fee_type: feeType,
@@ -469,7 +452,7 @@ export default function UserDetailPage() {
                         textTransform: 'uppercase',
                       }}
                     >
-                      {doc.type === 'ktp' ? 'Foto KTP Depan' : 'Foto Selfie dengan KTP'}
+                      {doc.type === 'ktp' ? 'Foto KTP Depan' : 'Foto Selfie'}
                     </div>
                     {doc.file_url ? (
                       <img
@@ -497,7 +480,7 @@ export default function UserDetailPage() {
                           background: 'var(--bg-secondary)',
                         }}
                       >
-                        {doc.type === 'ktp' ? '📄 Foto KTP Depan' : '🤳 Foto Selfie dengan KTP'}
+                        {doc.type === 'ktp' ? '📄 Foto KTP Depan' : '🤳 Foto Selfie'}
                       </div>
                     )}
                   </div>

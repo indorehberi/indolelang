@@ -6,9 +6,11 @@ import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { apiUrl } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function DetailLotPage() {
   const router = useRouter();
+  const toast = useToast();
   const { id } = useParams() as { id: string };
 
   const [lot, setLot] = useState<any>(null);
@@ -448,7 +450,7 @@ export default function DetailLotPage() {
                       {similar.timer}
                     </span>
                     <button
-                      onClick={() => alert("Gunakan katalog utama untuk melihat lot real.")}
+                      onClick={() => toast.info("Gunakan katalog utama untuk melihat lot real.")}
                       className="px-4 py-2 bg-premium/10 text-premium font-bold text-body-sm rounded-xl hover:bg-premium hover:text-on-premium transition-all btn-press"
                     >
                       Detail Lot

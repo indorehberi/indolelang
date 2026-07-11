@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, refreshAccessToken } from "@/lib/api";
 
 export default function ProviderStatusPage() {
   const router = useRouter();
@@ -20,13 +20,18 @@ export default function ProviderStatusPage() {
       }
 
       try {
-        const res = await fetch(apiUrl("/providers/me"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch("/providers/me");
         const resData = await res.json();
         if (res.ok && resData.success && resData.data) {
           setStatus(resData.data.status);
           setRejectionReason(resData.data.rejection_reason || "");
+          if (resData.data.status === "aktif") {
+            // The access token in localStorage may still carry the
+            // pre-approval role (bidder/user) if it was issued before the
+            // admin approved this upgrade — refresh it now so the provider
+            // dashboard and "ajukan barang" don't get rejected with 403.
+            refreshAccessToken();
+          }
         } else {
           router.push("/register/provider");
         }

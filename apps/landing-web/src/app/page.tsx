@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials, usePublicGalleries } from "@/hooks/usePublicData";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
+import { useToast } from "@/providers/ToastProvider";
 
 function AnimatedCounter({
   target,
@@ -144,6 +145,7 @@ const initialLots: any[] = [];
 
 export default function Home() {
   const router = useRouter();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: dbFeaturedLots = [] } = useFeaturedLots();
@@ -337,7 +339,7 @@ export default function Home() {
     } else if (action.includes("kontak") || action.includes("hubungi")) {
       router.push("/kontak");
     } else {
-      alert(`Fitur "${actionName}" sedang disiapkan.`);
+      toast.info(`Fitur "${actionName}" sedang disiapkan.`);
     }
   };
 
@@ -637,7 +639,7 @@ export default function Home() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert("Kategori lelang Alat Berat akan segera hadir!");
+                  toast.info("Kategori lelang Alat Berat akan segera hadir!");
                 }}
                 className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
               >
@@ -663,7 +665,7 @@ export default function Home() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert("Kategori lelang Properti akan segera hadir!");
+                  toast.info("Kategori lelang Properti akan segera hadir!");
                 }}
                 className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
               >
@@ -689,7 +691,7 @@ export default function Home() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert("Kategori lelang Barang akan segera hadir!");
+                  toast.info("Kategori lelang Barang akan segera hadir!");
                 }}
                 className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md opacity-75 hover:opacity-90 transition-opacity"
               >

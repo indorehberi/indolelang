@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
-import { apiUrl } from '../../lib/api';
+import { apiFetch, clearAuthAndRedirect } from '../../lib/api';
 
 interface TopbarProps {
   breadcrumbParent?: string;
@@ -43,9 +43,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         if (!token) return;
 
-        const res = await fetch(apiUrl('/notifications/unread-count'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/notifications/unread-count');
 
         if (res.ok) {
           const json = await res.json();
@@ -73,11 +71,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/login';
+    clearAuthAndRedirect('Anda telah logout.');
   };
 
   return (

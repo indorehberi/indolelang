@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { apiUrl, API_BASE_URL } from "@/lib/api";
+import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 interface BidLog {
   id: string;
@@ -23,6 +24,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
   socket: Socket | null;
   onLotClosed: () => void;
 }) {
+  const toast = useToast();
   const [currentPrice, setCurrentPrice] = useState<number>(Number(lot.starting_price));
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [hasNipl, setHasNipl] = useState<boolean>(true);
@@ -34,9 +36,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
   useEffect(() => {
     const fetchNipl = async () => {
       try {
-        const resDeposits = await fetch(apiUrl("/deposits"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const resDeposits = await apiFetch("/deposits");
         const resDepData = await resDeposits.json();
         if (resDeposits.ok && resDepData.success) {
           const list = resDepData.data || [];
@@ -90,7 +90,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
 
     const handleLotClosed = (data: any) => {
       if (data.lot_id !== lot.id) return;
-      alert(`Bidding lot ${lot.lot_number} selesai. Hasil: ${data.result === "sold" ? "TERJUAL" : "TIDAK LAKU"}`);
+      toast.info(`Bidding lot ${lot.lot_number} selesai. Hasil: ${data.result === "sold" ? "TERJUAL" : "TIDAK LAKU"}`);
       onLotClosed();
     };
 
@@ -309,9 +309,7 @@ export default function BidderBiddingRoom() {
       setLoading(true);
 
       // Providers cannot bid — bounce them
-      const resProfile = await fetch(apiUrl("/users/profile"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resProfile = await apiFetch("/users/profile");
       const profileData = await resProfile.json();
       if (resProfile.ok && profileData.success && profileData.data.role === "provider") {
         router.push("/provider/dashboard");
@@ -319,9 +317,7 @@ export default function BidderBiddingRoom() {
       }
 
       // Fetch ALL active lots
-      const res = await fetch(apiUrl("/lots?status=active"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/lots?status=active");
       const resData = await res.json();
 
       if (res.ok && resData.success && resData.data?.length > 0) {
@@ -366,26 +362,41 @@ export default function BidderBiddingRoom() {
   useEffect(() => {
     if (activeLots.length === 0) return;
 
-    const token = localStorage.getItem("accessToken");
-    const socket = io(API_BASE_URL, {
-      auth: { token },
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
+    let cancelled = false;
+    let socket: Socket | null = null;
 
-    // Join room for each active lot
-    activeLots.forEach((lot) => {
-      socket.emit("bid:watch", {
-        lot_id: lot.id,
-        session_id: lot.session_id,
+    const connect = async () => {
+      // Always connect with a fresh access token — a page can sit open past
+      // the access-token lifetime, and unlike apiFetch() the socket has no
+      // built-in retry-on-401, so refresh proactively before opening it.
+      const freshToken = (await refreshAccessToken()) || localStorage.getItem("accessToken");
+      if (cancelled) return;
+
+      socket = io(API_BASE_URL, {
+        auth: { token: freshToken },
+        transports: ["websocket"],
       });
-    });
+      socketRef.current = socket;
+
+      // Join room for each active lot
+      activeLots.forEach((lot) => {
+        socket!.emit("bid:watch", {
+          lot_id: lot.id,
+          session_id: lot.session_id,
+        });
+      });
+    };
+
+    connect();
 
     return () => {
-      activeLots.forEach((lot) => {
-        socket.emit("bid:unwatch", { lot_id: lot.id });
-      });
-      socket.disconnect();
+      cancelled = true;
+      if (socket) {
+        activeLots.forEach((lot) => {
+          socket!.emit("bid:unwatch", { lot_id: lot.id });
+        });
+        socket.disconnect();
+      }
       socketRef.current = null;
     };
   }, [activeLots.map(l => l.id).join(",")]); // Re-connect only if the active lot IDs change

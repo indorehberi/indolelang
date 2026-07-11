@@ -4,7 +4,13 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
+
+interface SettingUpdate {
+  key: string;
+  value: string;
+}
 
 interface FeatureToggleItem {
   key: string;
@@ -12,8 +18,8 @@ interface FeatureToggleItem {
 }
 
 export default function PlatformSettingsPage() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const [toggles, setToggles] = useState<FeatureToggleItem[]>([]);
   const [tax, setTax] = useState('11');
   const [nipl, setNipl] = useState('5000000');
@@ -118,7 +124,6 @@ export default function PlatformSettingsPage() {
 
   const fetchSettings = async () => {
     setLoading(true);
-    setFetchError(null);
     try {
       const cookieMap: Record<string, string> = {};
       if (typeof document !== 'undefined') {
@@ -130,15 +135,9 @@ export default function PlatformSettingsPage() {
 
       const loadedToggles: FeatureToggleItem[] = [];
       const newApiKeys = { ...apiKeys };
-      let apiFailed = false;
 
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(apiUrl('/admin/settings'), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await apiFetch('/admin/settings');
         const data = await response.json();
         if (response.ok && data.success) {
           data.data.forEach((item: any) => {
@@ -204,12 +203,10 @@ export default function PlatformSettingsPage() {
           setApiKeys(newApiKeys);
         } else {
           const errMsg = data.error?.message || `Server merespon dengan status ${response.status}`;
-          setFetchError(errMsg);
-          apiFailed = true;
+          toast.warning(`Gagal memuat pengaturan: ${errMsg}. Menampilkan nilai default.`);
         }
       } catch (networkErr: any) {
-        setFetchError(`Gagal terhubung ke server: ${networkErr.message || 'Network error'}`);
-        apiFailed = true;
+        toast.warning(`Gagal terhubung ke server: ${networkErr.message || 'Network error'}. Menampilkan nilai default.`);
       }
 
       // ensureToggle SELALU dijalankan — baik API sukses maupun gagal
@@ -251,66 +248,73 @@ export default function PlatformSettingsPage() {
 
       setToggles(loadedToggles);
     } catch (e: any) {
-      setFetchError(`Terjadi kesalahan tidak terduga: ${e.message || 'Unknown error'}`);
+      toast.warning(`Terjadi kesalahan tidak terduga: ${e.message || 'Unknown error'}. Menampilkan nilai default.`);
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Save a batch of settings, checking each response individually so a
+   * silent 401/500 can never masquerade as a successful save.
+   */
+  const saveSettings = async (updates: SettingUpdate[]): Promise<{ ok: boolean; failedKeys: string[] }> => {
+    const failedKeys: string[] = [];
+    for (const update of updates) {
+      const response = await apiFetch(`/admin/settings/${update.key}`, {
+        method: 'PUT',
+        body: JSON.stringify({ value: update.value }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        failedKeys.push(update.key);
+      }
+    }
+    return { ok: failedKeys.length === 0, failedKeys };
+  };
+
   const handleToggle = async (key: string, currentValue: string) => {
     const newValue = currentValue === 'true' ? 'false' : 'true';
     try {
-      if (typeof document !== 'undefined') {
-        document.cookie = `${key}=${newValue}; path=/; max-age=31536000;`;
-      }
-
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/settings/${key}`), {
+      const response = await apiFetch(`/admin/settings/${key}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ value: newValue }),
       });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        alert(`Fitur ${key} berhasil diubah menjadi ${newValue === 'true' ? 'AKTIF' : 'NONAKTIF'}!`);
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) {
+        // Only mirror the change into the cookie once the server confirms it,
+        // so a failed save can never masquerade as a successful toggle.
+        if (typeof document !== 'undefined') {
+          document.cookie = `${key}=${newValue}; path=/; max-age=31536000;`;
+        }
+        toast.success(`Fitur ${key} berhasil diubah menjadi ${newValue === 'true' ? 'AKTIF' : 'NONAKTIF'}!`);
         fetchSettings();
       } else {
-        throw new Error(data.error?.message || 'Gagal mengubah fitur');
+        toast.error(data?.error?.message || `Gagal mengubah fitur ${key}. Perubahan tidak tersimpan di server.`);
       }
     } catch (e: any) {
-      setToggles((prev) =>
-        prev.map((t) => (t.key === key ? { ...t, value: newValue } : t))
-      );
-      alert(`Fitur ${key} berhasil diubah menjadi ${newValue === 'true' ? 'AKTIF' : 'NONAKTIF'} (Simulasi Cookie)!`);
+      toast.error(`Gagal mengubah fitur ${key}. Periksa koneksi Anda.`);
     }
   };
 
   const handleSaveIntegrations = async () => {
     setIsSaving(true);
-    const token = localStorage.getItem('accessToken');
     // Payment gateway is disabled platform-wide — always persist manual mode,
     // regardless of whatever value was loaded from a previous configuration.
     const payload = { ...apiKeys, deposit_payment_mode: 'manual' };
+    const updates = Object.entries(payload)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([key, value]) => ({ key, value: String(value) }));
     try {
-      for (const [k, v] of Object.entries(payload)) {
-        if (v && v !== '') {
-          await fetch(apiUrl(`/admin/settings/${k}`), {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ value: v }),
-          });
-        }
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Integrasi Pihak Ketiga berhasil disimpan dan dienkripsi!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
       }
-      alert('Integrasi Pihak Ketiga berhasil disimpan dan dienkripsi!');
-      fetchSettings();
     } catch (e) {
-      alert('Gagal menyimpan Integrasi.');
+      toast.error('Gagal menyimpan Integrasi. Periksa koneksi Anda.');
     } finally {
       setIsSaving(false);
     }
@@ -322,7 +326,6 @@ export default function PlatformSettingsPage() {
 
   const handleSaveAuctionSettings = async () => {
     setIsSavingAuction(true);
-    const token = localStorage.getItem('accessToken');
     try {
       const updates = [
         { key: 'auction_lot_duration_secs', value: auctionLotDuration },
@@ -333,20 +336,15 @@ export default function PlatformSettingsPage() {
         { key: 'auction_session_end_trigger', value: auctionSessionEndTrigger },
       ];
 
-      for (const update of updates) {
-        await fetch(apiUrl(`/admin/settings/${update.key}`), {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ value: update.value }),
-        });
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Otomatisasi Mesin Lelang berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
       }
-      alert('Otomatisasi Mesin Lelang berhasil disimpan!');
-      fetchSettings();
     } catch (e) {
-      alert('Gagal menyimpan otomatisasi mesin lelang.');
+      toast.error('Gagal menyimpan otomatisasi mesin lelang. Periksa koneksi Anda.');
     } finally {
       setIsSavingAuction(false);
     }
@@ -354,27 +352,21 @@ export default function PlatformSettingsPage() {
 
   const handleSaveBaplSettings = async () => {
     setIsSavingBapl(true);
-    const token = localStorage.getItem('accessToken');
     try {
       const updates = [
         { key: 'bapl_pejabat_penjual', value: pejabatPenjual },
         { key: 'bapl_pejabat_lelang', value: pejabatLelang },
       ];
 
-      for (const update of updates) {
-        await fetch(apiUrl(`/admin/settings/${update.key}`), {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ value: update.value }),
-        });
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Pejabat BAPL berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
       }
-      alert('Pengaturan Pejabat BAPL berhasil disimpan!');
-      fetchSettings();
     } catch (e) {
-      alert('Gagal menyimpan pengaturan Pejabat BAPL.');
+      toast.error('Gagal menyimpan pengaturan Pejabat BAPL. Periksa koneksi Anda.');
     } finally {
       setIsSavingBapl(false);
     }
@@ -389,20 +381,15 @@ export default function PlatformSettingsPage() {
         { key: 'bid_increment_3', value: bidIncrement3.toString() },
       ];
 
-      const token = localStorage.getItem('accessToken');
-      for (const update of updates) {
-        await fetch(apiUrl('/admin/settings'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(update),
-        });
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Bidding berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
       }
-      alert('Pengaturan Bidding berhasil disimpan!');
     } catch (e) {
-      alert('Gagal menyimpan pengaturan Bidding.');
+      toast.error('Gagal menyimpan pengaturan Bidding. Periksa koneksi Anda.');
     } finally {
       setIsSavingBidding(false);
     }
@@ -410,12 +397,11 @@ export default function PlatformSettingsPage() {
 
   const handleSaveFinancials = async () => {
     if (!tax || !nipl || !niplMotor) {
-      alert('Semua bidang (PPN, NIPL) harus diisi dan tidak boleh kosong atau dihapus.');
+      toast.error('Semua bidang (PPN, NIPL) harus diisi dan tidak boleh kosong atau dihapus.');
       return;
     }
-    
+
     setIsSaving(true);
-    const token = localStorage.getItem('accessToken');
     try {
       const updates = [
         { key: 'tax_percentage', value: tax },
@@ -434,21 +420,16 @@ export default function PlatformSettingsPage() {
         { key: 'admin_fee_tiers', value: JSON.stringify(adminFeeTiers) },
       ];
 
-      for (const update of updates) {
-        await fetch(apiUrl(`/admin/settings/${update.key}`), {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ value: update.value }),
-        });
-      }
+      const { ok, failedKeys } = await saveSettings(updates);
       setIsConfirmModalOpen(false);
-      alert('Aturan keuangan berhasil disimpan secara permanen!');
-      fetchSettings();
+      await fetchSettings();
+      if (ok) {
+        toast.success('Aturan keuangan berhasil disimpan secara permanen!');
+      } else {
+        toast.error(`Sebagian aturan keuangan gagal disimpan: ${failedKeys.join(', ')}`);
+      }
     } catch (e) {
-      alert('Gagal menyimpan aturan keuangan.');
+      toast.error('Gagal menyimpan aturan keuangan. Periksa koneksi Anda.');
     } finally {
       setIsSaving(false);
     }
@@ -723,13 +704,7 @@ export default function PlatformSettingsPage() {
           <Card>
             <h2 className="card-title">Feature Toggles (Modul Layanan Pihak Ketiga)</h2>
             <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Perubahan status di bawah ini langsung berdampak pada alur registrasi, pembayaran, dan bidding room.</p>
-            
-            {fetchError && (
-              <div className="alert alert-warning mb-3" style={{ fontSize: '0.85rem' }}>
-                <strong>⚠️ Peringatan:</strong> {fetchError}. Menampilkan nilai default. Silakan <a href="/admin/login" style={{ fontWeight: 'bold' }}>login ulang</a> untuk memuat data terbaru dari server.
-              </div>
-            )}
-            
+
             <div className="table-wrapper">
               <table>
                 <thead>

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function RegisterProviderPage() {
   const router = useRouter();
+  const toast = useToast();
   const [checking, setChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,9 +42,7 @@ export default function RegisterProviderPage() {
 
       try {
         // If they've already applied, don't show the form again.
-        const resProvider = await fetch(apiUrl("/providers/me"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const resProvider = await apiFetch("/providers/me");
         if (resProvider.ok) {
           const data = (await resProvider.json()).data;
           if (data) {
@@ -52,9 +52,7 @@ export default function RegisterProviderPage() {
         }
 
         // If they already have bidder profile/KYC data, prefill overlapping fields.
-        const resBidder = await fetch(apiUrl("/bidders/me"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const resBidder = await apiFetch("/bidders/me");
         if (resBidder.ok) {
           const bidder = (await resBidder.json()).data;
           if (bidder) {
@@ -65,9 +63,7 @@ export default function RegisterProviderPage() {
           }
         }
 
-        const resKyc = await fetch(apiUrl("/kyc/status"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const resKyc = await apiFetch("/kyc/status");
         if (resKyc.ok) {
           const kyc = (await resKyc.json()).data;
           if (kyc?.ktp_url && kyc?.selfie_url) {
@@ -92,24 +88,22 @@ export default function RegisterProviderPage() {
     setUploading: (v: boolean) => void
   ) => {
     setUploading(true);
-    const token = localStorage.getItem("accessToken");
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const response = await fetch(apiUrl("/upload/single"), {
+      const response = await apiFetch("/upload/single", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
         setUrl(resData.data.url);
       } else {
-        alert(resData.error?.message || "Gagal mengunggah berkas.");
+        toast.error(resData.error?.message || "Gagal mengunggah berkas.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengunggah berkas.");
+      toast.error("Koneksi gagal saat mengunggah berkas.");
     } finally {
       setUploading(false);
     }
@@ -119,20 +113,15 @@ export default function RegisterProviderPage() {
     e.preventDefault();
 
     if (!ktpUrl || !selfieUrl) {
-      alert("Harap unggah dokumen KTP dan foto selfie Anda.");
+      toast.warning("Harap unggah dokumen KTP dan foto selfie Anda.");
       return;
     }
 
     setIsSubmitting(true);
-    const token = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch(apiUrl("/providers/apply"), {
+      const response = await apiFetch("/providers/apply", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           company_name: companyName,
           npwp,
@@ -151,10 +140,10 @@ export default function RegisterProviderPage() {
       if (response.ok && resData.success) {
         router.push("/provider/status");
       } else {
-        alert(resData.error?.message || "Gagal mengirim pengajuan provider.");
+        toast.error(resData.error?.message || "Gagal mengirim pengajuan provider.");
       }
     } catch (err) {
-      alert("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setIsSubmitting(false);
     }
@@ -249,11 +238,10 @@ export default function RegisterProviderPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Nomor PKS <span className="text-error">*</span>
+              Nomor PKS <span className="text-on-surface-variant font-normal">(Opsional)</span>
             </label>
             <input
               type="text"
-              required
               value={pksNumber}
               onChange={(e) => setPksNumber(e.target.value)}
               placeholder="Nomor Perjanjian Kerja Sama"

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '../../../../components/layout/DashboardLayout';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
-import { apiUrl } from '../../../../lib/api';
+import { apiFetch } from '../../../../lib/api';
 
 export default function NewProviderPage() {
   const router = useRouter();
@@ -51,11 +51,8 @@ export default function NewProviderPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(apiUrl('/upload'), {
+      const res = await apiFetch('/upload', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
-        },
         body: formData
       });
       const data = await res.json();
@@ -118,13 +115,8 @@ export default function NewProviderPage() {
     if (npwp_url) payload.npwp_url = npwp_url;
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(apiUrl('/admin/users'), {
+      const res = await apiFetch('/admin/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(payload),
       });
 

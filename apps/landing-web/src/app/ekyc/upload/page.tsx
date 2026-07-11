@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function EkycUploadPage() {
   const router = useRouter();
+  const toast = useToast();
   const [nik, setNik] = useState("");
 
   // Unified profile fields (previously a separate "Profil Bidder" form/page)
@@ -52,9 +54,7 @@ export default function EkycUploadPage() {
 
       try {
         // Prefill from existing profile data, if any (e.g. re-submission after rejection).
-        const response = await fetch(apiUrl("/users/profile"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch("/users/profile");
         const resData = await response.json();
         if (response.ok && resData.success) {
           const user = resData.data;
@@ -67,19 +67,17 @@ export default function EkycUploadPage() {
         }
 
         // Check if an application already exists and where it's at.
-        const bidderRes = await fetch(apiUrl("/bidders/me"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const bidderRes = await apiFetch("/bidders/me");
         if (bidderRes.ok) {
           const bidderData = await bidderRes.json();
           const bidder = bidderData.success ? bidderData.data : null;
           if (bidder) {
             if (bidder.status === "antri") {
-              alert("Pengajuan Anda sedang dalam antrean verifikasi. Anda tidak perlu mengajukan ulang saat ini.");
+              toast.info("Pengajuan Anda sedang dalam antrean verifikasi. Anda tidak perlu mengajukan ulang saat ini.");
               router.push("/ekyc/status");
               return;
             } else if (bidder.status === "aktif") {
-              alert("Akun Anda sudah terverifikasi. Tidak perlu mengajukan ulang.");
+              toast.info("Akun Anda sudah terverifikasi. Tidak perlu mengajukan ulang.");
               router.push("/ekyc/status");
               return;
             }
@@ -124,7 +122,7 @@ export default function EkycUploadPage() {
       }, 100);
     } catch (err: any) {
       console.error("Gagal membuka kamera:", err);
-      alert(`Tidak dapat mengakses kamera (${err.name}: ${err.message}). Kami akan membuka Galeri Foto sebagai alternatif.`);
+      toast.warning(`Tidak dapat mengakses kamera (${err.name}: ${err.message}). Kami akan membuka Galeri Foto sebagai alternatif.`);
       setIsCameraOpen(false);
       if (selfieInputRef.current) {
         selfieInputRef.current.click();
@@ -144,20 +142,20 @@ export default function EkycUploadPage() {
   const capturePhoto = () => {
     try {
       if (!videoRef.current) {
-        alert("Video tidak ditemukan!");
+        toast.error("Video tidak ditemukan!");
         return;
       }
       if (!canvasRef.current) {
-        alert("Canvas tidak ditemukan!");
+        toast.error("Canvas tidak ditemukan!");
         return;
       }
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
-      
+
       if (!context) {
-        alert("Gagal memuat canvas 2D context");
+        toast.error("Gagal memuat canvas 2D context");
         return;
       }
 
@@ -172,7 +170,7 @@ export default function EkycUploadPage() {
       setCapturedImage(dataUrl);
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat mengambil foto: " + (err as Error).message);
+      toast.error("Terjadi kesalahan saat mengambil foto: " + (err as Error).message);
     }
   };
 
@@ -204,7 +202,7 @@ export default function EkycUploadPage() {
         await handleFileUpload(file, "selfie");
       } catch (err) {
         console.error("Gagal memproses gambar:", err);
-        alert("Gagal memproses jepretan kamera.");
+        toast.error("Gagal memproses jepretan kamera.");
       }
     }
   };
@@ -224,11 +222,8 @@ export default function EkycUploadPage() {
     else setUploadingSelfie(true);
 
     try {
-      const response = await fetch(apiUrl("/upload/single"), {
+      const response = await apiFetch("/upload/single", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -242,10 +237,10 @@ export default function EkycUploadPage() {
           setSelfieFile(file);
         }
       } else {
-        alert(resData.error?.message || `Gagal mengunggah foto ${type.toUpperCase()}.`);
+        toast.error(resData.error?.message || `Gagal mengunggah foto ${type.toUpperCase()}.`);
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengunggah berkas. Pastikan server aktif.");
+      toast.error("Koneksi gagal saat mengunggah berkas. Pastikan server aktif.");
     } finally {
       if (type === "ktp") setUploadingKtp(false);
       else setUploadingSelfie(false);
@@ -262,36 +257,31 @@ export default function EkycUploadPage() {
     e.preventDefault();
 
     if (nik.length !== 16) {
-      alert("NIK harus terdiri dari 16 digit.");
+      toast.warning("NIK harus terdiri dari 16 digit.");
       return;
     }
 
     if (!ktpUrl || !selfieUrl) {
-      alert("Harap unggah kedua foto dokumen eKYC.");
+      toast.warning("Harap unggah kedua foto dokumen eKYC.");
       return;
     }
 
     if (!address.trim() || !bankName.trim() || !bankAccountNo.trim() || !bankAccountName.trim()) {
-      alert("Harap lengkapi Alamat dan Data Rekening Bank Anda.");
+      toast.warning("Harap lengkapi Alamat dan Data Rekening Bank Anda.");
       return;
     }
 
     if (bankAccountNo !== confirmBankAccountNo) {
-      alert("Nomor rekening dan konfirmasi nomor rekening tidak cocok.");
+      toast.warning("Nomor rekening dan konfirmasi nomor rekening tidak cocok.");
       return;
     }
 
-    const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
 
     try {
       // Submit unified profile + KYC application in a single call
-      const response = await fetch(apiUrl("/bidders/apply"), {
+      const response = await apiFetch("/bidders/apply", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           address,
           occupation,
@@ -307,10 +297,10 @@ export default function EkycUploadPage() {
       if (response.ok && resData.success) {
         router.push("/ekyc/status");
       } else {
-        alert(resData.error?.message || "Gagal mengirim pengajuan bidder.");
+        toast.error(resData.error?.message || "Gagal mengirim pengajuan bidder.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengirim dokumen. Pastikan server aktif.");
+      toast.error("Koneksi gagal saat mengirim dokumen. Pastikan server aktif.");
     } finally {
       setIsSubmitting(false);
     }
@@ -510,7 +500,7 @@ export default function EkycUploadPage() {
           {/* Capture Selfie with Webcam */}
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Ambil Foto Selfie dengan KTP <span className="text-error">*</span>
+              Ambil Foto Selfie <span className="text-error">*</span>
             </label>
             <div
               className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all ${
@@ -553,7 +543,7 @@ export default function EkycUploadPage() {
                   <div className="space-y-1 text-on-surface-variant">
                     <span className="material-symbols-outlined text-3xl">face</span>
                     <span className="block font-bold text-body-sm">Pilih Metode Pengambilan Foto Selfie</span>
-                    <span className="block text-outline text-[10px] text-badge-text">Wajah &amp; KTP harus terlihat jelas</span>
+                    <span className="block text-outline text-[10px] text-badge-text">Wajah harus terlihat jelas</span>
                   </div>
                   <div className="flex gap-3 justify-center">
                     <button

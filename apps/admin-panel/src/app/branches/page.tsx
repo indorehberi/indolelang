@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 
 interface Branch {
   id: string;
@@ -28,7 +28,7 @@ export default function BranchesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' | 'warning' } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -51,12 +51,7 @@ export default function BranchesPage() {
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/branches'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch('/branches');
       const data = await response.json();
       if (response.ok && data.success) {
         setBranches(data.data);
@@ -77,20 +72,15 @@ export default function BranchesPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.city || !formData.address || !formData.phone || !formData.pic_name) {
-      alert('Mohon isi semua bidang yang diwajibkan.');
+      setToast({ message: 'Mohon isi semua bidang yang diwajibkan.', variant: 'warning' });
       return;
     }
 
     setAdding(true);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/branches'), {
+      const response = await apiFetch('/admin/branches', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
 
@@ -113,20 +103,15 @@ export default function BranchesPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editData.name || !editData.city || !editData.address || !editData.phone || !editData.pic_name) {
-      alert('Mohon isi semua bidang yang diwajibkan.');
+      setToast({ message: 'Mohon isi semua bidang yang diwajibkan.', variant: 'warning' });
       return;
     }
 
     setEditing(true);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/branches/${editData.id}`), {
+      const response = await apiFetch(`/admin/branches/${editData.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: editData.name,
           city: editData.city,
@@ -156,13 +141,7 @@ export default function BranchesPage() {
 
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/branches/${id}/status`), {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/admin/branches/${id}/status`, { method: 'PATCH' });
 
       const data = await response.json();
       if (!response.ok) {

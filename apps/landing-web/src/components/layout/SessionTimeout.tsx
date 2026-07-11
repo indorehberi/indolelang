@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { clearAuthAndRedirect } from '../../lib/api';
 
 export default function SessionTimeout({ timeoutMinutes = 15 }: { timeoutMinutes?: number }) {
-  const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -18,10 +18,7 @@ export default function SessionTimeout({ timeoutMinutes = 15 }: { timeoutMinutes
     let timeoutId: NodeJS.Timeout;
 
     const logout = () => {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 15 menit. Silakan login kembali.');
-      router.push('/login');
+      clearAuthAndRedirect(`Sesi Anda berakhir karena tidak ada aktivitas selama ${timeoutMinutes} menit.`);
     };
 
     const resetTimer = () => {
@@ -39,7 +36,7 @@ export default function SessionTimeout({ timeoutMinutes = 15 }: { timeoutMinutes
       events.forEach(event => window.removeEventListener(event, resetTimer));
       clearTimeout(timeoutId);
     };
-  }, [router, timeoutMinutes, pathname]);
+  }, [timeoutMinutes, pathname]);
 
   return null;
 }

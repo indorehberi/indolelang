@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 export default function FinanceReportPage() {
+  const toast = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,10 +23,7 @@ export default function FinanceReportPage() {
   const fetchFinanceData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/payments/settlements?per_page=100'), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch('/payments/settlements?per_page=100');
       const data = await response.json();
       if (response.ok && data.success) {
         setItems(data.data || []);
@@ -83,7 +82,7 @@ export default function FinanceReportPage() {
           <p className="page-subtitle">Rekapitulasi komisi, PPN Pemenang (PMK 41), PPh 23, dan nominal pencairan hasil lelang real-time.</p>
         </div>
         <button
-          onClick={() => alert('Export laporan keuangan berhasil didownload (.xlsx)')}
+          onClick={() => toast.success('Export laporan keuangan berhasil didownload (.xlsx)')}
           className="btn btn-primary btn-sm"
         >
           📥 Export Excel

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 export default function PilihPeranPage() {
   const router = useRouter();
@@ -19,8 +19,8 @@ export default function PilihPeranPage() {
 
       try {
         const [resBidder, resProvider] = await Promise.all([
-          fetch(apiUrl("/bidders/me"), { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(apiUrl("/providers/me"), { headers: { Authorization: `Bearer ${token}` } }),
+          apiFetch("/bidders/me"),
+          apiFetch("/providers/me"),
         ]);
         const bidderData = resBidder.ok ? (await resBidder.json()).data : null;
         const providerData = resProvider.ok ? (await resProvider.json()).data : null;

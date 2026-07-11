@@ -6,7 +6,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface AssetDetail {
   id: string;
@@ -78,10 +78,7 @@ export default function AssetDetailPage() {
     } catch(e) {}
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        const res = await fetch(apiUrl(`/assets/${assetId}`), {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await apiFetch(`/assets/${assetId}`);
         if (res.ok) {
           const data = await res.json();
           setAsset(data.data);
@@ -106,46 +103,33 @@ export default function AssetDetailPage() {
   const handleApprove = async () => {
     if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${assetId}/approve`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/admin/assets/${assetId}/approve`, { method: 'PUT' });
       if (response.ok) {
         showToast('success', 'Barang disetujui');
         // reload data
         router.refresh();
         setTimeout(() => window.location.reload(), 1000);
-      } else alert('Gagal menyetujui barang');
+      } else showToast('error', 'Gagal menyetujui barang');
     } catch (err) { console.error(err); }
   };
 
   const handleReject = async () => {
     if (!confirm('Apakah Anda yakin menolak barang ini?')) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/assets/${assetId}/reject`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/admin/assets/${assetId}/reject`, { method: 'PUT' });
       if (response.ok) {
         showToast('success', 'Barang ditolak');
         router.refresh();
         setTimeout(() => window.location.reload(), 1000);
-      } else alert('Gagal menolak barang');
+      } else showToast('error', 'Gagal menolak barang');
     } catch (err) { console.error(err); }
   };
 
   const handleSaveInspection = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/assets/${assetId}/inspection`), {
+      const res = await apiFetch(`/assets/${assetId}/inspection`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(inspectionForm),
       });
       if (res.ok) {

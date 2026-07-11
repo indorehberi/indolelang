@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import BidderLayout from "../../../../components/layout/BidderLayout";
 import Link from "next/link";
-import { apiUrl } from "../../../../lib/api";
+import { apiFetch } from "../../../../lib/api";
 import { useRouter } from "next/navigation";
+import { useToast } from "../../../../providers/ToastProvider";
 
 interface Deposit {
   id: string;
@@ -19,6 +20,7 @@ export default function DepositHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const router = useRouter();
+  const toast = useToast();
 
   const fetchDeposits = async () => {
     try {
@@ -27,11 +29,7 @@ export default function DepositHistoryPage() {
         router.push("/login");
         return;
       }
-      const response = await fetch(apiUrl("/deposits?page=1&per_page=50"), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch("/deposits?page=1&per_page=50");
       const data = await response.json();
       if (response.ok && data.success) {
         setDeposits(data.data);
@@ -54,22 +52,18 @@ export default function DepositHistoryPage() {
 
     setProcessingId(depositId);
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(apiUrl(`/deposits/${depositId}/request-refund`), {
+      const response = await apiFetch(`/deposits/${depositId}/request-refund`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        alert("Pengajuan refund berhasil. Uang jaminan sedang diproses.");
+        toast.success("Pengajuan refund berhasil. Uang jaminan sedang diproses.");
         fetchDeposits();
       } else {
-        alert(data.error?.message || "Gagal mengajukan refund.");
+        toast.error(data.error?.message || "Gagal mengajukan refund.");
       }
     } catch (err: any) {
-      alert("Koneksi gagal saat mengajukan refund.");
+      toast.error("Koneksi gagal saat mengajukan refund.");
     } finally {
       setProcessingId(null);
     }

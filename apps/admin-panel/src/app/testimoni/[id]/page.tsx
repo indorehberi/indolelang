@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Toast from '../../../components/ui/Toast';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 export default function EditTestimoniPage() {
   const router = useRouter();
@@ -29,13 +29,8 @@ export default function EditTestimoniPage() {
   useEffect(() => {
     const fetchTestimoni = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(apiUrl(`/admin/testimonials/${id}`), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        
+        const response = await apiFetch(`/admin/testimonials/${id}`);
+
         const data = await response.json();
         if (response.ok && data.success) {
           const testimoni = data.data;
@@ -69,13 +64,8 @@ export default function EditTestimoniPage() {
     setSaving(true);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/testimonials/${id}`), {
+      const response = await apiFetch(`/admin/testimonials/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           rating: parseInt(formData.rating, 10),
           content: formData.content,

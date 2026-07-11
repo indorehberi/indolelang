@@ -5,10 +5,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { apiUrl, fetchWithRetry } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 import { Suspense } from "react";
 
 function VerifikasiOtpContent() {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const phone = searchParams ? searchParams.get("phone") || "08123456789" : "08123456789";
 
@@ -55,16 +57,16 @@ function VerifikasiOtpContent() {
         });
         const resData = await response.json();
         if (response.ok && resData.success) {
-          alert("Verifikasi berhasil! Akun Anda sudah aktif. Silakan login.");
+          toast.success("Verifikasi berhasil! Akun Anda sudah aktif. Silakan login.");
           router.push("/login");
         } else {
-          alert(resData.error?.message || "Kode OTP salah atau kedaluwarsa.");
+          toast.error(resData.error?.message || "Kode OTP salah atau kedaluwarsa.");
         }
       } catch (err) {
-        alert("Terjadi kesalahan koneksi.");
+        toast.error("Terjadi kesalahan koneksi.");
       }
     } else {
-      alert("Masukkan 6 digit kode OTP lengkap.");
+      toast.warning("Masukkan 6 digit kode OTP lengkap.");
     }
   };
 

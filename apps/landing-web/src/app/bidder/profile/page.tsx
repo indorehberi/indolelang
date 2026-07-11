@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderProfile() {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,9 +43,7 @@ export default function BidderProfile() {
     try {
       setLoading(true);
       // 1. Fetch Profile Info
-      const resProfile = await fetch(apiUrl("/users/profile"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resProfile = await apiFetch("/users/profile");
       const resProfileData = await resProfile.json();
       if (resProfile.ok && resProfileData.success) {
         const user = resProfileData.data;
@@ -64,9 +64,7 @@ export default function BidderProfile() {
       }
 
       // 2. Fetch KYC Document Status
-      const resKyc = await fetch(apiUrl("/kyc/status"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resKyc = await apiFetch("/kyc/status");
       const resKycData = await resKyc.json();
       if (resKyc.ok && resKycData.success) {
         const kyc = resKycData.data;
@@ -100,29 +98,25 @@ export default function BidderProfile() {
     if (!npwpFile) return;
     
     setIsUploadingNpwp(true);
-    const token = localStorage.getItem("accessToken");
-    
+
     const formData = new FormData();
     formData.append("file", npwpFile);
-    
+
     try {
-      const response = await fetch(apiUrl("/upload/single"), {
+      const response = await apiFetch("/upload/single", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
       
       const resData = await response.json();
       if (response.ok && resData.success) {
         setNpwpUrl(resData.data.url);
-        alert("NPWP berhasil diunggah! Jangan lupa klik Simpan Perubahan.");
+        toast.success("NPWP berhasil diunggah! Jangan lupa klik Simpan Perubahan.");
       } else {
-        alert(resData.error?.message || "Gagal mengunggah dokumen.");
+        toast.error(resData.error?.message || "Gagal mengunggah dokumen.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengunggah dokumen.");
+      toast.error("Koneksi gagal saat mengunggah dokumen.");
     } finally {
       setIsUploadingNpwp(false);
     }
@@ -130,20 +124,15 @@ export default function BidderProfile() {
 
   const handleCheckBank = async () => {
     if (!bankName || !bankAccountNo) {
-      alert("Pilih bank dan isi nomor rekening terlebih dahulu.");
+      toast.warning("Pilih bank dan isi nomor rekening terlebih dahulu.");
       return;
     }
     
     setIsCheckingBank(true);
-    const token = localStorage.getItem("accessToken");
-    
+
     try {
-      const response = await fetch(apiUrl("/bank/validate"), {
+      const response = await apiFetch("/bank/validate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           bank_code: bankName,
           account_no: bankAccountNo,
@@ -153,13 +142,13 @@ export default function BidderProfile() {
       const resData = await response.json();
       if (response.ok && resData.success) {
         setBankAccountName(resData.data.account_name);
-        alert("Rekening berhasil divalidasi atas nama: " + resData.data.account_name);
+        toast.success("Rekening berhasil divalidasi atas nama: " + resData.data.account_name);
       } else {
-        alert(resData.error?.message || "Rekening tidak ditemukan atau tidak valid.");
+        toast.error(resData.error?.message || "Rekening tidak ditemukan atau tidak valid.");
         setBankAccountName("");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengecek rekening.");
+      toast.error("Koneksi gagal saat mengecek rekening.");
     } finally {
       setIsCheckingBank(false);
     }
@@ -170,26 +159,21 @@ export default function BidderProfile() {
     
     if (bankInquiryMode === "manual") {
       if (bankAccountNo !== confirmBankAccountNo) {
-        alert("Nomor Rekening dan Konfirmasi Nomor Rekening tidak cocok!");
+        toast.warning("Nomor Rekening dan Konfirmasi Nomor Rekening tidak cocok!");
         return;
       }
       if (!bankAccountName.trim()) {
-        alert("Atas Nama Rekening wajib diisi!");
+        toast.warning("Atas Nama Rekening wajib diisi!");
         return;
       }
     }
     
     if (typeof window === "undefined") return;
-    const token = localStorage.getItem("accessToken");
 
     setIsSaving(true);
     try {
-      const response = await fetch(apiUrl("/users/profile"), {
+      const response = await apiFetch("/users/profile", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           full_name: name,
           phone: phone,
@@ -220,13 +204,13 @@ export default function BidderProfile() {
           userObj.npwp_url = npwpUrl;
           localStorage.setItem("user", JSON.stringify(userObj));
         }
-        alert("Profil berhasil diperbarui!");
+        toast.success("Profil berhasil diperbarui!");
         loadProfileData();
       } else {
-        alert(resData.error?.message || "Gagal memperbarui profil.");
+        toast.error(resData.error?.message || "Gagal memperbarui profil.");
       }
     } catch (err) {
-      alert("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setIsSaving(false);
     }

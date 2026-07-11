@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { BidderDTO, PaginationMeta, ApplicationStatus } from '@indo-lelang/shared-types';
+import { BidderDTO, PaginationMeta, ApplicationStatus, KycStatus } from '@indo-lelang/shared-types';
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
@@ -65,6 +65,20 @@ export class BiddersService {
         selfie_url: data.selfie_url,
       });
     }
+
+    // Mirror the profile fields onto `users` too — the dashboard's
+    // "lengkapi profil" banner reads GET /users/profile, not this bidder
+    // application row, and would otherwise stay stuck forever.
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        address: data.address,
+        occupation: data.occupation,
+        bank_name: data.bank_name,
+        bank_account_no: data.bank_account_no,
+        bank_account_name: data.bank_account_name,
+      },
+    });
 
     const user = await prisma.users.findUnique({ where: { id: userId }, select: { full_name: true } });
     await notifyAdmins(
@@ -159,6 +173,13 @@ export class BiddersService {
         where: { id: bidder.user_id },
         data: { role: 'bidder', status: 'active' },
       }),
+      // Keep the KYC document's own status in sync — the bidder's profile
+      // page reads /kyc/status directly, and it must not stay "pending"
+      // forever once the application itself has been approved.
+      prisma.kyc_documents.updateMany({
+        where: { user_id: bidder.user_id },
+        data: { status: KycStatus.APPROVED, reviewer_id: reviewerId, reviewed_at: new Date() },
+      }),
     ]);
 
     await notificationsService.createNotification({
@@ -175,15 +196,21 @@ export class BiddersService {
     const bidder = await prisma.bidders.findUnique({ where: { id } });
     if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
 
-    const updated = await prisma.bidders.update({
-      where: { id },
-      data: {
-        status: ApplicationStatus.NONAKTIF,
-        reviewed_by: reviewerId,
-        reviewed_at: new Date(),
-        rejection_reason: reason,
-      },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.bidders.update({
+        where: { id },
+        data: {
+          status: ApplicationStatus.NONAKTIF,
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          rejection_reason: reason,
+        },
+      }),
+      prisma.kyc_documents.updateMany({
+        where: { user_id: bidder.user_id },
+        data: { status: KycStatus.REJECTED, reviewer_id: reviewerId, reviewed_at: new Date(), rejection_reason: reason },
+      }),
+    ]);
 
     await notificationsService.createNotification({
       userId: bidder.user_id,

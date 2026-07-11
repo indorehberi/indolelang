@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 const GRADE_OPTIONS = [
   { value: 'A', label: 'Grade A (Sangat Baik)' },
@@ -17,6 +17,9 @@ const GRADE_OPTIONS = [
 const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV'];
 const TRANSMISSION_OPTIONS = ['Otomatis', 'Manual'];
 const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
+const BRAND_OPTIONS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Lainnya'];
+const MODEL_OPTIONS = ['Avanza', 'Xenia', 'Brio', 'Innova', 'Calya', 'Sigra', 'Ertiga', 'Xpander', 'HR-V', 'CR-V', 'Pajero Sport', 'Fortuner', 'Lainnya'];
+const COLOR_OPTIONS = ['Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
 
 const PHOTO_FIELDS = [
   { key: "photo_front", label: "Foto Depan" },
@@ -27,6 +30,16 @@ const PHOTO_FIELDS = [
   { key: "photo_interior", label: "Foto Interior" },
   { key: "photo_stnk", label: "Foto STNK" },
 ] as const;
+
+const Field = ({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode; }) => (
+  <div className="form-group" style={{ marginBottom: '1rem' }}>
+    <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+      {label}{required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
+    </label>
+    {children}
+    {error && <span className="form-error" style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{error}</span>}
+  </div>
+);
 
 export default function NewAssetPage() {
   const router = useRouter();
@@ -97,10 +110,7 @@ export default function NewAssetPage() {
     const fetchProviders = async () => {
       setLoadingProviders(true);
       try {
-        const token = localStorage.getItem('accessToken');
-        const res = await fetch(apiUrl('/admin/providers'), {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiFetch('/admin/providers');
         const data = await res.json();
         if (res.ok && data.success) {
           setProviders(data.data);
@@ -140,24 +150,22 @@ export default function NewAssetPage() {
   const handleUploadDoc = async (file: File | null) => {
     if (!file) return;
     setUploadingDoc(true);
-    const token = localStorage.getItem('accessToken');
     const uploadData = new FormData();
     uploadData.append('file', file);
 
     try {
-      const res = await fetch(apiUrl('/upload/single'), {
+      const res = await apiFetch('/upload/single', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: uploadData,
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setFormData({ ...formData, inspection_doc_url: data.data.url });
       } else {
-        alert(data.error?.message || 'Gagal mengunggah dokumen');
+        setToast({ message: data.error?.message || 'Gagal mengunggah dokumen', type: 'error' });
       }
     } catch (err) {
-      alert('Terjadi kesalahan saat mengunggah dokumen');
+      setToast({ message: 'Terjadi kesalahan saat mengunggah dokumen', type: 'error' });
     } finally {
       setUploadingDoc(false);
     }
@@ -166,24 +174,22 @@ export default function NewAssetPage() {
   const handlePhotoUpload = async (field: string, file: File | null) => {
     if (!file) return;
     setUploadingPhoto(field);
-    const token = localStorage.getItem('accessToken');
     const uploadData = new FormData();
     uploadData.append('file', file);
 
     try {
-      const response = await fetch(apiUrl('/upload/single'), {
+      const response = await apiFetch('/upload/single', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: uploadData,
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
         setFormData({ ...formData, [field]: resData.data.url });
       } else {
-        alert(resData.error?.message || 'Gagal mengunggah foto.');
+        setToast({ message: resData.error?.message || 'Gagal mengunggah foto.', type: 'error' });
       }
     } catch (err) {
-      alert('Koneksi gagal saat mengunggah foto.');
+      setToast({ message: 'Koneksi gagal saat mengunggah foto.', type: 'error' });
     } finally {
       setUploadingPhoto(null);
     }
@@ -200,24 +206,20 @@ export default function NewAssetPage() {
     
     setProcessing(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      
-      const res = await fetch(apiUrl('/assets'), {
+      const res = await apiFetch('/assets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error?.message || 'Gagal menambah barang');
       }
-      
+
       const newAssetId = data.data.id;
-      
+
       // Now inspect it to add grades and inspection data
-      const inspectRes = await fetch(apiUrl(`/admin/assets/${newAssetId}/inspect`), {
+      const inspectRes = await apiFetch(`/admin/assets/${newAssetId}/inspect`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
       
@@ -235,16 +237,6 @@ export default function NewAssetPage() {
       setProcessing(false);
     }
   };
-
-  const Field = ({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode; }) => (
-    <div className="form-group" style={{ marginBottom: '1rem' }}>
-      <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-        {label}{required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
-      </label>
-      {children}
-      {error && <span className="form-error" style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{error}</span>}
-    </div>
-  );
 
   return (
     <DashboardLayout breadcrumbParent="Katalog Barang" breadcrumbCurrent="Tambah Barang Baru">
@@ -349,13 +341,22 @@ export default function NewAssetPage() {
         <Card title="3. Spesifikasi Kendaraan">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <Field label="Merek" required error={errors.brand}>
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })} />
+              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })}>
+                <option value="">Pilih...</option>
+                {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
             </Field>
             <Field label="Tipe / Model" required error={errors.model}>
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} />
+              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })}>
+                <option value="">Pilih...</option>
+                {MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
             </Field>
             <Field label="Warna">
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })} />
+              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })}>
+                <option value="">Pilih...</option>
+                {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </Field>
             
             <Field label="Bahan Bakar">

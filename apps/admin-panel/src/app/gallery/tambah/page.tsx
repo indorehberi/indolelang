@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { Button } from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 export default function TambahGalleryPage() {
+  const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -21,11 +23,8 @@ export default function TambahGalleryPage() {
     const formData = new FormData();
     formData.append('file', selectedFile);
     
-    const response = await fetch(apiUrl('/upload/single'), {
+    const response = await apiFetch('/upload/single', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
-      },
       body: formData,
     });
     
@@ -40,7 +39,7 @@ export default function TambahGalleryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      alert('Silakan pilih gambar terlebih dahulu');
+      toast.warning('Silakan pilih gambar terlebih dahulu');
       return;
     }
 
@@ -48,12 +47,8 @@ export default function TambahGalleryPage() {
     try {
       const imageUrl = await uploadFile(file);
 
-      const response = await fetch(apiUrl('/galleries/admin'), {
+      const response = await apiFetch('/galleries/admin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
-        },
         body: JSON.stringify({ image_url: imageUrl }),
       });
 
@@ -62,10 +57,10 @@ export default function TambahGalleryPage() {
         throw new Error(data.error?.message || 'Gagal menyimpan gambar ke gallery');
       }
 
-      alert('Gambar berhasil ditambahkan ke gallery');
+      toast.success('Gambar berhasil ditambahkan ke gallery');
       router.push('/gallery');
     } catch (error: any) {
-      alert(error.message);
+      toast.error(error.message);
     } finally {
       setSaving(false);
     }

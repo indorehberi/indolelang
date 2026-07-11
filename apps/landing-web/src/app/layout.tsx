@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "../providers/QueryProvider";
+import { ToastProvider } from "../providers/ToastProvider";
 
 // Centralized layout for landing-web page
 const inter = Inter({
@@ -60,7 +61,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <QueryProvider>
-          {children}
+          <ToastProvider>{children}</ToastProvider>
         </QueryProvider>
       </body>
     </html>

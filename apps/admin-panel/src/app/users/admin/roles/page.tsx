@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../../components/layout/DashboardLayout';
 import Card from '../../../../components/ui/Card';
-import { apiUrl } from '../../../../lib/api';
+import { apiFetch } from '../../../../lib/api';
 
 // ======================================================
 // Tipe & Konstanta
@@ -110,10 +110,7 @@ export default function RoleSettingsPage() {
     const fetchRoleMatrix = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        const res = await fetch(apiUrl(`/admin/settings/${SETTING_KEY}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/admin/settings/${SETTING_KEY}`);
         const data = await res.json();
         if (res.ok && data.success && data.data?.value) {
           const parsed: RolePermission[] = JSON.parse(data.data.value);
@@ -149,13 +146,8 @@ export default function RoleSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/admin/settings/${SETTING_KEY}`), {
+      const res = await apiFetch(`/admin/settings/${SETTING_KEY}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ value: JSON.stringify(roles) }),
       });
       const data = await res.json();

@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
-import { apiUrl, fetchWithRetry } from "@/lib/api";
+import { apiUrl, fetchWithRetry, apiFetch } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 interface Asset {
   id: string;
@@ -35,6 +36,7 @@ const STATUS_OPTIONS = [
 
 export default function ProviderDaftarBarang() {
   const router = useRouter();
+  const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +76,7 @@ export default function ProviderDaftarBarang() {
       if (dateFrom) params.set("date_from", dateFrom);
       if (dateTo) params.set("date_to", dateTo);
 
-      const res = await fetchWithRetry(apiUrl(`/assets?${params.toString()}`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/assets?${params.toString()}`);
       const resData = await res.json();
 
       if (res.ok && resData.success) {
@@ -136,57 +136,51 @@ export default function ProviderDaftarBarang() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Hapus pengajuan ini secara permanen?")) return;
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetchWithRetry(apiUrl(`/assets/${id}`), {
+      const res = await apiFetch(`/assets/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const resData = await res.json();
       if (res.ok && resData.success) {
         fetchAssets();
       } else {
-        alert(resData.error?.message || "Gagal menghapus barang.");
+        toast.error(resData.error?.message || "Gagal menghapus barang.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat menghapus barang.");
+      toast.error("Koneksi gagal saat menghapus barang.");
     }
   };
 
   const handleResubmit = async (id: string) => {
     if (!window.confirm("Ajukan kembali barang ini untuk direview ulang?")) return;
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetchWithRetry(apiUrl(`/assets/${id}/review`), {
+      const res = await apiFetch(`/assets/${id}/review`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const resData = await res.json();
       if (res.ok && resData.success) {
         fetchAssets();
       } else {
-        alert(resData.error?.message || "Gagal mengajukan kembali barang.");
+        toast.error(resData.error?.message || "Gagal mengajukan kembali barang.");
       }
     } catch (err) {
-      alert("Koneksi gagal.");
+      toast.error("Koneksi gagal.");
     }
   };
 
   const handleReturn = async (id: string) => {
     if (!window.confirm("Tarik kembali barang ini dari proses lelang?")) return;
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetchWithRetry(apiUrl(`/assets/${id}/return`), {
+      const res = await apiFetch(`/assets/${id}/return`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const resData = await res.json();
       if (res.ok && resData.success) {
         fetchAssets();
       } else {
-        alert(resData.error?.message || "Gagal mengembalikan barang.");
+        toast.error(resData.error?.message || "Gagal mengembalikan barang.");
       }
     } catch (err) {
-      alert("Koneksi gagal.");
+      toast.error("Koneksi gagal.");
     }
   };
 

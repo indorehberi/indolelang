@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 
 export default function BidderInvoices() {
@@ -14,9 +14,7 @@ export default function BidderInvoices() {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch(apiUrl("/checkout/invoices"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/checkout/invoices");
       const data = await res.json();
       if (data.success) {
         setInvoices(data.data || []);

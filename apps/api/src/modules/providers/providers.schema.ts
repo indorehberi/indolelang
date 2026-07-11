@@ -5,7 +5,7 @@ export const applyProviderSchema = z.object({
     company_name: z.string().min(1, 'Nama perusahaan wajib diisi'),
     npwp: z.string().min(1, 'NPWP wajib diisi'),
     npwp_url: z.string().min(1, 'Upload NPWP wajib diisi'),
-    pks_number: z.string().min(1, 'No PKS wajib diisi'),
+    pks_number: z.string().optional(),
     provider_type: z.enum(['Perusahaan Swasta', 'BUMN', 'Perorangan']),
     address: z.string().min(1, 'Alamat wajib diisi'),
     bank_name: z.string().optional(),

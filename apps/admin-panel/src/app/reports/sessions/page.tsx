@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface SessionReport {
   id: string;
@@ -19,6 +20,7 @@ interface SessionReport {
 const DUMMY_REPORTS: SessionReport[] = [];
 
 export default function SessionReportsPage() {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
 
@@ -37,7 +39,7 @@ export default function SessionReportsPage() {
     setDownloading(`${id}-${format}`);
     setTimeout(() => {
       setDownloading(null);
-      alert(`Download ${format.toUpperCase()} laporan sesi berhasil (simulasi)`);
+      toast.success(`Download ${format.toUpperCase()} laporan sesi berhasil (simulasi)`);
     }, 1200);
   };
 
@@ -65,7 +67,7 @@ export default function SessionReportsPage() {
             fontWeight: 600,
             fontSize: '0.875rem',
           }}
-          onClick={() => alert('Export semua laporan (simulasi)')}
+          onClick={() => toast.info('Export semua laporan (simulasi)')}
         >
           📥 Export Semua
         </button>

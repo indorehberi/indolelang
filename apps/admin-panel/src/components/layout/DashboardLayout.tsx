@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { clearAuthAndRedirect } from '../../lib/api';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,11 +29,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   hasLiveSession,
 }) => {
   const handleLogout = React.useCallback(() => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/login';
+    clearAuthAndRedirect('Sesi Anda berakhir karena tidak ada aktivitas selama 15 menit.');
   }, []);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

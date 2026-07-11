@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Badge from '../../components/ui/Badge';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 interface AdminUser {
@@ -95,15 +95,12 @@ export default function DashboardPage() {
   const [chartError, setChartError] = useState<string>('');
 
   const fetchChart = async () => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    if (!token || !user) return;
+    if (!user) return;
     setChartLoading(true);
     setChartError('');
     try {
       const query = new URLSearchParams({ category: chartCategory, metric: chartMetric, range: chartRange });
-      const res = await fetch(apiUrl(`/admin/dashboard/chart?${query.toString()}`), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/admin/dashboard/chart?${query.toString()}`);
       const data = await res.json();
       if (res.ok && data.success) {
         setChartData(data.data);
@@ -150,43 +147,27 @@ export default function DashboardPage() {
 
     const fetchDashboardStats = async () => {
       try {
-        const resStats = await fetch(apiUrl('/admin/dashboard/stats'), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const resStats = await apiFetch('/admin/dashboard/stats');
         const dataStats = await resStats.json();
         if (resStats.ok && dataStats.success) {
           setStatsData(dataStats.data);
         }
 
-        const resKyc = await fetch(apiUrl('/admin/bidders?status=antri&per_page=1'), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const resKyc = await apiFetch('/admin/bidders?status=antri&per_page=1');
         const dataKyc = await resKyc.json();
         if (resKyc.ok && dataKyc.success) {
           const total = dataKyc.meta?.total ?? dataKyc.data?.length ?? 0;
           setKycPendingCount(total);
         }
 
-        const resAssets = await fetch(apiUrl('/assets?status=pending&per_page=1'), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const resAssets = await apiFetch('/assets?status=pending&per_page=1');
         const dataAssets = await resAssets.json();
         if (resAssets.ok && dataAssets.success) {
           const total = dataAssets.meta?.total ?? dataAssets.data?.length ?? 0;
           setAssetPendingCount(total);
         }
 
-        const resInvoices = await fetch(apiUrl('/documents/invoices?per_page=5'), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const resInvoices = await apiFetch('/documents/invoices?per_page=5');
         const dataInvoices = await resInvoices.json();
         if (resInvoices.ok && dataInvoices.success) {
           setRecentTransactions(dataInvoices.data);

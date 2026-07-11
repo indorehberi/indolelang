@@ -5,7 +5,8 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface SettlementItem {
   id: string;
@@ -39,6 +40,7 @@ const parseJwt = (token: string) => {
 };
 
 export default function SettlementsPage() {
+  const toast = useToast();
   const [settlements, setSettlements] = useState<SettlementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -54,11 +56,7 @@ export default function SettlementsPage() {
       }
 
       // Default fetch all. Filter on client side for simplicity.
-      const response = await fetch(apiUrl(`/payments/settlements?page=1&per_page=100`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/settlements?page=1&per_page=100`);
       const data = await response.json();
       if (response.ok && data.success) {
         setSettlements(Array.isArray(data.data) ? data.data : []);
@@ -80,20 +78,17 @@ export default function SettlementsPage() {
   const handleTransfer = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin mentransfer dana hasil penjualan ini ke rekening Provider?')) return;
     try {
-      const response = await fetch(apiUrl(`/payments/settlements/${id}/disburse`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch(`/payments/settlements/${id}/disburse`, { method: 'POST' });
       const data = await response.json();
       if (response.ok && data.success) {
-        alert('Transfer berhasil diproses melalui sistem!');
+        toast.success('Transfer berhasil diproses melalui sistem!');
         fetchSettlements();
       } else {
-        alert(data.error?.message || 'Gagal memproses transfer');
+        toast.error(data.error?.message || 'Gagal memproses transfer');
       }
-    } catch (err) { 
-      console.error(err); 
-      alert('Terjadi kesalahan koneksi');
+    } catch (err) {
+      console.error(err);
+      toast.error('Terjadi kesalahan koneksi');
     }
   };
 

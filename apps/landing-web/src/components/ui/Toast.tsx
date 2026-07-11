@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 
 interface ToastProps {
@@ -12,7 +14,7 @@ export const Toast: React.FC<ToastProps> = ({
   message,
   variant = 'info',
   onClose,
-  duration = 3000,
+  duration = 4000,
   style,
 }) => {
   useEffect(() => {
@@ -22,19 +24,17 @@ export const Toast: React.FC<ToastProps> = ({
     }
   }, [duration, onClose]);
 
-  const variantClass = `alert-${variant}`;
-
   return (
     <div
-      className={`alert ${variantClass}`}
+      className={`alert-box ${variant}`}
       style={{
         position: 'fixed',
         top: '16px',
         right: '16px',
         zIndex: 1100,
         minWidth: '280px',
+        maxWidth: '360px',
         boxShadow: 'var(--shadow-md)',
-        alignItems: 'center',
         ...style,
       }}
     >

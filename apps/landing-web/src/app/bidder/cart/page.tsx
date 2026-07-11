@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 interface CartGroup {
   session_date: string;
@@ -49,9 +50,7 @@ export default function BidderCart() {
 
     try {
       setLoading(true);
-      const response = await fetch(apiUrl("/checkout/cart"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch("/checkout/cart");
       const resData = await response.json();
       if (response.ok && resData.success) {
         setGroups(resData.data.groups || []);
@@ -136,6 +135,7 @@ function CartGroupCard({
   onPaid: () => void;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(group.invoices.map((i: any) => i.id));
   const [paymentMethod, setPaymentMethod] = useState<string>("bca");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,20 +163,15 @@ function CartGroupCard({
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedInvoiceIds.length === 0) {
-      alert("Pilih setidaknya satu tagihan untuk di-checkout.");
+      toast.warning("Pilih setidaknya satu tagihan untuk di-checkout.");
       return;
     }
 
-    const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(apiUrl("/checkout/checkout"), {
+      const response = await apiFetch("/checkout/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           invoice_ids: selectedInvoiceIds,
           bank: paymentMethod,
@@ -187,10 +182,10 @@ function CartGroupCard({
       if (response.ok && resData.success) {
         setOrderResult(resData.data);
       } else {
-        alert(resData.error?.message || "Gagal memproses checkout.");
+        toast.error(resData.error?.message || "Gagal memproses checkout.");
       }
     } catch (err) {
-      alert("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,33 +210,31 @@ function CartGroupCard({
 
       const resData = await response.json();
       if (response.ok && resData.success) {
-        alert("Simulasi pembayaran sukses! Tagihan Anda telah lunas.");
+        toast.success("Simulasi pembayaran sukses! Tagihan Anda telah lunas.");
         onPaid();
       } else {
-        alert(resData.error?.message || "Gagal memproses simulasi pembayaran.");
+        toast.error(resData.error?.message || "Gagal memproses simulasi pembayaran.");
       }
     } catch (err) {
-      alert("Koneksi gagal.");
+      toast.error("Koneksi gagal.");
     }
   };
 
   const handleUploadProof = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proofFile || !orderResult?.id) {
-      alert("Pilih file bukti transfer terlebih dahulu.");
+      toast.warning("Pilih file bukti transfer terlebih dahulu.");
       return;
     }
 
     setIsUploading(true);
-    const token = localStorage.getItem("accessToken");
     const formData = new FormData();
     formData.append("file", proofFile);
 
     try {
       // 1. Upload File
-      const uploadRes = await fetch(apiUrl("/upload/image"), {
+      const uploadRes = await apiFetch("/upload/image", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const uploadData = await uploadRes.json();
@@ -252,24 +245,20 @@ function CartGroupCard({
 
       // 2. Submit Proof to Checkout Order
       const proofUrl = uploadData.data.url;
-      const submitRes = await fetch(apiUrl(`/checkout/${orderResult.id}/proof`), {
+      const submitRes = await apiFetch(`/checkout/${orderResult.id}/proof`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ transfer_proof_url: proofUrl }),
       });
 
       const submitData = await submitRes.json();
       if (submitRes.ok && submitData.success) {
-        alert("Bukti transfer berhasil diunggah! Pembayaran Anda akan diverifikasi.");
+        toast.success("Bukti transfer berhasil diunggah! Pembayaran Anda akan diverifikasi.");
         router.push("/bidder/dashboard");
       } else {
         throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
       }
     } catch (err: any) {
-      alert(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
+      toast.error(err.message || "Koneksi gagal saat mengunggah bukti transfer.");
     } finally {
       setIsUploading(false);
     }

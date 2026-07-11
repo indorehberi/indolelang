@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../layout/DashboardLayout';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
+import { useToast } from '../../providers/ToastProvider';
 
 interface Deposit {
   id: string;
@@ -91,6 +92,7 @@ export default function FinanceManager({
 }: {
   initialTab: 'deposits' | 'invoices' | 'refunds' | 'settlements';
 }) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'deposits' | 'invoices' | 'refunds' | 'settlements'>(initialTab);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -108,15 +110,10 @@ export default function FinanceManager({
   const fetchDeposits = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       let query = `?page=1&per_page=50`;
       if (statusFilter) query += `&status=${statusFilter}`;
 
-      const response = await fetch(apiUrl(`/deposits${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/deposits${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setDeposits(data.data);
@@ -133,15 +130,10 @@ export default function FinanceManager({
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       let query = `?page=1&per_page=50`;
       if (invoiceStatusFilter) query += `&status=${invoiceStatusFilter}`;
 
-      const response = await fetch(apiUrl(`/documents/invoices${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/documents/invoices${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setInvoices(data.data);
@@ -158,12 +150,7 @@ export default function FinanceManager({
   const fetchRefundQueue = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/payments/deposits/refund-queue?page=1&per_page=50`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/deposits/refund-queue?page=1&per_page=50`);
       const data = await response.json();
       if (response.ok && data.success) {
         setRefundQueue(data.data);
@@ -180,15 +167,10 @@ export default function FinanceManager({
   const fetchSettlements = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       let query = `?page=1&per_page=50`;
       if (settlementStatusFilter) query += `&status=${settlementStatusFilter}`;
 
-      const response = await fetch(apiUrl(`/payments/settlements${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/settlements${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setSettlements(data.data);
@@ -206,12 +188,7 @@ export default function FinanceManager({
     const downloadKey = `${type}-${invoiceId}`;
     setDownloadingId(downloadKey);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/documents/${type}/${invoiceId}/download`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/documents/${type}/${invoiceId}/download`);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -233,7 +210,7 @@ export default function FinanceManager({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error: any) {
-      alert(error.message || 'Terjadi kesalahan saat mengunduh dokumen.');
+      toast.error(error.message || 'Terjadi kesalahan saat mengunduh dokumen.');
     } finally {
       setDownloadingId(null);
     }
@@ -243,23 +220,17 @@ export default function FinanceManager({
     if (!confirm('Pastikan Anda sudah mentransfer dana refund ke rekening bidder secara manual sebelum menandai ini selesai. Lanjutkan?')) return;
     setProcessingId(depositId);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/payments/deposits/${depositId}/refund`), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/deposits/${depositId}/refund`, { method: 'POST' });
 
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menyetujui refund');
       }
 
-      alert('Refund ditandai selesai. Bidder telah menerima notifikasi.');
+      toast.success('Refund ditandai selesai. Bidder telah menerima notifikasi.');
       fetchRefundQueue();
     } catch (error: any) {
-      alert(error.message || 'Terjadi kesalahan saat memproses refund.');
+      toast.error(error.message || 'Terjadi kesalahan saat memproses refund.');
     } finally {
       setProcessingId(null);
     }
@@ -269,23 +240,17 @@ export default function FinanceManager({
     if (!confirm('Pastikan Anda sudah mentransfer dana pencairan ke rekening provider secara manual sebelum menandai ini selesai. Lanjutkan?')) return;
     setProcessingId(settlementId);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/payments/settlements/${settlementId}/disburse`), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/payments/settlements/${settlementId}/disburse`, { method: 'POST' });
 
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal mencairkan dana settlement');
       }
 
-      alert('Pencairan ditandai selesai. Provider telah menerima notifikasi.');
+      toast.success('Pencairan ditandai selesai. Provider telah menerima notifikasi.');
       fetchSettlements();
     } catch (error: any) {
-      alert(error.message || 'Terjadi kesalahan saat mencairkan dana.');
+      toast.error(error.message || 'Terjadi kesalahan saat mencairkan dana.');
     } finally {
       setProcessingId(null);
     }
@@ -294,23 +259,17 @@ export default function FinanceManager({
   const handleMarkPaid = async (depositId: string) => {
     setProcessingId(depositId);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/deposits/${depositId}/mark-paid`), {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/deposits/${depositId}/mark-paid`, { method: 'PUT' });
 
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menandai lunas deposit');
       }
 
-      alert('Deposit berhasil ditandai Paid (Lunas)!');
+      toast.success('Deposit berhasil ditandai Paid (Lunas)!');
       fetchDeposits();
     } catch (error: any) {
-      alert(error.message || 'Terjadi kesalahan saat memproses deposit.');
+      toast.error(error.message || 'Terjadi kesalahan saat memproses deposit.');
     } finally {
       setProcessingId(null);
     }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface Staff {
   id: string;
@@ -28,10 +28,7 @@ export default function AdminStaffPage() {
   React.useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(apiUrl('/admin/users?per_page=100'), {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await apiFetch('/admin/users?per_page=100');
         const data = await response.json();
         if (response.ok && data.success) {
           const allStaff = data.data.filter((u: any) => ['superadmin', 'admin', 'operator', 'inspector'].includes(u.role));

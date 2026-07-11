@@ -16,7 +16,7 @@ interface ReferralUser {
   joined_at: string;
 }
 
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 
 export default function ReferralPage() {
   const [search, setSearch] = useState('');
@@ -35,10 +35,7 @@ export default function ReferralPage() {
 
   const fetchRewardSetting = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/settings'), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch('/admin/settings');
       const data = await response.json();
       if (response.ok && data.success) {
         const setting = (data.data || []).find((s: any) => s.key === 'referral_reward_amount');
@@ -52,10 +49,7 @@ export default function ReferralPage() {
   const fetchReferrals = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/referrals?per_page=100&search=${search}`), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/admin/referrals?per_page=100&search=${search}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setReferrals(data.data);
@@ -83,13 +77,8 @@ export default function ReferralPage() {
   const handleSaveConfig = async () => {
     setSavingConfig(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/settings/referral_reward_amount'), {
+      const response = await apiFetch('/admin/settings/referral_reward_amount', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ value: rewardPerReferral }),
       });
       const data = await response.json();

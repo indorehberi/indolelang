@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function ProviderProfile() {
+  const toast = useToast();
   const [companyName, setCompanyName] = useState("PT Astra Mitra");
   const [npwp, setNpwp] = useState("01.234.567.8-012.000");
   const [picName, setPicName] = useState("Hendra Wijaya");
@@ -17,7 +19,7 @@ export default function ProviderProfile() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      alert("Profil perusahaan berhasil diperbarui!");
+      toast.success("Profil perusahaan berhasil diperbarui!");
     }, 1000);
   };
 

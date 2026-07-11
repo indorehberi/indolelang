@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Button } from '../../components/ui/Button';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 import Image from 'next/image';
+import { useToast } from '../../providers/ToastProvider';
 
 interface Gallery {
   id: string;
@@ -14,16 +15,13 @@ interface Gallery {
 }
 
 export default function GalleryListPage() {
+  const toast = useToast();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchGalleries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(apiUrl('/galleries/admin'), {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch('/galleries/admin');
       const data = await response.json();
       if (data.success) {
         setGalleries(data.data);
@@ -45,20 +43,15 @@ export default function GalleryListPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus gambar ini?')) return;
     try {
-      const response = await fetch(apiUrl(`/galleries/admin/${id}`), {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(`/galleries/admin/${id}`, { method: 'DELETE' });
       const data = await response.json();
       if (!data.success) {
         throw new Error(data.error?.message || 'Gagal menghapus gallery');
       }
-      alert('Gambar berhasil dihapus');
+      toast.success('Gambar berhasil dihapus');
       fetchGalleries();
     } catch (error: any) {
-      alert(error.message);
+      toast.error(error.message);
     }
   };
 

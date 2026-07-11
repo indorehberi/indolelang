@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import { apiUrl } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 type ReportType = 'sessions' | 'finance' | 'users' | 'bids' | 'deposits';
 type OutputFormat = 'pdf' | 'excel' | 'csv';
@@ -32,6 +33,7 @@ const FORMATS: { value: OutputFormat; label: string; icon: string }[] = [
 
 
 export default function ReportBuilderPage() {
+  const toast = useToast();
   const [reportType, setReportType] = useState<ReportType>('sessions');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('excel');
   const [filters, setFilters] = useState<FilterConfig>({
@@ -64,7 +66,7 @@ export default function ReportBuilderPage() {
       setGenerating(false);
       const now = new Date().toLocaleString('id-ID');
       setLastGenerated(now);
-      alert(
+      toast.success(
         `✅ Laporan berhasil dibuat!\n\nTipe: ${REPORT_TYPES.find((r) => r.value === reportType)?.label}\nFormat: ${outputFormat.toUpperCase()}\nPeriode: ${filters.from_date} s/d ${filters.to_date}\n\n(Simulasi — file akan diunduh)`
       );
     }, 2000);

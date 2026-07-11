@@ -5,7 +5,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 
 interface Notification {
   id: string;
@@ -24,14 +24,8 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const url = new URL(apiUrl('/notifications'));
-      if (filterUnread) {
-        url.searchParams.append('is_read', 'false');
-      }
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const path = filterUnread ? '/notifications?is_read=false' : '/notifications';
+      const res = await apiFetch(path);
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -51,11 +45,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/notifications/${id}/read`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/notifications/${id}/read`, { method: 'PUT' });
       if (res.ok) {
         setNotifications((prev) =>
           prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -69,11 +59,7 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     if (!confirm('Tandai semua notifikasi sudah dibaca?')) return;
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(apiUrl(`/notifications/read-all`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/notifications/read-all`, { method: 'PUT' });
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       }

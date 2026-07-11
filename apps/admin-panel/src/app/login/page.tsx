@@ -46,6 +46,7 @@ export default function LoginPage() {
     try {
       const response = await fetch(apiUrl('/auth/login'), {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -55,12 +56,9 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Store token and user data
+        // Store token and user data (refresh token lives in an httpOnly cookie, not the body)
         const token = data.data.accessToken || data.data.access_token;
         localStorage.setItem('accessToken', token);
-        if (data.data.refreshToken || data.data.refresh_token) {
-          localStorage.setItem('refreshToken', data.data.refreshToken || data.data.refresh_token);
-        }
         localStorage.setItem('user', JSON.stringify(data.data.user));
 
         // Redirect to dashboard

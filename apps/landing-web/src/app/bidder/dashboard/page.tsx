@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderDashboard() {
   const router = useRouter();
+  const toast = useToast();
   const [ekycStatus, setEkycStatus] = useState<string>("pending");
   const [bidderStatus, setBidderStatus] = useState<string>("nonaktif");
   const [rejectionReason, setRejectionReason] = useState<string>("");
@@ -43,9 +45,7 @@ export default function BidderDashboard() {
       setLoading(true);
 
       // 1. Fetch Profile Data
-      const resProfile = await fetch(apiUrl("/users/profile"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resProfile = await apiFetch("/users/profile");
       const resProfileData = await resProfile.json();
       if (resProfile.ok && resProfileData.success) {
         const user = resProfileData.data;
@@ -65,9 +65,7 @@ export default function BidderDashboard() {
       }
 
       // Fetch KYC Status dynamically
-      const resKyc = await fetch(apiUrl("/kyc/status"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resKyc = await apiFetch("/kyc/status");
       const resKycData = await resKyc.json();
       if (resKyc.ok && resKycData.success) {
         setEkycStatus(resKycData.data.status || "pending");
@@ -76,9 +74,7 @@ export default function BidderDashboard() {
       }
 
       // Fetch Bidder Application Status
-      const resBidder = await fetch(apiUrl("/bidders/me"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resBidder = await apiFetch("/bidders/me");
       const resBidderData = await resBidder.json();
       if (resBidder.ok && resBidderData.success && resBidderData.data) {
         setBidderStatus(resBidderData.data.status);
@@ -90,9 +86,7 @@ export default function BidderDashboard() {
       }
 
       // 2. Fetch Deposits & Transactions Data
-      const resDeposits = await fetch(apiUrl("/deposits"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resDeposits = await apiFetch("/deposits");
       const resDepData = await resDeposits.json();
       if (resDeposits.ok && resDepData.success) {
         const list = resDepData.data || [];
@@ -113,9 +107,7 @@ export default function BidderDashboard() {
       }
 
       // 3. Fetch Active Auction Sessions
-      const resSessions = await fetch(apiUrl("/sessions?status=active"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resSessions = await apiFetch("/sessions?status=active");
       const resSessData = await resSessions.json();
       if (resSessions.ok && resSessData.success) {
         const sessionsList = resSessData.data || [];
@@ -123,9 +115,7 @@ export default function BidderDashboard() {
       }
 
       // 4. Fetch Unread Notifications
-      const resNotifications = await fetch(apiUrl("/notifications?is_read=false"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resNotifications = await apiFetch("/notifications?is_read=false");
       const resNotifData = await resNotifications.json();
       if (resNotifications.ok && resNotifData.success) {
         setNotifications(resNotifData.data || []);
@@ -158,24 +148,22 @@ export default function BidderDashboard() {
   const handleUploadNpwp = async () => {
     if (!npwpFile) return;
     setUploadingNpwp(true);
-    const token = localStorage.getItem("accessToken");
     const formData = new FormData();
     formData.append("file", npwpFile);
 
     try {
-      const response = await fetch(apiUrl("/upload/single"), {
+      const response = await apiFetch("/upload/single", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
         setNpwpUrl(resData.data.url);
       } else {
-        alert(resData.error?.message || "Gagal mengunggah dokumen NPWP.");
+        toast.error(resData.error?.message || "Gagal mengunggah dokumen NPWP.");
       }
     } catch (err) {
-      alert("Koneksi gagal saat mengunggah dokumen.");
+      toast.error("Koneksi gagal saat mengunggah dokumen.");
     } finally {
       setUploadingNpwp(false);
     }
@@ -183,26 +171,20 @@ export default function BidderDashboard() {
 
   const handleUpgradeProvider = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyName.trim() || !npwp.trim() || !pksNumber.trim() || !address.trim()) {
-      alert("Mohon isi semua data yang diperlukan.");
+    if (!companyName.trim() || !npwp.trim() || !address.trim()) {
+      toast.warning("Mohon isi semua data yang diperlukan.");
       return;
     }
     if (!npwpUrl) {
-      alert("Mohon unggah dokumen NPWP terlebih dahulu.");
+      toast.warning("Mohon unggah dokumen NPWP terlebih dahulu.");
       return;
     }
 
     setUpgradeLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-
       // Apply for Provider
-      const response = await fetch(apiUrl("/providers/apply"), {
+      const response = await apiFetch("/providers/apply", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           company_name: companyName,
           npwp: npwp,
@@ -215,16 +197,16 @@ export default function BidderDashboard() {
 
       const resData = await response.json();
       if (response.ok && resData.success) {
-        alert("Pendaftaran berhasil! Pengajuan upgrade Anda telah dikirim dan sedang menunggu persetujuan Admin.");
+        toast.success("Pendaftaran berhasil! Pengajuan upgrade Anda telah dikirim dan sedang menunggu persetujuan Admin.");
         setIsUpgradeModalOpen(false);
         // Do not redirect to provider dashboard yet, because they are still 'menunggu approval'.
         // Refresh the page or fetch data again.
         window.location.reload();
       } else {
-        alert(resData.error?.message || "Gagal melakukan upgrade akun.");
+        toast.error(resData.error?.message || "Gagal melakukan upgrade akun.");
       }
     } catch (err: any) {
-      alert(err.message || "Koneksi gagal. Pastikan API server aktif.");
+      toast.error(err.message || "Koneksi gagal. Pastikan API server aktif.");
     } finally {
       setUpgradeLoading(false);
     }
@@ -232,10 +214,8 @@ export default function BidderDashboard() {
 
   const handleCloseNotification = async (id: string) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(apiUrl(`/notifications/${id}/read`), {
+      const response = await apiFetch(`/notifications/${id}/read`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -379,8 +359,8 @@ export default function BidderDashboard() {
                 className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={(e) => { 
                   if (bidderStatus !== "aktif") { 
-                    e.preventDefault(); 
-                    alert("Verifikasi KYC Bidder Anda belum disetujui. Silakan lengkapi KYC.");
+                    e.preventDefault();
+                    toast.warning("Verifikasi KYC Bidder Anda belum disetujui. Silakan lengkapi KYC.");
                     router.push("/ekyc/upload");
                   } 
                 }}
@@ -409,7 +389,7 @@ export default function BidderDashboard() {
               <button
                 onClick={() => {
                   if (bidderStatus !== "aktif") {
-                    alert("Hanya Bidder yang sudah Aktif yang dapat mengajukan diri sebagai Provider. Lengkapi profil dan tunggu persetujuan Admin.");
+                    toast.warning("Hanya Bidder yang sudah Aktif yang dapat mengajukan diri sebagai Provider. Lengkapi profil dan tunggu persetujuan Admin.");
                   } else {
                     setIsUpgradeModalOpen(true);
                   }
@@ -537,10 +517,9 @@ export default function BidderDashboard() {
               </div>
 
               <div>
-                <label className="text-body-xs font-semibold text-on-surface-variant block mb-1">Nomor PKS *</label>
+                <label className="text-body-xs font-semibold text-on-surface-variant block mb-1">Nomor PKS (Opsional)</label>
                 <input
                   type="text"
-                  required
                   placeholder="Nomor Perjanjian Kerja Sama (PKS)"
                   value={pksNumber}
                   onChange={(e) => setPksNumber(e.target.value)}

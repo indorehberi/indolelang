@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
-import { apiUrl } from '../../../lib/api';
+import { apiUrl, apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface UnassignedAsset {
   id: string;
@@ -27,6 +28,7 @@ interface Lot {
 }
 
 export default function LotPlanningPage() {
+  const toast = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [assets, setAssets] = useState<UnassignedAsset[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
@@ -44,10 +46,9 @@ export default function LotPlanningPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const querySessionId = urlParams.get('session_id');
 
-        const token = localStorage.getItem('accessToken');
         const [resSessions, resAssets] = await Promise.all([
           fetch(apiUrl('/sessions')),
-          fetch(apiUrl('/assets?status=approved&per_page=100'), { headers: { Authorization: `Bearer ${token}` } })
+          apiFetch('/assets?status=approved&per_page=100')
         ]);
 
         if (resSessions.ok) {
@@ -87,10 +88,7 @@ export default function LotPlanningPage() {
 
   const refetchApprovedAssets = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      const resAssets = await fetch(apiUrl('/assets?status=approved&per_page=100'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resAssets = await apiFetch('/assets?status=approved&per_page=100');
       if (resAssets.ok) {
         const data = await resAssets.json();
         setAssets(data.data || []);
@@ -107,13 +105,12 @@ export default function LotPlanningPage() {
   const handleConfirmAddLot = async () => {
     if (!addingAsset || !selectedSession) return;
     if (lotMode === 'manual' && !manualLotNumber.trim()) {
-      alert('Masukkan nomor lot terlebih dahulu.');
+      toast.warning('Masukkan nomor lot terlebih dahulu.');
       return;
     }
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       const body: any = {
         session_id: selectedSession,
         asset_id: addingAsset.id,
@@ -123,12 +120,8 @@ export default function LotPlanningPage() {
         body.lot_number = parseInt(manualLotNumber, 10);
       }
 
-      const res = await fetch(apiUrl('/admin/lots'), {
+      const res = await apiFetch('/admin/lots', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify(body)
       });
 
@@ -137,10 +130,10 @@ export default function LotPlanningPage() {
         setAddingAsset(null);
         await Promise.all([fetchLots(), refetchApprovedAssets()]);
       } else {
-        alert(data.error?.message || 'Gagal menambahkan lot');
+        toast.error(data.error?.message || 'Gagal menambahkan lot');
       }
     } catch (err) {
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     } finally {
       setLoading(false);
     }
@@ -150,19 +143,15 @@ export default function LotPlanningPage() {
     if (!confirm(`Hapus Lot #${lot.lot_number} (${lot.asset?.title || 'unit ini'}) dari sesi? Aset akan kembali ke daftar Approved.`)) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(apiUrl(`/admin/lots/${lot.id}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/admin/lots/${lot.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok && data.success) {
         await Promise.all([fetchLots(), refetchApprovedAssets()]);
       } else {
-        alert(data.error?.message || 'Gagal menghapus lot');
+        toast.error(data.error?.message || 'Gagal menghapus lot');
       }
     } catch (err) {
-      alert('Terjadi kesalahan sistem');
+      toast.error('Terjadi kesalahan sistem');
     } finally {
       setLoading(false);
     }

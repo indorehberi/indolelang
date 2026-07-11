@@ -5,6 +5,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface AuditLog {
   id: string;
@@ -25,6 +26,7 @@ interface AuditLog {
 }
 
 export default function AuditTrailPage() {
+  const toast = useToast();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -110,11 +112,11 @@ export default function AuditTrailPage() {
           }
         }
       } else {
-        alert('Gagal mengekspor data dari server');
+        toast.error('Gagal mengekspor data dari server');
       }
     } catch (err) {
       console.error('Export failed:', err);
-      alert('Terjadi kesalahan saat mengekspor data');
+      toast.error('Terjadi kesalahan saat mengekspor data');
     }
   };
 

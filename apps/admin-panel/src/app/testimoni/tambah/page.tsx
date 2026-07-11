@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Toast from '../../../components/ui/Toast';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 export default function TambahTestimoniPage() {
   const router = useRouter();
@@ -32,13 +32,8 @@ export default function TambahTestimoniPage() {
     setAdding(true);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/testimonials'), {
+      const response = await apiFetch('/admin/testimonials', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           ...formData,
           rating: parseInt(formData.rating, 10)

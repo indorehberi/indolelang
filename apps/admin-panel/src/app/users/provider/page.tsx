@@ -6,7 +6,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiUrl } from '../../../lib/api';
+import { apiFetch } from '../../../lib/api';
 
 interface Provider {
   id: string; // providers table row id
@@ -66,12 +66,11 @@ export default function ProviderUsersPage() {
   const fetchProviders = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      let url = apiUrl(`/admin/providers?per_page=200`);
-      if (filterStatus) url += `&status=${filterStatus}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
+      let query = `/admin/providers?per_page=200`;
+      if (filterStatus) query += `&status=${filterStatus}`;
+      if (search) query += `&search=${encodeURIComponent(search)}`;
 
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await apiFetch(query);
       const data = await response.json();
       if (response.ok && data.success) {
         setProviders(data.data);
@@ -108,21 +107,17 @@ export default function ProviderUsersPage() {
   const handleApprove = async (id: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menyetujui pengajuan provider ini?')) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/providers/${id}/approve`), {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/providers/${id}/approve`, { method: 'PUT' });
       if (response.ok) {
         setShowViewModal(false);
         fetchProviders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menyetujui provider');
+        showToast('error', data.error?.message || 'Gagal menyetujui provider');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      showToast('error', 'Terjadi kesalahan sistem');
     }
   };
 
@@ -130,14 +125,12 @@ export default function ProviderUsersPage() {
     const reason = window.prompt('Masukkan alasan penolakan pengajuan provider:');
     if (reason === null) return;
     if (!reason.trim()) {
-      alert('Alasan penolakan tidak boleh kosong.');
+      showToast('error', 'Alasan penolakan tidak boleh kosong.');
       return;
     }
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/providers/${id}/reject`), {
+      const response = await apiFetch(`/admin/providers/${id}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ reason: reason.trim() }),
       });
       if (response.ok) {
@@ -145,11 +138,11 @@ export default function ProviderUsersPage() {
         fetchProviders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menolak provider');
+        showToast('error', data.error?.message || 'Gagal menolak provider');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      showToast('error', 'Terjadi kesalahan sistem');
     }
   };
 
@@ -162,8 +155,6 @@ export default function ProviderUsersPage() {
       return;
     }
     try {
-      const token = localStorage.getItem('accessToken');
-
       // Hanya kirim field yang terisi untuk menghindari error validasi min-length
       const payload: Record<string, unknown> = {
         full_name: formData.full_name,
@@ -176,9 +167,8 @@ export default function ProviderUsersPage() {
       };
       if (formData.phone.trim()) payload.phone = formData.phone.trim();
 
-      const response = await fetch(apiUrl(`/admin/users/${userId}`), {
+      const response = await apiFetch(`/admin/users/${userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -198,21 +188,17 @@ export default function ProviderUsersPage() {
   const handleDelete = async () => {
     if (!selectedProvider?.user) return;
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/users/${selectedProvider.user.id}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/users/${selectedProvider.user.id}`, { method: 'DELETE' });
       if (response.ok) {
         setShowDeleteModal(false);
         fetchProviders();
       } else {
         const data = await response.json();
-        alert(data.error?.message || 'Gagal menghapus provider');
+        showToast('error', data.error?.message || 'Gagal menghapus provider');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan sistem');
+      showToast('error', 'Terjadi kesalahan sistem');
     }
   };
 

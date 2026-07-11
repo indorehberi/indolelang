@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-import { apiUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 import Link from 'next/link';
 
 interface Testimonial {
@@ -28,12 +28,7 @@ export default function TestimoniListPage() {
   const fetchTestimonials = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/admin/testimonials'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch('/admin/testimonials');
       const data = await response.json();
       if (response.ok && data.success) {
         setTestimonials(data.data);
@@ -55,13 +50,7 @@ export default function TestimoniListPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus testimoni ini?')) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/testimonials/${id}`), {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/admin/testimonials/${id}`, { method: 'DELETE' });
 
       const data = await response.json();
       if (!response.ok) {

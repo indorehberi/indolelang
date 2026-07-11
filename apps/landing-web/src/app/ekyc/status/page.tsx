@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 function EkycStatusContent() {
   const router = useRouter();
@@ -24,18 +24,14 @@ function EkycStatusContent() {
       setLoading(true);
 
       // 1. Fetch user profile for name
-      const resUser = await fetch(apiUrl("/users/profile"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resUser = await apiFetch("/users/profile");
       const resUserData = await resUser.json();
       if (resUser.ok && resUserData.success) {
         setUserName(resUserData.data.full_name || "Peserta Lelang");
       }
 
       // 2. Fetch bidder application status
-      const resBidder = await fetch(apiUrl("/bidders/me"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resBidder = await apiFetch("/bidders/me");
       const resBidderData = await resBidder.json();
 
       if (resBidder.ok && resBidderData.success && resBidderData.data) {

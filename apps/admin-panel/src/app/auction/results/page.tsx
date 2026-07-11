@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import { apiUrl } from '../../../lib/api';
+import { apiUrl, apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
 
 export default function AuctionResultsPage() {
+  const toast = useToast();
   const [lots, setLots] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,9 +22,7 @@ export default function AuctionResultsPage() {
 
   const fetchProviders = async () => {
     try {
-      const response = await fetch(apiUrl('/admin/users?role=provider&provider_status=approved&per_page=100'), {
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-      });
+      const response = await apiFetch('/admin/users?role=provider&provider_status=approved&per_page=100');
       const data = await response.json();
       if (response.ok && data.success) {
         setProviders(data.data);
@@ -35,10 +35,7 @@ export default function AuctionResultsPage() {
   const fetchLots = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl('/lots?per_page=200&status=sold,unsold'), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch('/lots?per_page=200&status=sold,unsold');
       const data = await response.json();
       if (response.ok && data.success) {
         setLots(data.data || []);
@@ -90,23 +87,19 @@ export default function AuctionResultsPage() {
     if (!confirm('Tandai lot ini sebagai sudah dibayar dan generate BAPL?')) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/lots/${lotId}/paid`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/admin/lots/${lotId}/paid`, { method: 'POST' });
       const data = await response.json();
       
       if (response.ok && data.success) {
-        alert('Berhasil! BAPL akan diunduh secara otomatis.');
+        toast.success('Berhasil! BAPL akan diunduh secara otomatis.');
         // Automatically download BAPL
         window.open(apiUrl(`/documents/bapl/${data.data.invoice_id}/download`), '_blank');
         fetchLots(); // Refresh
       } else {
-        alert(data.error?.message || 'Gagal menandai sebagai dibayar');
+        toast.error(data.error?.message || 'Gagal menandai sebagai dibayar');
       }
     } catch (err) {
-      alert('Terjadi kesalahan jaringan.');
+      toast.error('Terjadi kesalahan jaringan.');
     }
   };
 

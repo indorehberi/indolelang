@@ -3,15 +3,13 @@
 import React from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
-import { apiUrl } from '../../lib/api';
+import { apiUrl, apiFetch } from '../../lib/api';
 
 export default function AnalyticsDashboardPage() {
   const [statsData, setStatsData] = React.useState<any>(null);
   const [topProviders, setTopProviders] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    
     // Fetch global stats
     fetch(apiUrl('/public/stats'))
       .then(res => res.json())
@@ -21,13 +19,10 @@ export default function AnalyticsDashboardPage() {
         }
       })
       .catch(() => {});
-      
-    // Since we don't have a specific top providers endpoint yet, 
+
+    // Since we don't have a specific top providers endpoint yet,
     // fetch regular providers and show they have 0 sales as fallback real data
-    if (token) {
-      fetch(apiUrl('/users?role=provider&per_page=3'), {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+    apiFetch('/users?role=provider&per_page=3')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -35,7 +30,6 @@ export default function AnalyticsDashboardPage() {
         }
       })
       .catch(() => {});
-    }
   }, []);
 
   const formatRupiah = (val: number) => {

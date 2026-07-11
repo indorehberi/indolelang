@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, apiFetch } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function ProviderSettlement() {
+  const toast = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,14 +32,9 @@ export default function ProviderSettlement() {
   const fetchSettlements = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
       const [resSettle, resProfile] = await Promise.all([
-        fetch(apiUrl("/payments/settlements?per_page=100"), {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(apiUrl("/users/profile"), {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        apiFetch("/payments/settlements?per_page=100"),
+        apiFetch("/users/profile"),
       ]);
 
       if (resProfile.ok) {
@@ -70,24 +67,31 @@ export default function ProviderSettlement() {
   const handleRequestDisbursement = async () => {
     const pendingItems = items.filter((s: any) => s.status === "pending");
     if (pendingItems.length === 0) {
-      alert("Tidak ada dana pending yang siap dicairkan.");
+      toast.warning("Tidak ada dana pending yang siap dicairkan.");
       return;
     }
 
     setRequestPending(true);
     try {
-      const token = localStorage.getItem("accessToken");
+      const failedItems: string[] = [];
       for (const item of pendingItems) {
-        await fetch(apiUrl(`/payments/settlements/${item.id}/disburse`), {
+        const response = await apiFetch(`/payments/settlements/${item.id}/disburse`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
         });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
+          failedItems.push(item.id);
+        }
       }
-      alert("Permintaan pencairan dana berhasil diajukan!");
-      fetchSettlements();
+      await fetchSettlements();
+      if (failedItems.length === 0) {
+        toast.success("Permintaan pencairan dana berhasil diajukan!");
+      } else {
+        toast.error(`Sebagian permintaan pencairan gagal diajukan (${failedItems.length} dari ${pendingItems.length}). Silakan coba lagi.`);
+      }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat memproses pencairan.");
+      toast.error("Terjadi kesalahan saat memproses pencairan.");
     } finally {
       setRequestPending(false);
     }

@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Link from 'next/link';
-import { apiUrl } from '../../lib/api';
+import { apiUrl, apiFetch } from '../../lib/api';
 
 interface Branch {
   id: string;
@@ -57,7 +57,7 @@ export default function SessionsPage() {
     // Fetch branches for edit form
     const fetchBranches = async () => {
       try {
-        const response = await fetch(apiUrl('/branches'));
+        const response = await fetch(apiUrl('/branches?is_active=true'));
         const data = await response.json();
         if (response.ok && data.success) {
           setBranches(data.data);
@@ -74,16 +74,11 @@ export default function SessionsPage() {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
       let query = `?page=1&per_page=50`;
       if (statusFilter) query += `&status=${statusFilter}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
 
-      const response = await fetch(apiUrl(`/sessions${query}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/sessions${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setSessions(data.data);
@@ -119,14 +114,9 @@ export default function SessionsPage() {
     e.preventDefault();
     if (!selectedSession) return;
     try {
-      const token = localStorage.getItem('accessToken');
       const scheduled_at = new Date(`${editFormData.scheduledDate}T${editFormData.scheduledTime}`).toISOString();
-      const response = await fetch(apiUrl(`/admin/sessions/${selectedSession.id}`), {
+      const response = await apiFetch(`/admin/sessions/${selectedSession.id}`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           title: editFormData.title,
           description: editFormData.description || undefined,
@@ -153,13 +143,7 @@ export default function SessionsPage() {
       return;
     }
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/sessions/${id}`), {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch(`/admin/sessions/${id}`, { method: 'DELETE' });
       const data = await response.json();
       if (response.ok && data.success) {
         showToast('success', 'Sesi berhasil dihapus');

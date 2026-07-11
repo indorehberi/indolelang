@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { ProviderDTO, PaginationMeta, ApplicationStatus } from '@indo-lelang/shared-types';
+import { ProviderDTO, PaginationMeta, ApplicationStatus, KycStatus } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
@@ -21,7 +21,7 @@ export class ProvidersService {
       company_name: string;
       npwp: string;
       npwp_url: string;
-      pks_number: string;
+      pks_number?: string;
       provider_type: string;
       address: string;
       bank_name?: string;
@@ -76,6 +76,21 @@ export class ProvidersService {
         selfie_url: data.selfie_url,
       });
     }
+
+    // Mirror the profile fields onto `users` too, same as the bidder flow —
+    // any profile-completeness check reading GET /users/profile must see
+    // this data without requiring a separate save.
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        address: data.address,
+        bank_name: data.bank_name,
+        bank_account_no: data.bank_account_no,
+        bank_account_name: data.bank_account_name,
+        company_name: data.company_name,
+        npwp: data.npwp,
+      },
+    });
 
     await notifyAdmins(
       'provider_application_submitted',
@@ -174,7 +189,13 @@ export class ProvidersService {
       }),
       prisma.users.update({
         where: { id: provider.user_id },
-        data: { role: 'provider' },
+        data: { role: 'provider', status: 'active' },
+      }),
+      // Keep the KYC document's own status in sync — pages that read
+      // /kyc/status directly must not stay "pending" after approval.
+      prisma.kyc_documents.updateMany({
+        where: { user_id: provider.user_id },
+        data: { status: KycStatus.APPROVED, reviewer_id: reviewerId, reviewed_at: new Date() },
       }),
     ]);
 
@@ -192,15 +213,21 @@ export class ProvidersService {
     const provider = await prisma.providers.findUnique({ where: { id } });
     if (!provider) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data provider tidak ditemukan');
 
-    const updated = await prisma.providers.update({
-      where: { id },
-      data: {
-        status: ApplicationStatus.NONAKTIF,
-        reviewed_by: reviewerId,
-        reviewed_at: new Date(),
-        rejection_reason: reason,
-      },
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.providers.update({
+        where: { id },
+        data: {
+          status: ApplicationStatus.NONAKTIF,
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          rejection_reason: reason,
+        },
+      }),
+      prisma.kyc_documents.updateMany({
+        where: { user_id: provider.user_id },
+        data: { status: KycStatus.REJECTED, reviewer_id: reviewerId, reviewed_at: new Date(), rejection_reason: reason },
+      }),
+    ]);
 
     await notificationsService.createNotification({
       userId: provider.user_id,

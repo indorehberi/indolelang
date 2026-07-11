@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
-import { apiUrl, wsBaseUrl } from '../../../lib/api';
+import { apiFetch, wsBaseUrl, refreshAccessToken, getAuthToken } from '../../../lib/api';
 
 interface Session {
   id: string;
@@ -75,10 +75,7 @@ export default function ControlRoomPage() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(apiUrl('/sessions?per_page=50'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch('/sessions?per_page=50');
         const data = await response.json();
         if (response.ok && data.success) {
           const allSessions = data.data || [];
@@ -107,10 +104,7 @@ export default function ControlRoomPage() {
     const fetchLots = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(apiUrl(`/lots?session_id=${selectedSessionId}&per_page=100`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch(`/lots?session_id=${selectedSessionId}&per_page=100`);
         const data = await response.json();
         if (response.ok && data.success) {
           setLots(data.data);
@@ -138,123 +132,132 @@ export default function ControlRoomPage() {
 
     fetchLots();
 
-    // Setup Socket Connection
-    const token = localStorage.getItem('accessToken');
-    const socket = io(wsBaseUrl(), {
-      auth: { token },
-      transports: ['websocket'],
-    });
-    socketRef.current = socket;
-
-    // Socket listeners
-    socket.on('connect', () => {
-      loggerDebug('Connected to WebSocket server');
-      // Watch session ended room
-      socket.emit('bid:watch', { session_id: selectedSessionId });
-    });
-
-    socket.on('lot:activated', (data: any) => {
-      setToast({ message: `Lot #${data.lot_data.lot_number} telah diaktifkan!`, variant: 'success' });
-      // Update lots list status
-      setLots((prevLots) =>
-        prevLots.map((l) =>
-          l.id === data.lot_id ? { ...l, status: 'active' } : l
-        )
-      );
-
-      // Build active lot state directly from the broadcast payload instead of
-      // looking it up in the `lots` closure, which can be stale (this listener
-      // is registered once per effect run and doesn't see later setLots calls).
-      setActiveLot({
-        id: data.lot_id,
-        session_id: selectedSessionId,
-        lot_number: data.lot_data.lot_number,
-        starting_price: data.lot_data.starting_price,
-        status: 'active',
-        asset: {
-          title: data.lot_data.asset_title,
-          category: data.lot_data.category,
-          base_price: data.lot_data.starting_price,
-          images: data.lot_data.images || [],
-        },
+    // Setup Socket Connection — refresh the access token first so the socket
+    // doesn't connect with a token that's already expired (sockets can't
+    // benefit from apiFetch's automatic 401 refresh-and-retry).
+    const attachSocketListeners = (socket: Socket) => {
+      socket.on('connect', () => {
+        loggerDebug('Connected to WebSocket server');
+        // Watch session ended room
+        socket.emit('bid:watch', { session_id: selectedSessionId });
       });
-      setCurrentPrice(data.lot_data.starting_price);
-      setTimeRemaining(data.duration);
-      setBidsCount(0);
-      setHighestBidder('-');
-      setExtensionCount(0);
-      setIsExtended(false);
-      setBidLogs([]);
-    });
 
-    socket.on('bid:update', (data: any) => {
-      setCurrentPrice(data.current_price);
-      setHighestBidder(data.bidder_id);
-      setBidsCount(data.bidder_count);
-      setTimeRemaining(data.time_remaining);
-      setExtensionCount(data.extension_count);
-      setIsExtended(data.extended || false);
+      socket.on('lot:activated', (data: any) => {
+        setToast({ message: `Lot #${data.lot_data.lot_number} telah diaktifkan!`, variant: 'success' });
+        // Update lots list status
+        setLots((prevLots) =>
+          prevLots.map((l) =>
+            l.id === data.lot_id ? { ...l, status: 'active' } : l
+          )
+        );
 
-      if (data.extended) {
-        setToast({ message: `Waktu penawaran diperpanjang! (Anti-Sniping)`, variant: 'success' });
-      }
-
-      // Add to logs if price changed and not empty bidder
-      if (data.bidder_id && data.bidder_id !== '-') {
-        setBidLogs((prev) => [
-          {
-            id: String(Date.now()),
-            bidder_id: data.bidder_id,
-            amount: data.current_price,
-            time: new Date().toLocaleTimeString('id-ID'),
+        // Build active lot state directly from the broadcast payload instead of
+        // looking it up in the `lots` closure, which can be stale (this listener
+        // is registered once per effect run and doesn't see later setLots calls).
+        setActiveLot({
+          id: data.lot_id,
+          session_id: selectedSessionId,
+          lot_number: data.lot_data.lot_number,
+          starting_price: data.lot_data.starting_price,
+          status: 'active',
+          asset: {
+            title: data.lot_data.asset_title,
+            category: data.lot_data.category,
+            base_price: data.lot_data.starting_price,
+            images: data.lot_data.images || [],
           },
-          ...prev,
-        ]);
-      }
-    });
-
-    socket.on('lot:closed', (data: any) => {
-      setToast({
-        message: `Lot ditutup! Status: ${data.result === 'sold' ? 'SOLD (Terjual)' : 'UNSOLD'}`,
-        variant: data.result === 'sold' ? 'success' : 'danger',
+        });
+        setCurrentPrice(data.lot_data.starting_price);
+        setTimeRemaining(data.duration);
+        setBidsCount(0);
+        setHighestBidder('-');
+        setExtensionCount(0);
+        setIsExtended(false);
+        setBidLogs([]);
       });
 
-      // Update in lots list
-      setLots((prevLots) =>
-        prevLots.map((l) =>
-          l.id === data.lot_id
-            ? {
-                ...l,
-                status: data.result,
-                hammer_price: data.final_price,
-                winner_id: data.winner_id,
-              }
-            : l
-        )
-      );
+      socket.on('bid:update', (data: any) => {
+        setCurrentPrice(data.current_price);
+        setHighestBidder(data.bidder_id);
+        setBidsCount(data.bidder_count);
+        setTimeRemaining(data.time_remaining);
+        setExtensionCount(data.extension_count);
+        setIsExtended(data.extended || false);
 
-      setActiveLot(null);
-      setBidLogs([]);
-    });
+        if (data.extended) {
+          setToast({ message: `Waktu penawaran diperpanjang! (Anti-Sniping)`, variant: 'success' });
+        }
 
-    socket.on('lot:cancelled', (data: any) => {
-      setLots((prevLots) =>
-        prevLots.map((l) => (l.id === data.lot_id ? { ...l, status: 'pending' } : l))
-      );
-      setActiveLot((prev) => (prev?.id === data.lot_id ? null : prev));
-      setBidLogs([]);
-    });
+        // Add to logs if price changed and not empty bidder
+        if (data.bidder_id && data.bidder_id !== '-') {
+          setBidLogs((prev) => [
+            {
+              id: String(Date.now()),
+              bidder_id: data.bidder_id,
+              amount: data.current_price,
+              time: new Date().toLocaleTimeString('id-ID'),
+            },
+            ...prev,
+          ]);
+        }
+      });
 
-    socket.on('session:ended', (data: any) => {
-      setToast({ message: 'Sesi lelang resmi ditutup oleh operator!', variant: 'success' });
-      setSessions((prev) => prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'closed' } : s)));
-    });
+      socket.on('lot:closed', (data: any) => {
+        setToast({
+          message: `Lot ditutup! Status: ${data.result === 'sold' ? 'SOLD (Terjual)' : 'UNSOLD'}`,
+          variant: data.result === 'sold' ? 'success' : 'danger',
+        });
 
-    socket.on('bid:error', (data: any) => {
-      setToast({ message: data.message, variant: 'danger' });
-    });
+        // Update in lots list
+        setLots((prevLots) =>
+          prevLots.map((l) =>
+            l.id === data.lot_id
+              ? {
+                  ...l,
+                  status: data.result,
+                  hammer_price: data.final_price,
+                  winner_id: data.winner_id,
+                }
+              : l
+          )
+        );
+
+        setActiveLot(null);
+        setBidLogs([]);
+      });
+
+      socket.on('lot:cancelled', (data: any) => {
+        setLots((prevLots) =>
+          prevLots.map((l) => (l.id === data.lot_id ? { ...l, status: 'pending' } : l))
+        );
+        setActiveLot((prev) => (prev?.id === data.lot_id ? null : prev));
+        setBidLogs([]);
+      });
+
+      socket.on('session:ended', (data: any) => {
+        setToast({ message: 'Sesi lelang resmi ditutup oleh operator!', variant: 'success' });
+        setSessions((prev) => prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'closed' } : s)));
+      });
+
+      socket.on('bid:error', (data: any) => {
+        setToast({ message: data.message, variant: 'danger' });
+      });
+    };
+
+    let cancelled = false;
+    (async () => {
+      const freshToken = (await refreshAccessToken()) || getAuthToken();
+      if (cancelled) return;
+      const socket = io(wsBaseUrl(), {
+        auth: { token: freshToken },
+        transports: ['websocket'],
+      });
+      socketRef.current = socket;
+      attachSocketListeners(socket);
+    })();
 
     return () => {
+      cancelled = true;
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
@@ -279,11 +282,7 @@ export default function ControlRoomPage() {
     // fetch's response comes back, so joining afterwards would miss it.
     watchLotSocket(lotId);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/lots/${lotId}/activate`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/lots/${lotId}/activate`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal mengaktifkan lot');
@@ -306,11 +305,7 @@ export default function ControlRoomPage() {
     setProcessingId(lotId);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/lots/${lotId}/close`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/lots/${lotId}/close`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menutup lot');
@@ -330,11 +325,7 @@ export default function ControlRoomPage() {
     setProcessingId(lotId);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/lots/${lotId}/cancel`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/lots/${lotId}/cancel`, { method: 'POST' });
       const data = await response.json();
       if (response.ok && data.success) {
         setToast({ message: 'Lot berhasil dibatalkan dan dikembalikan ke pending.', variant: 'success' });
@@ -355,11 +346,7 @@ export default function ControlRoomPage() {
     setProcessingId(selectedSessionId);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/sessions/${selectedSessionId}/end`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/sessions/${selectedSessionId}/end`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menghentikan sesi');
@@ -383,11 +370,7 @@ export default function ControlRoomPage() {
     setProcessingId(selectedSessionId);
     setToast(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(apiUrl(`/admin/sessions/${selectedSessionId}/start`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/admin/sessions/${selectedSessionId}/start`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal memulai sesi');

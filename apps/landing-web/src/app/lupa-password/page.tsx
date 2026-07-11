@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { apiUrl, fetchWithRetry } from "@/lib/api";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function LupaPasswordPage() {
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -21,10 +23,10 @@ export default function LupaPasswordPage() {
           setSubmitted(true);
         } else {
           const data = await response.json();
-          alert(data.error?.message || "Gagal mengirim link reset");
+          toast.error(data.error?.message || "Gagal mengirim link reset");
         }
       } catch (error) {
-        alert("Terjadi kesalahan koneksi");
+        toast.error("Terjadi kesalahan koneksi");
       }
     }
   };

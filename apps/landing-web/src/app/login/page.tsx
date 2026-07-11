@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl, fetchWithRetry } from "@/lib/api";
 import GoogleAuthModal from "@/components/GoogleAuthModal";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
@@ -24,6 +26,7 @@ export default function LoginPage() {
     try {
       const response = await fetchWithRetry(apiUrl("/auth/login"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -56,7 +59,7 @@ export default function LoginPage() {
           }
           window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
         } else {
-          alert("Role akun Anda tidak didukung pada halaman ini.");
+          toast.error("Role akun Anda tidak didukung pada halaman ini.");
         }
       } else {
         if (resData.error?.details) {
@@ -67,10 +70,10 @@ export default function LoginPage() {
           });
           setErrors(newErrors);
         }
-        alert(resData.error?.message || "Login gagal, silakan coba lagi.");
+        toast.error(resData.error?.message || "Login gagal, silakan coba lagi.");
       }
     } catch (err) {
-      alert("Terjadi kesalahan koneksi. Pastikan API Server sedang aktif.");
+      toast.error("Terjadi kesalahan koneksi. Pastikan API Server sedang aktif.");
     }
   };
 

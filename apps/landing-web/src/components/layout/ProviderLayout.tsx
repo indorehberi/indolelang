@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import SessionTimeout from "./SessionTimeout";
+import { clearAuthAndRedirect } from "../../lib/api";
 
 interface ProviderLayoutProps {
   children: React.ReactNode;
@@ -12,7 +13,6 @@ interface ProviderLayoutProps {
 
 export default function ProviderLayout({ children, pageTitle }: ProviderLayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyName, setCompanyName] = useState("PT Astra Mitra");
   const [userInitial, setUserInitial] = useState("AM");
@@ -42,11 +42,7 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
   }, []);
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-      router.push("/login");
-    }
+    clearAuthAndRedirect('Anda telah logout.');
   };
 
 
@@ -63,7 +59,7 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
-      <SessionTimeout timeoutMinutes={10} />
+      <SessionTimeout />
       {/* ====== DESKTOP SIDEBAR ====== */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl">
         {/* Brand Logo */}

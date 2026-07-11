@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { apiUrl } from '../../lib/api';
+import { apiFetch, clearAuthAndRedirect } from '../../lib/api';
 
 type BadgeTone = 'danger' | 'gold' | 'success';
 
@@ -64,9 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const fetchCounts = async () => {
       try {
         if (kycPendingCount === undefined) {
-          const res = await fetch(apiUrl('/admin/bidders?status=antri&per_page=1'), {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiFetch('/admin/bidders?status=antri&per_page=1');
           const data = await res.json();
           if (res.ok && data.success) {
             setBidderQueueCount(data.meta?.total ?? data.data?.length ?? 0);
@@ -74,9 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
 
         {
-          const res = await fetch(apiUrl('/admin/providers?status=antri&per_page=1'), {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiFetch('/admin/providers?status=antri&per_page=1');
           const data = await res.json();
           if (res.ok && data.success) {
             setProviderQueueCount(data.meta?.total ?? data.data?.length ?? 0);
@@ -84,9 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
 
         if (assetPendingCount === undefined) {
-          const res = await fetch(apiUrl('/assets?status=pending&per_page=1'), {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiFetch('/assets?status=pending&per_page=1');
           const data = await res.json();
           if (res.ok && data.success) {
             setAssetCount(data.meta?.total ?? data.data?.length ?? 0);
@@ -94,9 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
 
         if (hasLiveSession === undefined) {
-          const res = await fetch(apiUrl('/sessions?status=live&per_page=1'), {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await apiFetch('/sessions?status=live&per_page=1');
           const data = await res.json();
           if (res.ok && data.success) {
             setLiveSession((data.meta?.total ?? data.data?.length ?? 0) > 0);
@@ -123,9 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           setShowAuditTrail(false);
         }
 
-        const res = await fetch(apiUrl('/admin/settings'), {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiFetch('/admin/settings');
         const data = await res.json();
         if (res.ok && data.success) {
           const toggle = data.data.find((item: any) => item.key === 'feat_analytics_dashboard');
@@ -161,11 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/login';
+    clearAuthAndRedirect('Anda telah logout.');
   };
 
   const isRouteActive = (route: string) => {
