@@ -40,15 +40,20 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         const resDepData = await resDeposits.json();
         if (resDeposits.ok && resDepData.success) {
           const list = resDepData.data || [];
+          
+          // Map category to unit type (motor/mobil)
+          const lotCategory = lot.asset?.category?.toLowerCase() || "";
+          const lotUnitType = lotCategory.includes("motor") ? "motor" : "mobil";
+
           const activeNipl = list.some(
-            (d: any) => d.session_id === lot.session_id && d.status === "paid"
+            (d: any) => d.status === "paid" && d.unit_type === lotUnitType
           );
           setHasNipl(activeNipl);
         }
       } catch(e) {}
     };
     fetchNipl();
-  }, [lot.session_id, token]);
+  }, [lot.asset?.category, token]);
 
   useEffect(() => {
     if (!socket) return;
