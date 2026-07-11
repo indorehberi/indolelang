@@ -24,7 +24,7 @@ interface Lot {
   id: string;
   lot_number: number;
   starting_price: number;
-  asset?: { title: string };
+  asset?: { title: string; police_number?: string };
 }
 
 export default function LotPlanningPage() {
@@ -117,56 +117,55 @@ export default function LotPlanningPage() {
     setManualLotNumber('');
   };
 
-  const handleConfirmAddLot = async () => {
+  const handleAddLot = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!addingAsset || !selectedSession) return;
-    if (lotMode === 'manual' && !manualLotNumber.trim()) {
-      toast.warning('Masukkan nomor lot terlebih dahulu.');
-      return;
-    }
-
+    
     setLoading(true);
     try {
-      const body: any = {
+      const payload: any = {
         session_id: selectedSession,
         asset_id: addingAsset.id,
         starting_price: addingAsset.base_price,
       };
+
       if (lotMode === 'manual') {
-        body.lot_number = parseInt(manualLotNumber, 10);
+        if (!manualLotNumber) throw new Error('Nomor lot wajib diisi jika mode manual');
+        payload.lot_number = parseInt(manualLotNumber, 10);
       }
 
       const res = await apiFetch('/admin/lots', {
         method: 'POST',
-        body: JSON.stringify(body)
+        body: JSON.stringify(payload)
       });
-
       const data = await res.json();
-      if (res.ok && data.success) {
-        setAddingAsset(null);
-        await Promise.all([fetchLots(), refetchApprovedAssets()]);
-      } else {
-        toast.error(data.error?.message || 'Gagal menambahkan lot');
-      }
-    } catch (err) {
-      toast.error('Terjadi kesalahan sistem');
+      
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal menambahkan lot');
+      
+      toast.success('Berhasil menambahkan aset ke sesi lelang');
+      setAddingAsset(null);
+      fetchLots();
+      refetchApprovedAssets();
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteLot = async (lot: Lot) => {
-    if (!confirm(`Hapus Lot #${lot.lot_number} (${lot.asset?.title || 'unit ini'}) dari sesi? Aset akan kembali ke daftar Approved.`)) return;
+    if (!confirm('Hapus lot ini? Aset akan kembali ke daftar approved.')) return;
     setLoading(true);
     try {
       const res = await apiFetch(`/admin/lots/${lot.id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (res.ok && data.success) {
-        await Promise.all([fetchLots(), refetchApprovedAssets()]);
-      } else {
-        toast.error(data.error?.message || 'Gagal menghapus lot');
-      }
-    } catch (err) {
-      toast.error('Terjadi kesalahan sistem');
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal menghapus lot');
+      
+      toast.success('Lot berhasil dihapus');
+      fetchLots();
+      refetchApprovedAssets();
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
@@ -181,16 +180,16 @@ export default function LotPlanningPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Penyusunan Lot">
+    <DashboardLayout breadcrumbParent="Lelang" breadcrumbCurrent="Penyusunan Lot">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Penyusunan Lot & Antrean Lelang</h1>
-          <p className="page-subtitle">Pilih sesi lelang dan masukkan unit aset titipan provider yang berstatus approved ke dalam nomor urut lot.</p>
+          <h1 className="page-title">Penyusunan Lot Lelang</h1>
+          <p className="page-subtitle">Pilih aset dari daftar persetujuan dan masukkan ke sesi lelang aktif.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-        {/* Left column: Choose session and show assigned lots */}
+      <div className="grid-2">
+        {/* Left column: Select session and view current lots */}
         <div>
           <Card>
             <h2 className="card-title">1. Pilih Sesi Lelang</h2>
@@ -214,18 +213,20 @@ export default function LotPlanningPage() {
                   <tr>
                     <th style={{ width: '60px' }}>Lot #</th>
                     <th>Nama Unit Aset</th>
+                    <th>No Polisi</th>
                     <th>Harga Limit</th>
                     <th style={{ textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lots.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center text-muted">Belum ada lot</td></tr>
+                    <tr><td colSpan={5} className="text-center text-muted">Belum ada lot</td></tr>
                   ) : (
                     lots.map(lot => (
                       <tr key={lot.id}>
                         <td><strong>{String(lot.lot_number).padStart(2, '0')}</strong></td>
                         <td>{lot.asset?.title || 'Unknown Asset'}</td>
+                        <td style={{ fontSize: '0.85rem' }}>{lot.asset?.police_number || '-'}</td>
                         <td>{formatRupiah(lot.starting_price)}</td>
                         <td style={{ textAlign: 'center' }}>
                           <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
