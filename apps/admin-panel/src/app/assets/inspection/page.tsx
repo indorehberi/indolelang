@@ -262,16 +262,9 @@ export default function AssetsInspectionPage() {
       showToast('error', 'Alasan penolakan wajib diisi');
       return;
     }
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      showToast('error', 'Lengkapi form inspeksi sebelum menolak');
-      return;
-    }
     setErrors({});
     setProcessing(true);
     try {
-      await submitInspection();
       const res = await apiFetch(`/admin/assets/${selectedAsset.id}/reject`, {
         method: 'PUT',
         body: JSON.stringify({ reason: rejectionReason.trim() }),
