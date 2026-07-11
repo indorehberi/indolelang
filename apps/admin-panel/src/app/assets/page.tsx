@@ -627,6 +627,7 @@ export default function AssetsPage() {
               <tr>
                 <th>Nama Barang</th>
                 <th>Kategori</th>
+                <th>Provider</th>
                 <th>Harga Dasar</th>
                 <th>Status</th>
                 <th>Tanggal Masuk</th>
@@ -636,11 +637,11 @@ export default function AssetsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center">Memuat daftar barang...</td>
+                  <td colSpan={7} className="text-center">Memuat daftar barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
+                  <td colSpan={7} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
@@ -657,6 +658,9 @@ export default function AssetsPage() {
                       <span style={{ textTransform: 'capitalize' }}>
                         {asset.category.replace('_', ' ')}
                       </span>
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>
+                      {asset.provider?.company_name || asset.provider?.full_name || 'Admin'}
                     </td>
                     <td>
                       <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
