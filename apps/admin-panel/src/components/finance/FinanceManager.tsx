@@ -464,19 +464,19 @@ export default function FinanceManager({
                         <td>{getStatusBadge(deposit.status)}</td>
                         <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
                         <td style={{ textAlign: 'center' }}>
-                          {(deposit.status === 'pending' || deposit.status === 'pending_approval') && deposit.payment_method === 'manual_transfer' && (
-                            <div className="d-flex flex-column gap-1">
-                              {(deposit as any).transfer_proof_url && (
-                                <a 
-                                  href={(deposit as any).transfer_proof_url} 
-                                  target="_blank" 
-                                  rel="noreferrer"
-                                  className="btn btn-xs btn-outline-primary"
-                                  style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                                >
-                                  📄 View Proof
-                                </a>
-                              )}
+                          <div className="d-flex flex-column gap-1">
+                            {(deposit as any).transfer_proof_url && (
+                              <a 
+                                href={(deposit as any).transfer_proof_url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="btn btn-xs btn-outline-primary"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}
+                              >
+                                📄 Lihat Bukti
+                              </a>
+                            )}
+                            {(deposit.status === 'pending' || deposit.status === 'pending_approval') && deposit.payment_method === 'manual_transfer' && (
                               <button
                                 onClick={() => handleMarkPaid(deposit.id)}
                                 className="btn btn-xs btn-success"
@@ -486,8 +486,8 @@ export default function FinanceManager({
                               >
                                 {processingId === deposit.id ? 'Memproses...' : '✓ Setujui (Paid)'}
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
