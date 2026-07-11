@@ -22,12 +22,11 @@ COPY apps/landing-web/next.config.t[s] apps/landing-web/.env* ./apps/landing-web
 # Install dependencies and build workspaces
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
+# Only set ENV if ARG is provided, otherwise let Next.js use .env.production
 ARG GOOGLE_CLIENT_ID
-ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL
-# Only set ENV if ARG is provided, otherwise let Next.js use .env.local
-RUN if [ -n "$NEXT_PUBLIC_GOOGLE_CLIENT_ID" ]; then echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> ./apps/landing-web/.env.local; fi
+RUN if [ -n "$GOOGLE_CLIENT_ID" ]; then echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> ./apps/landing-web/.env.production.local; fi
 
 RUN npm ci
 RUN npm run build -w packages/shared-types
