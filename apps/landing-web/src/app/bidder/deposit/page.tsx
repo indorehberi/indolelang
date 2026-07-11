@@ -168,7 +168,7 @@ export default function BidderDeposit() {
 
     try {
       // 1. Upload File
-      const uploadRes = await apiFetch("/upload/image", {
+      const uploadRes = await apiFetch("/upload/single", {
         method: "POST",
         body: formData,
       });
@@ -239,12 +239,7 @@ export default function BidderDeposit() {
             <div className="card-header">Form Pengajuan Jaminan NIPL</div>
             <form onSubmit={handleCreateDeposit} className="space-y-4">
               
-              {/* Keterangan Sistem NIPL */}
-              <div className="panel-form-group">
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary text-xs font-medium">
-                  <strong>Penting:</strong> Semua NIPL yang Anda beli kini bersifat <strong>Global (Saldo Bebas)</strong> dan dapat digunakan untuk mengikuti sesi lelang mana saja tanpa perlu dialokasikan.
-                </div>
-              </div>
+
 
               {/* Tipe Unit */}
               <div className="panel-form-group">
@@ -305,12 +300,7 @@ export default function BidderDeposit() {
                 </div>
               </div>
 
-              {/* Fee Notice */}
-              {manualTransferFee > 0 && (
-                <div className="p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning-dark">
-                  <strong>Biaya transfer:</strong> {formatRupiah(manualTransferFee)} akan ditambahkan ke total deposit yang harus ditransfer.
-                </div>
-              )}
+
 
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs text-slate-600">
                 Pembayaran dilakukan lewat <strong>transfer bank manual</strong>. Setelah mengajukan, Anda akan melihat nomor rekening tujuan dan bisa langsung mengunggah bukti transfer di halaman ini.
@@ -382,11 +372,7 @@ export default function BidderDeposit() {
                   </div>
                 </div>
 
-                {paymentType === "manual_transfer" && manualTransferFee > 0 && (
-                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning-dark mt-3">
-                    <strong>Informasi Biaya:</strong> Pembayaran ini termasuk biaya transfer sebesar <strong>{formatRupiah(manualTransferFee)}</strong>.
-                  </div>
-                )}
+
 
                 <div className="border-t border-outline-variant/20 pt-3 space-y-2 text-[11px] text-slate-600">
                   <p className="font-bold text-slate-800">Petunjuk Pembayaran:</p>
