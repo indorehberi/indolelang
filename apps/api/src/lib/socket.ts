@@ -279,9 +279,16 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
           .map((field) => lot.asset[field])
           .filter(Boolean);
       })(),
+      // Include individual photo fields for frontend fallback
+      photo_front: lot.asset.photo_front || undefined,
+      photo_left: lot.asset.photo_left || undefined,
+      photo_right: lot.asset.photo_right || undefined,
+      photo_back: lot.asset.photo_back || undefined,
+      photo_interior: lot.asset.photo_interior || undefined,
+      photo_engine: lot.asset.photo_engine || undefined,
     },
     start_time: new Date().toISOString(),
-    duration: durationSeconds,
+    duration: state.timeRemaining, // Use guarded value, never 0
   });
 }
 
