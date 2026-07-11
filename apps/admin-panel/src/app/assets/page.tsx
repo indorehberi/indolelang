@@ -129,7 +129,7 @@ export default function AssetsPage() {
 
   
   
-  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz', 'Ford'];
+  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza'];
   const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
   
   const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
@@ -141,11 +141,20 @@ export default function AssetsPage() {
     Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
     Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
     Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
-    Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Stargazer'],
+    Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
     Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
-    Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV'],
+    Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
     BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
-    'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE']
+    'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
+    BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
+    Chery: ['Omoda E5', 'J6 (iCar 03)'],
+    MG: ['MG4 EV', 'MG ZS EV'],
+    Neta: ['V-II', 'X'],
+    AION: ['Y Plus', 'V', 'UT'],
+    VinFast: ['VF 3', 'VF 5', 'VF e34'],
+    Geely: ['EX5'],
+    XPENG: ['G6', 'X9'],
+    Denza: ['D9']
   };
 
   const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
