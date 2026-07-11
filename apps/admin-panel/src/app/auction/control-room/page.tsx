@@ -53,6 +53,7 @@ export default function ControlRoomPage() {
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [sessionStartTrigger, setSessionStartTrigger] = useState<'admin' | 'system'>('admin');
   
   // Real-time Active Lot State
   const [activeLot, setActiveLot] = useState<Lot | null>(null);
@@ -73,15 +74,33 @@ export default function ControlRoomPage() {
 
   // Fetch Session List on mount
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await apiFetch('/sessions?per_page=50');
-        const data = await response.json();
-        if (response.ok && data.success) {
-          const allSessions = data.data || [];
-          setSessions(allSessions);
-          if (allSessions.length > 0) {
-            setSelectedSessionId(allSessions[0].id);
+        const [resSessions, resSettings] = await Promise.all([
+          apiFetch('/sessions?per_page=50'),
+          apiFetch('/admin/settings/auction_session_start_trigger')
+        ]);
+
+        if (resSettings.ok) {
+          const settingsData = await resSettings.json();
+          if (settingsData.success && settingsData.data) {
+            setSessionStartTrigger(settingsData.data.value as 'admin' | 'system');
+          }
+        }
+
+        if (resSessions.ok) {
+          const data = await resSessions.json();
+          if (data.success) {
+            const allSessions = data.data || [];
+            setSessions(allSessions);
+            
+            // Auto-select the live session if any exists
+            const liveSession = allSessions.find((s: Session) => s.status === 'live');
+            if (liveSession) {
+              setSelectedSessionId(liveSession.id);
+            } else if (allSessions.length > 0) {
+              setSelectedSessionId(allSessions[0].id);
+            }
           }
         } else {
           setSessions([]);
@@ -90,7 +109,7 @@ export default function ControlRoomPage() {
         setSessions([]);
       }
     };
-    fetchSessions();
+    fetchInitialData();
   }, []);
 
   // Fetch Lots when session changes & Connect Socket
@@ -464,13 +483,17 @@ export default function ControlRoomPage() {
               value={selectedSessionId}
               onChange={(e) => setSelectedSessionId(e.target.value)}
             >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} ({s.scheduled_at ? new Date(s.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}) [{s.status.toUpperCase()}]
-                </option>
-              ))}
+              {sessions.map((s) => {
+                const isAnyLive = sessions.some(session => session.status === 'live');
+                const isDisabled = isAnyLive && s.status !== 'live';
+                return (
+                  <option key={s.id} value={s.id} disabled={isDisabled}>
+                    {s.title} ({s.scheduled_at ? new Date(s.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}) [{s.status.toUpperCase()}]
+                  </option>
+                );
+              })}
             </select>
-            {activeTab === 'live' && sessionDetails && sessionDetails.status === 'published' && (
+            {activeTab === 'live' && sessionDetails && sessionDetails.status === 'published' && sessionStartTrigger === 'admin' && (
               <Button
                 variant="primary"
                 size="sm"
