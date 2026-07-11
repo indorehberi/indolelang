@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { apiFetch, apiUrl, refreshAccessToken, getAssetImages, getImageUrl, wsBaseUrl } from "@/lib/api";
+import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken, getAssetImages, getImageUrl, wsBaseUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import { useToast } from "@/providers/ToastProvider";
 
