@@ -111,6 +111,7 @@ function KatalogContent() {
           action: isLive ? "Bid" : "Detail",
           category: dbLot.asset.category === "MOBIL" ? "Mobil" : (dbLot.asset.category === "MOTOR" ? "Motor" : (dbLot.asset.category === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
+          sessionId: dbLot.session_id,
         };
       });
       setLotsList(mapped);
@@ -201,7 +202,7 @@ function KatalogContent() {
   const paginatedLots = filteredLots.slice((validCurrentPage - 1) * itemsPerPage, validCurrentPage * itemsPerPage);
 
   const totalLots = lotsList.length;
-  const totalSesi = Array.from(new Set(lotsList.map((l) => l.jenisLelang))).length;
+  const totalSesi = Array.from(new Set(lotsList.map((l) => l.sessionId))).length;
   const totalKota = Array.from(new Set(lotsList.map((l) => l.location))).length;
   const upcomingLot = lotsList.find((l) => l.badge === "LIVE" && l.timer && l.timer.includes(":"));
   const futureLot = lotsList.find((l) => l.badge === "OPEN" && l.timer && l.timer.includes(":"));

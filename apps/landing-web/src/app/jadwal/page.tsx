@@ -24,8 +24,8 @@ export default function JadwalPage() {
         lotCount: `${s._count?.lots || 0} Lot`,
         deposit: "Rp 5.000.000 / NIPL",
         region: s.branch?.city || "Jakarta",
-        status: s.status === "live" ? "Sedang Berlangsung" : "Membuka Pendaftaran",
-        statusStyle: s.status === "live" ? "bg-error/15 text-error" : "bg-success/15 text-success",
+        status: s.status.toLowerCase() === "live" ? "Sedang Berlangsung" : "Membuka Pendaftaran",
+        statusStyle: s.status.toLowerCase() === "live" ? "bg-error/15 text-error" : "bg-success/15 text-success",
       }));
       setSessionsList(mapped);
     }
