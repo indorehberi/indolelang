@@ -46,7 +46,7 @@ export default function DepositHistoryPage() {
   }, []);
 
   const handleRequestRefund = async (depositId: string) => {
-    if (!confirm("Apakah Anda yakin ingin mengajukan refund (pengembalian uang) untuk NIPL ini? Uang akan dikembalikan ke rekening yang terdaftar di profil Anda dalam 1-3 hari kerja.")) {
+    if (!confirm("Apakah Anda yakin ingin mengajukan refund (pengembalian uang) untuk NIPL ini? Uang akan dikembalikan ke rekening yang terdaftar di profil Anda.")) {
       return;
     }
 
