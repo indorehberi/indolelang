@@ -763,10 +763,10 @@ export default function Home() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
               <div>
                 <h2 className="text-heading-2xl font-bold text-on-background font-serif">
-                  Lelang Unggulan
+                  Katalog
                 </h2>
                 <p className="text-body-lg text-on-surface-variant mt-1">
-                  Rekomendasi terbaik khusus untuk Anda
+                  Daftar aset lelang terbaru
                 </p>
               </div>
               <Link
