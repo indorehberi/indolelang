@@ -72,6 +72,10 @@ export class ControlController {
       } catch (err) {
         // use default 30
       }
+      // Enforce minimum 30 seconds — empty or zero settings should not kill the timer
+      if (lotDuration < 1) lotDuration = 30;
+
+      logger.info({ lotId, lotDuration }, 'Activating lot with duration');
 
       // 6. Trigger Socket.io countdown start
       startActiveLot(updatedLot, lotDuration);

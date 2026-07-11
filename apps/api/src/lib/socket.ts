@@ -200,13 +200,18 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     clearInterval(existing.timerInterval);
   }
 
+  // Enforce minimum 30 seconds
+  const effectiveDuration = (durationSeconds && durationSeconds > 0) ? durationSeconds : 30;
+
+  logger.info({ lotId: lot.id, rawDuration: durationSeconds, effectiveDuration }, 'startActiveLot — timer starting');
+
   const startPrice = Number(lot.starting_price);
   const state: ActiveLotState = {
     lotId: lot.id,
     sessionId: lot.session_id,
     currentPrice: startPrice,
     bidsCount: 0,
-    timeRemaining: durationSeconds > 0 ? durationSeconds : 30,
+    timeRemaining: effectiveDuration,
     extensionCount: 0,
     autoEndTrigger: 'admin', // will be fetched asynchronously
   };

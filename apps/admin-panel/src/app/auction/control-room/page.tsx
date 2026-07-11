@@ -179,8 +179,15 @@ export default function ControlRoomPage() {
     const attachSocketListeners = (socket: Socket) => {
       socket.on('connect', () => {
         loggerDebug('Connected to WebSocket server');
-        // Watch session ended room
+        // Watch session room for session-wide broadcasts (lot:activated, lot:closed, session:ended)
         socket.emit('bid:watch', { session_id: selectedSessionId });
+        // If a lot is already active (discovered via REST before socket connected),
+        // join its room now so we receive bid:update ticks immediately.
+        const currentLots = lots;
+        const active = currentLots.find((l: Lot) => l.status === 'active');
+        if (active) {
+          socket.emit('bid:watch', { lot_id: active.id, session_id: selectedSessionId });
+        }
       });
 
       socket.on('lot:activated', (data: any) => {
@@ -191,6 +198,9 @@ export default function ControlRoomPage() {
             l.id === data.lot_id ? { ...l, status: 'active' } : l
           )
         );
+
+        // Join the lot's socket room to receive bid:update countdown ticks
+        socket.emit('bid:watch', { lot_id: data.lot_id, session_id: selectedSessionId });
 
         // Build active lot state directly from the broadcast payload instead of
         // looking it up in the `lots` closure, which can be stale (this listener
