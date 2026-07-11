@@ -493,7 +493,8 @@ export default function ControlRoomPage() {
                 );
               })}
             </select>
-            {activeTab === 'live' && sessionDetails && sessionDetails.status === 'published' && sessionStartTrigger === 'admin' && (
+            {console.log('Button render check:', { activeTab, sessionStatus: sessionDetails?.status, sessionStartTrigger })}
+            {activeTab === 'live' && sessionDetails && (sessionDetails.status.toLowerCase() === 'published' || sessionDetails.status.toLowerCase() === 'pending') && sessionStartTrigger === 'admin' && (
               <Button
                 variant="primary"
                 size="sm"
@@ -503,7 +504,7 @@ export default function ControlRoomPage() {
                 Mulai Lelang
               </Button>
             )}
-            {activeTab === 'live' && sessionDetails && (sessionDetails.status === 'published' || sessionDetails.status === 'live') && (
+            {activeTab === 'live' && sessionDetails && (sessionDetails.status.toLowerCase() === 'published' || sessionDetails.status.toLowerCase() === 'pending' || sessionDetails.status.toLowerCase() === 'live') && (
               <Button
                 variant="danger"
                 size="sm"
