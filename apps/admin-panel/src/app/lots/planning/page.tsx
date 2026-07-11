@@ -40,15 +40,21 @@ export default function LotPlanningPage() {
   const [lotMode, setLotMode] = useState<'otomatis' | 'manual'>('otomatis');
   const [manualLotNumber, setManualLotNumber] = useState('');
 
+  // Filters for assets
+  const [filterProvider, setFilterProvider] = useState<string>('');
+  const [filterPoliceNumber, setFilterPoliceNumber] = useState<string>('');
+  const [providers, setProviders] = useState<{id: string, full_name?: string, company_name?: string}[]>([]);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const querySessionId = urlParams.get('session_id');
 
-        const [resSessions, resAssets] = await Promise.all([
+        const [resSessions, resAssets, resProviders] = await Promise.all([
           fetch(apiUrl('/sessions')),
-          apiFetch('/assets?status=approved&per_page=100')
+          apiFetch(`/assets?status=approved&per_page=100${filterProvider ? `&provider_id=${filterProvider}` : ''}${filterPoliceNumber ? `&police_number=${filterPoliceNumber}` : ''}`),
+          apiFetch('/admin/users?role=provider&per_page=100')
         ]);
 
         if (resSessions.ok) {
@@ -64,6 +70,11 @@ export default function LotPlanningPage() {
         if (resAssets.ok) {
           const data = await resAssets.json();
           setAssets(data.data || []);
+        }
+
+        if (resProviders.ok) {
+          const data = await resProviders.json();
+          setProviders(data.data || []);
         }
       } catch (err) {}
     };
@@ -88,13 +99,17 @@ export default function LotPlanningPage() {
 
   const refetchApprovedAssets = async () => {
     try {
-      const resAssets = await apiFetch('/assets?status=approved&per_page=100');
+      const resAssets = await apiFetch(`/assets?status=approved&per_page=100${filterProvider ? `&provider_id=${filterProvider}` : ''}${filterPoliceNumber ? `&police_number=${filterPoliceNumber}` : ''}`);
       if (resAssets.ok) {
         const data = await resAssets.json();
         setAssets(data.data || []);
       }
     } catch (err) {}
   };
+
+  useEffect(() => {
+    refetchApprovedAssets();
+  }, [filterProvider, filterPoliceNumber]);
 
   const openAddLotModal = (asset: UnassignedAsset) => {
     setAddingAsset(asset);
@@ -227,8 +242,33 @@ export default function LotPlanningPage() {
         {/* Right column: List of approved assets that can be assigned */}
         <div>
           <Card>
-            <h2 className="card-title">2. Aset Siap Dilelang (Approved)</h2>
-            <p className="text-muted" style={{ fontSize: '0.85rem' }}>Klik tombol tambahkan untuk memasukkan aset ke sesi lelang aktif.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h2 className="card-title mb-1">2. Aset Siap Dilelang (Approved)</h2>
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>Klik tombol tambahkan untuk memasukkan aset ke sesi lelang aktif.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <select 
+                  className="form-select form-select-sm" 
+                  value={filterProvider} 
+                  onChange={(e) => setFilterProvider(e.target.value)}
+                  style={{ minWidth: '150px' }}
+                >
+                  <option value="">Semua Provider</option>
+                  {providers.map(p => (
+                    <option key={p.id} value={p.id}>{p.company_name || p.full_name || 'Tanpa Nama'}</option>
+                  ))}
+                </select>
+                <input 
+                  type="text" 
+                  className="form-input form-input-sm" 
+                  placeholder="Cari No Polisi..." 
+                  value={filterPoliceNumber}
+                  onChange={(e) => setFilterPoliceNumber(e.target.value)}
+                  style={{ width: '130px' }}
+                />
+              </div>
+            </div>
 
             <div className="table-wrapper" style={{ marginTop: '1.25rem' }}>
               <table>
@@ -236,13 +276,14 @@ export default function LotPlanningPage() {
                   <tr>
                     <th>Nama Barang</th>
                     <th>Kategori</th>
+                    <th>No Polisi</th>
                     <th>Harga Limit</th>
                     <th>Provider</th>
                     <th style={{ textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {assets.map((ast) => (
+                  {assets.map((ast: any) => (
                     <tr key={ast.id}>
                       <td>
                         <strong>{ast.title}</strong>
@@ -252,6 +293,7 @@ export default function LotPlanningPage() {
                           {ast.category}
                         </span>
                       </td>
+                      <td style={{ fontSize: '0.85rem' }}>{ast.police_number || '-'}</td>
                       <td><strong>{formatRupiah(ast.base_price)}</strong></td>
                       <td style={{ fontSize: '0.85rem' }}>{ast.provider?.company_name || ast.provider?.full_name || 'Provider'}</td>
                       <td style={{ textAlign: 'center' }}>

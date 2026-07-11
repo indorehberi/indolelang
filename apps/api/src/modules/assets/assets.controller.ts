@@ -14,7 +14,7 @@ export class AssetsController {
     try {
       const page = parseInt(req.query.page as string || '1', 10);
       const perPage = parseInt(req.query.per_page as string || '20', 10);
-      const { status, category, search, branch_id, pool_status, date_from, date_to } = req.query as any;
+      const { status, category, search, branch_id, pool_status, date_from, date_to, police_number } = req.query as any;
 
       const providerId = req.user!.role === Role.PROVIDER
         ? req.user!.id
@@ -30,7 +30,8 @@ export class AssetsController {
         branch_id,
         pool_status,
         date_from,
-        date_to
+        date_to,
+        police_number
       );
       sendSuccess(res, assets, 'Daftar barang berhasil dimuat', meta);
     } catch (error) {

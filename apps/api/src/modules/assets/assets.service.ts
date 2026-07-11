@@ -20,7 +20,8 @@ export class AssetsService {
     branchId?: string,
     poolStatus?: string,
     dateFrom?: string,
-    dateTo?: string
+    dateTo?: string,
+    policeNumber?: string
   ): Promise<{ assets: AssetDTO[]; meta: PaginationMeta }> {
     const where: Prisma.assetsWhereInput = {};
 
@@ -43,6 +44,9 @@ export class AssetsService {
     if (poolStatus) {
       where.pool_status = poolStatus;
     }
+    if (policeNumber) {
+      where.police_number = { contains: policeNumber, mode: 'insensitive' };
+    }
     if (dateFrom || dateTo) {
       where.created_at = {
         ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
@@ -50,7 +54,7 @@ export class AssetsService {
       };
     }
     if (search) {
-      where.title = { contains: search };
+      where.title = { contains: search, mode: 'insensitive' };
     }
 
     const skip = (page - 1) * perPage;
@@ -62,6 +66,11 @@ export class AssetsService {
         skip,
         take: perPage,
         orderBy: { created_at: 'desc' },
+        include: {
+          provider: {
+            select: { full_name: true, company_name: true }
+          }
+        }
       }),
     ]);
 
