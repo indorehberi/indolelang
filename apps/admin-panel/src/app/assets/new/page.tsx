@@ -18,7 +18,30 @@ const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV'];
 const TRANSMISSION_OPTIONS = ['Otomatis', 'Manual'];
 const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
 const BRAND_OPTIONS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza', 'Lainnya'];
-const MODEL_OPTIONS = ['Avanza', 'Xenia', 'Brio', 'Innova', 'Calya', 'Sigra', 'Ertiga', 'Xpander', 'HR-V', 'CR-V', 'Pajero Sport', 'Fortuner', 'Lainnya'];
+const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
+  Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
+  Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
+  Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
+  Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
+  Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
+  Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
+  Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
+  Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
+  Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
+  Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
+  Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
+  BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
+  'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
+  BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
+  Chery: ['Omoda E5', 'J6 (iCar 03)'],
+  MG: ['MG4 EV', 'MG ZS EV'],
+  Neta: ['V-II', 'X'],
+  AION: ['Y Plus', 'V', 'UT'],
+  VinFast: ['VF 3', 'VF 5', 'VF e34'],
+  Geely: ['EX5'],
+  XPENG: ['G6', 'X9'],
+  Denza: ['D9']
+};
 const COLOR_OPTIONS = ['Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
 
 const PHOTO_FIELDS = [
@@ -349,7 +372,8 @@ export default function NewAssetPage() {
             <Field label="Tipe / Model" required error={errors.model}>
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })}>
                 <option value="">Pilih...</option>
-                {MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                {(formData.brand && CAR_MODELS_BY_BRAND[formData.brand] ? CAR_MODELS_BY_BRAND[formData.brand] : []).map((m) => <option key={m} value={m}>{m}</option>)}
+                <option value="Lainnya">Lainnya</option>
               </select>
             </Field>
             <Field label="Warna">

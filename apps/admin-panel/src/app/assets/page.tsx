@@ -28,6 +28,10 @@ interface Asset {
   status: 'pending' | 'inspected' | 'approved' | 'listed' | 'sold' | 'rejected' | 'returned';
   created_by_admin: boolean;
   created_at: string;
+  provider?: {
+    company_name?: string;
+    full_name?: string;
+  };
 }
 
 interface Provider {

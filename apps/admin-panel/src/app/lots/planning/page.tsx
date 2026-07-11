@@ -339,7 +339,7 @@ export default function LotPlanningPage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button className="btn btn-outline" onClick={() => setAddingAsset(null)}>Batal</button>
-              <button className="btn btn-primary" disabled={loading} onClick={handleConfirmAddLot}>
+              <button className="btn btn-primary" disabled={loading} onClick={handleAddLot}>
                 {loading ? 'Memproses...' : 'Tambahkan'}
               </button>
             </div>
