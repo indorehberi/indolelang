@@ -264,6 +264,9 @@ export class LotsService {
     if (!session) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Sesi lelang tidak ditemukan');
     }
+    if (session.status === SessionStatus.LIVE) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Tidak dapat menambahkan lot ke sesi yang sedang live');
+    }
 
     // 2. Verify asset exists and is approved
     const asset = await prisma.assets.findUnique({ where: { id: data.asset_id } });
@@ -351,6 +354,13 @@ export class LotsService {
     const lot = await prisma.lots.findUnique({ where: { id } });
     if (!lot) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
+    }
+
+    if (data.session_id && data.session_id !== lot.session_id) {
+      const session = await prisma.auction_sessions.findUnique({ where: { id: data.session_id } });
+      if (session && session.status === SessionStatus.LIVE) {
+        throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Tidak dapat memindahkan lot ke sesi yang sedang live');
+      }
     }
 
     const updated = await prisma.lots.update({

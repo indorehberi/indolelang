@@ -268,7 +268,17 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
       asset_title: lot.asset.title,
       starting_price: startPrice,
       category: lot.asset.category,
-      images: lot.asset.images ? JSON.parse(lot.asset.images as string) : [],
+      images: (() => {
+        let parsed: string[] = [];
+        try {
+          const raw = typeof lot.asset.images === 'string' ? JSON.parse(lot.asset.images) : lot.asset.images;
+          if (Array.isArray(raw)) parsed = raw.filter((v) => typeof v === 'string' && v);
+        } catch (e) { }
+        if (parsed.length > 0) return parsed;
+        return ['photo_front', 'photo_left', 'photo_right', 'photo_back', 'photo_interior', 'photo_engine']
+          .map((field) => lot.asset[field])
+          .filter(Boolean);
+      })(),
     },
     start_time: new Date().toISOString(),
     duration: durationSeconds,
