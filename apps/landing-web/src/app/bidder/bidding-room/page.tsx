@@ -63,26 +63,29 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
       setCurrentPrice(data.current_price);
       setTimeLeft(data.time_remaining);
 
-      // `bidder_id` in the broadcast is the server's masked id ("Peserta #XXXX",
-      // see maskUserId() in lib/socket.ts) — never the bidder's name — so compare
-      // against the same mask computed from our own user id, not full_name.
-      const storedUser = localStorage.getItem("user");
-      const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
-      const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
-      const isMe = !!data.bidder_id && data.bidder_id === myMaskedId;
+      // Only log if there is an active bidder (not '-' or empty)
+      if (data.bidder_id && data.bidder_id !== "-") {
+        // `bidder_id` in the broadcast is the server's masked id ("Peserta #XXXX",
+        // see maskUserId() in lib/socket.ts) — never the bidder's name — so compare
+        // against the same mask computed from our own user id, not full_name.
+        const storedUser = localStorage.getItem("user");
+        const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
+        const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
+        const isMe = !!data.bidder_id && data.bidder_id === myMaskedId;
 
-      const newLog: BidLog = {
-        id: Math.random().toString(),
-        bidder: data.bidder_id || "Peserta",
-        amount: data.current_price,
-        time: new Date().toLocaleTimeString("id-ID"),
-        isMe: isMe,
-      };
+        const newLog: BidLog = {
+          id: Math.random().toString(),
+          bidder: data.bidder_id,
+          amount: data.current_price,
+          time: new Date().toLocaleTimeString("id-ID"),
+          isMe: isMe,
+        };
 
-      setBidLogs((prev) => {
-        if (prev.length > 0 && prev[0].amount === data.current_price) return prev;
-        return [newLog, ...prev.slice(0, 9)];
-      });
+        setBidLogs((prev) => {
+          if (prev.length > 0 && Number(prev[0].amount) === Number(data.current_price)) return prev;
+          return [newLog, ...prev.slice(0, 9)];
+        });
+      }
     };
 
     const handleBidError = (data: any) => {
