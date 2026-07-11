@@ -374,12 +374,10 @@ export default function DetailLotPage() {
                   </div>
                 </div>
               </div>
-
-              </div>
             </div>
           </div>
         </div>
-
+        
         {/* Similar Lots Grid */}
         <div className="mt-16">
           <h2 className="text-heading-lg font-bold text-on-surface mb-6 flex items-center gap-2.5 font-serif">
