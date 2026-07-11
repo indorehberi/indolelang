@@ -1,6 +1,25 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const API_PREFIX = '/api/v1';
 
+const ASSET_PHOTO_FIELDS = ['photo_front', 'photo_left', 'photo_right', 'photo_back', 'photo_interior', 'photo_engine'] as const;
+
+// Real photos are uploaded per-angle into photo_front/photo_back/etc, not the legacy `images` field.
+// Fall back to those whenever `images` has nothing usable so pages don't show a generic stock photo.
+export function getAssetImages(asset: any): string[] {
+  let parsed: string[] = [];
+  try {
+    const raw = typeof asset?.images === 'string' ? JSON.parse(asset.images) : asset?.images;
+    if (Array.isArray(raw)) parsed = raw.filter((v) => typeof v === 'string' && v);
+  } catch (e) {
+    parsed = [];
+  }
+  if (parsed.length > 0) return parsed;
+
+  return ASSET_PHOTO_FIELDS
+    .map((field) => asset?.[field])
+    .filter((v): v is string => typeof v === 'string' && v.length > 0);
+}
+
 export function getImageUrl(url: string | undefined): string {
   if (!url) return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
   if (url.startsWith('http://') || url.startsWith('https://')) return url;

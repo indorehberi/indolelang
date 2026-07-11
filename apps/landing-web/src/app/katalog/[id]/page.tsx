@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { apiUrl, getImageUrl } from "@/lib/api";
+import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
 
 import { useFeaturedLots } from "@/hooks/usePublicData";
@@ -98,14 +98,9 @@ export default function DetailLotPage() {
     );
   }
 
-  let parsedImages = [];
-  try {
-    parsedImages = typeof lot.asset.images === 'string' ? JSON.parse(lot.asset.images) : lot.asset.images;
-  } catch (e) {
-    parsedImages = [];
-  }
-  const images = parsedImages && parsedImages.length > 0
-    ? parsedImages.map((img: string) => getImageUrl(img))
+  const rawImages = getAssetImages(lot.asset);
+  const images = rawImages.length > 0
+    ? rawImages.map((img: string) => getImageUrl(img))
     : [getImageUrl(undefined)];
 
   const specs = [
@@ -142,9 +137,7 @@ export default function DetailLotPage() {
     .filter((l: any) => l.id !== lot.id && l.asset?.category === lot.asset?.category)
     .slice(0, 3)
     .map((l: any) => {
-      let imgs = [];
-      try { imgs = typeof l.asset.images === 'string' ? JSON.parse(l.asset.images) : l.asset.images; } catch(e){}
-      const img = getImageUrl(imgs?.[0]);
+      const img = getImageUrl(getAssetImages(l.asset)[0]);
       
       const sp = [];
       if (l.asset.year) sp.push(l.asset.year);

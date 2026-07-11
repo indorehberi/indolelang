@@ -6,7 +6,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials, usePublicGalleries } from "@/hooks/usePublicData";
-import { apiUrl, getImageUrl } from "@/lib/api";
+import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -176,13 +176,7 @@ export default function Home() {
   useEffect(() => {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
-        let parsedImages = [];
-        try {
-          parsedImages = typeof dbLot.asset.images === 'string' ? JSON.parse(dbLot.asset.images) : dbLot.asset.images;
-        } catch (e) {
-          parsedImages = [];
-        }
-        const image = getImageUrl(parsedImages?.[0]);
+        const image = getImageUrl(getAssetImages(dbLot.asset)[0]);
         const isLive = dbLot.status.toLowerCase() === "active";
         
         const specParts = [];

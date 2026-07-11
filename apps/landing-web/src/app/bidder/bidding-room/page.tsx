@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken } from "@/lib/api";
+import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken, getAssetImages, getImageUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -238,11 +238,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         {/* RIGHT COLUMN: Asset Data */}
         <div className="w-full md:w-1/2 flex flex-col gap-4">
           <img
-            src={
-              lot.asset?.images
-                ? JSON.parse(lot.asset.images as string)[0]
-                : "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=600"
-            }
+            src={getImageUrl(getAssetImages(lot.asset)[0])}
             alt={lot.asset?.title}
             className="rounded-xl object-cover w-full h-[240px] shadow-sm border border-slate-200"
           />
