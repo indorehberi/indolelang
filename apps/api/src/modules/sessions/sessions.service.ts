@@ -323,6 +323,7 @@ export class SessionsService {
         page,
         per_page: perPage,
         total,
+        total_pages: Math.ceil(total / perPage),
       },
     };
   }
