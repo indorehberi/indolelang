@@ -127,11 +127,7 @@ export class DocumentsController {
         throw new AppError(404, ErrorCode.NOT_FOUND, 'File dokumen tidak ditemukan di server');
       }
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="bapl-${invoiceId}.pdf"`);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      res.sendFile(filePath);
     } catch (error) {
       next(error);
     }

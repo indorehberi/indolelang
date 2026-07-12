@@ -127,17 +127,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
     });
   };
 
-  // Dynamically calculate bid increments based on backend specifications:
-  // - < 10M: 500k
-  // - 10M - 50M: 1M
-  // - 50M - 200M: 2.5M
-  // - >= 200M: 5M
-  const minIncrement = (() => {
-    if (currentPrice < 10000000) return 500000;
-    if (currentPrice < 50000000) return 1000000;
-    if (currentPrice < 200000000) return 2500000;
-    return 5000000;
-  })();
+  const minIncrement = 500000;
 
   const dynamicIncrements = [minIncrement, minIncrement * 2, minIncrement * 3];
 
@@ -212,17 +202,17 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
                   </button>
                 </div>
 
-                {/* Single Bid Button for Rp500.000 */}
+                {/* Dynamic Bid Button */}
                 <button
                   disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
-                  onClick={() => handlePlaceBid(500000)}
+                  onClick={() => handlePlaceBid(minIncrement)}
                   className={`w-full py-4 px-4 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
                     bidCooldown || timeLeft <= 0 || !isBidEnabled
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                       : "bg-primary hover:bg-primary/95 text-white cursor-pointer hover:shadow-lg"
                   }`}
                 >
-                  Ajukan Penawaran (+ {formatRupiah(500000)})
+                  Ajukan Penawaran (+ {formatRupiah(minIncrement)})
                 </button>
                 <p className="text-[10px] text-slate-500 text-center italic mt-2">
                   Timer 120 detik. Bid di 1 menit pertama me-reset timer ke 120 detik, bid di 1 menit kedua me-reset ke 60 detik.

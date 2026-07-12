@@ -98,7 +98,15 @@ export class DocumentsService {
     const existingDoc = await prisma.documents.findFirst({
       where: { invoice_id: invoiceId, type: 'invoice' },
     });
-    if (existingDoc) return existingDoc;
+    if (existingDoc) {
+      const existingPath = path.join(this.getUploadsDir(), path.basename(existingDoc.file_url));
+      if (fs.existsSync(existingPath)) {
+        const stats = fs.statSync(existingPath);
+        if (stats.size > 0) return existingDoc;
+      }
+      // If file doesn't exist or is empty, delete DB record and regenerate
+      await prisma.documents.delete({ where: { id: existingDoc.id } });
+    }
 
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -252,7 +260,14 @@ export class DocumentsService {
     const existingDoc = await prisma.documents.findFirst({
       where: { invoice_id: invoiceId, type: 'surat_jalan' },
     });
-    if (existingDoc) return existingDoc;
+    if (existingDoc) {
+      const existingPath = path.join(this.getUploadsDir(), path.basename(existingDoc.file_url));
+      if (fs.existsSync(existingPath)) {
+        const stats = fs.statSync(existingPath);
+        if (stats.size > 0) return existingDoc;
+      }
+      await prisma.documents.delete({ where: { id: existingDoc.id } });
+    }
 
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -394,7 +409,14 @@ export class DocumentsService {
     const existingDoc = await prisma.documents.findFirst({
       where: { invoice_id: invoiceId, type: 'bast' },
     });
-    if (existingDoc) return existingDoc;
+    if (existingDoc) {
+      const existingPath = path.join(this.getUploadsDir(), path.basename(existingDoc.file_url));
+      if (fs.existsSync(existingPath)) {
+        const stats = fs.statSync(existingPath);
+        if (stats.size > 0) return existingDoc;
+      }
+      await prisma.documents.delete({ where: { id: existingDoc.id } });
+    }
 
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -654,7 +676,14 @@ export class DocumentsService {
     const existingDoc = await prisma.documents.findFirst({
       where: { invoice_id: invoiceId, type: 'bapl' },
     });
-    if (existingDoc) return existingDoc;
+    if (existingDoc) {
+      const existingPath = path.join(this.getUploadsDir(), path.basename(existingDoc.file_url));
+      if (fs.existsSync(existingPath)) {
+        const stats = fs.statSync(existingPath);
+        if (stats.size > 0) return existingDoc;
+      }
+      await prisma.documents.delete({ where: { id: existingDoc.id } });
+    }
 
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },

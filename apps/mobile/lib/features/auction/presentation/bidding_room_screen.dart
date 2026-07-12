@@ -146,7 +146,7 @@ class _BiddingRoomScreenState extends State<BiddingRoomScreen> {
 
     final currentPrice = double.tryParse(_currentLot!['starting_price'].toString()) ?? 0.0;
     // Calculate 5,000,000 auto bid increment
-    final nextBidAmount = currentPrice + 5000000;
+    final nextBidAmount = currentPrice + 500000;
 
     // Send bid event via Socket
     _socket.emit('placeBid', {
@@ -329,7 +329,7 @@ class _BiddingRoomScreenState extends State<BiddingRoomScreen> {
                     child: _isBidCooldown
                         ? const Text('COOLDOWN (1.2s)', style: TextStyle(fontWeight: FontWeight.bold))
                         : Text(
-                            'BID SEKARANG (+ ${_formatRupiah(5000000)})',
+                            'BID SEKARANG (+ ${_formatRupiah(500000)})',
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
