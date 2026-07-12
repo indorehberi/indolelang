@@ -43,7 +43,7 @@ RUN apk add --no-cache \
     freetype \
     harfbuzz \
     ca-certificates \
-    ttf-freefont \
+    font-freefont \
     font-noto \
     font-noto-cjk
 
