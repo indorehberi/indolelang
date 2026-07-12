@@ -13,6 +13,8 @@ interface TopbarProps {
   onToggleSidebar?: () => void;
 }
 
+const SEEN_KEY = 'admin_notifications_seen_at';
+
 export const Topbar: React.FC<TopbarProps> = ({
   breadcrumbParent = 'Dashboard',
   breadcrumbCurrent = 'Overview',
@@ -22,6 +24,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [latestNotifTime, setLatestNotifTime] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const displayInitial = useMemo(() => {
@@ -43,12 +46,22 @@ export const Topbar: React.FC<TopbarProps> = ({
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         if (!token) return;
 
-        const res = await apiFetch('/notifications/unread-count');
+        const [countRes, listRes] = await Promise.all([
+          apiFetch('/notifications/unread-count'),
+          apiFetch('/notifications?per_page=1'),
+        ]);
 
-        if (res.ok) {
-          const json = await res.json();
+        if (countRes.ok) {
+          const json = await countRes.json();
           if (json.success && typeof json.data.unread_count === 'number') {
             setUnreadCount(json.data.unread_count);
+          }
+        }
+
+        if (listRes.ok) {
+          const json = await listRes.json();
+          if (json.success && json.data?.length > 0) {
+            setLatestNotifTime(json.data[0].created_at || json.data[0].sent_at || null);
           }
         }
       } catch (err) {
@@ -61,6 +74,14 @@ export const Topbar: React.FC<TopbarProps> = ({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Determine if there's an unseen (not-yet-visited) notification
+  const hasUnseen = useMemo(() => {
+    if (!latestNotifTime) return false;
+    const seenAt = typeof window !== 'undefined' ? localStorage.getItem(SEEN_KEY) : null;
+    if (!seenAt) return true;
+    return new Date(latestNotifTime) > new Date(seenAt);
+  }, [latestNotifTime]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,8 +123,12 @@ export const Topbar: React.FC<TopbarProps> = ({
           />
         </form>
 
-        <Link href="/notifications" className="notif-bell" aria-label="Buka notifikasi">
-          <span className="notif-icon" aria-hidden="true" />
+        <Link
+          href="/notifications"
+          className={`notif-bell${hasUnseen ? ' shake-bell' : ''}`}
+          aria-label="Buka notifikasi"
+        >
+          <span className="material-symbols-outlined notif-icon-bell" aria-hidden="true">notifications</span>
           {unreadCount > 0 && (
             <span className="dot">
               {unreadCount > 99 ? '99+' : unreadCount}

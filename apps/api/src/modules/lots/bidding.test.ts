@@ -24,25 +24,25 @@ describe('Bidding Engine Logic Unit Tests', () => {
   });
 
   describe('calculateAntiSnipe', () => {
-    it('should extend timer to 120s if bid arrives under 30s threshold and extensions < 3', () => {
-      const res = biddingService.calculateAntiSnipe(25, 0, 30, 120, 3);
+    it('should reset timer to 120s if bid arrives in the first minute (> 60s)', () => {
+      const res = biddingService.calculateAntiSnipe(80, 0);
       expect(res.extended).toBe(true);
       expect(res.newTimeRemaining).toBe(120);
       expect(res.extensionCount).toBe(1);
     });
 
-    it('should not extend timer if remaining time is >= 30s', () => {
-      const res = biddingService.calculateAntiSnipe(35, 0, 30, 120, 3);
-      expect(res.extended).toBe(false);
-      expect(res.newTimeRemaining).toBe(35);
-      expect(res.extensionCount).toBe(0);
+    it('should reset timer to 60s if bid arrives in the second minute (<= 60s)', () => {
+      const res = biddingService.calculateAntiSnipe(25, 0);
+      expect(res.extended).toBe(true);
+      expect(res.newTimeRemaining).toBe(60);
+      expect(res.extensionCount).toBe(1);
     });
 
-    it('should not extend if maximum extensions limit (3) is reached', () => {
-      const res = biddingService.calculateAntiSnipe(15, 3, 30, 120, 3);
+    it('should not extend if time remaining is 0', () => {
+      const res = biddingService.calculateAntiSnipe(0, 0);
       expect(res.extended).toBe(false);
-      expect(res.newTimeRemaining).toBe(15);
-      expect(res.extensionCount).toBe(3);
+      expect(res.newTimeRemaining).toBe(0);
+      expect(res.extensionCount).toBe(0);
     });
   });
 });

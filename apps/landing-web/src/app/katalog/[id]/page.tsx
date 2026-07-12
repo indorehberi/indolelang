@@ -367,9 +367,6 @@ export default function DetailLotPage() {
                     <span className="text-heading-xl font-black text-primary block mt-1">
                       {formatRupiah(bidAmount)}
                     </span>
-                    <span className="text-body-sm text-on-surface-variant block mt-1.5">
-                      Uang Jaminan (Deposit/NIPL): <strong className="text-on-surface">Rp 5.000.000</strong> per Lot
-                    </span>
                   </div>
 
                   {/* Timer Alert Info */}
@@ -441,12 +438,6 @@ export default function DetailLotPage() {
                       <span>Harga Awal</span>
                       <span className="font-extrabold text-body-md text-on-surface">
                         {similar.hargaAwal}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1.5 text-body-sm text-on-surface-variant">
-                      <span>Uang Jaminan</span>
-                      <span className="font-semibold text-on-surface">
-                        {similar.deposit}
                       </span>
                     </div>
                   </div>

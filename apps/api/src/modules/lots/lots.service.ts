@@ -525,6 +525,72 @@ export class LotsService {
 
     return invoice.id;
   }
+
+  /**
+   * Get bid history for a specific user — all lots they've bid in at least once
+   */
+  async getBidHistoryByUser(userId: string, page: number, perPage: number) {
+    const skip = (page - 1) * perPage;
+
+    // Find all distinct lot IDs where this user has placed at least one bid
+    const bidGroups = await prisma.bids.groupBy({
+      by: ['lot_id'],
+      where: { bidder_id: userId },
+      _max: { amount: true },
+      orderBy: { _max: { created_at: 'desc' } },
+      skip,
+      take: perPage,
+    });
+
+    const total = await prisma.bids.groupBy({
+      by: ['lot_id'],
+      where: { bidder_id: userId },
+      _count: { lot_id: true },
+    }).then((g) => g.length);
+
+    const lotIds = bidGroups.map((g) => g.lot_id);
+
+    // Fetch full lot details
+    const lots = lotIds.length > 0
+      ? await prisma.lots.findMany({
+          where: { id: { in: lotIds } },
+          include: {
+            asset: { select: { title: true, brand: true, model: true, year: true, photo_front: true } },
+            session: { select: { title: true, scheduled_at: true } },
+          },
+        })
+      : [];
+
+    const data = bidGroups.map((g) => {
+      const lot = lots.find((l) => l.id === g.lot_id);
+      const myHighestBid = Number(g._max.amount || 0);
+      const isWinner = lot?.winner_id === userId;
+      const isCompleted = lot?.status === 'sold' || lot?.status === 'settled';
+
+      return {
+        lot_id: g.lot_id,
+        lot_number: lot?.lot_number,
+        session_title: lot?.session?.title || '-',
+        session_date: lot?.session?.scheduled_at,
+        asset_title: lot?.asset?.title || '-',
+        asset_photo: lot?.asset?.photo_front || null,
+        my_highest_bid: myHighestBid,
+        hammer_price: lot?.hammer_price ? Number(lot.hammer_price) : null,
+        lot_status: lot?.status || 'unknown',
+        result: isCompleted ? (isWinner ? 'won' : 'lost') : 'ongoing',
+      };
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        per_page: perPage,
+        total,
+        total_pages: Math.ceil(total / perPage),
+      },
+    };
+  }
 }
 
 export const lotsService = new LotsService();

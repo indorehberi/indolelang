@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { sendEmail } from '../../lib/email';
+import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
 
 export class CampaignsService {
@@ -76,7 +76,7 @@ export class CampaignsService {
     
     for (const user of users) {
       try {
-        const success = await sendEmail({
+        const success = await sendEmailSafe({
           to: user.email,
           subject: title,
           text: message,

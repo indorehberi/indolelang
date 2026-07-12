@@ -469,12 +469,20 @@ export class AuthService {
 			});
 		}
 
-		const resetUrl = `${env.CORS_ORIGIN}/reset-password?token=${resetToken}`;
+		// CORS_ORIGIN may be comma-separated in production (e.g. "https://bidku.co.id,http://localhost:3000")
+		// Always use the first (primary) origin as the public-facing URL
+		const primaryOrigin = (env.CORS_ORIGIN || '').split(',')[0].trim();
+		const resetUrl = `${primaryOrigin}/reset-password?token=${resetToken}`;
 		const subject = 'Reset Password Akun Indo-Lelang';
 		const text = `Halo,\n\nAnda menerima email ini karena Anda (atau orang lain) meminta untuk mengatur ulang kata sandi akun Anda.\n\nSilakan klik tautan di bawah ini atau salin ke browser Anda untuk menyelesaikan proses:\n\n${resetUrl}\n\nTautan ini akan kedaluwarsa dalam 1 jam.\n\nJika Anda tidak meminta ini, abaikan email ini.`;
 		const html = `<p>Halo,</p><p>Anda menerima email ini karena Anda meminta reset password akun Indo-Lelang.</p><p>Silakan klik tombol di bawah ini untuk mengatur ulang kata sandi Anda:</p><p><a href="${resetUrl}" style="padding: 10px 20px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a></p><p>Tautan ini akan kedaluwarsa dalam 1 jam.</p>`;
 
-		await sendEmail({ to: email, subject, text, html });
+		try {
+			await sendEmail({ to: email, subject, text, html });
+		} catch (emailError) {
+			logger.error({ emailError, email }, 'Failed to send password reset email');
+			throw new AppError(500, ErrorCode.INTERNAL_SERVER_ERROR, 'Gagal mengirim email reset password. Silakan coba beberapa saat lagi atau hubungi admin.');
+		}
 	}
 
 	/**

@@ -200,8 +200,8 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     clearInterval(existing.timerInterval);
   }
 
-  // Enforce minimum 30 seconds
-  const effectiveDuration = (durationSeconds && durationSeconds > 0) ? durationSeconds : 30;
+  // Enforce exactly 120 seconds (1 minute + 1 minute timer logic requirement)
+  const effectiveDuration = 120;
 
   logger.info({ lotId: lot.id, rawDuration: durationSeconds, effectiveDuration }, 'startActiveLot — timer starting');
 

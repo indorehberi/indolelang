@@ -66,6 +66,8 @@ export default function PlatformSettingsPage() {
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testEmailTo, setTestEmailTo] = useState('');
 
   // Integrations & Payment Modes
   const [apiKeys, setApiKeys] = useState({
@@ -318,6 +320,56 @@ export default function PlatformSettingsPage() {
       toast.error('Gagal menyimpan Integrasi. Periksa koneksi Anda.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    const target = testEmailTo.trim();
+    if (!target) {
+      toast.error('Masukkan alamat email tujuan pengujian.');
+      return;
+    }
+    setIsSendingTest(true);
+    try {
+      const res = await apiFetch('/admin/settings/test-email', {
+        method: 'POST',
+        body: JSON.stringify({ to: target }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        toast.success(`✅ Email uji berhasil dikirim ke ${target}. Periksa kotak masuk Anda.`);
+      } else {
+        toast.error(data?.error?.message || 'Gagal mengirim email uji. Periksa konfigurasi SMTP.');
+      }
+    } catch (e: any) {
+      toast.error(`Koneksi gagal: ${e.message}`);
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    const target = testEmailTo.trim();
+    if (!target) {
+      toast.error('Masukkan alamat email tujuan pengujian.');
+      return;
+    }
+    setIsSendingTest(true);
+    try {
+      const res = await apiFetch('/admin/settings/test-email', {
+        method: 'POST',
+        body: JSON.stringify({ to: target }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        toast.success(`Email uji berhasil dikirim ke ${target}. Periksa kotak masuk Anda.`);
+      } else {
+        toast.error(data?.error?.message || 'Gagal mengirim email uji. Periksa konfigurasi SMTP.');
+      }
+    } catch (e: any) {
+      toast.error(`Koneksi gagal: ${e.message}`);
+    } finally {
+      setIsSendingTest(false);
     }
   };
 
@@ -871,28 +923,55 @@ export default function PlatformSettingsPage() {
                 <input type="password" placeholder="********" className="form-input" value={apiKeys.xendit_api_key} onChange={(e) => setApiKeys({...apiKeys, xendit_api_key: e.target.value})} />
               </div>
             )}
-          </div>
-          <div>
+            <div>
             <h3 className="text-md fw-bold mb-3">SMTP (Email)</h3>
+            <div className="alert alert-info mb-3" style={{ fontSize: '0.8rem' }}>
+              Pengaturan ini disimpan terenkripsi di database dan <strong>tidak memerlukan restart server</strong>. Klik &quot;Test Kirim Email&quot; setelah menyimpan untuk memverifikasi konfigurasi berfungsi.
+            </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Host</label>
-              <input type="text" className="form-input" value={apiKeys.smtp_host} onChange={(e) => setApiKeys({...apiKeys, smtp_host: e.target.value})} />
+              <input type="text" className="form-input" placeholder="smtp.gmail.com" value={apiKeys.smtp_host} onChange={(e) => setApiKeys({...apiKeys, smtp_host: e.target.value})} />
             </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Port</label>
-              <input type="text" className="form-input" value={apiKeys.smtp_port} onChange={(e) => setApiKeys({...apiKeys, smtp_port: e.target.value})} />
+              <input type="text" className="form-input" placeholder="587" value={apiKeys.smtp_port} onChange={(e) => setApiKeys({...apiKeys, smtp_port: e.target.value})} />
             </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP User</label>
-              <input type="text" className="form-input" value={apiKeys.smtp_user} onChange={(e) => setApiKeys({...apiKeys, smtp_user: e.target.value})} />
+              <input type="text" className="form-input" placeholder="emailanda@gmail.com" value={apiKeys.smtp_user} onChange={(e) => setApiKeys({...apiKeys, smtp_user: e.target.value})} />
             </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Password</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.smtp_password} onChange={(e) => setApiKeys({...apiKeys, smtp_password: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Untuk Gmail: gunakan App Password (bukan password akun biasa).</p>
             </div>
             <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Sender Name & Email (From)</label>
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Sender Name &amp; Email (From)</label>
               <input type="text" className="form-input" value={apiKeys.smtp_from} onChange={(e) => setApiKeys({...apiKeys, smtp_from: e.target.value})} placeholder='"Indo Lelang" <noreply@indo-lelang.com>' />
+            </div>
+
+            {/* Test Email */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem' }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>🧪 Test Kirim Email</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="email-tujuan-test@example.com"
+                  value={testEmailTo}
+                  onChange={(e) => setTestEmailTo(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-outline"
+                  onClick={handleTestEmail}
+                  disabled={isSendingTest}
+                  style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                  {isSendingTest ? 'Mengirim...' : '📨 Kirim Test'}
+                </button>
+              </div>
+              <p className="text-xs text-muted mt-1">Simpan konfigurasi SMTP terlebih dahulu, lalu uji di sini.</p>
             </div>
           </div>
         </div>

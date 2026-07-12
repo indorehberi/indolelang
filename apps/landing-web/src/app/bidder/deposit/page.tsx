@@ -459,9 +459,7 @@ export default function BidderDeposit() {
                     <li>Unlimited Motor = Rp 5.000.000</li>
                   </ul>
                 </div>
-                <p>
-                  Sistem NIPL kini bersifat <strong>Global (Lintas Sesi)</strong>. NIPL Anda akan dipotong (dihanguskan) saat Anda melakukan Checkout / pelunasan untuk unit yang Anda menangkan. 
-                </p>
+
                 <p>
                   Uang deposit jaminan yang tidak terpakai (NIPL utuh) bersifat *refundable* penuh 100% tanpa potongan apapun dalam 1-3 hari kerja.
                 </p>

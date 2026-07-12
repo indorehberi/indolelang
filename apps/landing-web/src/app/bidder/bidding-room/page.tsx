@@ -31,6 +31,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
   const [bidCooldown, setBidCooldown] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isBidEnabled, setIsBidEnabled] = useState<boolean>(false);
 
   // Check NIPL
   useEffect(() => {
@@ -190,30 +191,41 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
             </div>
 
             {hasNipl ? (
-              <div className="mt-6 space-y-3">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold block text-center bg-slate-200 py-1 rounded">Quick Bid Options</span>
-                <div className="grid grid-cols-3 gap-2">
-                  {dynamicIncrements.map((inc, i) => (
-                    <button
-                      key={i}
-                      disabled={bidCooldown || timeLeft <= 0}
-                      onClick={() => handlePlaceBid(inc)}
-                      className={`py-3 px-1 text-xs font-bold rounded-lg transition-all shadow ${
-                        bidCooldown || timeLeft <= 0
-                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                          : i === 0 
-                            ? "bg-slate-900 hover:bg-slate-800 text-white active:scale-95 cursor-pointer"
-                            : i === 1
-                              ? "bg-primary hover:bg-primary/95 text-white active:scale-95 cursor-pointer"
-                              : "bg-orange-500 hover:bg-orange-600 text-white active:scale-95 cursor-pointer"
+              <div className="mt-6 space-y-4">
+                {/* On/Off Switch Toggle */}
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-800">Partisipasi Bidding</span>
+                    <span className="text-[10px] text-slate-500">Aktifkan untuk menawar</span>
+                  </div>
+                  <button
+                    onClick={() => setIsBidEnabled(!isBidEnabled)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isBidEnabled ? "bg-primary" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        isBidEnabled ? "translate-x-5" : "translate-x-0"
                       }`}
-                    >
-                      + {formatRupiah(inc)}
-                    </button>
-                  ))}
+                    />
+                  </button>
                 </div>
+
+                {/* Single Bid Button for Rp500.000 */}
+                <button
+                  disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
+                  onClick={() => handlePlaceBid(500000)}
+                  className={`w-full py-4 px-4 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
+                    bidCooldown || timeLeft <= 0 || !isBidEnabled
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-primary hover:bg-primary/95 text-white cursor-pointer hover:shadow-lg"
+                  }`}
+                >
+                  Ajukan Penawaran (+ {formatRupiah(500000)})
+                </button>
                 <p className="text-[10px] text-slate-500 text-center italic mt-2">
-                  Setiap bid di bawah 30 detik memperpanjang timer otomatis.
+                  Timer 120 detik. Bid di 1 menit pertama me-reset timer ke 120 detik, bid di 1 menit kedua me-reset ke 60 detik.
                 </p>
               </div>
             ) : (

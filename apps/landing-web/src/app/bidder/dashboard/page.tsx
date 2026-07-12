@@ -353,7 +353,7 @@ export default function BidderDashboard() {
         <div className="flex flex-col gap-4">
           <div className="card mb-0">
             <div className="card-header">Navigasi Panel Cepat</div>
-            <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
               <Link 
                 href={bidderStatus === "aktif" ? "/bidder/deposit" : "/ekyc/upload"} 
                 className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -367,10 +367,6 @@ export default function BidderDashboard() {
               >
                 <span className="text-xl mb-1 block">💳</span>
                 <span className="leading-tight whitespace-nowrap">Beli NIPL</span>
-              </Link>
-              <Link href="/katalog" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
-                <span className="text-xl mb-1 block">🔍</span>
-                <span className="leading-tight whitespace-nowrap">Cari Unit</span>
               </Link>
               <Link href="/bidder/profile" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
                 <span className="text-xl mb-1 block">👤</span>

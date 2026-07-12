@@ -360,10 +360,10 @@ describe('Bidding Flow End-to-End Integration Tests', () => {
 
     it('should extend the active lot timer under 30s threshold (anti-sniping)', () => {
       // timeRemaining = 25s, extensionCount = 0.
-      // Should extend to 120s and increase extensionCount to 1.
+      // Should extend to 60s and increase extensionCount to 1.
       const result = biddingService.calculateAntiSnipe(25, 0);
       expect(result.extended).toBe(true);
-      expect(result.newTimeRemaining).toBe(120);
+      expect(result.newTimeRemaining).toBe(60);
       expect(result.extensionCount).toBe(1);
     });
 

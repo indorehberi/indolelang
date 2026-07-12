@@ -3,7 +3,7 @@ import { AppError } from '../../lib/appError';
 import { logger } from '../../lib/logger';
 import { ErrorCode } from '@indo-lelang/utils';
 import { DepositDTO, PaginationMeta, DepositStatus, Role } from '@indo-lelang/shared-types';
-import { sendEmail } from '../../lib/email';
+import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import { notifyAdmins } from '../../lib/notifyAdmins';
@@ -200,7 +200,7 @@ export class DepositsService {
     const emailMethod = `Transfer Manual ${manualPaymentBank}`;
     const emailNumberValue = `${manualPaymentAccount} a.n ${manualPaymentName}`;
 
-    sendEmail({
+    sendEmailSafe({
       to: user.email,
       subject: `[Indo-Lelang] Pembayaran NIPL (Saldo Bebas Lintas Sesi)`,
       text: `Halo ${user.full_name},\n\nAnda telah mengajukan pendaftaran NIPL Bebas (Saldo Terbuka). Silakan lakukan pembayaran deposit sebesar ${formattedAmount} melalui ${emailMethod}.\n\nNo. Rekening Tujuan: ${emailNumberValue}\nStatus: Menunggu Transfer\n\nSetelah transfer, unggah bukti transfer Anda di halaman Deposit NIPL agar tim kami dapat memverifikasi dan mengaktifkan NIPL Anda.\n\nTerima kasih,\nTim Indo-Lelang`,

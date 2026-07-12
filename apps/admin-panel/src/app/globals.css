@@ -722,36 +722,39 @@ table tbody tr:nth-child(even) { background: #fafbfc; }
   text-decoration: none;
 }
 
+.notif-icon-bell {
+  font-size: 1.25rem;
+  color: var(--wf-text-light);
+  transition: color 0.2s;
+}
+
+.notif-bell:hover .notif-icon-bell {
+  color: var(--primary);
+}
+
+/* Legacy CSS-drawn icon kept for fallback — hidden when material icon is present */
 .notif-icon {
-  border: 2px solid var(--wf-text-light);
-  border-radius: 50% 50% 45% 45%;
-  height: 17px;
-  position: relative;
-  width: 15px;
+  display: none;
 }
 
-.notif-icon::before {
-  background: var(--wf-text-light);
-  border-radius: 50%;
-  content: '';
-  height: 4px;
-  left: 50%;
-  position: absolute;
-  top: -5px;
-  transform: translateX(-50%);
-  width: 6px;
+@keyframes shake-bell {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(-18deg); }
+  20%  { transform: rotate(16deg); }
+  30%  { transform: rotate(-14deg); }
+  40%  { transform: rotate(12deg); }
+  50%  { transform: rotate(-10deg); }
+  60%  { transform: rotate(8deg); }
+  70%  { transform: rotate(-6deg); }
+  80%  { transform: rotate(4deg); }
+  90%  { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
 }
 
-.notif-icon::after {
-  background: var(--wf-text-light);
-  border-radius: 50%;
-  bottom: -6px;
-  content: '';
-  height: 4px;
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-  width: 6px;
+.shake-bell .notif-icon-bell {
+  animation: shake-bell 0.8s ease-in-out infinite;
+  color: var(--warning, #f59e0b);
+  transform-origin: top center;
 }
 
 .topbar .notif-bell .dot {

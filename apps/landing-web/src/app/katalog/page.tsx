@@ -549,15 +549,9 @@ function KatalogContent() {
                           <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
                         </h3>
                         <p className="text-body-sm text-outline mt-1 mb-2 font-medium">{lot.specString}</p>
-                        <div className="grid grid-cols-2 gap-3 mt-3">
-                          <div>
-                            <p className="text-body-sm text-outline">Harga Awal</p>
-                            <p className="text-body-md font-bold text-primary">{lot.hargaAwal}</p>
-                          </div>
-                          <div>
-                            <p className="text-body-sm text-outline">Deposit</p>
-                            <p className="text-body-md font-bold text-on-surface">{lot.deposit}</p>
-                          </div>
+                        <div className="mt-3">
+                          <p className="text-body-sm text-outline">Harga Awal</p>
+                          <p className="text-body-md font-bold text-primary">{lot.hargaAwal}</p>
                         </div>
                         <div className="mt-4 pt-4 border-t border-outline-variant/10 flex items-center justify-between">
                           <p className="text-body-sm text-on-surface-variant">{lot.timer}</p>

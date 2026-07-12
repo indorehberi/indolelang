@@ -74,6 +74,11 @@ services:
       - JWT_REFRESH_EXPIRES_IN=30d
       - API_PREFIX=/api/v1
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@bidku.co.id}
     volumes:
       - uploads_prod:/app/apps/api/uploads
     deploy:

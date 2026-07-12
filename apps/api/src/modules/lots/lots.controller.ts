@@ -104,6 +104,22 @@ export class LotsController {
       next(error);
     }
   }
+
+  /**
+   * GET /lots/history/me — Auction history for current bidder (lots where they have bid)
+   */
+  async getMyHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const page = parseInt(req.query.page as string || '1', 10);
+      const perPage = parseInt(req.query.per_page as string || '20', 10);
+
+      const result = await lotsService.getBidHistoryByUser(userId, page, perPage);
+      sendSuccess(res, result.data, 'Riwayat keikutsertaan lelang berhasil dimuat', result.meta);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default LotsController;

@@ -36,4 +36,12 @@ router.put(
   controller.updateSetting
 );
 
+// NOTE: must come BEFORE /:key to avoid Express routing conflict
+router.post(
+  '/admin/settings/test-email',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.testEmail
+);
+
 export default router;

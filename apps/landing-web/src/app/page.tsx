@@ -124,19 +124,11 @@ function LotCard({
           </div>
         </div>
         <div className="p-4 pt-0">
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div>
-              <p className="text-body-sm text-outline">Harga Awal</p>
-              <p className="text-body-md font-bold text-primary">
-                Rp {lot.hargaDasar.toLocaleString("id-ID")}
-              </p>
-            </div>
-            <div>
-              <p className="text-body-sm text-outline">Deposit</p>
-              <p className="text-body-md font-bold text-on-surface">
-                {lot.deposit}
-              </p>
-            </div>
+          <div className="mb-3">
+            <p className="text-body-sm text-outline">Harga Awal</p>
+            <p className="text-body-md font-bold text-primary">
+              Rp {lot.hargaDasar.toLocaleString("id-ID")}
+            </p>
           </div>
           <div className="flex justify-between items-end">
             <Link
@@ -173,6 +165,12 @@ export default function Home() {
   const [enabledTypes, setEnabledTypes] = useState({ english: true, dutch: false, sealed: false, timed: false, buynow: false, group: false });
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
 
+  // Catalog filter/sort state
+  const [filterCabang, setFilterCabang] = useState("");
+  const [filterKategori, setFilterKategori] = useState("");
+  const [filterMerk, setFilterMerk] = useState("");
+  const [sortOrder, setSortOrder] = useState<"lot_asc" | "price_asc" | "price_desc">("lot_asc");
+
   useEffect(() => {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
@@ -187,11 +185,15 @@ export default function Home() {
 
         return {
           id: dbLot.id,
+          lot_number: dbLot.lot_number || 0,
           title: dbLot.asset.title,
           grade: dbLot.asset.condition === "BARU" ? "A" : "B",
           specString,
           deposit: "Rp 5.000.000",
           location: dbLot.session?.branch?.city || "Jakarta",
+          cabang: dbLot.session?.branch?.name || "",
+          kategori: dbLot.asset.category || "",
+          merk: dbLot.asset.brand || "",
           hargaDasar: Number(dbLot.starting_price),
           status: isLive ? "Live" : "Akan Datang",
           timerKey: dbLot.id,
@@ -205,6 +207,23 @@ export default function Home() {
       setLotsList(mapped);
     }
   }, [dbFeaturedLots]);
+
+  // Derived filtered+sorted catalog lots
+  const filteredCatalogLots = React.useMemo(() => {
+    let list = lotsList.filter((l) => l.featured);
+    if (filterCabang) list = list.filter((l) => l.cabang === filterCabang);
+    if (filterKategori) list = list.filter((l) => l.kategori === filterKategori);
+    if (filterMerk) list = list.filter((l) => l.merk === filterMerk);
+    if (sortOrder === "lot_asc") list = [...list].sort((a, b) => a.lot_number - b.lot_number);
+    else if (sortOrder === "price_asc") list = [...list].sort((a, b) => a.hargaDasar - b.hargaDasar);
+    else if (sortOrder === "price_desc") list = [...list].sort((a, b) => b.hargaDasar - a.hargaDasar);
+    return list;
+  }, [lotsList, filterCabang, filterKategori, filterMerk, sortOrder]);
+
+  // Unique values for filter dropdowns
+  const cabangOptions = React.useMemo(() => [...new Set(lotsList.filter(l => l.featured && l.cabang).map(l => l.cabang))], [lotsList]);
+  const kategoriOptions = React.useMemo(() => [...new Set(lotsList.filter(l => l.featured && l.kategori).map(l => l.kategori))], [lotsList]);
+  const merkOptions = React.useMemo(() => [...new Set(lotsList.filter(l => l.featured && l.merk).map(l => l.merk))], [lotsList]);
 
   // --- STATE FOR FAQ ACCORDION ---
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -772,7 +791,7 @@ export default function Home() {
         {/* ========== FEATURED AUCTIONS ========== */}
         <section className="py-12 md:py-16 bg-surface-container-low/30 border-t border-outline-variant/10">
           <div className="max-w-container-max mx-auto px-margin-page">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
               <div>
                 <h2 className="text-heading-2xl font-bold text-on-background font-serif">
                   Katalog
@@ -789,8 +808,52 @@ export default function Home() {
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </Link>
             </div>
+
+            {/* Filter & Sort Bar */}
+            <div className="flex flex-wrap gap-3 mb-6 items-center">
+              {cabangOptions.length > 0 && (
+                <select
+                  value={filterCabang}
+                  onChange={(e) => setFilterCabang(e.target.value)}
+                  className="text-body-sm border border-outline-variant/30 rounded-lg px-3 py-2 bg-white/70 backdrop-blur-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">Semua Cabang</option>
+                  {cabangOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+              {kategoriOptions.length > 0 && (
+                <select
+                  value={filterKategori}
+                  onChange={(e) => setFilterKategori(e.target.value)}
+                  className="text-body-sm border border-outline-variant/30 rounded-lg px-3 py-2 bg-white/70 backdrop-blur-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">Semua Kategori</option>
+                  {kategoriOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+              {merkOptions.length > 0 && (
+                <select
+                  value={filterMerk}
+                  onChange={(e) => setFilterMerk(e.target.value)}
+                  className="text-body-sm border border-outline-variant/30 rounded-lg px-3 py-2 bg-white/70 backdrop-blur-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">Semua Merk</option>
+                  {merkOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as "lot_asc" | "price_asc" | "price_desc")}
+                className="text-body-sm border border-outline-variant/30 rounded-lg px-3 py-2 bg-white/70 backdrop-blur-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 ml-auto"
+              >
+                <option value="lot_asc">Urutkan: No Lot ↑</option>
+                <option value="price_asc">Harga: Terendah</option>
+                <option value="price_desc">Harga: Tertinggi</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {lotsList.filter((l) => l.featured).slice(0, 4).map((lot) => (
+              {filteredCatalogLots.slice(0, 8).map((lot) => (
                 <LotCard
                   key={lot.id}
                   lot={lot}
@@ -799,6 +862,12 @@ export default function Home() {
                   handleActionClick={handleActionClick}
                 />
               ))}
+              {filteredCatalogLots.length === 0 && (
+                <div className="col-span-4 py-16 text-center text-on-surface-variant">
+                  <span className="material-symbols-outlined text-5xl mb-3 block">inventory_2</span>
+                  <p className="text-body-md">Tidak ada lot yang cocok dengan filter ini.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>

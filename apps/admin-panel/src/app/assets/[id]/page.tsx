@@ -1,46 +1,86 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { apiFetch } from '../../../lib/api';
+import { apiFetch, getImageUrl } from '../../../lib/api';
 
 interface AssetDetail {
   id: string;
   title: string;
   category: string;
-  condition: string;
-  description: string;
+  description?: string;
   base_price: number;
   status: string;
-  provider_name: string;
-  photos: string[];
+  provider_id: string;
+  brand?: string;
+  model?: string;
+  color?: string;
+  fuel_type?: string;
+  transmission?: string;
+  body_type?: string;
+  year?: number;
+  police_number?: string;
+  bpkb_number?: string;
+  frame_number?: string;
+  engine_number?: string;
+  cylinder?: number;
+  odometer?: number;
+  grade_interior?: string;
+  grade_exterior?: string;
+  grade_engine?: string;
+  inspection_pic_name?: string;
+  inspection_date?: string;
+  inspection_doc_url?: string;
+  notes?: string;
+  rejection_reason?: string;
+  pool_status?: string;
+  doc_stnk?: boolean;
+  doc_bpkb?: boolean;
+  doc_faktur?: boolean;
+  doc_kwitansi?: boolean;
+  doc_form_a?: boolean;
+  doc_copy_ktp?: boolean;
+  doc_keur?: boolean;
+  doc_sph?: boolean;
+  stnk_date?: string;
+  stnk_tax_date?: string;
+  keur_date?: string;
+  photo_front?: string;
+  photo_back?: string;
+  photo_right?: string;
+  photo_left?: string;
+  photo_engine?: string;
+  photo_interior?: string;
+  photo_stnk?: string;
+  images?: Record<string, string>;
   created_at: string;
+  updated_at: string;
 }
 
-interface InspectionReport {
-  engine_grade: string;
-  interior_grade: string;
-  exterior_grade: string;
-  recommended_base_price: number;
-  notes: string;
-  inspected_by: string;
-  inspected_at: string;
-}
+const PHOTO_LABELS: { key: keyof AssetDetail; label: string }[] = [
+  { key: 'photo_front', label: 'Tampak Depan' },
+  { key: 'photo_back', label: 'Tampak Belakang' },
+  { key: 'photo_right', label: 'Tampak Kanan' },
+  { key: 'photo_left', label: 'Tampak Kiri' },
+  { key: 'photo_engine', label: 'Kompartemen Mesin' },
+  { key: 'photo_interior', label: 'Interior' },
+  { key: 'photo_stnk', label: 'STNK' },
+];
 
-interface BastInfo {
-  bast_number: string;
-  received_at: string;
-  delivered_by: string;
-  received_by: string;
-  warehouse: string;
-  signed: boolean;
-}
-
-
+const DOC_LABELS: { key: keyof AssetDetail; label: string }[] = [
+  { key: 'doc_stnk', label: 'STNK' },
+  { key: 'doc_bpkb', label: 'BPKB' },
+  { key: 'doc_faktur', label: 'Faktur' },
+  { key: 'doc_kwitansi', label: 'Kwitansi' },
+  { key: 'doc_form_a', label: 'Form A' },
+  { key: 'doc_copy_ktp', label: 'Copy KTP' },
+  { key: 'doc_keur', label: 'KEUR' },
+  { key: 'doc_sph', label: 'SPH' },
+];
 
 export default function AssetDetailPage() {
   const params = useParams();
@@ -48,25 +88,42 @@ export default function AssetDetailPage() {
   const assetId = params?.id as string;
 
   const [asset, setAsset] = useState<AssetDetail | null>(null);
-  const [inspection, setInspection] = useState<InspectionReport | null>(null);
-  const [bast, setBast] = useState<BastInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const [inspectionForm, setInspectionForm] = useState({
-    engine_grade: 'B',
-    interior_grade: 'A',
-    exterior_grade: 'B',
-    recommended_base_price: '',
-    notes: '',
-  });
+  // Photo order state - array of photo keys in display order
+  const [photoOrder, setPhotoOrder] = useState<string[]>([]);
+  const [photoOrderDirty, setPhotoOrderDirty] = useState(false);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await apiFetch(`/assets/${assetId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const a: AssetDetail = data.data;
+        setAsset(a);
+
+        // Build initial photo order from the photo_* fields that have values
+        const initial = PHOTO_LABELS
+          .filter((p) => !!a[p.key])
+          .map((p) => p.key);
+        setPhotoOrder(initial);
+      } else {
+        setAsset(null);
+      }
+    } catch {
+      setAsset(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [assetId]);
 
   useEffect(() => {
     try {
@@ -75,40 +132,17 @@ export default function AssetDetailPage() {
         const user = JSON.parse(userStr);
         setUserRole(user.role);
       }
-    } catch(e) {}
-    const fetchData = async () => {
-      try {
-        const res = await apiFetch(`/assets/${assetId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setAsset(data.data);
-        } else {
-          setAsset(null);
-          setInspection(null);
-          setBast(null);
-        }
-      } catch {
-        setAsset(null);
-        setInspection(null);
-        setBast(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    } catch (e) {}
     if (assetId) fetchData();
-  }, [assetId]);
+  }, [assetId, fetchData]);
 
-  
   const handleApprove = async () => {
     if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
     try {
       const response = await apiFetch(`/admin/assets/${assetId}/approve`, { method: 'PUT' });
       if (response.ok) {
         showToast('success', 'Barang disetujui');
-        // reload data
-        router.refresh();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => fetchData(), 800);
       } else showToast('error', 'Gagal menyetujui barang');
     } catch (err) { console.error(err); }
   };
@@ -119,23 +153,55 @@ export default function AssetDetailPage() {
       const response = await apiFetch(`/admin/assets/${assetId}/reject`, { method: 'PUT' });
       if (response.ok) {
         showToast('success', 'Barang ditolak');
-        router.refresh();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => fetchData(), 800);
       } else showToast('error', 'Gagal menolak barang');
     } catch (err) { console.error(err); }
   };
 
-  const handleSaveInspection = async () => {
+  const movePhoto = (index: number, direction: 'up' | 'down') => {
+    setPhotoOrder((prev) => {
+      const arr = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= arr.length) return prev;
+      [arr[index], arr[targetIndex]] = [arr[targetIndex], arr[index]];
+      return arr;
+    });
+    setPhotoOrderDirty(true);
+  };
+
+  const handleSavePhotoOrder = async () => {
+    if (!asset) return;
     setSaving(true);
     try {
-      const res = await apiFetch(`/assets/${assetId}/inspection`, {
-        method: 'POST',
-        body: JSON.stringify(inspectionForm),
+      // Build update payload: reorder all photo_* fields by assigning values from current order
+      const photoValues = photoOrder.map((key) => asset[key as keyof AssetDetail] as string);
+      const updateBody: Record<string, string | null> = {};
+
+      // Reset all photo fields to null first
+      PHOTO_LABELS.forEach((p) => { updateBody[p.key] = null; });
+
+      // Reassign according to order into the original slot names
+      // Strategy: preserve the _key names but just reorder values
+      // We save the new ordered array into images JSON field keyed by position
+      photoOrder.forEach((origKey, idx) => {
+        const targetKey = PHOTO_LABELS[idx]?.key;
+        if (targetKey) {
+          updateBody[targetKey as string] = asset[origKey as keyof AssetDetail] as string;
+        }
       });
+
+      const res = await apiFetch(`/assets/${assetId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateBody),
+      });
+
       if (res.ok) {
-        showToast('success', 'Laporan inspeksi berhasil disimpan');
+        showToast('success', 'Urutan foto berhasil disimpan');
+        setPhotoOrderDirty(false);
+        setTimeout(() => fetchData(), 500);
       } else {
-        showToast('error', 'Gagal menyimpan laporan inspeksi');
+        const errData = await res.json();
+        showToast('error', errData.error?.message || 'Gagal menyimpan urutan foto');
       }
     } catch {
       showToast('error', 'Koneksi ke server gagal');
@@ -147,16 +213,17 @@ export default function AssetDetailPage() {
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
 
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatDate = (iso: string | undefined) => {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  };
 
-  const GRADES = ['A (Sangat Baik)', 'B (Baik)', 'C (Cukup)', 'D (Buruk)'];
+  const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: 'flex-start' }}>
+      <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
+      <span style={{ color: 'var(--text-primary)', flex: 1 }}>{value || '-'}</span>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -178,257 +245,200 @@ export default function AssetDetailPage() {
     );
   }
 
+  const statusVariant = asset.status === 'approved' ? 'success' : asset.status === 'rejected' ? 'danger' : 'warning';
+
   return (
     <DashboardLayout>
       {/* Toast */}
       {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '1.5rem',
-            right: '1.5rem',
-            zIndex: 9999,
-            padding: '0.875rem 1.25rem',
-            borderRadius: '0.75rem',
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
+        <div style={{
+          position: 'fixed', top: '1.5rem', right: '1.5rem', zIndex: 9999,
+          padding: '0.875rem 1.25rem', borderRadius: '0.75rem',
+          background: toast.type === 'success' ? '#22c55e' : '#ef4444',
+          color: '#fff', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
           <span>{toast.type === 'success' ? '✅' : '❌'}</span>
           {toast.message}
         </div>
       )}
 
+      {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Detail Barang & Inspeksi</h1>
+          <h1 className="page-title">Detail Barang</h1>
           <p className="page-subtitle">
-            <span
-              style={{ cursor: 'pointer', color: 'var(--primary)' }}
-              onClick={() => router.push('/assets')}
-            >
+            <span style={{ cursor: 'pointer', color: 'var(--primary)' }} onClick={() => router.push('/assets')}>
               Daftar Barang
             </span>{' '}
-            &bull; Detail Barang
+            &bull; Detail
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Button variant="outline" onClick={() => router.push('/assets')}>
-            ← Kembali
-          </Button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <Button variant="outline" onClick={() => router.push('/assets')}>← Kembali</Button>
           {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
             <>
-              <Button variant="success" onClick={handleApprove}>Approve</Button>
-              <Button variant="danger" onClick={handleReject}>Reject</Button>
+              <Button variant="success" onClick={handleApprove}>✓ Approve</Button>
+              <Button variant="danger" onClick={handleReject}>✕ Reject</Button>
             </>
           )}
         </div>
       </div>
 
-      {/* Asset info banner */}
+      {/* Asset Banner */}
       <Card title="">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              borderRadius: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem',
-              flexShrink: 0,
-            }}
-          >
+          <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0 }}>
             🚗
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)' }}>
-              {asset.title}
-            </div>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{asset.title}</div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-              Provider: <strong>{asset.provider_name}</strong> &bull; Ditambahkan:{' '}
-              {formatDate(asset.created_at)}
+              Ditambahkan: {formatDate(asset.created_at)} &bull; Diperbarui: {formatDate(asset.updated_at)}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Badge variant="info">{asset.category}</Badge>
-            <Badge
-              variant={
-                asset.status === 'approved'
-                  ? 'success'
-                  : asset.status === 'rejected'
-                  ? 'danger'
-                  : 'warning'
-              }
-            >
-              {asset.status}
-            </Badge>
+            <Badge variant={statusVariant}>{asset.status}</Badge>
+            {asset.pool_status && <Badge variant="default">{asset.pool_status === 'in_pool' ? 'Di Pool' : 'Keluar Pool'}</Badge>}
           </div>
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginTop: '1.25rem' }}>
-        {/* Left: Inspection form */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.25rem' }}>
+
+        {/* Left Column: Detail Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <Card title="Form Hasil Inspeksi Teknis (Appraisal)">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Nama Barang (readonly) */}
-              <div className="form-group">
-                <label className="form-label">Nama Barang / Kendaraan</label>
-                <input type="text" className="form-input" value={asset.title} disabled style={{ opacity: 0.6 }} />
-              </div>
 
-              {/* Grade grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-                {[
-                  { key: 'engine_grade', label: 'Grade Mesin' },
-                  { key: 'interior_grade', label: 'Grade Interior' },
-                  { key: 'exterior_grade', label: 'Grade Eksterior' },
-                ].map(({ key, label }) => (
-                  <div className="form-group" key={key}>
-                    <label className="form-label">{label}</label>
-                    <select
-                      className="form-select"
-                      value={inspectionForm[key as keyof typeof inspectionForm]}
-                      onChange={(e) => setInspectionForm({ ...inspectionForm, [key]: e.target.value })}
-                    >
-                      {GRADES.map((g) => (
-                        <option key={g} value={g.charAt(0)}>
-                          Grade {g}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
+          {/* Informasi Umum */}
+          <Card title="Informasi Umum">
+            <InfoRow label="Harga Dasar" value={<strong style={{ color: 'var(--primary)' }}>{formatPrice(asset.base_price)}</strong>} />
+            <InfoRow label="Deskripsi" value={asset.description} />
+            <InfoRow label="Catatan (Notes)" value={asset.notes} />
+            {asset.rejection_reason && <InfoRow label="Alasan Ditolak" value={<span style={{ color: 'var(--danger)' }}>{asset.rejection_reason}</span>} />}
+          </Card>
 
-              {/* Recommended base price */}
-              <div className="form-group">
-                <label className="form-label">Rekomendasi Harga Dasar Minimum</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Misal: Rp 115.000.000"
-                  value={
-                    inspectionForm.recommended_base_price
-                      ? formatPrice(Number(inspectionForm.recommended_base_price))
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    setInspectionForm({ ...inspectionForm, recommended_base_price: raw });
-                  }}
-                />
-              </div>
+          {/* Spesifikasi Kendaraan */}
+          <Card title="Spesifikasi Kendaraan">
+            <InfoRow label="Merek (Brand)" value={asset.brand} />
+            <InfoRow label="Model / Tipe" value={asset.model} />
+            <InfoRow label="Warna" value={asset.color} />
+            <InfoRow label="Jenis Bahan Bakar" value={asset.fuel_type} />
+            <InfoRow label="Transmisi" value={asset.transmission} />
+            <InfoRow label="Tipe Bodi" value={asset.body_type} />
+            <InfoRow label="Tahun" value={asset.year} />
+            <InfoRow label="No Polisi" value={asset.police_number} />
+            <InfoRow label="No BPKB" value={asset.bpkb_number} />
+            <InfoRow label="No Rangka" value={asset.frame_number} />
+            <InfoRow label="No Mesin" value={asset.engine_number} />
+            <InfoRow label="Kapasitas Mesin (CC)" value={asset.cylinder} />
+            <InfoRow label="Odometer (km)" value={asset.odometer?.toLocaleString('id-ID')} />
+          </Card>
 
-              {/* Notes */}
-              <div className="form-group">
-                <label className="form-label">Catatan Hasil Pemeriksaan Fisik</label>
-                <textarea
-                  className="form-textarea"
-                  rows={4}
-                  placeholder="Deskripsikan kondisi fisik barang secara lengkap..."
-                  value={inspectionForm.notes}
-                  onChange={(e) => setInspectionForm({ ...inspectionForm, notes: e.target.value })}
-                />
-              </div>
-
-              {inspection && (
-                <div
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Terakhir diinspeksi oleh <strong>{inspection.inspected_by}</strong> pada{' '}
-                  {formatDate(inspection.inspected_at)}
-                </div>
+          {/* Hasil Inspeksi */}
+          {(asset.grade_interior || asset.grade_exterior || asset.grade_engine) && (
+            <Card title="Hasil Inspeksi">
+              <InfoRow label="Inspektor" value={asset.inspection_pic_name} />
+              <InfoRow label="Tanggal Inspeksi" value={formatDate(asset.inspection_date)} />
+              <InfoRow label="Grade Interior" value={asset.grade_interior} />
+              <InfoRow label="Grade Eksterior" value={asset.grade_exterior} />
+              <InfoRow label="Grade Mesin" value={asset.grade_engine} />
+              {asset.inspection_doc_url && (
+                <InfoRow label="Dokumen Inspeksi" value={
+                  <a href={getImageUrl(asset.inspection_doc_url)} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Lihat Dokumen ↗</a>
+                } />
               )}
+            </Card>
+          )}
 
-              <Button variant="primary" onClick={handleSaveInspection} disabled={saving}>
-                {saving ? 'Menyimpan...' : '💾 Simpan Laporan Inspeksi'}
-              </Button>
+          {/* Kelengkapan Dokumen */}
+          <Card title="Kelengkapan Dokumen">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              {DOC_LABELS.map(({ key, label }) => {
+                const present = !!asset[key as keyof AssetDetail];
+                return (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.5rem', borderRadius: '0.375rem', background: present ? '#dcfce7' : '#fee2e2', fontSize: '0.8rem', fontWeight: 600 }}>
+                    <span>{present ? '✅' : '❌'}</span>
+                    <span style={{ color: present ? '#166534' : '#991b1b' }}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {asset.stnk_date && <span>STNK: {formatDate(asset.stnk_date)}</span>}
+              {asset.stnk_tax_date && <span>Pajak STNK: {formatDate(asset.stnk_tax_date)}</span>}
+              {asset.keur_date && <span>KEUR: {formatDate(asset.keur_date)}</span>}
             </div>
           </Card>
         </div>
 
-        {/* Right: BAST & Photos */}
+        {/* Right Column: Photo Management */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {bast && (
-            <Card title="Serah Terima & BAST Titip Jual">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem', lineHeight: 1.8 }}>
-                {[
-                  { label: 'Status Fisik', value: <Badge variant="success">Diterima di {bast.warehouse}</Badge> },
-                  { label: 'Tanggal Masuk', value: formatDate(bast.received_at) },
-                  { label: 'Diserahkan Oleh', value: bast.delivered_by },
-                  { label: 'Penerima', value: bast.received_by },
-                  { label: 'Nomor BAST', value: bast.bast_number },
-                  {
-                    label: 'Tanda Tangan BAST',
-                    value: bast.signed ? (
-                      <Badge variant="success">Lengkap (Dual-Sign)</Badge>
-                    ) : (
-                      <Badge variant="warning">Belum Ditandatangani</Badge>
-                    ),
-                  },
-                ].map(({ label, value }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.35rem' }}>
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>• {label}</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-              <button
-                style={{
-                  marginTop: '1rem',
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border)',
-                  borderRadius: '0.5rem',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                }}
-              >
-                📥 Unduh PDF BAST Titip Jual
-              </button>
-            </Card>
-          )}
+          <Card title="Foto Kendaraan">
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Gunakan tombol ▲ / ▼ untuk mengatur urutan tampil foto. Klik <strong>Simpan Urutan</strong> untuk menyimpan perubahan.
+            </p>
 
-          {/* Photos */}
-          <Card title="Foto Fisik Barang">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {['Tampak Depan', 'Nomor Rangka/Mesin', 'Tampak Samping'].map((label) => (
-                <div
-                  key={label}
-                  style={{
-                    height: '150px',
-                    border: '2px dashed var(--border)',
-                    borderRadius: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.875rem',
-                    background: 'var(--bg-secondary)',
-                  }}
-                >
-                  📷 {label}
-                </div>
-              ))}
-            </div>
+            {photoOrder.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', border: '2px dashed var(--border)', borderRadius: '0.5rem' }}>
+                📷 Belum ada foto yang diupload untuk kendaraan ini.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {photoOrder.map((key, index) => {
+                  const photoUrl = asset[key as keyof AssetDetail] as string | undefined;
+                  const label = PHOTO_LABELS.find((p) => p.key === key)?.label || key;
+                  return (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: 'var(--bg-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <button
+                          disabled={index === 0}
+                          onClick={() => movePhoto(index, 'up')}
+                          style={{ width: '28px', height: '24px', border: '1px solid var(--border)', borderRadius: '4px', background: index === 0 ? 'var(--bg-secondary)' : 'white', cursor: index === 0 ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: index === 0 ? 0.4 : 1 }}
+                          title="Pindah ke atas"
+                        >▲</button>
+                        <button
+                          disabled={index === photoOrder.length - 1}
+                          onClick={() => movePhoto(index, 'down')}
+                          style={{ width: '28px', height: '24px', border: '1px solid var(--border)', borderRadius: '4px', background: index === photoOrder.length - 1 ? 'var(--bg-secondary)' : 'white', cursor: index === photoOrder.length - 1 ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: index === photoOrder.length - 1 ? 0.4 : 1 }}
+                          title="Pindah ke bawah"
+                        >▼</button>
+                      </div>
+
+                      {photoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={getImageUrl(photoUrl)}
+                          alt={label}
+                          style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '0.375rem', flexShrink: 0, border: '1px solid var(--border)' }}
+                        />
+                      ) : (
+                        <div style={{ width: '80px', height: '60px', background: 'var(--border)', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📷</div>
+                      )}
+
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          #{index + 1} — {label}
+                        </div>
+                        {photoUrl && (
+                          <a href={getImageUrl(photoUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>
+                            Lihat Full ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {photoOrderDirty && (
+              <div style={{ marginTop: '1rem' }}>
+                <Button variant="primary" onClick={handleSavePhotoOrder} disabled={saving}>
+                  {saving ? 'Menyimpan...' : '💾 Simpan Urutan Foto'}
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       </div>

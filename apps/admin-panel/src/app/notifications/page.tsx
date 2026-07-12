@@ -40,6 +40,8 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
+    // Mark this page as "seen" so the bell stops shaking
+    localStorage.setItem('admin_notifications_seen_at', new Date().toISOString());
     fetchNotifications();
   }, [filterUnread]);
 

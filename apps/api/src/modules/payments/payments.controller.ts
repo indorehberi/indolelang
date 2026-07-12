@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../config/database';
 import { midtransClient } from '../../lib/midtrans';
-import { sendEmail } from '../../lib/email';
+import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { sendSuccess } from '../../lib/apiResponse';
@@ -103,7 +103,7 @@ export class PaymentsController {
 
           await prisma.$transaction(updatePromises);
 
-          sendEmail({
+          sendEmailSafe({
             to: deposit.user.email,
             subject: `[Indo-Lelang] Pembayaran Deposit NIPL Berhasil`,
             text: deposit.session_id

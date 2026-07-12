@@ -35,7 +35,18 @@ RUN npm run build -w apps/api
 
 # Stage 2: Runner
 FROM node:20-alpine
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache \
+    openssl \
+    libc6-compat \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto \
+    font-noto-cjk
+
 WORKDIR /app
 
 # Copy built package artifacts
@@ -48,5 +59,7 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
 EXPOSE 8000
 ENV NODE_ENV=production
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 WORKDIR /app/apps/api
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

@@ -3,7 +3,7 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { Prisma } from '@prisma/client';
 import { DepositStatus, LotStatus, AssetStatus, NotificationType } from '@indo-lelang/shared-types';
-import { sendEmail } from '../../lib/email';
+import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
 
 export interface BidSubmission {
@@ -27,16 +27,27 @@ export class BiddingService {
   calculateAntiSnipe(
     timeRemaining: number,
     extensionCount: number,
-    thresholdSeconds = 30, // not really used if we add unconditionally, but let's keep signature
-    extensionSeconds = 30, // default 30s for manual
-    maxExtensions = 999999 // effectively infinite for manual
+    thresholdSeconds = 30,
+    extensionSeconds = 30,
+    maxExtensions = 999999
   ): { extended: boolean; newTimeRemaining: number; extensionCount: number } {
-    // Unconditionally extend for manual auctions (or if under threshold for auto)
-    // The user said: "jika ada yang bidding tambahkan 30 detik"
+    if (timeRemaining > 60) {
+      return {
+        extended: true,
+        newTimeRemaining: 120,
+        extensionCount: extensionCount + 1,
+      };
+    } else if (timeRemaining > 0) {
+      return {
+        extended: true,
+        newTimeRemaining: 60,
+        extensionCount: extensionCount + 1,
+      };
+    }
     return {
-      extended: true,
-      newTimeRemaining: timeRemaining + extensionSeconds,
-      extensionCount: extensionCount + 1,
+      extended: false,
+      newTimeRemaining: timeRemaining,
+      extensionCount: extensionCount,
     };
   }
 
@@ -316,7 +327,7 @@ export class BiddingService {
           minimumFractionDigits: 0,
         }).format(total);
 
-        sendEmail({
+        sendEmailSafe({
           to: winnerUser.email,
           subject: `[Indo-Lelang] Selamat! Anda memenangkan Lot #${lot.lot_number}`,
           text: `Halo ${winnerUser.full_name},\n\nSelamat! Anda telah memenangkan lelang untuk unit "${lot.asset.title}" dengan harga ketok palu sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}.\n\nTotal kewajiban pembayaran (termasuk komisi dan PPN) adalah ${formattedTotal}. Invoice pelunasan telah dibuat dan dapat Anda akses di dasbor keuangan Anda.\n\nHarap lakukan pelunasan dalam waktu 3 hari kerja.\n\nTerima kasih,\nTim Indo-Lelang`,
