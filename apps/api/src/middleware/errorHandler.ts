@@ -91,7 +91,7 @@ export function errorHandler(
     }
 
     // Other Prisma errors
-    sendError(res, ErrorCode.DB_ERROR, 'Kegagalan transaksi database', undefined, 500);
+    sendError(res, ErrorCode.DB_ERROR, `Kegagalan transaksi database (${err.code}: ${err.message.split('\n').pop()})`, undefined, 500);
     return;
   }
 

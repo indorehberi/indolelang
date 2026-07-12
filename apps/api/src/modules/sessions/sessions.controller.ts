@@ -99,6 +99,27 @@ export class SessionsController {
       next(error);
     }
   }
+
+  /**
+   * Get session reports (Admin/Operator only)
+   */
+  async getSessionReports(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string || '1', 10);
+      const perPage = parseInt(req.query.per_page as string || '20', 10);
+      const search = req.query.search as string;
+
+      const { reports, meta } = await sessionsService.getSessionReports(
+        page,
+        perPage,
+        search
+      );
+      
+      sendSuccess(res, reports, 'Laporan sesi lelang berhasil dimuat', meta);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SessionsController;

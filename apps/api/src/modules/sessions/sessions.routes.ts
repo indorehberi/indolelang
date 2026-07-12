@@ -18,6 +18,13 @@ router.get('/sessions', validate(getSessionsQuerySchema), controller.getSessions
 router.get('/sessions/:id', controller.getSessionById);
 
 // Admin & Operator endpoints
+router.get(
+  '/admin/reports/sessions',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.getSessionReports
+);
+
 router.post(
   '/admin/sessions',
   authenticate,

@@ -5,6 +5,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { useToast } from '../../../providers/ToastProvider';
+import { apiFetch } from '../../../lib/api';
 
 interface SessionReport {
   id: string;
@@ -17,16 +18,37 @@ interface SessionReport {
   status: string;
 }
 
-const DUMMY_REPORTS: SessionReport[] = [];
-
 export default function SessionReportsPage() {
   const toast = useToast();
+  const [reports, setReports] = useState<SessionReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  const filtered = DUMMY_REPORTS.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase())
-  );
+  React.useEffect(() => {
+    const fetchReports = async () => {
+      setLoading(true);
+      try {
+        const res = await apiFetch(`/admin/reports/sessions?per_page=100${search ? `&search=${encodeURIComponent(search)}` : ''}`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setReports(data.data || []);
+        } else {
+          toast.error(data.error?.message || 'Gagal memuat laporan sesi');
+        }
+      } catch (err) {
+        toast.error('Terjadi kesalahan jaringan');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Simple debounce
+    const t = setTimeout(fetchReports, 500);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const filtered = reports; // since we filter in backend or could filter here
 
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -163,10 +185,23 @@ export default function SessionReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                    Tidak ada laporan ditemukan
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((r) => (
                 <tr key={r.id}>
                   <td style={{ fontWeight: 600, maxWidth: '280px' }}>{r.name}</td>
-                  <td>{r.date}</td>
+                  <td>{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
                   <td>
                     <span style={{ fontWeight: 600 }}>{r.sold_lots}</span>
                     <span style={{ color: 'var(--text-secondary)' }}>/{r.total_lots} lot</span>
@@ -210,13 +245,13 @@ export default function SessionReportsPage() {
                           fontSize: '0.75rem',
                           border: '1px solid var(--border)',
                           borderRadius: '0.375rem',
-                          background: 'transparent',
-                          cursor: 'pointer',
                           color: 'var(--text-primary)',
                           fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'transparent',
                         }}
                       >
-                        {downloading === `${r.id}-pdf` ? '...' : '📥 PDF'}
+                        {downloading === `${r.id}-pdf` ? '...' : '📄 PDF'}
                       </button>
                       <button
                         onClick={() => handleDownload(r.id, 'excel')}
@@ -226,10 +261,10 @@ export default function SessionReportsPage() {
                           fontSize: '0.75rem',
                           border: '1px solid var(--border)',
                           borderRadius: '0.375rem',
-                          background: 'transparent',
-                          cursor: 'pointer',
                           color: 'var(--text-primary)',
                           fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'transparent',
                         }}
                       >
                         {downloading === `${r.id}-excel` ? '...' : '📊 Excel'}
@@ -237,13 +272,7 @@ export default function SessionReportsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                    Tidak ada laporan ditemukan
-                  </td>
-                </tr>
+              ))
               )}
             </tbody>
           </table>

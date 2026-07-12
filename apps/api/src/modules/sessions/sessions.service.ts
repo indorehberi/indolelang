@@ -263,4 +263,67 @@ export class SessionsService {
       where: { id },
     });
   }
+
+  /**
+   * Get session reports (Admin/Operator only)
+   * Fetches sessions and aggregates lot statistics (total lots, sold lots, total value)
+   */
+  async getSessionReports(page: number = 1, perPage: number = 20, search?: string) {
+    const where: any = {};
+    
+    if (search) {
+      where.title = { contains: search, mode: 'insensitive' };
+    }
+
+    const skip = (page - 1) * perPage;
+
+    const [total, records] = await Promise.all([
+      prisma.auction_sessions.count({ where }),
+      prisma.auction_sessions.findMany({
+        where,
+        skip,
+        take: perPage,
+        orderBy: { scheduled_at: 'desc' },
+        include: {
+          lots: {
+            select: {
+              status: true,
+              hammer_price: true,
+            }
+          }
+        }
+      }),
+    ]);
+
+    const reports = records.map(session => {
+      const total_lots = session.lots.length;
+      const sold_lots = session.lots.filter(l => l.status === 'sold' || l.status === 'paid' || l.status === 'settled').length;
+      
+      const total_value = session.lots
+        .filter(l => l.status === 'sold' || l.status === 'paid' || l.status === 'settled')
+        .reduce((sum, l) => sum + Number(l.hammer_price || 0), 0);
+        
+      const sell_rate = total_lots > 0 ? Math.round((sold_lots / total_lots) * 100) : 0;
+
+      return {
+        id: session.id,
+        name: session.title,
+        date: session.scheduled_at.toISOString(),
+        total_lots,
+        sold_lots,
+        total_value,
+        sell_rate,
+        status: session.status
+      };
+    });
+
+    return {
+      reports,
+      meta: {
+        page,
+        per_page: perPage,
+        total,
+      },
+    };
+  }
 }
