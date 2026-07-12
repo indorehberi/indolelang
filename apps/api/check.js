@@ -1,13 +1,1 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
-async function main() {
-  const setting = await prisma.platform_settings.findFirst({
-    where: { key: 'auction_session_start_trigger' }
-  });
-  console.log('Setting:', setting);
-}
-
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.lots.findMany({ orderBy: { updated_at: 'desc' }, take: 5, include: { asset: true, invoices: true, bids: true } }).then(l => console.log(JSON.stringify(l, null, 2))).finally(() => prisma.$disconnect());
