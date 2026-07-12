@@ -293,8 +293,8 @@ export default function NewAssetPage() {
             <Field label="Provider Pemilik" required error={errors.provider_id}>
               <select className={`form-select ${errors.provider_id ? 'border-red-500' : ''}`} value={formData.provider_id} onChange={e => setFormData({ ...formData, provider_id: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}>
                 <option value="">-- Pilih Provider --</option>
-                {providers.map(p => (
-                  <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+                {providers.map((p: any) => (
+                  <option key={p.id} value={p.user_id}>{p.company_name || p.user?.full_name || p.id}</option>
                 ))}
               </select>
             </Field>

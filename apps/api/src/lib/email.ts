@@ -21,7 +21,7 @@ async function getTransporter() {
   const port = parseInt(await settingsService.getDecryptedSetting('smtp_port') || env.SMTP_PORT?.toString() || '587');
   const user = await settingsService.getDecryptedSetting('smtp_user') || env.SMTP_USER;
   const pass = await settingsService.getDecryptedSetting('smtp_password') || env.SMTP_PASS;
-  const from = await settingsService.getDecryptedSetting('smtp_from') || env.SMTP_FROM || '"Indo Lelang" <noreply@indo-lelang.com>';
+  const from = await settingsService.getDecryptedSetting('smtp_from') || env.SMTP_FROM || `"${process.env.APP_NAME || 'Indo Lelang'}" <${user || 'noreply@indo-lelang.com'}>`;
 
   if (!host || host === 'localhost') {
     logger.warn('SMTP_HOST is not configured for production email delivery. Email will fail.');
