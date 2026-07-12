@@ -348,30 +348,6 @@ export default function PlatformSettingsPage() {
     }
   };
 
-  const handleTestEmail = async () => {
-    const target = testEmailTo.trim();
-    if (!target) {
-      toast.error('Masukkan alamat email tujuan pengujian.');
-      return;
-    }
-    setIsSendingTest(true);
-    try {
-      const res = await apiFetch('/admin/settings/test-email', {
-        method: 'POST',
-        body: JSON.stringify({ to: target }),
-      });
-      const data = await res.json().catch(() => null);
-      if (res.ok && data?.success) {
-        toast.success(`Email uji berhasil dikirim ke ${target}. Periksa kotak masuk Anda.`);
-      } else {
-        toast.error(data?.error?.message || 'Gagal mengirim email uji. Periksa konfigurasi SMTP.');
-      }
-    } catch (e: any) {
-      toast.error(`Koneksi gagal: ${e.message}`);
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
 
   useEffect(() => {
     fetchSettings();
@@ -923,7 +899,8 @@ export default function PlatformSettingsPage() {
                 <input type="password" placeholder="********" className="form-input" value={apiKeys.xendit_api_key} onChange={(e) => setApiKeys({...apiKeys, xendit_api_key: e.target.value})} />
               </div>
             )}
-            <div>
+          </div>
+          <div>
             <h3 className="text-md fw-bold mb-3">SMTP (Email)</h3>
             <div className="alert alert-info mb-3" style={{ fontSize: '0.8rem' }}>
               Pengaturan ini disimpan terenkripsi di database dan <strong>tidak memerlukan restart server</strong>. Klik &quot;Test Kirim Email&quot; setelah menyimpan untuk memverifikasi konfigurasi berfungsi.
