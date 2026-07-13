@@ -18,12 +18,14 @@ interface Session {
   id: string;
   title: string;
   scheduled_at: string;
+  status?: string;
 }
 
 interface Lot {
   id: string;
   lot_number: number;
   starting_price: number;
+  status?: string;
   asset?: { title: string; police_number?: string };
 }
 
