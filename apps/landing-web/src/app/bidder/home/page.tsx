@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch, getImageUrl } from "@/lib/api";
+import { apiFetch, getImageUrl, getAssetImages } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
@@ -125,7 +125,7 @@ export default function BidderHome() {
 
       {/* Welcome Text (No Card) */}
       <div className="mb-6 px-1">
-        <h2 className="text-xl font-bold text-slate-800 mb-1">Hallo {profile?.name || "Bidder"}</h2>
+        <h2 className="text-xl font-bold text-slate-800 mb-1">Hallo {profile?.full_name || profile?.name || "Bidder"}</h2>
         <p className="text-sm text-slate-600">
           Kamu memiliki <span className="font-black text-primary">{niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary">{niplCounts.mobil}</span> NIPL Mobil
         </p>
@@ -243,19 +243,21 @@ export default function BidderHome() {
            </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {filteredLots.map((lot: any) => (
-               <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
-                 <div className="aspect-[4/3] bg-slate-100 relative">
-                   {lot.asset?.photo_front ? (
-                     <img src={getImageUrl(lot.asset.photo_front)} alt={lot.asset.title} className="w-full h-full object-cover" />
-                   ) : (
-                     <div className="w-full h-full flex items-center justify-center text-slate-300">
-                       <span className="material-symbols-outlined text-4xl">directions_car</span>
+            {filteredLots.map((lot: any) => {
+               const firstImage = lot.asset ? getAssetImages(lot.asset)[0] : null;
+               return (
+                 <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
+                   <div className="aspect-[4/3] bg-slate-100 relative">
+                     {firstImage ? (
+                       <img src={getImageUrl(firstImage)} alt={lot.asset?.brand || 'Kendaraan'} className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-slate-300">
+                         <span className="material-symbols-outlined text-4xl">directions_car</span>
+                       </div>
+                     )}
+                     <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                       Lot {lot.lot_number || '-'}
                      </div>
-                   )}
-                   <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                     Lot {lot.lot_number || '-'}
-                   </div>
                    {lot.asset?.grade && (
                      <div className="absolute top-1.5 right-1.5 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                        Grade {lot.asset.grade}
@@ -280,7 +282,8 @@ export default function BidderHome() {
                    </div>
                  </div>
                </Link>
-            ))}
+             );
+            })}
           </div>
         )}
       </div>
