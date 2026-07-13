@@ -236,7 +236,7 @@ export default function BidderDashboard() {
   }
 
   return (
-    <BidderLayout pageTitle="Dashboard">
+    <BidderLayout pageTitle="Statistik">
 
       {/* Notifications Section */}
       {notifications.length > 0 && (
@@ -310,64 +310,14 @@ export default function BidderDashboard() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          {/* Live Session Card */}
-          <div className="card">
-            <div className="card-header">
-              <span>Sesi Lelang Berlangsung</span>
-              {activeSession && <span className="badge-ui danger animate-pulse">LIVE NOW</span>}
-            </div>
-            {activeSession ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-slate-800 text-base">{activeSession.name}</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Sesi lelang aktif di cabang {activeSession.branch?.name || "Pusat"} &bull; Silakan bergabung ke ruang lelang
-                  </p>
-                </div>
-                <Link href="/bidder/bidding-room" className="panel-btn panel-btn-gold text-center whitespace-nowrap shadow-sm hover:shadow">
-                  Masuk Ruang Bidding
-                </Link>
-              </div>
-            ) : (
-              <div className="py-4 text-center text-body-sm text-on-surface-variant">
-                Tidak ada sesi lelang yang sedang berlangsung saat ini.
-              </div>
-            )}
-          </div>
-
+        {/* Full Width for Chart */}
+        <div className="col-span-1 lg:col-span-3">
           {/* Activity Chart SVG Placeholder */}
           <div className="card mb-0">
             <div className="card-header">Statistik Bidding Bulanan (Tawaran Dibuat)</div>
             <div className="py-8 text-center text-body-sm text-on-surface-variant flex flex-col items-center justify-center gap-2">
               <span className="material-symbols-outlined text-4xl text-slate-300">bar_chart</span>
               <span>Belum ada data aktivitas penawaran harga (bidding) Anda bulan ini.</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="flex flex-col gap-4">
-          {/* Upgrade to Provider Card */}
-          <div className="card mb-0 border-t-4 border-primary">
-            <div className="card-header text-primary">Titip Jual &amp; Bermitra</div>
-            <div className="space-y-3">
-              <p className="text-body-sm text-on-surface-variant leading-relaxed">
-                Ingin memasarkan kendaraan atau unit aset Anda secara mandiri di IndoLelang? Upgrade akun Anda menjadi Provider sekarang!
-              </p>
-              <button
-                onClick={() => {
-                  if (bidderStatus !== "aktif") {
-                    toast.warning("Hanya Bidder yang sudah Aktif yang dapat mengajukan diri sebagai Provider. Lengkapi profil dan tunggu persetujuan Admin.");
-                  } else {
-                    setIsUpgradeModalOpen(true);
-                  }
-                }}
-                className={`panel-btn panel-btn-gold justify-center w-full shadow-sm hover:shadow ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                🤝 Daftar Sebagai Provider
-              </button>
             </div>
           </div>
         </div>

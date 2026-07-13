@@ -233,22 +233,11 @@ export default function DetailLotPage() {
                 <span className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-black/50 group-hover:bg-black/70 backdrop-blur-md text-white flex items-center justify-center transition-colors">
                   <span className="material-symbols-outlined text-lg">zoom_in</span>
                 </span>
-                <div className="absolute top-4 left-4 flex gap-2">
-                  {/* Grade Badge */}
-                  <span className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-md text-primary flex items-center justify-center font-black shadow-sm border border-white">
-                    {grade}
-                  </span>
-                  {/* Status Badge */}
-                  <span className={`px-3 py-1 rounded-full text-badge-text font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 ${
-                    isLive ? "bg-error text-white" : "bg-info text-white"
-                  }`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    {isLive ? "LIVE AUCTION" : (lot.status === "sold" ? "TERJUAL" : "UPCOMING")}
-                  </span>
-                  {/* Lot Number */}
-                  <span className="bg-white/90 backdrop-blur-md text-on-surface px-3 py-1 rounded-full text-badge-text font-bold shadow-sm">
-                    LOT #{lot.lot_number}
-                  </span>
+                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
+                  LOT #{lot.lot_number}
+                </div>
+                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md text-primary w-10 h-10 rounded-full flex items-center justify-center font-black shadow-sm border border-white">
+                  {grade}
                 </div>
               </button>
 
@@ -274,6 +263,30 @@ export default function DetailLotPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Info Lot Panel */}
+            <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm">
+              <h2 className="text-heading-md font-bold text-on-surface mb-5 flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-primary">info</span>
+                Info Lot
+              </h2>
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
+                  <span className="text-slate-500">Harga Dasar</span>
+                  <span className="font-bold text-primary">{formatRupiah(lot.starting_price)}</span>
+                </div>
+                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
+                  <span className="text-slate-500">Jadwal Lelang</span>
+                  <span className="font-bold text-slate-800">
+                    {lot.session?.scheduled_at ? new Date(lot.session.scheduled_at).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"} WIB
+                  </span>
+                </div>
+                <div className="flex justify-between pb-1">
+                  <span className="text-slate-500">Lokasi Lelang</span>
+                  <span className="font-bold text-slate-800">{lot.session?.branch?.name || "Pusat"}</span>
+                </div>
+              </div>
             </div>
 
             {/* Specifications Card */}
@@ -303,41 +316,6 @@ export default function DetailLotPage() {
               </div>
             </div>
 
-            {/* Warehouse / Gudang Location */}
-            <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm">
-              <h2 className="text-heading-md font-bold text-on-surface mb-4 flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary">location_on</span>
-                Lokasi Gudang Penampungan
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-bold text-body-lg text-on-surface">Pool Kantor Pusat Bidku</h3>
-                  <p className="text-body-sm text-on-surface-variant leading-relaxed mt-1">
-                    Jl. Raden Patah Jl. Lembang II Lama No.62, Ciledug, Kota Tangerang, Banten 15151. Terbuka untuk Open House / Cek Fisik, pukul 09:00 - 16:00 WIB.
-                  </p>
-                </div>
-                <a
-                  href="https://maps.app.goo.gl/TTfvM1o9M852AFKfA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block aspect-[21/9] w-full rounded-2xl overflow-hidden bg-surface-variant/20 border border-outline-variant/10 relative group hover:border-premium transition-all"
-                >
-                  <iframe
-                    src="https://maps.google.com/maps?q=Jl.+Raden+Patah+Jl.+Lembang+II+Lama+No.62,+Ciledug,+Kota+Tangerang,+Banten+15151&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                    className="absolute inset-0 w-full h-full border-none pointer-events-none"
-                    allowFullScreen
-                    loading="lazy"
-                    title="Google Map Gudang Penampungan"
-                  ></iframe>
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-black/15 transition-colors flex items-end p-4">
-                    <span className="bg-premium text-on-premium px-3 py-1.5 rounded-xl text-body-sm font-bold shadow-md flex items-center gap-1.5 transform scale-100 group-hover:scale-105 transition-transform duration-300">
-                      <span className="material-symbols-outlined text-sm">open_in_new</span>
-                      Lihat di Google Maps
-                    </span>
-                  </div>
-                </a>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Sticky Bid Panel & Quick Info */}
@@ -406,65 +384,6 @@ export default function DetailLotPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        
-        {/* Similar Lots Grid */}
-        <div className="mt-16">
-          <h2 className="text-heading-lg font-bold text-on-surface mb-6 flex items-center gap-2.5 font-serif">
-            <span className="material-symbols-outlined text-premium">grid_view</span>
-            Rekomendasi Lot Serupa
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {similarLots.map((similar: any, idx: number) => (
-              <div
-                key={idx}
-                className="bg-white rounded-3xl border border-outline-variant/20 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
-              >
-                {/* Image */}
-                <div className="relative aspect-[16/10] bg-surface-variant/20 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={similar.image}
-                    alt={similar.alt}
-                    className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/95 backdrop-blur-sm text-on-surface text-badge-text font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-                      {similar.location}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-body-lg text-on-surface line-clamp-1 group-hover:text-premium transition-colors">
-                      {similar.title}
-                    </h3>
-                    <div className="flex justify-between items-center mt-3 text-body-sm text-on-surface-variant">
-                      <span>Harga Awal</span>
-                      <span className="font-extrabold text-body-md text-on-surface">
-                        {similar.hargaAwal}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-4 border-t border-outline-variant/20 flex items-center justify-between gap-4">
-                    <span className="text-body-sm font-semibold text-error flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">schedule</span>
-                      {similar.timer}
-                    </span>
-                    <button
-                      onClick={() => toast.info("Gunakan katalog utama untuk melihat lot real.")}
-                      className="px-4 py-2 bg-premium/10 text-premium font-bold text-body-sm rounded-xl hover:bg-premium hover:text-on-premium transition-all btn-press"
-                    >
-                      Detail Lot
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </main>

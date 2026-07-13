@@ -9,8 +9,8 @@ export type MenuItem = {
 
 // Promoted to the mobile bottom tab bar (max 5, native convention).
 export const primaryNavItems: MenuItem[] = [
-  { name: "Dashboard", shortLabel: "Beranda", href: "/bidder/dashboard", icon: "dashboard" },
-  { name: "Katalog Lelang", shortLabel: "Katalog", href: "/katalog", icon: "gavel" },
+  { name: "Beranda", shortLabel: "Beranda", href: "/bidder/home", icon: "home" },
+  { name: "Statistik", shortLabel: "Statistik", href: "/bidder/dashboard", icon: "query_stats" },
   { name: "Ruang Lelang Live", shortLabel: "Live", href: "/bidder/bidding-room", icon: "play_circle", isLive: true },
   { name: "Keranjang Tagihan", shortLabel: "Keranjang", href: "/bidder/cart", icon: "shopping_cart" },
 ];
