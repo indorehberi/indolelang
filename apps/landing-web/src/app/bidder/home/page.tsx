@@ -37,7 +37,7 @@ export default function BidderHome() {
         }
 
         // Fetch user profile
-        const profileRes = await apiFetch("/auth/profile");
+        const profileRes = await apiFetch("/users/profile");
         const profileData = await profileRes.json();
         if (profileData.success) {
           setProfile(profileData.data);
