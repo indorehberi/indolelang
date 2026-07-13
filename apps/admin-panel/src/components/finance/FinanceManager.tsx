@@ -391,6 +391,8 @@ export default function FinanceManager({
     switch (status) {
       case 'pending':
         return <Badge variant="warning">Pending Cair</Badge>;
+      case 'unpaid':
+        return <Badge variant="danger">Menunggu Pembeli</Badge>;
       case 'processed':
         return <Badge variant="success">Selesai Ditransfer</Badge>;
       case 'failed':
@@ -870,6 +872,7 @@ export default function FinanceManager({
             <div className="toolbar-right">
               <div className="filter-group d-flex gap-1">
                 <button onClick={() => setSettlementStatusFilter('')} className={`btn btn-sm ${settlementStatusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
+                <button onClick={() => setSettlementStatusFilter('unpaid')} className={`btn btn-sm ${settlementStatusFilter === 'unpaid' ? 'btn-danger' : 'btn-outline'}`}>Menunggu Pembeli</button>
                 <button onClick={() => setSettlementStatusFilter('pending')} className={`btn btn-sm ${settlementStatusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending Cair</button>
                 <button onClick={() => setSettlementStatusFilter('processed')} className={`btn btn-sm ${settlementStatusFilter === 'processed' ? 'btn-success' : 'btn-outline'}`}>Selesai</button>
               </div>

@@ -228,8 +228,16 @@ export class PaymentsController {
             }),
           ]);
 
-          // Provider settlement — shared formula with the manual "tandai lunas" path.
-          await paymentsService.createSettlementForInvoice(invoiceId);
+          // Update existing unpaid settlement to pending, or create if missing.
+          const existingSettlement = await prisma.settlements.findFirst({ where: { lot_id: invoice.lot_id } });
+          if (existingSettlement && existingSettlement.status === 'unpaid') {
+            await prisma.settlements.update({
+              where: { id: existingSettlement.id },
+              data: { status: 'pending' },
+            });
+          } else if (!existingSettlement) {
+            await paymentsService.createSettlementForInvoice(invoiceId);
+          }
 
           const formattedTotal = new Intl.NumberFormat('id-ID', {
             style: 'currency',

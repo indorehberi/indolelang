@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
+import PWAInstallButton from "../pwa/PWAInstallButton";
 
 export default function Header() {
   const pathname = usePathname();
@@ -99,6 +100,9 @@ export default function Header() {
 
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <PWAInstallButton />
+          </div>
           {mounted && user ? (
             <Link
               href={user.role === "provider" ? "/provider/dashboard" : "/bidder/dashboard"}
@@ -169,6 +173,11 @@ export default function Header() {
                 </Link>
               </div>
             )}
+
+            {/* Install Button on Mobile Drawer */}
+            <div className="pt-2 border-t border-outline-variant/10">
+              <PWAInstallButton className="w-full py-2.5 text-primary border border-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/5 flex items-center justify-center gap-2" />
+            </div>
           </nav>
         </div>
       )}

@@ -508,9 +508,19 @@ export class LotsService {
       });
     }
 
-    // Provider settlement (pencairan) — created here for the manual payment
-    // flow; idempotent, so re-calling this endpoint is always safe.
-    const settlement = await paymentsService.createSettlementForInvoice(invoice.id);
+    // Provider settlement (pencairan)
+    let settlement;
+    const existingSettlement = await prisma.settlements.findFirst({ where: { lot_id: invoice.lot_id } });
+    if (existingSettlement && existingSettlement.status === 'unpaid') {
+      settlement = await prisma.settlements.update({
+        where: { id: existingSettlement.id },
+        data: { status: 'pending' }
+      });
+    } else if (!existingSettlement) {
+      settlement = await paymentsService.createSettlementForInvoice(invoice.id);
+    } else {
+      settlement = existingSettlement;
+    }
 
     if (!wasAlreadyPaid) {
       const providerName = invoice.lot.asset.provider.company_name || invoice.lot.asset.provider.full_name;

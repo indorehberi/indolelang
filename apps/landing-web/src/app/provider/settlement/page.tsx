@@ -199,8 +199,8 @@ export default function ProviderSettlement() {
                       <td>{bankInfo}</td>
                       <td>{item.transferred_at ? new Date(item.transferred_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                       <td>
-                        <span className={`badge-ui ${item.status === "processed" ? "success" : "warning"}`}>
-                          {item.status === "processed" ? "Selesai" : "Proses"}
+                        <span className={`badge-ui ${item.status === "processed" ? "success" : item.status === "unpaid" ? "danger" : "warning"}`}>
+                          {item.status === "processed" ? "Selesai" : item.status === "unpaid" ? "Menunggu Pembeli" : "Proses Cair"}
                         </span>
                       </td>
                     </tr>

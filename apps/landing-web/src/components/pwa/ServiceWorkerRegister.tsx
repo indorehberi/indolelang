@@ -12,15 +12,23 @@ export default function ServiceWorkerRegister() {
         .catch((err) => console.error("Service worker registration failed", err));
     };
 
-    // React hydrates after the browser's `load` event has typically already
-    // fired, so waiting for a fresh `load` event here would mean the
-    // listener never runs. Register immediately if we already missed it.
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as any).deferredPWAInstallPrompt = e;
+      window.dispatchEvent(new CustomEvent("pwa-install-available"));
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
     if (document.readyState === "complete") {
       register();
       return;
     }
     window.addEventListener("load", register);
-    return () => window.removeEventListener("load", register);
+    return () => {
+      window.removeEventListener("load", register);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
 
   return null;

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { DepositStatus, LotStatus, AssetStatus, NotificationType } from '@indo-lelang/shared-types';
 import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
+import { paymentsService } from '../payments/payments.service';
 
 export interface BidSubmission {
   userId: string;
@@ -318,6 +319,9 @@ export class BiddingService {
           },
         }),
       ]);
+
+      // Generate settlement record immediately (with 'unpaid' status) so it appears in the dashboard
+      await paymentsService.createSettlementForInvoice(invoice.id);
 
       if (winnerUser) {
         // Send email asynchronously

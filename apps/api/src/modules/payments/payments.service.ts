@@ -96,7 +96,7 @@ export class PaymentsService {
         fee_ppn: new Prisma.Decimal(feePpn),
         fee_pph23: new Prisma.Decimal(feePph23),
         pmk41_amount: new Prisma.Decimal(pmk41),
-        status: 'pending',
+        status: invoice.status === 'paid' ? 'pending' : 'unpaid',
       },
     });
 
