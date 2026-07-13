@@ -5,6 +5,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BidderBottomNav from "@/components/layout/BidderBottomNav";
+import { useBidderSession } from "@/hooks/useBidderSession";
 import { useFeaturedLots } from "@/hooks/usePublicData";
 import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 
@@ -31,6 +33,7 @@ export default function KatalogPage() {
 function KatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isBidderLoggedIn } = useBidderSession();
   const initialSearch = searchParams ? searchParams.get("search") || "" : "";
   const initialCategory = searchParams ? (searchParams.get("category") === "MOBIL" ? "Mobil" : "Semua Lot") : "Semua Lot";
 
@@ -217,21 +220,24 @@ function KatalogContent() {
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* ====== STICKY MOBILE CTA ====== */}
-      <div
-        id="stickyCta"
-        className="sticky-cta visible fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/20 px-4 py-3 md:hidden shadow-lg"
-      >
-        <div className="flex items-center gap-3 max-w-container-max mx-auto">
-          <button className="flex-1 px-4 py-2.5 bg-premium text-on-premium rounded-xl font-bold text-sm btn-press btn-shine transition-all hover:bg-premium/85 text-center">
-            Daftar Sekarang
-          </button>
-          <button className="flex-1 px-4 py-2.5 border-2 border-premium/20 text-premium rounded-xl font-bold text-sm btn-press transition-all hover:bg-premium hover:text-on-premium text-center">
-            Lihat Lelang Aktif
-          </button>
+    <div className="min-h-screen bg-surface pb-20 lg:pb-0">
+      {/* ====== STICKY MOBILE CTA (logged-out visitors only — bidders get BidderBottomNav instead) ====== */}
+      {!isBidderLoggedIn && (
+        <div
+          id="stickyCta"
+          className="sticky-cta visible fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/20 px-4 py-3 md:hidden shadow-lg"
+        >
+          <div className="flex items-center gap-3 max-w-container-max mx-auto">
+            <button className="flex-1 px-4 py-2.5 bg-premium text-on-premium rounded-xl font-bold text-sm btn-press btn-shine transition-all hover:bg-premium/85 text-center">
+              Daftar Sekarang
+            </button>
+            <button className="flex-1 px-4 py-2.5 border-2 border-premium/20 text-premium rounded-xl font-bold text-sm btn-press transition-all hover:bg-premium hover:text-on-premium text-center">
+              Lihat Lelang Aktif
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+      <BidderBottomNav />
 
       <Header />
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import ResponsiveModal from "@/components/ui/ResponsiveModal";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderDashboard() {
@@ -228,10 +230,7 @@ export default function BidderDashboard() {
   if (loading) {
     return (
       <BidderLayout pageTitle="Dashboard">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Memuat panel area bidder...</p>
-        </div>
+        <PageSkeleton />
       </BidderLayout>
     );
   }
@@ -437,18 +436,7 @@ export default function BidderDashboard() {
       </div>
 
       {/* Upgrade Provider Modal */}
-      {isUpgradeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4">
-          <div className="bg-white rounded-3xl border border-outline-variant/60 shadow-2xl w-full max-w-[440px] p-6 relative transition-all transform scale-100 max-h-[95vh] overflow-y-auto custom-scrollbar">
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setIsUpgradeModalOpen(false)}
-              className="absolute top-4 right-4 text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-variant/40 rounded-full p-1.5 transition-all bg-white z-10"
-            >
-              <span className="material-symbols-outlined text-2xl font-bold">close</span>
-            </button>
-
+      <ResponsiveModal open={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)}>
             <form onSubmit={handleUpgradeProvider} className="space-y-4 pt-2">
               <h3 className="text-heading-sm font-bold text-on-surface flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">storefront</span>
@@ -576,9 +564,7 @@ export default function BidderDashboard() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ResponsiveModal>
     </BidderLayout>
   );
 }

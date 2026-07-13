@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "../providers/QueryProvider";
 import { ToastProvider } from "../providers/ToastProvider";
+import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
 
 // Centralized layout for landing-web page
 const inter = Inter({
@@ -43,6 +44,19 @@ export const metadata: Metadata = {
     description: "Dapatkan kendaraan impian dan aset berkualitas melalui sistem lelang BIDKU yang aman, terintegrasi secara nasional, dan mudah diikuti.",
     images: ["/Kantor_bidku.png"],
   },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "BIDKU",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f67904",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -60,6 +74,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
+        <ServiceWorkerRegister />
         <QueryProvider>
           <ToastProvider>{children}</ToastProvider>
         </QueryProvider>

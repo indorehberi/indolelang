@@ -144,6 +144,10 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Jenis unit tidak valid');
     }
 
+    // Add unique code to amount
+    const uniqueCode = Math.floor(Math.random() * 9) + 1;
+    amount = amount + uniqueCode;
+
     const transferFee = manualTransferFee;
     const refundFee = manualRefundFee;
 

@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BidderBottomNav from "@/components/layout/BidderBottomNav";
 import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
+import { useBidderSession } from "@/hooks/useBidderSession";
 
 import { useFeaturedLots } from "@/hooks/usePublicData";
 
@@ -15,6 +17,7 @@ export default function DetailLotPage() {
   const toast = useToast();
   const { id } = useParams() as { id: string };
   const { data: dbFeaturedLots = [] } = useFeaturedLots();
+  const { isBidderLoggedIn } = useBidderSession();
 
   const [lot, setLot] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -75,7 +78,7 @@ export default function DetailLotPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col">
+      <div className="min-h-screen bg-surface flex flex-col pb-20 lg:pb-0">
         <Header />
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center">
@@ -84,13 +87,14 @@ export default function DetailLotPage() {
           </div>
         </main>
         <Footer />
+        <BidderBottomNav />
       </div>
     );
   }
 
   if (error || !lot) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col">
+      <div className="min-h-screen bg-surface flex flex-col pb-20 lg:pb-0">
         <Header />
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center max-w-md px-6">
@@ -104,6 +108,7 @@ export default function DetailLotPage() {
           </div>
         </main>
         <Footer />
+        <BidderBottomNav />
       </div>
     );
   }
@@ -172,20 +177,23 @@ export default function DetailLotPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* ====== STICKY MOBILE CTA ====== */}
-      <div
-        id="stickyCta"
-        className="sticky-cta visible fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-outline-variant/20 px-6 py-3 md:hidden shadow-lg"
-      >
-        <div className="flex items-center gap-3 max-w-container-max mx-auto">
-          <button className="flex-1 px-4 py-3 bg-premium text-on-premium rounded-xl font-bold text-sm btn-press btn-shine transition-all hover:bg-premium/85 text-center shadow-md">
-            Daftar Sekarang
-          </button>
-          <button className="flex-1 px-4 py-3 border-2 border-premium/20 text-premium rounded-xl font-bold text-sm btn-press transition-all hover:bg-premium hover:text-on-premium text-center shadow-md">
-            Lihat Lelang Aktif
-          </button>
+      {/* ====== STICKY MOBILE CTA (logged-out visitors only — bidders get BidderBottomNav instead) ====== */}
+      {!isBidderLoggedIn && (
+        <div
+          id="stickyCta"
+          className="sticky-cta visible fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-outline-variant/20 px-6 py-3 md:hidden shadow-lg"
+        >
+          <div className="flex items-center gap-3 max-w-container-max mx-auto">
+            <button className="flex-1 px-4 py-3 bg-premium text-on-premium rounded-xl font-bold text-sm btn-press btn-shine transition-all hover:bg-premium/85 text-center shadow-md">
+              Daftar Sekarang
+            </button>
+            <button className="flex-1 px-4 py-3 border-2 border-premium/20 text-premium rounded-xl font-bold text-sm btn-press transition-all hover:bg-premium hover:text-on-premium text-center shadow-md">
+              Lihat Lelang Aktif
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+      <BidderBottomNav />
 
       <Header />
 

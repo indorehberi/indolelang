@@ -127,6 +127,7 @@
   --animate-fade-in-up: fadeInUp 0.6s ease-out forwards;
   --animate-pulse-soft: pulseSoft 2s ease-in-out infinite;
   --animate-countdown-pulse: countdownPulse 1s ease-in-out infinite;
+  --animate-slide-up-sheet: slideUpSheet 0.25s ease-out forwards;
 }
 
 
@@ -144,6 +145,11 @@
 @keyframes countdownPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
+}
+
+@keyframes slideUpSheet {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 /* ==========================================================================
@@ -192,12 +198,17 @@
 
 
 
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   background: #F9F8F3;
   color: #1D2128;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
 }
 
 /* Material Symbols */
@@ -395,6 +406,7 @@ html {
   .reveal-up { animation: none; opacity: 1; transform: none; }
   .btn-shine::after { display: none; }
   .hero-gradient { animation: none; }
+  .animate-slide-up-sheet { animation: none; }
 }
 
 /* Image Shimmer */
@@ -555,6 +567,10 @@ html {
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
 .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
+}
 
 /* Dashboard Cards */
 .card {

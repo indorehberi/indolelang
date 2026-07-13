@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiUrl, apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import ResponsiveModal from "@/components/ui/ResponsiveModal";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderDeposit() {
@@ -210,10 +212,7 @@ export default function BidderDeposit() {
   if (loading) {
     return (
       <BidderLayout pageTitle="Setor Deposit NIPL">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Memuat form deposit...</p>
-        </div>
+        <PageSkeleton />
       </BidderLayout>
     );
   }
@@ -470,33 +469,29 @@ export default function BidderDeposit() {
       </div>
 
       {/* KYC Alert Popup Modal */}
-      {showKycPopup && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-outline-variant/30 max-w-sm w-full animate-fade-in-up">
-            <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-4 border border-error/25">
-              <span className="material-symbols-outlined text-3xl font-bold">assignment_late</span>
-            </div>
-            <h3 className="text-body-lg font-bold text-center text-on-surface mb-2">Verifikasi eKYC Dibutuhkan</h3>
-            <p className="text-body-sm text-center text-on-surface-variant mb-6 leading-relaxed">
-              Anda belum verifikasi KTP, silakan ikuti prosedur verifikasi KYC untuk dapat membeli NIPL dan mengikuti lelang.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowKycPopup(false)}
-                className="flex-1 py-2.5 border border-outline-variant text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all text-xs"
-              >
-                Tutup
-              </button>
-              <Link
-                href="/ekyc/upload"
-                className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/95 transition-all text-center text-xs flex items-center justify-center"
-              >
-                Verifikasi Sekarang
-              </Link>
-            </div>
-          </div>
+      <ResponsiveModal open={showKycPopup} onClose={() => setShowKycPopup(false)} maxWidthClassName="sm:max-w-sm">
+        <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-4 border border-error/25">
+          <span className="material-symbols-outlined text-3xl font-bold">assignment_late</span>
         </div>
-      )}
+        <h3 className="text-body-lg font-bold text-center text-on-surface mb-2">Verifikasi eKYC Dibutuhkan</h3>
+        <p className="text-body-sm text-center text-on-surface-variant mb-6 leading-relaxed">
+          Anda belum verifikasi KTP, silakan ikuti prosedur verifikasi KYC untuk dapat membeli NIPL dan mengikuti lelang.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowKycPopup(false)}
+            className="flex-1 py-2.5 border border-outline-variant text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all text-xs"
+          >
+            Tutup
+          </button>
+          <Link
+            href="/ekyc/upload"
+            className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/95 transition-all text-center text-xs flex items-center justify-center"
+          >
+            Verifikasi Sekarang
+          </Link>
+        </div>
+      </ResponsiveModal>
     </BidderLayout>
   );
 }

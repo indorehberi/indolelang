@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { apiFetch, apiUrl, API_BASE_URL, refreshAccessToken, getAssetImages, getImageUrl, wsBaseUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 
 interface BidLog {
@@ -17,12 +18,13 @@ interface BidLog {
 }
 
 // Sub-component to manage a single active lot
-function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: { 
-  lot: any; 
-  token: string; 
+function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingleLot }: {
+  lot: any;
+  token: string;
   bidIncrements: number[];
   socket: Socket | null;
   onLotClosed: () => void;
+  isSingleLot: boolean;
 }) {
   const toast = useToast();
   const [currentPrice, setCurrentPrice] = useState<number>(Number(lot.starting_price));
@@ -32,6 +34,20 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
   const [bidCooldown, setBidCooldown] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isBidEnabled, setIsBidEnabled] = useState<boolean>(false);
+  const [startCountdown, setStartCountdown] = useState<number | null>(3);
+  const [currentImageIdx, setCurrentImageIdx] = useState<number>(0);
+  
+  const assetImages = getAssetImages(lot.asset);
+
+  useEffect(() => {
+    if (startCountdown === null) return;
+    if (startCountdown > 0) {
+      const timer = setTimeout(() => setStartCountdown(prev => (prev as number) - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setStartCountdown(null);
+    }
+  }, [startCountdown]);
 
   // Check NIPL
   useEffect(() => {
@@ -73,6 +89,8 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
         const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
         const isMe = !!data.bidder_id && data.bidder_id === myMaskedId;
+
+        if (isMe && "vibrate" in navigator) navigator.vibrate([20, 40, 20]);
 
         const newLog: BidLog = {
           id: Math.random().toString(),
@@ -116,6 +134,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
 
   const handlePlaceBid = (incrementAmount: number) => {
     if (!socket || bidCooldown) return;
+    if ("vibrate" in navigator) navigator.vibrate(15);
     setBidCooldown(true);
     setTimeout(() => setBidCooldown(false), 1200);
 
@@ -140,7 +159,17 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
   };
 
   return (
-    <div className="card mb-6 shadow-sm border-l-4 border-l-danger">
+    <>
+    <div className="card mb-6 shadow-sm border-l-4 border-l-danger relative overflow-hidden">
+      {/* 3-Second Countdown Overlay */}
+      {startCountdown !== null && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-xl">
+          <span className="material-symbols-outlined text-white text-6xl mb-4 animate-bounce">notifications_active</span>
+          <div className="text-white text-8xl font-black">{startCountdown}</div>
+          <div className="text-white text-lg font-bold mt-2">Persiapkan Diri Anda!</div>
+        </div>
+      )}
+
       <div className="card-header flex justify-between items-center">
         <span>
           LOT #{lot.lot_number} &bull; {lot.asset?.title}
@@ -164,7 +193,10 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
             <div className="space-y-4">
               <div>
                 <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Harga Tertinggi Saat Ini</span>
-                <div className="text-4xl text-primary font-black">{formatRupiah(currentPrice)}</div>
+                <div className={`text-4xl font-black flex items-center gap-2 ${bidLogs[0]?.isMe ? 'text-green-600' : 'text-primary'}`}>
+                  {formatRupiah(currentPrice)}
+                  {bidLogs[0]?.isMe && <span className="material-symbols-outlined text-4xl text-amber-500" title="Anda penawar tertinggi!">emoji_events</span>}
+                </div>
               </div>
               
               <div className="pt-2 border-t border-slate-200">
@@ -202,11 +234,13 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
                   </button>
                 </div>
 
-                {/* Dynamic Bid Button */}
+                {/* Dynamic Bid Button — hidden on mobile when the fixed bottom bid bar covers it */}
                 <button
                   disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
                   onClick={() => handlePlaceBid(minIncrement)}
                   className={`w-full py-4 px-4 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
+                    isSingleLot ? "hidden lg:block" : ""
+                  } ${
                     bidCooldown || timeLeft <= 0 || !isBidEnabled
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                       : "bg-primary hover:bg-primary/95 text-white cursor-pointer hover:shadow-lg"
@@ -228,7 +262,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
           {/* Live Bid logs */}
           <div className="flex-1 flex flex-col">
             <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-2 px-1">Log Penawaran Terakhir</span>
-            <div className="space-y-2 flex-1 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-2 flex-1 max-h-[300px] overflow-y-auto overscroll-contain pr-1 custom-scrollbar">
               {bidLogs.length === 0 ? (
                 <div className="bg-slate-50 border border-dashed border-slate-300 p-6 rounded-xl flex flex-col items-center justify-center text-slate-400">
                   <span className="material-symbols-outlined text-3xl mb-1">history</span>
@@ -262,12 +296,36 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         {/* RIGHT COLUMN: Asset Data */}
         <div className="w-full md:w-1/2 flex flex-col gap-4">
           <div className="bg-white rounded-xl border border-slate-200 flex-1 overflow-hidden">
-            {/* Primary Photo inside the card */}
-            <img
-              src={getImageUrl(getAssetImages(lot.asset)[0])}
-              alt={lot.asset?.title}
-              className="object-cover w-full h-[220px]"
-            />
+            {/* Primary Photo inside the card with Carousel */}
+            <div className="relative w-full h-[220px] bg-slate-100 group">
+              <img
+                src={getImageUrl(assetImages[currentImageIdx])}
+                alt={lot.asset?.title}
+                className="object-cover w-full h-full transition-all duration-300"
+              />
+              {assetImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIdx((prev) => (prev > 0 ? prev - 1 : assetImages.length - 1))}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                  >
+                    <span className="material-symbols-outlined text-lg">chevron_left</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIdx((prev) => (prev < assetImages.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                  >
+                    <span className="material-symbols-outlined text-lg">chevron_right</span>
+                  </button>
+                  <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5">
+                    {assetImages.map((_, i) => (
+                      <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentImageIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            
             <div className="p-4">
               <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Kendaraan</h4>
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
@@ -284,16 +342,24 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
                   <span className="font-medium text-slate-800">{lot.asset?.license_plate || "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Warna</span>
-                  <span className="font-medium text-slate-800">{lot.asset?.color || "-"}</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Bahan Bakar</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.fuel_type || "-"}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Transmisi</span>
                   <span className="font-medium text-slate-800">{lot.asset?.transmission || "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Lokasi</span>
-                  <span className="font-medium text-slate-800">{lot.asset?.location || "-"}</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Mesin (CC)</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.cylinder || "-"} CC</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Odometer (KM)</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.odometer || "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Tanggal Pajak</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.stnk_tax_date ? new Date(lot.asset.stnk_tax_date).toLocaleDateString("id-ID") : "-"}</span>
                 </div>
               </div>
             
@@ -306,6 +372,35 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed }: {
         </div>
       </div>
     </div>
+
+    {/* Fixed bottom bid bar (mobile, single-active-lot only): keeps the bid
+        action reachable while scrolling past the log to view asset photos. */}
+    {isSingleLot && hasNipl && (
+      <div
+        className="fixed bottom-16 inset-x-0 z-30 lg:hidden bg-white/95 glass-nav border-t border-outline-variant/20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] px-4 py-2.5 flex items-center gap-3"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Harga Saat Ini</div>
+          <div className="text-lg font-black text-primary truncate">{formatRupiah(currentPrice)}</div>
+        </div>
+        <div className={`text-sm font-bold flex items-center gap-1 flex-shrink-0 ${timeLeft <= 15 ? "text-error" : "text-slate-700"}`}>
+          <span className="material-symbols-outlined text-base">timer</span>
+          {timeLeft > 0 ? `${timeLeft} detik` : "Habis"}
+        </div>
+        <button
+          disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
+          onClick={() => handlePlaceBid(minIncrement)}
+          className={`flex-shrink-0 px-5 py-3 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
+            bidCooldown || timeLeft <= 0 || !isBidEnabled
+              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+              : "bg-primary hover:bg-primary/95 text-white cursor-pointer"
+          }`}
+        >
+          Bid +{formatRupiah(minIncrement)}
+        </button>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -320,7 +415,7 @@ export default function BidderBiddingRoom() {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  const fetchActiveLots = async () => {
+  const fetchActiveLots = async (isPolling = false) => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -329,7 +424,7 @@ export default function BidderBiddingRoom() {
     }
 
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
 
       // Providers cannot bid — bounce them
       const resProfile = await apiFetch("/users/profile");
@@ -366,7 +461,7 @@ export default function BidderBiddingRoom() {
     } catch (err) {
       console.error("Failed to load active lots", err);
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   };
 
@@ -377,7 +472,7 @@ export default function BidderBiddingRoom() {
     // still finds out once the operator activates one — the socket connection
     // below only exists once we already know about at least one active lot, so
     // without this poll there'd be no way to discover the first one going live.
-    const interval = setInterval(fetchActiveLots, 15000);
+    const interval = setInterval(() => fetchActiveLots(true), 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -429,28 +524,25 @@ export default function BidderBiddingRoom() {
   if (loading) {
     return (
       <BidderLayout pageTitle="Ruang Lelang Live">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Menghubungkan ke ruang lelang...</p>
-        </div>
+        <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
     <BidderLayout pageTitle="Ruang Lelang Live">
-      <p className="page-subtitle mb-6">Ikuti penawaran unit lot aktif secara real-time</p>
 
       {activeLots.length > 0 ? (
         <div className="space-y-8">
           {activeLots.map((lot) => (
-            <ActiveLotCard 
-              key={lot.id} 
-              lot={lot} 
+            <ActiveLotCard
+              key={lot.id}
+              lot={lot}
               token={localStorage.getItem("accessToken") || ""}
               bidIncrements={bidIncrements}
               socket={socket}
               onLotClosed={fetchActiveLots}
+              isSingleLot={activeLots.length === 1}
             />
           ))}
         </div>

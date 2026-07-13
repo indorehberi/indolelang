@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiUrl, apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 
 interface CartGroup {
@@ -79,10 +80,7 @@ export default function BidderCart() {
   if (loading) {
     return (
       <BidderLayout pageTitle="Keranjang Tagihan">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Memuat keranjang Anda...</p>
-        </div>
+        <PageSkeleton />
       </BidderLayout>
     );
   }

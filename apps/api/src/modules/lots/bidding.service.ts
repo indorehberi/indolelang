@@ -258,7 +258,10 @@ export class BiddingService {
       
       const commission = adminFee;
       const tax = 0;
-      const total = hammerPrice + adminFee + pmk41Amount;
+      
+      // Tambahkan kode unik (1-9) pada tagihan
+      const uniqueCode = Math.floor(Math.random() * 9) + 1;
+      const total = hammerPrice + adminFee + pmk41Amount + uniqueCode;
 
       // Perform updates inside database transaction
       const [updatedLot, invoice, winnerUser] = await prisma.$transaction([

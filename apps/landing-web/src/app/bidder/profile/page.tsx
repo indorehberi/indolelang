@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 
 export default function BidderProfile() {
@@ -218,17 +219,14 @@ export default function BidderProfile() {
 
   if (loading) {
     return (
-      <BidderLayout pageTitle="Profil &amp; eKYC">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Memuat data profil...</p>
-        </div>
+      <BidderLayout pageTitle="Profil & eKYC">
+        <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
-    <BidderLayout pageTitle="Profil &amp; eKYC">
+    <BidderLayout pageTitle="Profil & eKYC">
       <p className="page-subtitle">Kelola informasi akun Anda dan pantau verifikasi identitas</p>
 
       <div className="grid-2">
