@@ -86,16 +86,14 @@ export default function BidderCart() {
   }
 
   return (
-    <BidderLayout pageTitle="Keranjang Tagihan">
-      <p className="page-subtitle">Selesaikan pembayaran untuk unit lelang yang Anda menangkan</p>
-
+    <BidderLayout pageTitle="Pelunasan">
       {/* Tabs */}
       <div className="flex border-b border-outline-variant/60 mb-6 gap-6">
         <Link
           href="/bidder/cart"
           className="py-3 font-bold text-body-md text-primary border-b-2 border-primary relative transition-all"
         >
-          🛒 Tagihan Menunggu Pembayaran
+          🛒 Pelunasan Menunggu Pembayaran
         </Link>
       </div>
 
@@ -348,19 +346,32 @@ function CartGroupCard({
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-bold text-slate-800">{inv.lot?.asset?.title || "Unknown Unit"}</h4>
-                        <span className="font-black text-primary">{formatRupiah(Number(inv.total))}</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">No Lot: {inv.lot?.lot_number || "-"}</span>
+                        <span className="font-black text-xl text-primary">{formatRupiah(Number(inv.total))}</span>
                       </div>
+                      <h4 className="font-bold text-slate-800 text-base mb-2">{inv.lot?.asset?.title || "Unknown Unit"}</h4>
+                      
                       <div className="text-xs text-slate-500 space-y-1">
-                        <p>
-                          Lot: <span className="font-medium text-slate-700">{inv.lot?.lot_number}</span>
-                        </p>
-                        <p>
-                          Harga Ketok Palu: <span className="font-medium">{formatRupiah(Number(inv.hammer_price))}</span>
-                        </p>
-                        <p>
-                          Admin Fee & Pajak: <span className="font-medium">{formatRupiah(Number(inv.admin_fee) + Number(inv.tax) + Number(inv.pmk41_amount))}</span>
-                        </p>
+                        <div className="flex justify-between">
+                          <span>Harga Dasar</span>
+                          <span className="font-medium text-slate-700">{formatRupiah(Number(inv.lot?.starting_price) || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Harga Terbentuk</span>
+                          <span className="font-medium text-slate-700">{formatRupiah(Number(inv.hammer_price))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Biaya Admin</span>
+                          <span className="font-medium text-slate-700">{formatRupiah(Number(inv.admin_fee))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Pajak (PPN & PMK-41)</span>
+                          <span className="font-medium text-slate-700">{formatRupiah(Number(inv.tax) + Number(inv.pmk41_amount))}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold">
+                          <span>Total Tagihan</span>
+                          <span className="text-sm text-primary">{formatRupiah(Number(inv.total))}</span>
+                        </div>
                       </div>
                     </div>
                   </label>
@@ -384,28 +395,31 @@ function CartGroupCard({
           <div className="card-header">Ringkasan Checkout</div>
 
           <div className="space-y-4 mb-6">
+            <div className="border-b border-dashed border-outline-variant/50 pb-3 mb-3">
+              {group.invoices.map(inv => selectedInvoiceIds.includes(inv.id) && (
+                <div key={`sum-${inv.id}`} className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-500 truncate pr-2 flex-1">{inv.lot?.asset?.title || `Lot ${inv.lot?.lot_number}`}</span>
+                  <span className="font-medium text-slate-800">{formatRupiah(Number(inv.total))}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Total Tagihan Unit ({selectedInvoiceIds.length} item)</span>
               <span className="font-bold text-slate-800">{formatRupiah(subtotal)}</span>
             </div>
 
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Potongan Deposit (NIPL)</span>
+              <span className="text-slate-500">Potongan Deposit NIPL</span>
               <span className="font-bold text-success">
                 - {formatRupiah(totalDepositValue)} {hasUnlimited && "(Unlimited)"}
               </span>
             </div>
 
             <div className="border-t border-dashed border-outline-variant/50 pt-4 flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-800">Sisa Pembayaran</span>
+              <span className="text-sm font-bold text-slate-800">Total</span>
               <span className="text-2xl font-black text-primary">{formatRupiah(finalAmount)}</span>
             </div>
-
-            {activeDeposits.length > 0 && (
-              <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-[11px] text-warning-dark leading-relaxed">
-                <strong>Catatan:</strong> Saat Anda melakukan checkout, <strong>SELURUH</strong> saldo deposit aktif Anda akan ditarik oleh sistem sebagai potongan tagihan. Jika ada sisa deposit, akan hangus.
-              </div>
-            )}
           </div>
 
           {!orderResult ? (

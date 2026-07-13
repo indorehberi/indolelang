@@ -4,7 +4,7 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
-import { activeLots, startActiveLot, closeActiveLot, cancelActiveLot, getSocketIo, maskUserId } from '../../lib/socket';
+import { activeLots, startActiveLot, closeActiveLot, cancelActiveLot, getSocketIo, maskUserId, handleAutoNextAndSessionEnd } from '../../lib/socket';
 import { LotStatus, SessionStatus, DepositStatus } from '@indo-lelang/shared-types';
 import { logger } from '../../lib/logger';
 import { isFeatureEnabled } from '../../lib/featureToggle';
@@ -28,7 +28,7 @@ export class ControlController {
         throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot tidak ditemukan');
       }
 
-      if (lot.status !== LotStatus.PENDING) {
+      if (lot.status !== LotStatus.PENDING && lot.status !== LotStatus.CANCELLED) {
         throw new AppError(400, ErrorCode.BAD_REQUEST, 'Lot sudah aktif atau telah selesai diproses');
       }
 
@@ -52,6 +52,38 @@ export class ControlController {
         });
       }
 
+      const settingsService = new SettingsService();
+
+      // Handle Cancelled Lot logic
+      if (lot.status === LotStatus.CANCELLED) {
+        let freezeDurationSecs = 5;
+        try {
+          const setting = await settingsService.getSettingByKey('auction_lot_canceled_duration_secs');
+          if (setting && !isNaN(Number(setting.value))) freezeDurationSecs = Number(setting.value);
+        } catch(e) {}
+        
+        const ioServer = getSocketIo();
+        if (ioServer) {
+          ioServer.to(`session:${lot.session_id}`).emit('lot:start', {
+            lot_id: lot.id,
+            is_canceled: true,
+            freeze_duration_secs: freezeDurationSecs,
+            lot_data: lot,
+          });
+        }
+
+        // Audit Log
+        logAdminAction(req, 'ACTIVATE_CANCELLED_LOT', 'lots', lotId, lot, lot);
+
+        // Auto next again after freeze
+        setTimeout(() => {
+           handleAutoNextAndSessionEnd(lot);
+        }, freezeDurationSecs * 1000);
+
+        sendSuccess(res, lot, 'Lot yang dibatalkan ditampilkan sementara sebelum lanjut ke lot berikutnya.');
+        return;
+      }
+
       // 4. Update lot status to active in DB
       const updatedLot = await prisma.lots.update({
         where: { id: lotId },
@@ -59,10 +91,7 @@ export class ControlController {
         include: { asset: true },
       });
 
-      // 5. Fetch lot duration from settings (same key used by the auto-next/auto-start
-      // cron paths — see cron.ts and lib/socket.ts's handleAutoNextAndSessionEnd — so
-      // manual activation via the control room respects the same configured duration).
-      const settingsService = new SettingsService();
+      // 5. Fetch lot duration from settings
       let lotDuration = 30;
       try {
         const durationSetting = await settingsService.getSettingByKey('auction_lot_duration_secs');
@@ -273,6 +302,22 @@ export class ControlController {
           data: {
             status: targetStatus,
           },
+        });
+      }
+
+      // 3.5 Revert cancelled and unsold lots' assets to APPROVED
+      const revertedLots = await prisma.lots.findMany({
+        where: {
+          session_id: sessionId,
+          status: { in: [LotStatus.CANCELLED, LotStatus.UNSOLD] }
+        },
+        select: { asset_id: true }
+      });
+      
+      if (revertedLots.length > 0) {
+        await prisma.assets.updateMany({
+          where: { id: { in: revertedLots.map(l => l.asset_id) } },
+          data: { status: 'approved' } // Using AssetStatus.APPROVED value directly since it might not be imported
         });
       }
 

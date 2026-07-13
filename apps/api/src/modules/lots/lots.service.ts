@@ -437,8 +437,8 @@ export class LotsService {
     if (!lot) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
     }
-    if (lot.session.status === SessionStatus.LIVE) {
-      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Tidak dapat menghapus lot karena sesi sedang live');
+    if (lot.session.status === SessionStatus.LIVE || lot.session.status === SessionStatus.PUBLISHED) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Tidak dapat menghapus lot karena sesi sudah dipublish atau live. Silakan batalkan lot tersebut.');
     }
     if (lot.status === LotStatus.SOLD) {
       throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot yang sudah terjual tidak dapat dihapus');
@@ -448,6 +448,30 @@ export class LotsService {
       prisma.lots.delete({ where: { id } }),
       prisma.assets.update({ where: { id: lot.asset_id }, data: { status: AssetStatus.APPROVED } }),
     ]);
+  }
+
+  /**
+   * Cancel a lot in a published/live session
+   */
+  async cancelLot(id: string): Promise<void> {
+    const lot = await prisma.lots.findUnique({ 
+      where: { id },
+      include: { session: true }
+    });
+    if (!lot) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
+    }
+    if (lot.status === LotStatus.CANCELLED) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot sudah dibatalkan');
+    }
+    if (lot.status === LotStatus.SOLD) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot yang sudah terjual tidak dapat dibatalkan');
+    }
+
+    await prisma.lots.update({
+      where: { id },
+      data: { status: LotStatus.CANCELLED },
+    });
   }
 
   /**

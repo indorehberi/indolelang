@@ -68,10 +68,13 @@ function KatalogContent() {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
         const image = getImageUrl(getAssetImages(dbLot.asset)[0]);
         const isLiveRaw = dbLot.status?.toLowerCase() === "active";
-        let isLive = isLiveRaw;
+        let isCancelled = dbLot.status?.toLowerCase() === "cancelled";
+        let isLive = isLiveRaw && !isCancelled;
         let timerText = "Akan Datang";
         
-        if (dbLot.session) {
+        if (isCancelled) {
+          timerText = "Dibatalkan";
+        } else if (dbLot.session) {
           const now = new Date();
           const start = new Date(dbLot.session.start_time || dbLot.session.scheduled_at);
           const end = new Date(dbLot.session.end_time || new Date(start.getTime() + 2 * 60 * 60 * 1000));
@@ -103,8 +106,9 @@ function KatalogContent() {
           id: dbLot.id,
           image,
           alt: dbLot.asset.title,
-          badge: isLive ? "LIVE" : "OPEN",
-          badgeStyle: isLive ? "bg-error text-white" : "bg-primary text-on-primary",
+          badge: isCancelled ? "DIBATALKAN" : (isLive ? "LIVE" : "OPEN"),
+          badgeStyle: isCancelled ? "bg-slate-500 text-white" : (isLive ? "bg-error text-white" : "bg-primary text-on-primary"),
+          isCancelled,
           grade: dbLot.asset.grade_engine || dbLot.asset.grade_interior || (dbLot.asset.condition === "BARU" ? "A" : "B"),
           location: dbLot.session?.branch?.city || "Jakarta",
           title: dbLot.asset.title,
@@ -113,7 +117,7 @@ function KatalogContent() {
           hargaValue: Number(dbLot.starting_price),
           deposit: "Rp 5.000.000",
           timer: timerText,
-          action: isLive ? "Bid" : "Lihat Detail",
+          action: isCancelled ? "Dibatalkan" : (isLive ? "Bid" : "Lihat Detail"),
           category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
           sessionId: dbLot.session_id,
@@ -511,7 +515,7 @@ function KatalogContent() {
                   {paginatedLots.map((lot) => (
                     <article
                       key={lot.id}
-                      className="auction-card bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/60 shadow-sm group"
+                      className={`auction-card bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/60 shadow-sm group ${lot.isCancelled ? 'grayscale opacity-75' : ''}`}
                     >
                       {/* Image */}
                       <div className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">

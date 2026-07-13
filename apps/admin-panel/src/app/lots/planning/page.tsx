@@ -171,6 +171,23 @@ export default function LotPlanningPage() {
     }
   };
 
+  const handleCancelLot = async (lot: Lot) => {
+    if (!confirm('Batalkan lot ini? Lot akan ditandai sebagai batal dan tidak akan dilelang.')) return;
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/admin/lots/${lot.id}/cancel`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal membatalkan lot');
+      
+      toast.success('Lot berhasil dibatalkan');
+      fetchLots();
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -178,6 +195,8 @@ export default function LotPlanningPage() {
       minimumFractionDigits: 0,
     }).format(val);
   };
+
+  const activeSessionObj = sessions.find(s => s.id === selectedSession);
 
   return (
     <DashboardLayout breadcrumbParent="Lelang" breadcrumbCurrent="Penyusunan Lot">
@@ -229,7 +248,13 @@ export default function LotPlanningPage() {
                         <td style={{ fontSize: '0.85rem' }}>{lot.asset?.police_number || '-'}</td>
                         <td>{formatRupiah(lot.starting_price)}</td>
                         <td style={{ textAlign: 'center' }}>
-                          <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                          {lot.status === 'cancelled' ? (
+                            <span className="badge" style={{ backgroundColor: '#f87171', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>Dibatalkan</span>
+                          ) : (activeSessionObj?.status === 'published' || activeSessionObj?.status === 'live') ? (
+                            <button className="btn btn-xs btn-warning" disabled={loading} onClick={() => handleCancelLot(lot)}>Batalkan</button>
+                          ) : (
+                            <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                          )}
                         </td>
                       </tr>
                     ))

@@ -39,6 +39,7 @@ export default function PlatformSettingsPage() {
   // Auction Automation Settings
   const [auctionLotDuration, setAuctionLotDuration] = useState('30');
   const [auctionLotNextDelay, setAuctionLotNextDelay] = useState('10');
+  const [auctionLotCanceledDuration, setAuctionLotCanceledDuration] = useState('5');
   const [auctionSessionStartTrigger, setAuctionSessionStartTrigger] = useState('admin');
   const [auctionLotEndTrigger, setAuctionLotEndTrigger] = useState('admin');
   const [auctionLotNextTrigger, setAuctionLotNextTrigger] = useState('admin');
@@ -177,6 +178,8 @@ export default function PlatformSettingsPage() {
               setAuctionLotDuration(item.value);
             } else if (item.key === 'auction_lot_next_delay_secs') {
               setAuctionLotNextDelay(item.value);
+            } else if (item.key === 'auction_lot_canceled_duration_secs') {
+              setAuctionLotCanceledDuration(item.value);
             } else if (item.key === 'auction_session_start_trigger') {
               setAuctionSessionStartTrigger(item.value);
             } else if (item.key === 'auction_lot_end_trigger') {
@@ -359,6 +362,7 @@ export default function PlatformSettingsPage() {
       const updates = [
         { key: 'auction_lot_duration_secs', value: auctionLotDuration },
         { key: 'auction_lot_next_delay_secs', value: auctionLotNextDelay },
+        { key: 'auction_lot_canceled_duration_secs', value: auctionLotCanceledDuration },
         { key: 'auction_session_start_trigger', value: auctionSessionStartTrigger },
         { key: 'auction_lot_end_trigger', value: auctionLotEndTrigger },
         { key: 'auction_lot_next_trigger', value: auctionLotNextTrigger },
@@ -488,10 +492,15 @@ export default function PlatformSettingsPage() {
               <p className="text-xs text-muted mt-1">Default: 30 detik.</p>
             </div>
             
-            <div className="form-group">
-              <label className="form-label">Jeda Antar Lot (Detik) <span className="required">*</span></label>
+            <div className="form-group mb-3">
+              <label>Jeda Transisi Lot (detik)</label>
               <input type="number" className="form-input" value={auctionLotNextDelay} onChange={(e) => setAuctionLotNextDelay(e.target.value)} required />
-              <p className="text-xs text-muted mt-1">Jeda sebelum lot berikutnya dimulai jika menggunakan pemicu sistem.</p>
+              <small className="text-muted">Lama waktu tunggu setelah ketok palu sebelum lot berikutnya dimulai.</small>
+            </div>
+            <div className="form-group mb-3">
+              <label>Durasi Tampil Lot Dibatalkan (detik)</label>
+              <input type="number" className="form-input" value={auctionLotCanceledDuration} onChange={(e) => setAuctionLotCanceledDuration(e.target.value)} required />
+              <small className="text-muted">Lama waktu tayang (freeze) untuk lot yang dibatalkan sebelum otomatis lanjut ke lot berikutnya.</small>
             </div>
 
             <div className="form-group">

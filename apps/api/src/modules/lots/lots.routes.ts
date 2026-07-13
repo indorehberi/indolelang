@@ -44,6 +44,13 @@ router.delete(
 );
 
 router.post(
+  '/admin/lots/:id/cancel',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.cancelLot
+);
+
+router.post(
   '/admin/lots/:id/paid',
   authenticate,
   authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),

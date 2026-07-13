@@ -290,18 +290,21 @@ export default function BidderDashboard() {
       ) : null}
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="kpi-card success">
-          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">NIPL Motor Aktif</div>
-          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMotorCount} NIPL</div>
+      <div className="grid grid-cols-3 gap-3 mb-6 text-center">
+        <div className="kpi-card success flex flex-col items-center justify-center p-4">
+          <div className="text-3xl mb-1"><span className="material-symbols-outlined text-4xl">two_wheeler</span></div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMotorCount}</div>
+          <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 text-ellipsis overflow-hidden whitespace-nowrap">NIPL Aktif</div>
         </div>
-        <div className="kpi-card gold">
-          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">NIPL Mobil Aktif</div>
-          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMobilCount} NIPL</div>
+        <div className="kpi-card gold flex flex-col items-center justify-center p-4">
+          <div className="text-3xl mb-1"><span className="material-symbols-outlined text-4xl">directions_car</span></div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMobilCount}</div>
+          <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 text-ellipsis overflow-hidden whitespace-nowrap">NIPL Aktif</div>
         </div>
-        <div className="kpi-card danger">
-          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">Lelang Menang</div>
-          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">0 Lot</div>
+        <div className="kpi-card danger flex flex-col items-center justify-center p-4">
+          <div className="text-3xl mb-1">👑</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">0</div>
+          <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 text-ellipsis overflow-hidden whitespace-nowrap">Lot Menang</div>
         </div>
       </div>
 

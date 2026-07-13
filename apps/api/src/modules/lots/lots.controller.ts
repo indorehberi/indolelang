@@ -92,6 +92,23 @@ export class LotsController {
     }
   }
 
+  /**
+   * Cancel a lot in a published/live session (Admin/Operator only)
+   */
+  async cancelLot(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const oldLot = await lotsService.getLotById(id);
+      await lotsService.cancelLot(id);
+
+      logAdminAction(req, 'CANCEL_LOT', 'lots', id, oldLot, null);
+
+      sendSuccess(res, null, 'Lot berhasil dibatalkan');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async markAsPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;

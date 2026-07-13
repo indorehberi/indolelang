@@ -366,13 +366,13 @@ export async function closeActiveLotAndTriggerNext(lotId: string): Promise<any> 
   return await closeActiveLot(lotId);
 }
 
-async function handleAutoNextAndSessionEnd(settledLot: any) {
+export async function handleAutoNextAndSessionEnd(settledLot: any) {
   try {
     const sessionId = settledLot.session_id;
 
-    // Check if there are remaining pending lots in this session
+    // Check if there are remaining pending or cancelled lots in this session (we must traverse cancelled lots too)
     const nextLot = await prisma.lots.findFirst({
-      where: { session_id: sessionId, status: 'pending' },
+      where: { session_id: sessionId, status: { in: ['pending', 'cancelled'] } },
       orderBy: { lot_number: 'asc' },
       include: { asset: true }
     });
@@ -387,9 +387,30 @@ async function handleAutoNextAndSessionEnd(settledLot: any) {
         logger.info({ lotId: nextLot.id, delayMs: delay }, 'Auto-next trigger enabled. Next lot will start shortly.');
         
         setTimeout(async () => {
-          // Double check if it's still pending
+          // Double check if it's still pending or cancelled
           const currentStatus = await prisma.lots.findUnique({ where: { id: nextLot.id } });
-          if (currentStatus?.status === 'pending') {
+          
+          if (currentStatus?.status === 'cancelled') {
+            // Emits freeze event to frontend
+            const ioServer = getSocketIo();
+            const freezeDurationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_canceled_duration_secs' } });
+            const freezeDurationSecs = freezeDurationSetting ? parseInt(freezeDurationSetting.value, 10) : 5;
+            
+            if (ioServer) {
+              ioServer.to(`session:${sessionId}`).emit('lot:start', {
+                lot_id: nextLot.id,
+                is_canceled: true,
+                freeze_duration_secs: freezeDurationSecs,
+                lot_data: nextLot,
+              });
+            }
+
+            // Auto next again after freeze
+            setTimeout(() => {
+               handleAutoNextAndSessionEnd(nextLot);
+            }, freezeDurationSecs * 1000);
+
+          } else if (currentStatus?.status === 'pending') {
             const updated = await prisma.lots.update({
               where: { id: nextLot.id },
               data: { status: 'active' },
