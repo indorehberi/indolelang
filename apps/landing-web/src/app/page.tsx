@@ -158,6 +158,16 @@ export default function Home() {
   const { data: publicTestimonials = [] } = usePublicTestimonials();
   const { data: galleriesData, isLoading: loadingGalleries } = usePublicGalleries(1, 6);
   
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        router.replace("/bidder/home");
+      } else {
+        router.replace("/login");
+      }
+    }
+  }, [router]);
   const galleries = galleriesData?.data || [];
 
   const [lotsList, setLotsList] = useState<any[]>(initialLots);

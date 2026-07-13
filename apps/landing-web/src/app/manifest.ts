@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "BIDKU",
     description:
       "Ikuti lelang kendaraan dan aset berkualitas secara real-time bersama BIDKU.",
-    start_url: "/",
+    start_url: "/bidder/home",
     scope: "/",
     display: "standalone",
     background_color: "#F9F8F3",

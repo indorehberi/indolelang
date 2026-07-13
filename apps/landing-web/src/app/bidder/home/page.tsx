@@ -82,7 +82,7 @@ export default function BidderHome() {
            const soldRes = await apiFetch("/lots?status=sold&per_page=50");
            const soldData = await soldRes.json();
            if (soldData.success) {
-             setLots(soldData.data?.lots || []);
+             setLots(soldData.data || []);
              setIsSoldLots(true);
            }
         }
