@@ -12,9 +12,10 @@ import { clearAuthAndRedirect } from "../../lib/api";
 interface BidderLayoutProps {
   children: React.ReactNode;
   pageTitle: string;
+  hideHeader?: boolean;
 }
 
-export default function BidderLayout({ children, pageTitle }: BidderLayoutProps) {
+export default function BidderLayout({ children, pageTitle, hideHeader = false }: BidderLayoutProps) {
   const pathname = usePathname();
   const [userName, setUserName] = useState("Budi Santoso");
   const [userInitial, setUserInitial] = useState("BS");
@@ -118,29 +119,31 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
       {/* ====== MAIN CONTENT CONTAINER ====== */}
       <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
         {/* ====== TOPBAR ====== */}
-        <header className="h-16 border-b border-outline-variant/20 bg-white/95 sticky top-0 z-20 flex items-center justify-between px-6 shadow-sm">
-          <div className="flex flex-col justify-center">
-            <h1 className="text-heading-lg text-on-surface font-extrabold leading-tight">{pageTitle}</h1>
-            <span className="text-[10px] text-primary font-bold uppercase tracking-wider mt-0.5">Bidder</span>
-          </div>
+        {!hideHeader && (
+          <header className="h-16 border-b border-outline-variant/20 bg-white/95 sticky top-0 z-20 flex items-center justify-between px-6 shadow-sm">
+            <div className="flex flex-col justify-center">
+              <h1 className="text-heading-lg text-on-surface font-extrabold leading-tight">{pageTitle}</h1>
+              <span className="text-[10px] text-primary font-bold uppercase tracking-wider mt-0.5">Bidder</span>
+            </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-sm font-bold text-on-surface">{userName}</span>
-              <span className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">
-                Peserta Lelang
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex flex-col text-right">
+                <span className="text-sm font-bold text-on-surface">{userName}</span>
+                <span className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">
+                  Peserta Lelang
+                </span>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/25">
+                {userInitial}
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/25">
-              {userInitial}
-            </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <InstallPrompt />
 
         {/* ====== PAGE BODY ====== */}
-        <main className="flex-1 p-6 max-w-container-max w-full mx-auto pb-24">
+        <main className={`flex-1 w-full mx-auto pb-24 ${hideHeader ? 'p-0' : 'p-6 max-w-container-max'}`}>
           {children}
         </main>
       </div>

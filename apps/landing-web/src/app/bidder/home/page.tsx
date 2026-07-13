@@ -24,6 +24,7 @@ export default function BidderHome() {
   const [niplCounts, setNiplCounts] = useState({ motor: 0, mobil: 0 });
   const [session, setSession] = useState<any>(null);
   const [lots, setLots] = useState<any[]>([]);
+  const [isSoldLots, setIsSoldLots] = useState(false);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("Semua");
 
   useEffect(() => {
@@ -68,6 +69,15 @@ export default function BidderHome() {
            const lotsData = await lotsRes.json();
            if (lotsData.success) {
              setLots(lotsData.data || []);
+             setIsSoldLots(false);
+           }
+        } else {
+           // No published session, fetch sold lots instead
+           const soldRes = await apiFetch("/lots?status=sold&per_page=50");
+           const soldData = await soldRes.json();
+           if (soldData.success) {
+             setLots(soldData.data?.lots || []);
+             setIsSoldLots(true);
            }
         }
       } catch (err) {
@@ -87,25 +97,25 @@ export default function BidderHome() {
 
   if (loading) {
     return (
-      <BidderLayout pageTitle="Beranda">
+      <BidderLayout pageTitle="Beranda" hideHeader={true}>
         <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
-    <BidderLayout pageTitle="Beranda">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-6 mb-6 shadow-md relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-xl font-bold mb-1">Hallo {profile?.name || "Bidder"}</h2>
-          <p className="text-sm text-white/90">
-            Kamu memiliki <span className="font-black text-secondary">{niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-secondary">{niplCounts.mobil}</span> NIPL Mobil
-          </p>
-        </div>
-        <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-[100px] text-white/10 rotate-12">
-          loyalty
-        </span>
+    <BidderLayout pageTitle="Beranda" hideHeader={true}>
+      {/* Full Width Banner replacing header */}
+      <div className="-mx-6 -mt-6 mb-6">
+        <img src="/images/banner_bidku.png" alt="Banner Bidku" className="w-full h-auto object-cover" />
+      </div>
+
+      {/* Welcome Text (No Card) */}
+      <div className="mb-6 px-1">
+        <h2 className="text-xl font-bold text-slate-800 mb-1">Hallo {profile?.name || "Bidder"}</h2>
+        <p className="text-sm text-slate-600">
+          Kamu memiliki <span className="font-black text-primary">{niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary">{niplCounts.mobil}</span> NIPL Mobil
+        </p>
       </div>
 
       {/* Category List (Actual Images from Landing Page in 1 Row) */}
@@ -179,10 +189,17 @@ export default function BidderHome() {
       <div>
         <div className="flex justify-between items-end mb-3 px-1">
           <div>
-            <h3 className="text-base font-bold text-slate-800">Katalog Lelang Terdekat</h3>
+            <h3 className="text-base font-bold text-slate-800">
+              {isSoldLots ? "Katalog Lot Terjual" : "Katalog Lelang Terdekat"}
+            </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {session ? new Date(session.scheduled_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Belum ada jadwal'}
+              {session 
+                ? new Date(session.scheduled_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) 
+                : "Belum ada jadwal"}
             </p>
+            {isSoldLots && (
+              <p className="text-[10px] text-primary font-semibold mt-1">Lot terjual</p>
+            )}
           </div>
           <Link href="/katalog" className="text-primary text-xs font-bold hover:underline">Lihat Semua</Link>
         </div>
@@ -238,14 +255,14 @@ export default function BidderHome() {
                      <p className="text-[10px] text-slate-500 mb-1">{lot.asset?.police_number} • {lot.asset?.year || lot.asset?.manufacturing_year} • {lot.asset?.odometer ? `${(lot.asset.odometer/1000).toFixed(0)}k KM` : '-'}</p>
                    </div>
                    <div className="mt-2">
-                     <p className="text-[10px] text-slate-500">Harga Dasar</p>
-                     <p className="text-sm font-black text-primary leading-none">{formatRupiah(lot.starting_price)}</p>
+                     <p className="text-[10px] text-slate-500">{isSoldLots ? "Harga Terbentuk" : "Harga Dasar"}</p>
+                     <p className="text-sm font-black text-primary leading-none">{formatRupiah(isSoldLots ? (lot.hammer_price || lot.starting_price) : lot.starting_price)}</p>
                      <p className="text-[9px] text-slate-400 mt-1 italic">
                        +Biaya PMK41 (1,1%) (jika tidak ditanggung provider)
                      </p>
                      <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-0.5 font-semibold">
                        <span className="material-symbols-outlined text-[10px]">location_on</span>
-                       <span className="truncate">{session?.branch?.name || "Jakarta"}</span>
+                       <span className="truncate">{session?.branch?.name || lot.session?.branch?.name || "Jakarta"}</span>
                      </p>
                    </div>
                  </div>
