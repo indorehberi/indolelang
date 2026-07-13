@@ -10,6 +10,7 @@ async function backfill() {
     include: {
       lot: {
         include: {
+          asset: true,
           settlements: true
         }
       }
@@ -31,7 +32,7 @@ async function backfill() {
       await prisma.settlements.create({
         data: {
           lot_id: invoice.lot_id,
-          provider_id: invoice.lot.provider_id,
+          provider_id: invoice.lot.asset.provider_id,
           gross_amount: invoice.hammer_price,
           commission_deducted: invoice.commission,
           net_amount: settlementAmount,
