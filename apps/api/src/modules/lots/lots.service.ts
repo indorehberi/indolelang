@@ -113,6 +113,7 @@ export class LotsService {
           photo_engine: l.asset.photo_engine || undefined,
           photo_interior: l.asset.photo_interior || undefined,
           photo_stnk: l.asset.photo_stnk || undefined,
+          grade: l.asset.grade || undefined,
           created_at: l.asset.created_at.toISOString(),
           updated_at: l.asset.updated_at.toISOString(),
         },
@@ -211,6 +212,7 @@ export class LotsService {
         grade_engine: l.asset.grade_engine || undefined,
         grade_interior: l.asset.grade_interior || undefined,
         grade_exterior: l.asset.grade_exterior || undefined,
+        grade: l.asset.grade || undefined,
         bpkb_status: l.asset.bpkb_number ? "Ready" : undefined,
         stnk_status: "Ready", // Fallback assuming usually ready if not specified
         frame_number: l.asset.frame_number || undefined,

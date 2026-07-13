@@ -50,7 +50,7 @@ export default function InstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 text-on-surface">
+    <div className="md:hidden flex items-center gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 text-on-surface">
       <span className="material-symbols-outlined text-primary text-xl flex-shrink-0">
         install_mobile
       </span>

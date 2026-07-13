@@ -106,9 +106,6 @@ export default function BidderCart() {
         <div className="space-y-8">
           {groups.map((group) => (
             <div key={group.session_date}>
-              <h3 className="text-body-lg font-bold text-slate-800 mb-3">
-                Lelang tanggal {formatSessionDate(group.session_date)}
-              </h3>
               <CartGroupCard
                 group={group}
                 totalDepositValue={totalDepositValue}
@@ -331,25 +328,17 @@ function CartGroupCard({
                 {group.invoices.map((inv) => (
                   <label
                     key={inv.id}
-                    className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${
-                      selectedInvoiceIds.includes(inv.id) ? "border-primary bg-primary/5" : "border-outline-variant/40 hover:bg-slate-50"
-                    }`}
+                    className={`flex items-start p-4 border rounded-xl transition-all border-primary bg-primary/5`}
                   >
-                    <div className="pt-1 mr-4">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 rounded text-primary focus:ring-primary border-outline-variant"
-                        checked={selectedInvoiceIds.includes(inv.id)}
-                        disabled={!!existingOrder}
-                        onChange={() => toggleInvoice(inv.id)}
-                      />
-                    </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">No Lot: {inv.lot?.lot_number || "-"}</span>
-                        <span className="font-black text-xl text-primary">{formatRupiah(Number(inv.total))}</span>
                       </div>
-                      <h4 className="font-bold text-slate-800 text-base mb-2">{inv.lot?.asset?.title || "Unknown Unit"}</h4>
+                      <h4 className="font-bold text-slate-800 text-base mb-1">{inv.lot?.asset?.title || "Unknown Unit"}</h4>
+                      <p className="text-[10px] text-slate-500 mb-3 font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                        {inv.lot?.session?.title || "Sesi Lelang"}
+                      </p>
                       
                       <div className="text-xs text-slate-500 space-y-1">
                         <div className="flex justify-between">
@@ -380,7 +369,7 @@ function CartGroupCard({
             </div>
 
             <div className="card">
-              <div className="card-header">Metode Pembayaran Sisa Tagihan</div>
+              <div className="card-header">Metode pembayaran</div>
               <p className="text-xs text-slate-600">
                 Pembayaran dilakukan lewat <strong>transfer bank manual</strong>. Nomor rekening tujuan akan tampil di ringkasan setelah Anda menekan "Proses Pembayaran".
               </p>
@@ -405,20 +394,22 @@ function CartGroupCard({
             </div>
 
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Total Tagihan Unit ({selectedInvoiceIds.length} item)</span>
-              <span className="font-bold text-slate-800">{formatRupiah(subtotal)}</span>
-            </div>
-
-            <div className="flex justify-between text-sm">
               <span className="text-slate-500">Potongan Deposit NIPL</span>
               <span className="font-bold text-success">
                 - {formatRupiah(totalDepositValue)} {hasUnlimited && "(Unlimited)"}
               </span>
             </div>
 
+            {orderResult && orderResult.unique_code > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Angka Unik</span>
+                <span className="font-bold text-primary">{orderResult.unique_code}</span>
+              </div>
+            )}
+
             <div className="border-t border-dashed border-outline-variant/50 pt-4 flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-800">Total</span>
-              <span className="text-2xl font-black text-primary">{formatRupiah(finalAmount)}</span>
+              <span className="text-sm font-bold text-slate-800">Total Tagihan Sisa</span>
+              <span className="text-2xl font-black text-primary">{formatRupiah(orderResult ? Number(orderResult.final_amount) : finalAmount)}</span>
             </div>
           </div>
 

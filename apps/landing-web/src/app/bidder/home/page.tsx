@@ -247,7 +247,7 @@ export default function BidderHome() {
                const firstImage = lot.asset ? getAssetImages(lot.asset)[0] : null;
                return (
                  <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
-                   <div className="aspect-[4/3] bg-slate-100 relative">
+                   <div className="aspect-[3/4] bg-slate-100 relative">
                      {firstImage ? (
                        <img src={getImageUrl(firstImage)} alt={lot.asset?.brand || 'Kendaraan'} className="w-full h-full object-cover" />
                      ) : (
@@ -273,7 +273,7 @@ export default function BidderHome() {
                      <p className="text-[10px] text-slate-500">{isSoldLots ? "Harga Terbentuk" : "Harga Dasar"}</p>
                      <p className="text-sm font-black text-primary leading-none">{formatRupiah(isSoldLots ? (lot.hammer_price || lot.starting_price) : lot.starting_price)}</p>
                      <p className="text-[9px] text-slate-400 mt-1 italic">
-                       +Biaya PMK41 (1,1%) (jika tidak ditanggung provider)
+                       +Biaya PMK41 (1,1%)
                      </p>
                      <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-0.5 font-semibold">
                        <span className="material-symbols-outlined text-[10px]">location_on</span>

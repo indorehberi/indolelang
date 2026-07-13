@@ -330,6 +330,7 @@ model checkout_orders {
   subtotal_amount    Decimal
   deposit_deduction  Decimal
   final_amount       Decimal
+  unique_code        Int?      @default(0)
   gateway_fee        Decimal?  @default(0)
   status             String    @default("unpaid")
   payment_method     String?

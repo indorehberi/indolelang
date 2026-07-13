@@ -253,6 +253,10 @@ export class CheckoutService {
     consumeDeposits(activeDeposits.filter(d => d.unit_type === 'mobil'), requiredMobilValue);
 
     let finalAmount = totalInvoices.minus(depositDeduction);
+
+    // Generate random unique code between 1 and 999
+    const uniqueCode = Math.floor(Math.random() * 999) + 1;
+    finalAmount = finalAmount.add(uniqueCode);
     if (finalAmount.lessThan(0)) {
        finalAmount = new Prisma.Decimal(0); // Cannot be negative
     }
@@ -285,7 +289,8 @@ export class CheckoutService {
              subtotal_amount: totalInvoices,
              deposit_deduction: depositDeduction,
              final_amount: grandTotal,
-             gateway_fee: 0,
+             unique_code: uniqueCode,
+             gateway_fee: gatewayFee,
              status: Number(grandTotal) === 0 ? 'paid' : 'unpaid',
              payment_method: paymentMethod,
              va_number: vaNumber,

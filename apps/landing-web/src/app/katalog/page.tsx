@@ -52,6 +52,13 @@ function KatalogContent() {
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
   const [enabledTypes, setEnabledTypes] = useState<string[]>(["English Auction"]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+       setIsStandalone(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (searchParams) {
@@ -247,9 +254,9 @@ function KatalogContent() {
 
       <main>
         {/* ====== CATALOG HERO ====== */}
-        <section className="hero-gradient relative overflow-hidden pt-10 pb-10 md:pt-14 md:pb-14">
+        <section className={`hero-gradient relative overflow-hidden ${isStandalone ? 'pt-4 pb-4' : 'pt-10 pb-10 md:pt-14 md:pb-14'}`}>
           <div className="max-w-container-max mx-auto px-margin-page">
-            <div className="catalog-hero-panel rounded-3xl border border-white/80 shadow-xl shadow-black/5 p-6 md:p-10">
+            <div className={`${isStandalone ? '' : 'catalog-hero-panel rounded-3xl border border-white/80 shadow-xl shadow-black/5 p-6 md:p-10'}`}>
               <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 items-center">
                 {/* Left — headline + search */}
                 <div className="flex flex-col gap-5">
@@ -318,9 +325,9 @@ function KatalogContent() {
         </section>
 
         {/* ====== FILTER BAR ====== */}
-        <section id="catalog" className="py-8 bg-surface">
+        <section id="catalog" className={`${isStandalone ? 'py-4' : 'py-8'} bg-surface`}>
           <div className="max-w-container-max mx-auto px-margin-page">
-            <div className="bg-white rounded-2xl border border-outline-variant/10 shadow-sm p-4 md:p-5">
+            <div className={`${isStandalone ? '' : 'bg-white rounded-2xl border border-outline-variant/10 shadow-sm p-4 md:p-5'}`}>
               <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
                 {/* Category pills */}
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -504,16 +511,59 @@ function KatalogContent() {
                       Menampilkan {filteredLots.length} dari {lotsList.length} lot aktif
                     </p>
                   </div>
-                  <button className="w-fit px-4 py-2 bg-secondary-fixed text-on-secondary-fixed rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-secondary-fixed-dim transition-colors">
-                    <span className="material-symbols-outlined text-base">notifications_active</span>
-                    Ingatkan Saya
-                  </button>
+                  {!isStandalone && (
+                    <button className="w-fit px-4 py-2 bg-secondary-fixed text-on-secondary-fixed rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-secondary-fixed-dim transition-colors">
+                      <span className="material-symbols-outlined text-base">notifications_active</span>
+                      Ingatkan Saya
+                    </button>
+                  )}
                 </div>
 
                 {/* Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {paginatedLots.map((lot) => (
-                    <article
+                <div className={isStandalone ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"}>
+                  {paginatedLots.map((lot) => {
+                    if (isStandalone) {
+                      return (
+                        <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
+                          <div className="aspect-[3/4] bg-slate-100 relative">
+                            {lot.image ? (
+                              <img src={lot.image} alt={lot.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <span className="material-symbols-outlined text-4xl">directions_car</span>
+                              </div>
+                            )}
+                            <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                              Lot {lot.lot_number || '-'}
+                            </div>
+                            {lot.grade && (
+                              <div className="absolute top-1.5 right-1.5 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                Grade {lot.grade}
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-2.5 flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-bold text-slate-800 text-xs leading-snug line-clamp-2 mb-1">{lot.title}</h4>
+                              <p className="text-[10px] text-slate-500 mb-1">{lot.specString}</p>
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-[10px] text-slate-500">Harga Dasar</p>
+                              <p className="text-sm font-black text-primary leading-none">{lot.hargaAwal}</p>
+                              <p className="text-[9px] text-slate-400 mt-1 italic">
+                                +Biaya PMK41 (1,1%)
+                              </p>
+                              <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-0.5 font-semibold">
+                                <span className="material-symbols-outlined text-[10px]">location_on</span>
+                                <span className="truncate">{lot.location}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    }
+                    return (
+                      <article
                       key={lot.id}
                       className={`auction-card bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/60 shadow-sm group ${lot.isCancelled ? 'grayscale opacity-75' : ''}`}
                     >
@@ -578,7 +628,7 @@ function KatalogContent() {
                         </div>
                       </div>
                     </article>
-                  ))}
+                  )})}
                   {filteredLots.length === 0 && (
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 py-16 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-white/60">
                       <span className="material-symbols-outlined text-6xl text-outline mb-4">inventory_2</span>

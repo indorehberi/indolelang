@@ -8,6 +8,7 @@ import BidderLayout from "../../../components/layout/BidderLayout";
 import ResponsiveModal from "@/components/ui/ResponsiveModal";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function BidderDashboard() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function BidderDashboard() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
+  const [chartFilter, setChartFilter] = useState("month"); // 'month' or 'year'
 
   // Upgrade Provider Modal State
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -235,6 +237,18 @@ export default function BidderDashboard() {
     );
   }
 
+  const mockChartDataMonth = [
+    { name: '1', bids: 2 }, { name: '5', bids: 5 }, { name: '10', bids: 8 },
+    { name: '15', bids: 12 }, { name: '20', bids: 3 }, { name: '25', bids: 7 },
+    { name: '30', bids: 10 }
+  ];
+  
+  const mockChartDataYear = [
+    { name: 'Jan', bids: 20 }, { name: 'Feb', bids: 15 }, { name: 'Mar', bids: 30 },
+    { name: 'Apr', bids: 45 }, { name: 'Mei', bids: 25 }, { name: 'Jun', bids: 50 },
+    { name: 'Jul', bids: 35 }
+  ];
+
   return (
     <BidderLayout pageTitle="Statistik">
 
@@ -314,10 +328,33 @@ export default function BidderDashboard() {
         <div className="col-span-1 lg:col-span-3">
           {/* Activity Chart SVG Placeholder */}
           <div className="card mb-0">
-            <div className="card-header">Statistik Bidding Bulanan (Tawaran Dibuat)</div>
-            <div className="py-8 text-center text-body-sm text-on-surface-variant flex flex-col items-center justify-center gap-2">
-              <span className="material-symbols-outlined text-4xl text-slate-300">bar_chart</span>
-              <span>Belum ada data aktivitas penawaran harga (bidding) Anda bulan ini.</span>
+            <div className="card-header flex justify-between items-center">
+              <span>Statistik Bidding</span>
+              <select 
+                value={chartFilter} 
+                onChange={(e) => setChartFilter(e.target.value)}
+                className="text-xs border border-outline-variant/60 rounded px-2 py-1 bg-white"
+              >
+                <option value="month">Bulan Ini (Harian)</option>
+                <option value="year">Tahun Ini (Bulanan)</option>
+              </select>
+            </div>
+            <div className="py-4 w-full h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartFilter === 'month' ? mockChartDataMonth : mockChartDataYear}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip 
+                    cursor={{ fill: '#f1f5f9' }} 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                  />
+                  <Bar dataKey="bids" fill="#0369a1" radius={[4, 4, 0, 0]} name="Total Bids" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
