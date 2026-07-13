@@ -67,7 +67,7 @@ interface Settlement {
   gross_amount: number;
   commission_deducted: number;
   net_amount: number;
-  status: 'pending' | 'processed' | 'failed';
+  status: 'pending' | 'processed' | 'failed' | 'unpaid';
   transferred_at?: string;
   created_at: string;
   provider?: {

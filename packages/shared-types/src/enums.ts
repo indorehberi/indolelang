@@ -110,6 +110,7 @@ export enum InvoiceStatus {
 
 export enum SettlementStatus {
   PENDING = 'pending',
+  UNPAID = 'unpaid',
   PROCESSED = 'processed',
   TRANSFERRED = 'transferred',
 }
