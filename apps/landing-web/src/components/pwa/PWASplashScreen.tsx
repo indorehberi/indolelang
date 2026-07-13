@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function PWASplashScreen() {
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true); // Always starts as true to match server rendering and prevent flash
   const [fadeClass, setFadeClass] = useState("opacity-100");
 
   useEffect(() => {
@@ -16,13 +16,19 @@ export default function PWASplashScreen() {
       document.referrer.includes("android-app://");
 
     if (!isStandalone) {
+      // If it's a regular browser, instantly hide overlay and clean up class
+      document.documentElement.classList.remove("pwa-splash-active");
+      setShowSplash(false);
       return;
     }
 
     // 2. Check if splash screen has already been shown in this session
     const splashShown = sessionStorage.getItem("pwa-splash-shown");
     if (splashShown) {
-      // If already shown, check if we need to auto-redirect from "/"
+      // If already shown in this session, immediately clean up and redirect if on home page
+      document.documentElement.classList.remove("pwa-splash-active");
+      setShowSplash(false);
+
       if (window.location.pathname === "/") {
         const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         if (token) {
@@ -34,8 +40,7 @@ export default function PWASplashScreen() {
       return;
     }
 
-    // Show splash screen
-    setShowSplash(true);
+    // Show splash screen, save flag for this session
     sessionStorage.setItem("pwa-splash-shown", "true");
 
     // Start fade out animation slightly before redirect

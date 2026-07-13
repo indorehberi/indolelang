@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
+import { logger } from './lib/logger';
 
 // Import routes
 import authRoutes from './modules/auth/auth.routes';
@@ -55,9 +56,21 @@ app.use(
         ...env.CORS_ORIGIN.split(',').map((o) => o.trim()),
       ];
       
-      if (allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
+      const isAllowed = allowedOrigins.some((allowed) => {
+        if (origin === allowed) return true;
+        try {
+          const allowedHost = new URL(allowed).host;
+          const originHost = new URL(origin).host;
+          return originHost === allowedHost || originHost.endsWith('.' + allowedHost);
+        } catch {
+          return false;
+        }
+      });
+      
+      if (isAllowed || env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
+        logger.warn({ origin, allowedOrigins }, 'CORS request blocked');
         callback(new Error('Not allowed by CORS'));
       }
     },

@@ -237,7 +237,6 @@ export default function BidderDashboard() {
 
   return (
     <BidderLayout pageTitle="Dashboard">
-      <p className="page-subtitle font-medium text-slate-500 mb-4">Panel Area Bidder &bull; Platform Indo-Lelang</p>
 
       {/* Notifications Section */}
       {notifications.length > 0 && (
@@ -291,21 +290,18 @@ export default function BidderDashboard() {
       ) : null}
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="kpi-card success">
-          <div className="kpi-label">NIPL Motor Aktif</div>
-          <div className="kpi-value">{niplMotorCount} NIPL</div>
-          <div className="kpi-trend up">Aktif &amp; Siap Digunakan</div>
+          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">NIPL Motor Aktif</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMotorCount} NIPL</div>
         </div>
         <div className="kpi-card gold">
-          <div className="kpi-label">NIPL Mobil Aktif</div>
-          <div className="kpi-value">{niplMobilCount} NIPL</div>
-          <div className="kpi-trend up">Siap Menawar Lot</div>
+          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">NIPL Mobil Aktif</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMobilCount} NIPL</div>
         </div>
         <div className="kpi-card danger">
-          <div className="kpi-label">Lelang Menang</div>
-          <div className="kpi-value">0 Lot</div>
-          <div className="kpi-trend text-slate-500">Belum memenangkan lelang</div>
+          <div className="kpi-label text-ellipsis overflow-hidden whitespace-nowrap">Lelang Menang</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">0 Lot</div>
         </div>
       </div>
 
@@ -350,30 +346,6 @@ export default function BidderDashboard() {
 
         {/* Right Column */}
         <div className="flex flex-col gap-4">
-          <div className="card mb-0">
-            <div className="card-header">Navigasi Panel Cepat</div>
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-              <Link 
-                href={bidderStatus === "aktif" ? "/bidder/deposit" : "/ekyc/upload"} 
-                className={`panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full ${bidderStatus !== "aktif" ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={(e) => { 
-                  if (bidderStatus !== "aktif") { 
-                    e.preventDefault();
-                    toast.warning("Verifikasi KYC Bidder Anda belum disetujui. Silakan lengkapi KYC.");
-                    router.push("/ekyc/upload");
-                  } 
-                }}
-              >
-                <span className="text-xl mb-1 block">💳</span>
-                <span className="leading-tight whitespace-nowrap">Beli NIPL</span>
-              </Link>
-              <Link href="/bidder/profile" className="panel-btn panel-btn-outline justify-center flex-col text-center p-2 text-xs h-full">
-                <span className="text-xl mb-1 block">👤</span>
-                <span className="leading-tight whitespace-nowrap">Profil KYC</span>
-              </Link>
-            </div>
-          </div>
-
           {/* Upgrade to Provider Card */}
           <div className="card mb-0 border-t-4 border-primary">
             <div className="card-header text-primary">Titip Jual &amp; Bermitra</div>

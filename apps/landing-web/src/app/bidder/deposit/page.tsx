@@ -211,16 +211,15 @@ export default function BidderDeposit() {
 
   if (loading) {
     return (
-      <BidderLayout pageTitle="Setor Deposit NIPL">
+      <BidderLayout pageTitle="DEPOSIT">
         <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
-    <BidderLayout pageTitle="Setor Deposit NIPL">
-      <p className="page-subtitle">Beli tiket penawaran NIPL untuk berpartisipasi lelang</p>
-
+    <BidderLayout pageTitle="DEPOSIT">
+      
       {/* Page Title & Tabs */}
       <div className="flex border-b border-outline-variant/60 mb-6 gap-6">
         <Link
