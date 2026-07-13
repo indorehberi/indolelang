@@ -57,9 +57,16 @@ export default function BidderHome() {
            setNiplCounts({ motor: motorCount, mobil: mobilCount });
         }
 
-        // Fetch nearest published session
-        const sessionRes = await apiFetch("/sessions?status=published&sort=scheduled_at:asc");
-        const sessionData = await sessionRes.json();
+        // 1. Fetch nearest live session first
+        let sessionRes = await apiFetch("/sessions?status=live&sort=scheduled_at:asc");
+        let sessionData = await sessionRes.json();
+        
+        // 2. If no live session, fetch published session
+        if (!sessionData.success || sessionData.data?.sessions?.length === 0) {
+          sessionRes = await apiFetch("/sessions?status=published&sort=scheduled_at:asc");
+          sessionData = await sessionRes.json();
+        }
+
         let hasActiveLots = false;
 
         if (sessionData.success && sessionData.data?.sessions?.length > 0) {

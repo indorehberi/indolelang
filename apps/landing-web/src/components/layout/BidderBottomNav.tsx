@@ -10,6 +10,7 @@ import { useBidderSession } from "../../hooks/useBidderSession";
 // All navigation items combined for scrollable PWA bottom navigation
 const pwaAllNavItems = [
   { name: "Beranda", href: "/bidder/home", icon: "home" },
+  { name: "Katalog", href: "/katalog", icon: "directions_car" },
   { name: "Statistik", href: "/bidder/dashboard", icon: "query_stats" },
   { name: "Beli NIPL", href: "/bidder/deposit", icon: "payments" },
   { name: "Live", href: "/bidder/bidding-room", icon: "sensors", isLive: true },
@@ -37,6 +38,14 @@ const pwaItemThemes: Record<string, PwaTheme> = {
     inactiveIcon: "text-slate-400",
     inactiveText: "text-slate-400",
     icon: "home"
+  },
+  "/katalog": {
+    activeIcon: "text-orange-600",
+    activeBg: "bg-orange-500/12",
+    activeText: "text-orange-700 font-bold",
+    inactiveIcon: "text-slate-400",
+    inactiveText: "text-slate-400",
+    icon: "directions_car"
   },
   "/bidder/dashboard": {
     activeIcon: "text-sky-600",
