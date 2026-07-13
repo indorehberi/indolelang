@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, getImageUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
+import { useToast } from "@/providers/ToastProvider";
 
 const formatRupiah = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -17,11 +18,13 @@ const formatRupiah = (value: number) => {
 
 export default function BidderHome() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [activeNiplCount, setActiveNiplCount] = useState(0);
+  const [niplCounts, setNiplCounts] = useState({ motor: 0, mobil: 0 });
   const [session, setSession] = useState<any>(null);
   const [lots, setLots] = useState<any[]>([]);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("Semua");
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -32,23 +35,25 @@ export default function BidderHome() {
           return;
         }
 
-        // Fetch user profile (or nipl count)
+        // Fetch user profile
         const profileRes = await apiFetch("/auth/profile");
         const profileData = await profileRes.json();
         if (profileData.success) {
           setProfile(profileData.data);
         }
 
-        // Fetch deposits for NIPL count
+        // Fetch deposits for NIPL count breakdown
         const depRes = await apiFetch("/deposits/my-deposits");
         const depData = await depRes.json();
         if (depData.success) {
-           const activeDeposits = depData.data?.deposits?.filter((d: any) => d.status === 'active') || [];
-           let totalNipl = 0;
+           const activeDeposits = depData.data?.deposits?.filter((d: any) => d.status === 'active' || d.status === 'paid') || [];
+           let motorCount = 0;
+           let mobilCount = 0;
            activeDeposits.forEach((d: any) => {
-             totalNipl += (d.nipl_count || 1);
+             if (d.unit_type === 'motor') motorCount += (d.nipl_count || 1);
+             else if (d.unit_type === 'mobil') mobilCount += (d.nipl_count || 1);
            });
-           setActiveNiplCount(totalNipl);
+           setNiplCounts({ motor: motorCount, mobil: mobilCount });
         }
 
         // Fetch nearest published session
@@ -75,6 +80,11 @@ export default function BidderHome() {
     fetchHomeData();
   }, [router]);
 
+  const filteredLots = useMemo(() => {
+    if (activeCategoryFilter === "Semua") return lots;
+    return lots.filter((lot) => lot.asset?.category?.toUpperCase() === activeCategoryFilter.toUpperCase());
+  }, [lots, activeCategoryFilter]);
+
   if (loading) {
     return (
       <BidderLayout pageTitle="Beranda">
@@ -90,7 +100,7 @@ export default function BidderHome() {
         <div className="relative z-10">
           <h2 className="text-xl font-bold mb-1">Hallo {profile?.name || "Bidder"}</h2>
           <p className="text-sm text-white/90">
-            Kamu memiliki <span className="font-black text-secondary">{activeNiplCount}</span> NIPL Aktif
+            Kamu memiliki <span className="font-black text-secondary">{niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-secondary">{niplCounts.mobil}</span> NIPL Mobil
           </p>
         </div>
         <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-[100px] text-white/10 rotate-12">
@@ -98,29 +108,76 @@ export default function BidderHome() {
         </span>
       </div>
 
-      {/* Category List */}
+      {/* Category List (Actual Images from Landing Page in 1 Row) */}
       <div className="mb-8">
         <h3 className="text-sm font-bold text-slate-800 mb-3 px-1">Kategori Lelang</h3>
-        <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
-          {[
-            { id: 'mobil', name: 'Mobil', icon: 'directions_car' },
-            { id: 'motor', name: 'Motor', icon: 'two_wheeler' },
-            { id: 'properti', name: 'Properti', icon: 'home' },
-            { id: 'alat-berat', name: 'Alat Berat', icon: 'local_shipping' },
-          ].map((cat) => (
-             <div key={cat.id} className="flex flex-col items-center gap-2 min-w-[72px]">
-               <div className="w-14 h-14 bg-surface rounded-2xl border border-outline-variant/30 flex items-center justify-center shadow-sm text-primary hover:bg-primary/5 cursor-pointer">
-                 <span className="material-symbols-outlined text-2xl">{cat.icon}</span>
-               </div>
-               <span className="text-[11px] font-medium text-slate-600">{cat.name}</span>
-             </div>
-          ))}
+        <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+          {/* Mobil */}
+          <Link
+            href="/katalog?category=MOBIL"
+            className="group relative shrink-0 w-32 aspect-[4/3] rounded-xl overflow-hidden shadow-sm"
+          >
+            <img
+              className="w-full h-full object-cover"
+              alt="Mobil"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfO6fRTBCfJVz6MUYCEQuH3UDV81F-F4DY_MQbOx18fvPHR0qu3z6dqm-XIHHrYpEsl-LUvyzzVw_rp9xw2ghrTUmUTz3239DZ7OUAAVjaIOedVl6K5emlIYjlz81T1VKKI8PugGBlfIwam3VPYHuUMUCCxIEBfN-bJXqFfvP6GPBQ8SRQT-HbBIgrbsbbvxtc6acdLRGMX5q5ScguyKNiTVPgNQdpCLmt1lOjJz8couih2BWAfseY00DK7axG4bWw30rAHVe6njfB"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-2 left-2 text-white">
+              <h4 className="font-bold text-[11px] truncate">Mobil</h4>
+            </div>
+          </Link>
+          {/* Motor */}
+          <Link
+            href="/katalog?category=MOTOR"
+            className="group relative shrink-0 w-32 aspect-[4/3] rounded-xl overflow-hidden shadow-sm"
+          >
+            <img
+              className="w-full h-full object-cover"
+              alt="Motor"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC31zy45WQwhdCOMrDzZCm2is66KzQ3Ef-59eRlRHkxzGC5DpJj5VKLOvc3lGiQG68JH60S9yYbjI2JAl1ms-Imx6t9eaDfxqxFmaBKRys70HjrcZ5YnCiwuv-yCKaSrD7A28rXssA0Ak7J2_CZ73L4rSL6BEMP3BALcG7uqjaShWLmgCP7TdrYqffviwAtHoJO4H8Nbu1F3fC2iQnLgvWmXu_oGP3B1DIug9vTfVnGi75xhMNL1Ybhm-iHUPaTCbQVBDSpOveGl1u6"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-2 left-2 text-white">
+              <h4 className="font-bold text-[11px] truncate">Motor</h4>
+            </div>
+          </Link>
+          {/* Alat Berat */}
+          <div
+            onClick={() => toast.info("Kategori lelang Alat Berat akan segera hadir!")}
+            className="group relative shrink-0 w-32 aspect-[4/3] rounded-xl overflow-hidden shadow-sm opacity-75 cursor-pointer"
+          >
+            <img
+              className="w-full h-full object-cover grayscale"
+              alt="Alat Berat"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9bK1pYSqW-cfuVQ0j_xaNa18g0-LSKMlqXs886QplfdQJMpEpP1QMActoH4cjgCfElrjUmVeKBxZVQVERgNfc2zSLCVv2UcnDiN6IO_QCfIakOyYLKtnmAgPKmKsWBa1ORjMrEM06UyeALxwJt3IrYZgbWJlt-xUYGT82U7KK4daYCRCfpOkvmNGrixxaYWSqkLiku5XuFG82BcpZl5LPtaAHB0dIz4IU5kzkOoMJYeEbJFBusmFinqTtPOlivVZ31ihUEJH1e64"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-2 left-2 text-white">
+              <h4 className="font-bold text-[11px] truncate">Alat Berat</h4>
+            </div>
+          </div>
+          {/* Properti */}
+          <div
+            onClick={() => toast.info("Kategori lelang Properti akan segera hadir!")}
+            className="group relative shrink-0 w-32 aspect-[4/3] rounded-xl overflow-hidden shadow-sm opacity-75 cursor-pointer"
+          >
+            <img
+              className="w-full h-full object-cover grayscale"
+              alt="Properti"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAKe_8vmxw29JLRtQYJu9kIj9SSxejc7c-x8FZ9yvwAcraOjYJQWtAun90V_9mWhx5Fc0yj7qi226wff8XoO-B8zS94kC8jRdGIB8O9bsH7Nhr0u4sJZGBdX9R6-JALgUiUFbI_NW_vN-QiNbVb_WGRUuassF6O_AjU9RuREtTqPZI9hvaWxO6IxqUzevGmKDWDbe9XRHS-qXcH0eH4c1lTgfR2ZHLmTZvUQbPf2dM8WY2ksd1kXL4JpiipvA98Fs_rPDJFniNHLto"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-2 left-2 text-white">
+              <h4 className="font-bold text-[11px] truncate">Properti</h4>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Katalog Terdekat */}
       <div>
-        <div className="flex justify-between items-end mb-4 px-1">
+        <div className="flex justify-between items-end mb-3 px-1">
           <div>
             <h3 className="text-base font-bold text-slate-800">Katalog Lelang Terdekat</h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -130,14 +187,33 @@ export default function BidderHome() {
           <Link href="/katalog" className="text-primary text-xs font-bold hover:underline">Lihat Semua</Link>
         </div>
 
-        {lots.length === 0 ? (
+        {/* Category Filters for Local Lots */}
+        {lots.length > 0 && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 hide-scrollbar">
+            {["Semua", "MOBIL", "MOTOR"].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategoryFilter(cat)}
+                className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors border ${
+                  activeCategoryFilter === cat 
+                    ? "bg-primary text-on-primary border-primary" 
+                    : "bg-surface text-slate-500 border-outline-variant/50 hover:bg-slate-100"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {filteredLots.length === 0 ? (
            <div className="p-8 text-center bg-surface border border-dashed border-outline-variant/40 rounded-xl">
              <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">inbox</span>
              <p className="text-slate-500 text-sm">Belum ada lot yang tersedia</p>
            </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {lots.map((lot: any) => (
+            {filteredLots.map((lot: any) => (
                <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
                  <div className="aspect-[4/3] bg-slate-100 relative">
                    {lot.asset?.photo_front ? (
@@ -159,12 +235,15 @@ export default function BidderHome() {
                  <div className="p-2.5 flex-1 flex flex-col justify-between">
                    <div>
                      <h4 className="font-bold text-slate-800 text-xs leading-snug line-clamp-2 mb-1">{lot.asset?.brand} {lot.asset?.model}</h4>
-                     <p className="text-[10px] text-slate-500 mb-1">{lot.asset?.police_number} • {lot.asset?.manufacturing_year} • {lot.asset?.odometer ? `${(lot.asset.odometer/1000).toFixed(0)}k KM` : '-'}</p>
+                     <p className="text-[10px] text-slate-500 mb-1">{lot.asset?.police_number} • {lot.asset?.year || lot.asset?.manufacturing_year} • {lot.asset?.odometer ? `${(lot.asset.odometer/1000).toFixed(0)}k KM` : '-'}</p>
                    </div>
                    <div className="mt-2">
                      <p className="text-[10px] text-slate-500">Harga Dasar</p>
                      <p className="text-sm font-black text-primary leading-none">{formatRupiah(lot.starting_price)}</p>
-                     <p className="text-[9px] text-slate-400 mt-1 flex items-center gap-0.5">
+                     <p className="text-[9px] text-slate-400 mt-1 italic">
+                       +Biaya PMK41 (1,1%) (jika tidak ditanggung provider)
+                     </p>
+                     <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-0.5 font-semibold">
                        <span className="material-symbols-outlined text-[10px]">location_on</span>
                        <span className="truncate">{session?.branch?.name || "Jakarta"}</span>
                      </p>
