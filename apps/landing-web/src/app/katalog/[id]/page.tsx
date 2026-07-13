@@ -416,7 +416,7 @@ export default function DetailLotPage() {
             Rekomendasi Lot Serupa
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {similarLots.map((similar, idx) => (
+            {similarLots.map((similar: any, idx: number) => (
               <div
                 key={idx}
                 className="bg-white rounded-3xl border border-outline-variant/20 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"

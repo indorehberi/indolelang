@@ -77,7 +77,7 @@ export default function PWAInstallButton({
 
   return (
     <>
-      <button onClick={handleInstallClick} className={className} type="button">
+      <button onClick={handleInstallClick} className={`${className} md:hidden`} type="button">
         <span className="material-symbols-outlined text-lg">install_mobile</span>
         <span>{label}</span>
       </button>
