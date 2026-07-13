@@ -712,4 +712,9 @@ table.dashboard-table tbody tr:nth-child(even) {
 .panel-btn-outline { background: transparent; border-color: var(--wf-border); color: var(--wf-text); }
 .panel-btn-outline:hover { border-color: var(--wf-accent); color: var(--wf-accent); }
 
+/* PWA Splash Screen hide content helper */
+html.pwa-splash-active body > *:not(#pwa-splash-overlay) {
+  display: none !important;
+}
+
 

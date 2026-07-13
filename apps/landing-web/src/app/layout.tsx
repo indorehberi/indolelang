@@ -73,6 +73,17 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                if (!sessionStorage.getItem('pwa-splash-shown') && window.location.pathname === '/') {
+                  document.documentElement.classList.add('pwa-splash-active');
+                }
+              }
+            `,
+          }}
+        />
       </head>
       <body suppressHydrationWarning>
         <ServiceWorkerRegister />

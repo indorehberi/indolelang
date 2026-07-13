@@ -23,7 +23,6 @@ export default function PWASplashScreen() {
     const splashShown = sessionStorage.getItem("pwa-splash-shown");
     if (splashShown) {
       // If already shown, check if we need to auto-redirect from "/"
-      // so the user doesn't get stuck on the landing page if they launch PWA.
       if (window.location.pathname === "/") {
         const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         if (token) {
@@ -41,10 +40,10 @@ export default function PWASplashScreen() {
 
     // Start fade out animation slightly before redirect
     const fadeTimer = setTimeout(() => {
-      setFadeClass("opacity-0 transition-opacity duration-700 ease-out");
-    }, 2300);
+      setFadeClass("opacity-0 transition-opacity duration-500 ease-out");
+    }, 2500);
 
-    // After 3 seconds, redirect based on login status
+    // After 3 seconds, redirect based on login status and clean up
     const redirectTimer = setTimeout(() => {
       const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
       let isBidder = false;
@@ -57,11 +56,17 @@ export default function PWASplashScreen() {
         // ignore
       }
 
+      // Remove the blocking CSS class from HTML element so page is fully interactive and visible
+      document.documentElement.classList.remove("pwa-splash-active");
+      
       if (token && isBidder) {
         router.replace("/bidder/dashboard");
       } else {
         router.replace("/login");
       }
+
+      // Unmount the splash component from DOM so it doesn't block click events
+      setShowSplash(false);
     }, 3000);
 
     return () => {
@@ -70,28 +75,26 @@ export default function PWASplashScreen() {
     };
   }, [router]);
 
+  // Clean up class if component unmounts unexpectedly
+  useEffect(() => {
+    return () => {
+      document.documentElement.classList.remove("pwa-splash-active");
+    };
+  }, []);
+
   if (!showSplash) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 bg-[#F9F8F3] flex flex-col items-center justify-center ${fadeClass}`}>
-      <div className="w-full max-w-md px-6 text-center animate-pulse">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/banner-bidku.png"
-          alt="BIDKU Splash Banner"
-          className="w-full h-auto object-contain rounded-2xl shadow-xl border border-slate-200/50"
-        />
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <div className="flex gap-1.5 justify-center items-center">
-            <span className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></span>
-            <span className="w-3 h-3 rounded-full bg-primary/70 animate-bounce [animation-delay:-0.15s]"></span>
-            <span className="w-3 h-3 rounded-full bg-primary/40 animate-bounce"></span>
-          </div>
-          <p className="text-body-sm font-semibold text-on-surface-variant tracking-wider uppercase mt-2">
-            Memuat Aplikasi...
-          </p>
-        </div>
-      </div>
+    <div
+      id="pwa-splash-overlay"
+      className={`fixed inset-0 z-[99999] bg-[#F9F8F3] w-screen h-screen flex items-center justify-center ${fadeClass}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/banner-bidku.png"
+        alt="BIDKU Splash Banner"
+        className="w-full h-full object-cover"
+      />
     </div>
   );
 }
