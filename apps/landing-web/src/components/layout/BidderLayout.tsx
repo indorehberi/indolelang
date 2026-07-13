@@ -143,7 +143,7 @@ export default function BidderLayout({ children, pageTitle, hideHeader = false }
         <InstallPrompt />
 
         {/* ====== PAGE BODY ====== */}
-        <main className={`flex-1 w-full mx-auto pb-24 ${hideHeader ? 'p-0' : 'p-6 max-w-container-max'}`}>
+        <main className="flex-1 p-6 max-w-container-max w-full mx-auto pb-24">
           {children}
         </main>
       </div>

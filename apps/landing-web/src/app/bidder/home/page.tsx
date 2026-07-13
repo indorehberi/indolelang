@@ -60,19 +60,25 @@ export default function BidderHome() {
         // Fetch nearest published session
         const sessionRes = await apiFetch("/sessions?status=published&sort=scheduled_at:asc");
         const sessionData = await sessionRes.json();
+        let hasActiveLots = false;
+
         if (sessionData.success && sessionData.data?.sessions?.length > 0) {
            const nearestSession = sessionData.data.sessions[0];
-           setSession(nearestSession);
-
+           
            // Fetch lots for this session
            const lotsRes = await apiFetch(`/sessions/${nearestSession.id}/lots`);
            const lotsData = await lotsRes.json();
-           if (lotsData.success) {
-             setLots(lotsData.data || []);
+           if (lotsData.success && lotsData.data?.length > 0) {
+             setSession(nearestSession);
+             setLots(lotsData.data);
              setIsSoldLots(false);
+             hasActiveLots = true;
            }
-        } else {
-           // No published session, fetch sold lots instead
+        }
+        
+        if (!hasActiveLots) {
+           setSession(null);
+           // No published session with lots, fetch sold lots instead
            const soldRes = await apiFetch("/lots?status=sold&per_page=50");
            const soldData = await soldRes.json();
            if (soldData.success) {
