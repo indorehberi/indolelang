@@ -184,6 +184,7 @@ model assets {
   grade_interior      String?
   grade_exterior      String?
   grade_engine        String?
+  grade               String?
   inspection_doc_url  String?
   brand               String?
   model               String?

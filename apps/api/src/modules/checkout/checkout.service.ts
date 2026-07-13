@@ -290,7 +290,7 @@ export class CheckoutService {
              deposit_deduction: depositDeduction,
              final_amount: grandTotal,
              unique_code: uniqueCode,
-             gateway_fee: gatewayFee,
+             gateway_fee: 0,
              status: Number(grandTotal) === 0 ? 'paid' : 'unpaid',
              payment_method: paymentMethod,
              va_number: vaNumber,

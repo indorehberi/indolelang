@@ -248,6 +248,7 @@ export interface AssetDTO {
   inspection_doc_url?: string;
   brand?: string;
   model?: string;
+  grade?: string;
   year?: number;
   police_number?: string;
   color?: string;
