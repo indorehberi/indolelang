@@ -4,6 +4,7 @@ import "./globals.css";
 import QueryProvider from "../providers/QueryProvider";
 import { ToastProvider } from "../providers/ToastProvider";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
+import PWASplashScreen from "../components/pwa/PWASplashScreen";
 
 // Centralized layout for landing-web page
 const inter = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <ServiceWorkerRegister />
+        <PWASplashScreen />
         <QueryProvider>
           <ToastProvider>{children}</ToastProvider>
         </QueryProvider>
