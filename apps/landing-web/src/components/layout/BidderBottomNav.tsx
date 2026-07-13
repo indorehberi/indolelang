@@ -9,11 +9,11 @@ import { useBidderSession } from "../../hooks/useBidderSession";
 
 // All navigation items combined for scrollable PWA bottom navigation
 const pwaAllNavItems = [
-  { name: "Beranda", href: "/bidder/dashboard", icon: "home" },
+  { name: "Beranda", href: "/bidder/home", icon: "home" },
+  { name: "Statistik", href: "/bidder/dashboard", icon: "query_stats" },
   { name: "Beli NIPL", href: "/bidder/deposit", icon: "payments" },
   { name: "Live", href: "/bidder/bidding-room", icon: "sensors", isLive: true },
   { name: "Keranjang", href: "/bidder/cart", icon: "shopping_cart" },
-  { name: "Katalog", href: "/katalog", icon: "gavel" },
   { name: "Tagihan", href: "/bidder/invoices", icon: "receipt_long" },
   { name: "Riwayat", href: "/bidder/riwayat-lelang", icon: "history" },
   { name: "Refund", href: "/bidder/deposit/history", icon: "account_balance_wallet" },
@@ -30,13 +30,21 @@ interface PwaTheme {
 }
 
 const pwaItemThemes: Record<string, PwaTheme> = {
-  "/bidder/dashboard": {
+  "/bidder/home": {
     activeIcon: "text-blue-600",
     activeBg: "bg-blue-500/12",
     activeText: "text-blue-700 font-bold",
     inactiveIcon: "text-slate-400",
     inactiveText: "text-slate-400",
     icon: "home"
+  },
+  "/bidder/dashboard": {
+    activeIcon: "text-sky-600",
+    activeBg: "bg-sky-500/12",
+    activeText: "text-sky-700 font-bold",
+    inactiveIcon: "text-slate-400",
+    inactiveText: "text-slate-400",
+    icon: "query_stats"
   },
   "/bidder/deposit": {
     activeIcon: "text-emerald-600",
@@ -62,14 +70,7 @@ const pwaItemThemes: Record<string, PwaTheme> = {
     inactiveText: "text-slate-400",
     icon: "shopping_cart"
   },
-  "/katalog": {
-    activeIcon: "text-sky-600",
-    activeBg: "bg-sky-500/12",
-    activeText: "text-sky-700 font-bold",
-    inactiveIcon: "text-slate-400",
-    inactiveText: "text-slate-400",
-    icon: "gavel"
-  },
+
   "/bidder/invoices": {
     activeIcon: "text-teal-600",
     activeBg: "bg-teal-500/12",
