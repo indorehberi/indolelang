@@ -134,16 +134,20 @@ export function initSocket(server: HttpServer): SocketIoServer {
           },
         });
 
-        // Calculate anti-sniping timer extension
-        const snipeSetting = await prisma.platform_settings.findFirst({
-          where: { key: 'anti_sniping_extension_seconds' }
-        });
-        const extensionSecs = snipeSetting ? parseInt(snipeSetting.value, 10) : 30;
+        // Calculate anti-sniping timer extension — "waktu pertama" and "waktu
+        // kedua" are read fresh on every bid so an admin can retune them
+        // between lots without restarting the process.
+        const [firstDurationSetting, secondDurationSetting] = await Promise.all([
+          prisma.platform_settings.findFirst({ where: { key: 'auction_lot_duration_secs' } }),
+          prisma.platform_settings.findFirst({ where: { key: 'auction_lot_second_duration_secs' } }),
+        ]);
+        const firstDurationSecs = firstDurationSetting ? parseInt(firstDurationSetting.value, 10) : 120;
+        const secondDurationSecs = secondDurationSetting ? parseInt(secondDurationSetting.value, 10) : 60;
         const snipeCheck = biddingService.calculateAntiSnipe(
           state.timeRemaining,
           state.extensionCount,
-          30,
-          extensionSecs
+          firstDurationSecs,
+          secondDurationSecs
         );
 
         // Update lot in-memory state
@@ -200,10 +204,12 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     clearInterval(existing.timerInterval);
   }
 
-  // Enforce exactly 120 seconds (1 minute + 1 minute timer logic requirement)
-  const effectiveDuration = 120;
+  // "Waktu pertama" — the initial countdown for the lot. Callers read this
+  // from the auction_lot_duration_secs setting; fall back to the historical
+  // 120s default if they pass nothing.
+  const effectiveDuration = durationSeconds;
 
-  logger.info({ lotId: lot.id, rawDuration: durationSeconds, effectiveDuration }, 'startActiveLot — timer starting');
+  logger.info({ lotId: lot.id, effectiveDuration }, 'startActiveLot — timer starting');
 
   const startPrice = Number(lot.starting_price);
   const state: ActiveLotState = {
@@ -416,8 +422,9 @@ export async function handleAutoNextAndSessionEnd(settledLot: any) {
               data: { status: 'active' },
               include: { asset: true }
             });
+            // 120s matches the historical hardcoded lot duration.
             const durationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_duration_secs' } });
-            startActiveLot(updated, durationSetting ? parseInt(durationSetting.value, 10) : 30);
+            startActiveLot(updated, durationSetting ? parseInt(durationSetting.value, 10) : 120);
           }
         }, delay);
       }

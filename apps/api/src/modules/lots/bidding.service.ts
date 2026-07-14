@@ -22,23 +22,31 @@ export class BiddingService {
     return 500_000;
   }
 
+  /**
+   * Two-phase anti-sniping reset: while more than `secondDurationSecs` remain
+   * (still in the "waktu pertama" window), a bid resets the clock all the way
+   * back to `firstDurationSecs`. Once the clock has counted down into the
+   * "waktu kedua" window (<= secondDurationSecs), a bid only resets it back to
+   * secondDurationSecs — so a flurry of late bids can't keep dragging the lot
+   * back up to the full first-phase duration.
+   */
   calculateAntiSnipe(
     timeRemaining: number,
     extensionCount: number,
-    thresholdSeconds = 30,
-    extensionSeconds = 30,
+    firstDurationSecs = 120,
+    secondDurationSecs = 60,
     maxExtensions = 999999
   ): { extended: boolean; newTimeRemaining: number; extensionCount: number } {
-    if (timeRemaining > 60) {
+    if (timeRemaining > secondDurationSecs) {
       return {
         extended: true,
-        newTimeRemaining: 120,
+        newTimeRemaining: firstDurationSecs,
         extensionCount: extensionCount + 1,
       };
     } else if (timeRemaining > 0) {
       return {
         extended: true,
-        newTimeRemaining: 60,
+        newTimeRemaining: secondDurationSecs,
         extensionCount: extensionCount + 1,
       };
     }

@@ -140,8 +140,14 @@ async function main() {
     },
     {
       tenant_id: 'default',
-      key: 'anti_sniping_extension_seconds',
+      key: 'auction_lot_duration_secs',
       value: '120',
+      is_encrypted: false,
+    },
+    {
+      tenant_id: 'default',
+      key: 'auction_lot_second_duration_secs',
+      value: '60',
       is_encrypted: false,
     },
     {

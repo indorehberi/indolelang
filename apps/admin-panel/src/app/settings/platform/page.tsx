@@ -29,15 +29,20 @@ export default function PlatformSettingsPage() {
   const [feeBearerRefund, setFeeBearerRefund] = useState('admin');
   const [feeBearerPelunasan, setFeeBearerPelunasan] = useState('bidder');
   const [feeBearerSettlement, setFeeBearerSettlement] = useState('provider');
-  const [antiSnipeSecs, setAntiSnipeSecs] = useState('120');
-  
+
   // BAPL Settings
   const [pejabatPenjual, setPejabatPenjual] = useState('');
   const [pejabatLelang, setPejabatLelang] = useState('');
   const [isSavingBapl, setIsSavingBapl] = useState(false);
   
   // Auction Automation Settings
-  const [auctionLotDuration, setAuctionLotDuration] = useState('30');
+  // "Waktu pertama": initial countdown for a lot, and the value the clock
+  // resets to on a bid while more than "waktu kedua" seconds remain.
+  const [auctionLotDuration, setAuctionLotDuration] = useState('120');
+  // "Waktu kedua": once the clock has counted down to this many seconds or
+  // less, a bid only resets it back to this value (not the full first-phase
+  // duration) — so late bidding can't keep dragging the timer back up.
+  const [auctionLotSecondDuration, setAuctionLotSecondDuration] = useState('60');
   const [auctionLotNextDelay, setAuctionLotNextDelay] = useState('10');
   const [auctionLotCanceledDuration, setAuctionLotCanceledDuration] = useState('5');
   const [auctionSessionStartTrigger, setAuctionSessionStartTrigger] = useState('admin');
@@ -154,8 +159,6 @@ export default function PlatformSettingsPage() {
               setNipl(item.value);
             } else if (item.key === 'nipl_motor_deposit_amount') {
               setNiplMotor(item.value);
-            } else if (item.key === 'anti_sniping_extension_seconds') {
-              setAntiSnipeSecs(item.value);
             } else if (item.key === 'FEE_BEARER') {
               setFeeBearer(item.value);
             } else if (item.key === 'fee_bearer_deposit') {
@@ -176,6 +179,8 @@ export default function PlatformSettingsPage() {
               setPph23(item.value);
             } else if (item.key === 'auction_lot_duration_secs') {
               setAuctionLotDuration(item.value);
+            } else if (item.key === 'auction_lot_second_duration_secs') {
+              setAuctionLotSecondDuration(item.value);
             } else if (item.key === 'auction_lot_next_delay_secs') {
               setAuctionLotNextDelay(item.value);
             } else if (item.key === 'auction_lot_canceled_duration_secs') {
@@ -357,10 +362,16 @@ export default function PlatformSettingsPage() {
   }, []);
 
   const handleSaveAuctionSettings = async () => {
+    if (Number(auctionLotSecondDuration) >= Number(auctionLotDuration)) {
+      toast.error('Waktu Kedua harus lebih kecil dari Waktu Pertama.');
+      return;
+    }
+
     setIsSavingAuction(true);
     try {
       const updates = [
         { key: 'auction_lot_duration_secs', value: auctionLotDuration },
+        { key: 'auction_lot_second_duration_secs', value: auctionLotSecondDuration },
         { key: 'auction_lot_next_delay_secs', value: auctionLotNextDelay },
         { key: 'auction_lot_canceled_duration_secs', value: auctionLotCanceledDuration },
         { key: 'auction_session_start_trigger', value: auctionSessionStartTrigger },
@@ -440,7 +451,6 @@ export default function PlatformSettingsPage() {
         { key: 'tax_percentage', value: tax },
         { key: 'nipl_deposit_amount', value: nipl },
         { key: 'nipl_motor_deposit_amount', value: niplMotor },
-        { key: 'anti_sniping_extension_seconds', value: antiSnipeSecs },
         { key: 'FEE_BEARER', value: feeBearer },
         { key: 'fee_bearer_deposit', value: feeBearerDeposit },
         { key: 'fee_bearer_refund', value: feeBearerRefund },
@@ -487,11 +497,21 @@ export default function PlatformSettingsPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Waktu Tiap Lot (Detik) <span className="required">*</span></label>
+              <label className="form-label">Waktu Pertama (Detik) <span className="required">*</span></label>
               <input type="number" className="form-input" value={auctionLotDuration} onChange={(e) => setAuctionLotDuration(e.target.value)} required />
-              <p className="text-xs text-muted mt-1">Default: 30 detik.</p>
+              <p className="text-xs text-muted mt-1">
+                Durasi awal countdown tiap lot. Selama sisa waktu masih di atas "Waktu Kedua", bid baru akan mengembalikan countdown ke durasi ini. Default: 120 detik.
+              </p>
             </div>
-            
+
+            <div className="form-group">
+              <label className="form-label">Waktu Kedua (Detik) <span className="required">*</span></label>
+              <input type="number" className="form-input" value={auctionLotSecondDuration} onChange={(e) => setAuctionLotSecondDuration(e.target.value)} required />
+              <p className="text-xs text-muted mt-1">
+                Begitu sisa waktu sudah turun ke angka ini atau kurang, bid baru hanya mengembalikan countdown ke durasi ini (tidak lagi ke Waktu Pertama). Harus lebih kecil dari Waktu Pertama. Default: 60 detik.
+              </p>
+            </div>
+
             <div className="form-group mb-3">
               <label>Jeda Transisi Lot (detik)</label>
               <input type="number" className="form-input" value={auctionLotNextDelay} onChange={(e) => setAuctionLotNextDelay(e.target.value)} required />
@@ -583,7 +603,7 @@ export default function PlatformSettingsPage() {
             </div>
 
             <p className="text-xs text-muted mt-1">
-              Durasi countdown awal lot mengikuti pengaturan "Waktu Tiap Lot (Detik)" di atas (Otomatisasi Mesin Lelang) — satu sumber kebenaran untuk Ruang Kontrol maupun Bidding Room.
+              Durasi countdown awal lot serta perilaku reset saat ada bid mengikuti pengaturan "Waktu Pertama" dan "Waktu Kedua" di atas (Otomatisasi Mesin Lelang) — satu sumber kebenaran untuk Ruang Kontrol maupun Bidding Room.
             </p>
 
             <button className="btn btn-primary w-100 mt-2 !bg-purple-600 hover:!bg-purple-700" onClick={handleSaveBiddingSettings} disabled={isSavingBidding}>
@@ -606,11 +626,6 @@ export default function PlatformSettingsPage() {
             <div className="form-group">
               <label className="form-label">Deposit Jaminan NIPL Motor (Rp) <span className="required">*</span></label>
               <input type="number" className="form-input" value={niplMotor} onChange={(e) => setNiplMotor(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Durasi Anti-Sniping (Detik) <span className="required">*</span></label>
-              <input type="number" className="form-input" value={antiSnipeSecs} onChange={(e) => setAntiSnipeSecs(e.target.value)} required />
-              <p className="text-xs text-muted mt-1">Durasi waktu tambahan (dalam detik) jika ada bid di akhir sesi lelang lot.</p>
             </div>
             <div style={{ border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem', background: '#f8fafc' }}>
               <span className="form-label" style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.75rem' }}>Beban Biaya Transfer Gateway Bidder</span>

@@ -52,7 +52,9 @@ export function initCronJobs() {
               include: { asset: true }
             });
 
-            const durationStr = await getSetting('auction_lot_duration_secs', '30');
+            // 120s matches the historical hardcoded lot duration — see
+            // startActiveLot in socket.ts for why that fallback matters.
+            const durationStr = await getSetting('auction_lot_duration_secs', '120');
             startActiveLot(updatedLot, parseInt(durationStr, 10));
           } else {
             // No lots found, maybe just leave it live or close it
