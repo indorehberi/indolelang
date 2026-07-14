@@ -128,6 +128,8 @@ function KatalogContent() {
           category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
           sessionId: dbLot.session_id,
+          lot_number: dbLot.lot_number || 0,
+          tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
         };
       });
       setLotsList(mapped);
@@ -508,7 +510,7 @@ function KatalogContent() {
                   <div>
                     <h2 className="text-heading-xl font-extrabold text-on-surface font-serif">Lot Tersedia</h2>
                     <p className="text-body-md text-on-surface-variant mt-1">
-                      Menampilkan {filteredLots.length} dari {lotsList.length} lot aktif
+                      Menampilkan {paginatedLots.length} dari {filteredLots.length} lot
                     </p>
                   </div>
                   {!isStandalone && (
@@ -575,35 +577,25 @@ function KatalogContent() {
                           alt={lot.alt}
                           src={lot.image}
                         />
-                        {/* Grade Badge */}
-                        <span className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur text-primary flex items-center justify-center font-black shadow-sm border border-white z-10">
-                          {lot.grade}
-                        </span>
-                        {/* Status Badge */}
-                        <span
-                          className={`absolute top-3 left-13 px-3 py-1 rounded-full text-badge-text font-bold ${lot.badgeStyle}`}
-                        >
-                          {lot.badge}
-                        </span>
-                        {/* Jenis Lelang Badge */}
-                        <span className="absolute top-3 right-3 px-2.5 py-1 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded-full flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[10px] filled text-secondary-fixed">
-                            {lot.jenisLelang === "English Auction" ? "gavel" : 
-                             lot.jenisLelang === "Dutch Auction" ? "trending_down" :
-                             lot.jenisLelang === "Sealed-Bid" ? "lock" :
-                             lot.jenisLelang === "Timed Auction" ? "schedule" :
-                             lot.jenisLelang === "Buy Now + Auction" ? "shopping_bag" :
-                             "inventory_2"}
-                          </span>
-                          {lot.jenisLelang}
-                        </span>
+                        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+                          Lot {lot.lot_number || '-'}
                         </div>
+
+                        {lot.grade && (
+                          <div className="absolute top-2 right-2 bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+                            Grade {lot.grade}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Body */}
                       <div className="p-5">
-                        <div className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+                        <div className="flex items-center gap-2 text-body-sm text-on-surface-variant flex-wrap">
                           <span className="material-symbols-outlined text-base text-primary">location_on</span>
-                          {lot.location}
+                          <span>{lot.location}</span>
+                          <span className="text-outline/30">•</span>
+                          <span className="material-symbols-outlined text-base text-primary">calendar_today</span>
+                          <span>{lot.tanggal}</span>
                         </div>
                         <h3 className="text-heading-md font-bold text-on-surface mt-2 group-hover:text-premium transition-colors">
                           <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>

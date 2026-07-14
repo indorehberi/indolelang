@@ -67,9 +67,6 @@ function LotCard({
   formatTime: (sec: number) => string;
   handleActionClick: (act: string) => void;
 }) {
-  const isLive = lot.status === "Live";
-  const timerVal = timers[lot.timerKey] || 0;
-
   return (
     <div className="auction-card bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col justify-between h-full">
       <div>
@@ -80,46 +77,33 @@ function LotCard({
             alt={lot.title}
             src={lot.image}
           />
-          <div className={`absolute top-2 left-2 px-2.5 py-1 text-badge-text font-bold rounded-full ${isLive ? "bg-secondary text-on-secondary" : "bg-primary text-on-primary"}`}>
-            {lot.status}
+          <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded">
+            Lot {lot.lot_number || '-'}
           </div>
 
-          {/* Auction Type Badge */}
-          <div className="absolute top-2 right-2 px-2.5 py-1 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded-full flex items-center gap-1">
-            <span className="material-symbols-outlined text-[10px] filled text-secondary-fixed">
-              {lot.jenisLelang === "Lelang Terbuka" ? "gavel" : "lock"}
-            </span>
-            {lot.jenisLelang}
-          </div>
-
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-body-sm font-medium">
-            <span className="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-              <span className="material-symbols-outlined text-sm">timer</span>
-              <span className="countdown-badge">
-                {isLive ? formatTime(timerVal) : (lot.timerLabel || "Segera")}
-              </span>
-            </span>
-            <span className="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-              <span className="material-symbols-outlined text-sm">group</span>
-              {lot.participants}
-            </span>
-          </div>
+          {lot.grade && (
+            <div className="absolute top-2 right-2 bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded">
+              Grade {lot.grade}
+            </div>
+          )}
         </div>
           <div className="p-4 pt-4">
             <div className="flex justify-between items-start mb-1 gap-2">
               <h4 className="font-bold text-body-md text-on-surface hover:text-premium transition-colors truncate">
                 <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
               </h4>
-              <span className="px-2 py-0.5 bg-surface-container-low text-body-sm font-bold rounded">
-                Grade {lot.grade}
-              </span>
             </div>
             <p className="text-body-sm text-outline mt-1 mb-2 font-medium truncate">{lot.specString}</p>
-            <p className="text-body-sm text-outline flex items-center gap-1 mb-3">
+            <p className="text-body-sm text-outline flex items-center gap-1.5 mb-3">
               <span className="material-symbols-outlined text-sm text-primary">
                 location_on
               </span>
-              {lot.location}
+              <span>{lot.location}</span>
+              <span className="text-outline/50">•</span>
+              <span className="material-symbols-outlined text-sm text-primary">
+                calendar_today
+              </span>
+              <span>{lot.timerLabel || "Segera"}</span>
             </p>
           </div>
         </div>
