@@ -57,23 +57,28 @@ export default function BidderHome() {
            setNiplCounts({ motor: motorCount, mobil: mobilCount });
         }
 
-        // 1. Fetch nearest live session first
-        let sessionRes = await apiFetch("/sessions?status=live&sort=scheduled_at:asc");
+        // 1. Fetch nearest live session first. The API returns the session list
+        // directly in `data` (already ordered by scheduled_at ascending), not
+        // nested under `data.sessions`.
+        let sessionRes = await apiFetch("/sessions?status=live");
         let sessionData = await sessionRes.json();
-        
-        // 2. If no live session, fetch published session
-        if (!sessionData.success || sessionData.data?.sessions?.length === 0) {
-          sessionRes = await apiFetch("/sessions?status=published&sort=scheduled_at:asc");
+        let sessions: any[] = Array.isArray(sessionData.data) ? sessionData.data : [];
+
+        // 2. If no live session, fall back to the next published one
+        if (!sessionData.success || sessions.length === 0) {
+          sessionRes = await apiFetch("/sessions?status=published");
           sessionData = await sessionRes.json();
+          sessions = Array.isArray(sessionData.data) ? sessionData.data : [];
         }
 
         let hasActiveLots = false;
 
-        if (sessionData.success && sessionData.data?.sessions?.length > 0) {
-           const nearestSession = sessionData.data.sessions[0];
-           
-           // Fetch lots for this session
-           const lotsRes = await apiFetch(`/sessions/${nearestSession.id}/lots`);
+        if (sessionData.success && sessions.length > 0) {
+           const nearestSession = sessions[0];
+
+           // Lots are fetched from /lots filtered by session — there is no
+           // /sessions/:id/lots endpoint.
+           const lotsRes = await apiFetch(`/lots?session_id=${nearestSession.id}&per_page=100`);
            const lotsData = await lotsRes.json();
            if (lotsData.success && lotsData.data?.length > 0) {
              setSession(nearestSession);

@@ -110,8 +110,10 @@ export default function BidderDashboard() {
         setNiplMobilCount(mobilCount);
       }
 
-      // 3. Fetch Active Auction Sessions
-      const resSessions = await apiFetch("/sessions?status=active");
+      // 3. Fetch the currently running session. Session status is one of
+      // draft/published/live/closed — "active" matches nothing, so this used to
+      // always come back empty.
+      const resSessions = await apiFetch("/sessions?status=live");
       const resSessData = await resSessions.json();
       if (resSessions.ok && resSessData.success) {
         const sessionsList = resSessData.data || [];
