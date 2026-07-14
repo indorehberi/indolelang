@@ -184,8 +184,53 @@ function CartGroupCard({
     return sum;
   };
 
+  const calculateDepositDeduction = () => {
+    if (existingOrder) {
+      return existingOrder.deposit_deduction || 0;
+    }
+
+    // NIPL amounts
+    const settingsMotorNipl = 1000000;
+    const settingsMobilNipl = 5000000;
+
+    // Selected invoices counts
+    let selectedMotorCount = 0;
+    let selectedMobilCount = 0;
+    group.invoices.forEach((inv) => {
+      if (selectedInvoiceIds.includes(inv.id)) {
+        const isMotor = inv.lot?.asset?.category?.toLowerCase().includes("motor");
+        if (isMotor) {
+          selectedMotorCount++;
+        } else {
+          selectedMobilCount++;
+        }
+      }
+    });
+
+    // Count user's total available active deposits
+    let availableMotorDeposit = 0;
+    let availableMobilDeposit = 0;
+    activeDeposits.forEach((dep) => {
+      if (dep.unit_type === "motor") {
+        availableMotorDeposit += Number(dep.amount);
+      } else {
+        availableMobilDeposit += Number(dep.amount);
+      }
+    });
+
+    // Max deduction based on won vehicles in this checkout
+    const maxMotorDeduction = selectedMotorCount * settingsMotorNipl;
+    const maxMobilDeduction = selectedMobilCount * settingsMobilNipl;
+
+    const motorDeduction = Math.min(availableMotorDeposit, maxMotorDeduction);
+    const mobilDeduction = Math.min(availableMobilDeposit, maxMobilDeduction);
+
+    return motorDeduction + mobilDeduction;
+  };
+
   const subtotal = calculateSubtotal();
-  const finalAmount = Math.max(0, subtotal - totalDepositValue);
+  const depositDeduction = calculateDepositDeduction();
+  const finalAmount = Math.max(0, subtotal - depositDeduction);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -396,7 +441,7 @@ function CartGroupCard({
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Potongan Deposit NIPL</span>
               <span className="font-bold text-success">
-                - {formatRupiah(totalDepositValue)} {hasUnlimited && "(Unlimited)"}
+                - {formatRupiah(depositDeduction)} {hasUnlimited && "(Unlimited)"}
               </span>
             </div>
 

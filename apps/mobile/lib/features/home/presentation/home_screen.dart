@@ -65,6 +65,81 @@ class _HomeScreenState extends State<HomeScreen> {
     return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(number);
   }
 
+  String? _getAssetImageUrl(dynamic asset) {
+    if (asset == null) return null;
+    
+    final images = asset['images'];
+    if (images != null) {
+      if (images is List && images.isNotEmpty) {
+        return images[0].toString();
+      } else if (images is String && images.isNotEmpty) {
+        if (images.startsWith('[')) {
+          final clean = images.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll('\'', '');
+          final parts = clean.split(',');
+          if (parts.isNotEmpty && parts[0].trim().isNotEmpty) {
+            return parts[0].trim();
+          }
+        } else {
+          return images;
+        }
+      }
+    }
+    
+    if (asset['image_url'] != null && asset['image_url'].toString().isNotEmpty) {
+      return asset['image_url'].toString();
+    }
+    
+    final photos = asset['photos'];
+    if (photos != null) {
+      if (photos is List && photos.isNotEmpty) {
+        return photos[0].toString();
+      } else if (photos is String && photos.isNotEmpty) {
+        if (photos.startsWith('[')) {
+          final clean = photos.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll('\'', '');
+          final parts = clean.split(',');
+          if (parts.isNotEmpty && parts[0].trim().isNotEmpty) {
+            return parts[0].trim();
+          }
+        } else {
+          return photos;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  String _resolveImageUrl(String? path) {
+    if (path == null || path.isEmpty) {
+      return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    final cleanPath = path.startsWith('/') ? path : '/$path';
+    const base = 'http://10.0.2.2:8000';
+    return '$base$cleanPath';
+  }
+
+  Widget _buildLotImage(dynamic asset) {
+    final path = _getAssetImageUrl(asset);
+    final imageUrl = _resolveImageUrl(path);
+    
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(
+          child: Icon(Icons.image_outlined, size: 48, color: Colors.white30),
+        );
+      },
+    );
+  }
+
   void _showCategoryInfo(String category) {
     showDialog(
       context: context,
@@ -196,11 +271,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Container(
-                                    height: 140,
-                                    color: Colors.grey[900],
-                                    child: const Center(
-                                      child: Icon(Icons.image_outlined, size: 48, color: Colors.white30),
+                                  AspectRatio(
+                                    aspectRatio: 4 / 3,
+                                    child: Container(
+                                      color: Colors.grey[900],
+                                      child: _buildLotImage(asset),
                                     ),
                                   ),
                                   Padding(

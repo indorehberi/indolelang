@@ -76,6 +76,8 @@ describe('Settlement Flow End-to-End Integration Tests', () => {
         full_name: 'Provider Mobilindo',
         role: Role.PROVIDER,
         status: UserStatus.ACTIVE,
+        provider_fee_type: 'percentage',
+        provider_fee_amount: 5,
       },
     });
     providerId = provider.id;

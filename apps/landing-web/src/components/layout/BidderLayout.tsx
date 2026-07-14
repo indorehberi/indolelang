@@ -73,28 +73,33 @@ export default function BidderLayout({ children, pageTitle, hideHeader = false }
 
         {/* Menu Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-1">
-          {allBidderNavItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                isActive(item.href)
-                  ? "bg-primary text-on-primary shadow-md shadow-primary/20"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`}
-            >
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>
-              <span className="flex-1">{item.name}</span>
-              {item.badge && (
-                <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                  {item.badge}
-                </span>
-              )}
-              {item.isLive && (
-                <span className="w-2.5 h-2.5 rounded-full bg-error animate-pulse" />
-              )}
-            </Link>
-          ))}
+          {allBidderNavItems
+            .filter((item) => item.href !== "/bidder/home")
+            .map((item) => {
+              const displayName = item.href === "/bidder/dashboard" ? "Beranda" : item.name;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive(item.href)
+                      ? "bg-primary text-on-primary shadow-md shadow-primary/20"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                  <span className="flex-1">{displayName}</span>
+                  {item.badge && (
+                    <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                  {item.isLive && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-error animate-pulse" />
+                  )}
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Footer Sidebar */}

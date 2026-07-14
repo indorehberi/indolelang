@@ -72,6 +72,8 @@ describe('Advanced Payments & Disbursements Module Integration Tests', () => {
         full_name: 'Payment Test Provider',
         role: Role.PROVIDER,
         status: UserStatus.ACTIVE,
+        provider_fee_type: 'percentage',
+        provider_fee_amount: 5,
       },
     });
     providerId = provider.id;

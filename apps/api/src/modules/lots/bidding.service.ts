@@ -83,7 +83,10 @@ export class BiddingService {
       where: {
         user_id: bid.userId,
         status: 'paid',
-        unit_type: unitType,
+        OR: [
+          { unit_type: unitType },
+          { unit_type: null }
+        ]
       },
     });
 
@@ -260,9 +263,8 @@ export class BiddingService {
       const commission = adminFee;
       const tax = 0;
       
-      // Tambahkan kode unik (1-9) pada tagihan
-      const uniqueCode = Math.floor(Math.random() * 9) + 1;
-      const total = hammerPrice + adminFee + pmk41Amount + uniqueCode;
+      // Total tagihan per invoice tidak ditambahkan kode unik (hanya pada total tagihan checkout_orders)
+      const total = hammerPrice + adminFee + pmk41Amount;
 
       // Perform updates inside database transaction
       const [updatedLot, invoice, winnerUser] = await prisma.$transaction([
