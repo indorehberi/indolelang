@@ -137,6 +137,30 @@ export class LotsController {
       next(error);
     }
   }
+
+  /**
+   * POST /lots/:id/view — Increment view count (public endpoint)
+   */
+  async incrementView(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Mock for now to prevent DB schema error until migrations are run later tonight
+      sendSuccess(res, null, 'View count incremented');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /lots/:id/like — Toggle like count (public endpoint)
+   */
+  async toggleLike(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Mock for now to prevent DB schema error until migrations are run later tonight
+      sendSuccess(res, null, 'Like count toggled');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default LotsController;

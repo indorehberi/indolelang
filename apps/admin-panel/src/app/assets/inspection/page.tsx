@@ -40,6 +40,7 @@ interface Asset {
 }
 
 const GRADE_OPTIONS = [
+  { value: 'N/A', label: 'N/A — Tidak Tersedia' },
   { value: 'A', label: 'A — Sangat Baik' },
   { value: 'B', label: 'B — Baik' },
   { value: 'C', label: 'C — Cukup' },

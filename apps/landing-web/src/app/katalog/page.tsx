@@ -14,6 +14,26 @@ import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 /* Data                                                                         */
 /* -------------------------------------------------------------------------- */
 
+function addBusinessDays(startDate: Date, days: number): Date {
+  const d = new Date(startDate);
+  let count = 0;
+  while (count < days) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  d.setHours(18, 0, 0, 0);
+  return d;
+}
+
+function formatDeadlineDate(scheduledAt: string | undefined): string {
+  if (!scheduledAt) return 'N/A';
+  const sesi = new Date(scheduledAt);
+  const deadline = addBusinessDays(sesi, 3);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(deadline.getDate())}/${pad(deadline.getMonth() + 1)}/${deadline.getFullYear()} 18:00 WIB`;
+}
+
 const initialLots: any[] = [];
 
 const categories = ["Semua Lot", "Mobil", "Motor", "Properti", "Alat Berat"];
@@ -141,6 +161,8 @@ function KatalogContent() {
           sessionId: dbLot.session_id,
           lot_number: dbLot.lot_number || 0,
           tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
+          notes: dbLot.asset.notes || undefined,
+          scheduledAt: dbLot.session?.scheduled_at || undefined,
         };
       });
       setLotsList(mapped);
@@ -223,7 +245,7 @@ function KatalogContent() {
     const matchesPrice = priceVal >= minVal && priceVal <= maxVal;
 
     return matchesSearch && matchesCategory && matchesLokasi && matchesStatus && matchesJenisLelang && matchesPrice;
-  });
+  }).sort((a, b) => (a.lot_number || 0) - (b.lot_number || 0));
 
   const itemsPerPage = 6;
   const totalPages = Math.ceil(filteredLots.length / itemsPerPage) || 1;
@@ -633,7 +655,7 @@ function KatalogContent() {
                           </div>
                           {/* Harga dasar box — menutup ~50% bawah foto */}
                           {!lot.isCancelled && (
-                            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10">
+                            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
                               <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">Harga Dasar</p>
                               <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
                             </div>
@@ -641,36 +663,34 @@ function KatalogContent() {
                         </div>
 
                         {/* ── BODY ─────────────────────────────────── */}
-                        <div className={`flex flex-col flex-1 px-4 pb-4 ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
+                        <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
                           {/* Nama unit */}
                           <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
                             <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
                           </h4>
 
                           {/* Views & likes */}
-                          <div className="flex items-center gap-3 text-[11px] text-outline mb-2">
+                          <div className="flex items-center justify-center gap-3 text-[11px] text-outline mb-2">
                             <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> 0</span>
                             <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> 0</span>
                           </div>
 
-                          {/* Lokasi & tanggal */}
-                          <p className="text-body-sm text-outline flex items-center gap-1.5 mb-1 flex-wrap">
+                          {/* Lokasi Unit */}
+                          <p className="text-body-sm text-outline flex items-center justify-center gap-1.5 mb-1">
                             <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-                            <span>{lot.location}</span>
-                            <span className="text-outline/40">•</span>
-                            <span className="material-symbols-outlined text-sm text-primary">calendar_today</span>
-                            <span>{lot.timerLabel || "Segera"}</span>
+                            <span>{lot.notes || 'N/A'}</span>
                           </p>
 
                           {/* Batas pelunasan */}
-                          <p className="text-[11px] text-warning font-semibold mb-3 flex items-center gap-1">
+                          <p className="text-[11px] text-warning font-semibold mb-0.5 flex items-center justify-center gap-1">
                             <span className="material-symbols-outlined text-sm">schedule</span>
-                            Batas Pelunasan: 3 hari
+                            Batas Pelunasan : 5 HK
                           </p>
+                          <p className="text-[10px] text-on-surface-variant mb-3">{lot.scheduledAt ? formatDeadlineDate(lot.scheduledAt) : 'N/A'}</p>
 
                           {/* Tabel Info Kendaraan */}
-                          <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3">
-                            <div className="bg-surface-container-lowest px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                          <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
+                            <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
                               Info Kendaraan
                             </div>
                             <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
@@ -701,8 +721,8 @@ function KatalogContent() {
 
                           {/* Grade Kendaraan */}
                           {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
-                            <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3">
-                              <div className="bg-surface-container-lowest px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                            <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
+                              <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
                                 Grade Kendaraan
                               </div>
                               <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
@@ -715,7 +735,8 @@ function KatalogContent() {
                                     <p className={`text-lg font-black leading-none ${
                                       g.grade === 'A' ? 'text-green-600' :
                                       g.grade === 'B' ? 'text-blue-600' :
-                                      g.grade === 'C' ? 'text-amber-600' : 'text-red-600'
+                                      g.grade === 'C' ? 'text-amber-600' :
+                                      g.grade === 'N/A' ? 'text-slate-400' : 'text-red-600'
                                     }`}>{g.grade || "-"}</p>
                                     <p className="text-[9px] text-on-surface-variant mt-0.5">{g.label}</p>
                                   </div>

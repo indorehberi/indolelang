@@ -26,6 +26,11 @@ export default function DetailLotPage() {
   const [bidAmount, setBidAmount] = useState<number>(0);
   const [zoomOpen, setZoomOpen] = useState(false);
 
+  const [likeCount, setLikeCount] = useState<number>(0);
+  const [viewCount, setViewCount] = useState<number>(0);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const [flyingHearts, setFlyingHearts] = useState<{ id: number; left: number }[]>([]);
+
   useEffect(() => {
     if (!id) return;
 
@@ -41,6 +46,8 @@ export default function DetailLotPage() {
           const lotData = result.data;
           setLot(lotData);
           setBidAmount(lotData.hammer_price || lotData.starting_price);
+          setLikeCount(lotData.like_count || 0);
+          setViewCount((lotData.view_count || 0) + 1); // locally increment for immediate feedback
         } else {
           setError(result.error?.message || "Lot tidak ditemukan");
         }
@@ -52,7 +59,27 @@ export default function DetailLotPage() {
     };
 
     fetchLotDetail();
+    
+    // Increment view count in backend
+    fetch(apiUrl(`/lots/${id}/view`), { method: 'POST' }).catch(() => {});
   }, [id]);
+
+  const handleLike = () => {
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
+    
+    // Fire/forget request to server
+    fetch(apiUrl(`/lots/${id}/like`), { method: 'POST' }).catch(() => {});
+
+    if (nextLiked) {
+      const newHeart = { id: Date.now(), left: Math.random() * 80 - 40 };
+      setFlyingHearts(prev => [...prev, newHeart]);
+      setTimeout(() => {
+        setFlyingHearts(prev => prev.filter(h => h.id !== newHeart.id));
+      }, 1500);
+    }
+  };
 
   useEffect(() => {
     if (!zoomOpen) return;
@@ -178,6 +205,21 @@ export default function DetailLotPage() {
 
   return (
     <div className="min-h-screen bg-surface">
+      <style>{`
+        @keyframes flyHeart {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-100px) scale(1.5);
+            opacity: 0;
+          }
+        }
+        .animate-fly-heart {
+          animation: flyHeart 1.2s ease-out forwards;
+        }
+      `}</style>
       {/* ====== STICKY MOBILE CTA (logged-out visitors only — bidders get BidderBottomNav instead) ====== */}
       {!isBidderLoggedIn && (
         <div
@@ -237,9 +279,30 @@ export default function DetailLotPage() {
                 <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
                   LOT #{lot.lot_number}
                 </div>
-                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md text-primary w-10 h-10 rounded-full flex items-center justify-center font-black shadow-sm border border-white">
-                  {grade}
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLike();
+                  }}
+                  className="absolute top-3 right-3 bg-white/95 backdrop-blur-md text-error w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-white hover:scale-110 active:scale-95 transition-all z-10"
+                >
+                  <span className="material-symbols-outlined font-bold" style={{ fontVariationSettings: isLiked ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>
+                    favorite
+                  </span>
+                  {flyingHearts.map((heart) => (
+                    <span
+                      key={heart.id}
+                      className="absolute text-error animate-fly-heart pointer-events-none text-2xl"
+                      style={{
+                        left: `calc(50% + ${heart.left}px)`,
+                        bottom: '100%',
+                      }}
+                    >
+                      ❤️
+                    </span>
+                  ))}
+                </button>
               </button>
 
               {/* Thumbnail Strip (Only if > 1 image) - single row, click to zoom */}
@@ -281,6 +344,18 @@ export default function DetailLotPage() {
                   <span className="text-slate-500">Jadwal Lelang</span>
                   <span className="font-bold text-slate-800">
                     {lot.session?.scheduled_at ? new Date(lot.session.scheduled_at).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"} WIB
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
+                  <span className="text-slate-500">Dilihat</span>
+                  <span className="font-bold text-slate-800 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">visibility</span> {viewCount}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
+                  <span className="text-slate-500">Disukai</span>
+                  <span className="font-bold text-slate-800 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-error">favorite</span> {likeCount}
                   </span>
                 </div>
                 <div className="flex justify-between pb-1">

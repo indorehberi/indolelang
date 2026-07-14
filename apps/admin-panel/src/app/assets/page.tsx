@@ -238,7 +238,7 @@ export default function AssetsPage() {
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>{isMotor ? 'Grade Body' : 'Grade Interior'}</label>
               <select value={formData.grade_interior} onChange={(e) => setFormData({...formData, grade_interior: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">--</option>
-                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+                {['N/A', 'A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             {!isMotor && (
@@ -246,7 +246,7 @@ export default function AssetsPage() {
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Grade Exterior</label>
                 <select value={formData.grade_exterior} onChange={(e) => setFormData({...formData, grade_exterior: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                   <option value="">--</option>
-                  {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+                  {['N/A', 'A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
             )}
@@ -689,8 +689,11 @@ export default function AssetsPage() {
                     </td>
                     <td>
                       <div className="d-flex gap-1 flex-wrap">
-                        {['admin', 'superadmin'].includes(userRole) && asset.status !== 'pending' && (
+                        {['admin', 'superadmin'].includes(userRole) && (
                           <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
+                        )}
+                        {['admin', 'superadmin'].includes(userRole) && (
+                          <Button variant="primary" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>Edit</Button>
                         )}
                         {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.status === 'pending' && (
                           <Button variant="primary" size="sm" onClick={() => router.push(`/assets/inspection?open=${asset.id}`)}>Inspeksi</Button>

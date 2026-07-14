@@ -8,6 +8,7 @@ import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 
 const GRADE_OPTIONS = [
+  { value: 'N/A', label: 'N/A — Tidak Tersedia' },
   { value: 'A', label: 'Grade A (Sangat Baik)' },
   { value: 'B', label: 'Grade B (Baik)' },
   { value: 'C', label: 'Grade C (Cukup)' },
@@ -78,9 +79,9 @@ export default function NewAssetPage() {
     // Inspection
     inspection_date: new Date().toISOString().split('T')[0] + 'T00:00:00Z',
     inspection_pic_name: '',
-    grade_interior: 'A',
-    grade_exterior: 'A',
-    grade_engine: 'A',
+    grade_interior: 'N/A',
+    grade_exterior: 'N/A',
+    grade_engine: 'N/A',
     inspection_doc_url: '',
     
     // Specs

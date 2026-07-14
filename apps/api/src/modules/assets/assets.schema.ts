@@ -75,8 +75,8 @@ export const updateAssetSchema = z.object({
 
     inspector_id: z.string().uuid().optional(),
     inspection_date: z.string().datetime().optional(),
-    grade_interior: z.enum(['A', 'B', 'C', 'D']).optional(),
-    grade_exterior: z.enum(['A', 'B', 'C', 'D']).optional(),
+    grade_interior: z.string().optional(),
+    grade_exterior: z.string().optional(),
     brand: z.string().optional(),
     model: z.string().optional(),
     color: z.string().optional(),
@@ -133,9 +133,9 @@ export const inspectAssetSchema = z.object({
   body: z.object({
     inspection_date: z.string().datetime(),
     inspection_pic_name: z.string().min(1, 'PIC Inspeksi wajib diisi'),
-    grade_interior: z.enum(['A', 'B', 'C', 'D', 'E']),
-    grade_exterior: z.enum(['A', 'B', 'C', 'D', 'E']),
-    grade_engine: z.enum(['A', 'B', 'C', 'D', 'E']),
+    grade_interior: z.string(),
+    grade_exterior: z.string(),
+    grade_engine: z.string(),
     inspection_doc_url: z.string().optional(),
     category: z.nativeEnum(AssetCategory),
     brand: z.string().min(1, 'Merek wajib diisi'),
