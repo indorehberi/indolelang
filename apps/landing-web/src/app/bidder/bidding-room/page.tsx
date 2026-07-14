@@ -18,11 +18,12 @@ interface BidLog {
 }
 
 // Sub-component to manage a single active lot
-function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingleLot }: {
+function ActiveLotCard({ lot, token, bidIncrements, socket, isConnected, onLotClosed, isSingleLot }: {
   lot: any;
   token: string;
   bidIncrements: number[];
   socket: Socket | null;
+  isConnected: boolean;
   onLotClosed: (data?: any) => void;
   isSingleLot: boolean;
 }) {
@@ -205,7 +206,9 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
   }, [socket, lot.id, onLotClosed, playBeep]);
 
   const handlePlaceBid = (incrementAmount: number) => {
-    if (!socket || bidCooldown) return;
+    // While disconnected the price on screen is whatever arrived last, so a bid
+    // built on top of it would be based on a stale number.
+    if (!socket || !isConnected || bidCooldown) return;
     if ("vibrate" in navigator) navigator.vibrate(15);
     setBidCooldown(true);
     setTimeout(() => setBidCooldown(false), 1200);
@@ -275,6 +278,16 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
         </span>
       </div>
 
+      {!isConnected && (
+        <div className="alert-box danger mb-4 flex items-center gap-2 transition-all mx-5 mt-4">
+          <span className="material-symbols-outlined animate-pulse">wifi_off</span>
+          <span>
+            Koneksi terputus — harga di layar mungkin sudah tidak terbaru. Penawaran dinonaktifkan sampai
+            tersambung kembali.
+          </span>
+        </div>
+      )}
+
       {errorMessage && (
         <div className="alert-box danger mb-4 flex items-center gap-2 transition-all mx-5 mt-4">
           <span className="material-symbols-outlined">error</span>
@@ -314,12 +327,12 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
             {hasNipl ? (
               <div className="mt-6 space-y-4">
                 <button
-                  disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
+                  disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
                   onClick={() => handlePlaceBid(minIncrement)}
                   className={`w-full py-4 px-4 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
                     isSingleLot ? "hidden lg:block" : ""
                   } ${
-                    bidCooldown || timeLeft <= 0 || !isBidEnabled
+                    bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                       : "bg-primary hover:bg-primary/95 text-white cursor-pointer hover:shadow-lg"
                   }`}
@@ -434,15 +447,15 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
         className="fixed bottom-16 inset-x-0 z-30 lg:hidden bg-white/95 glass-nav border-t border-outline-variant/20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] px-4 py-3 flex justify-center items-center"
       >
         <button
-          disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled}
+          disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
           onClick={() => handlePlaceBid(minIncrement)}
           className={`w-full py-5 text-xl font-black rounded-2xl transition-all shadow-md active:scale-95 ${
-            bidCooldown || timeLeft <= 0 || !isBidEnabled
+            bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
               ? "bg-slate-300 text-slate-500 cursor-not-allowed"
               : "bg-primary hover:bg-primary/95 text-white cursor-pointer"
           }`}
         >
-          BID
+          {isConnected ? "BID" : "TERPUTUS"}
         </button>
       </div>
     )}
@@ -463,6 +476,7 @@ export default function BidderBiddingRoom() {
   const [bidIncrements, setBidIncrements] = useState<number[]>([500000, 1000000, 2000000]);
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const fetchActiveLots = async (isPolling = false) => {
     if (typeof window === "undefined") return;
@@ -557,58 +571,85 @@ export default function BidderBiddingRoom() {
     // If there's no active lot AND no live session, we don't need a socket yet
     if (activeLots.length === 0 && !liveSessionId) return;
 
-    let cancelled = false;
-    let localSocket: Socket | null = null;
+    // A callback (rather than a plain object) is re-invoked before every
+    // connection attempt, so a reconnect after a long background never
+    // handshakes with an access token that expired in the meantime.
+    const localSocket: Socket = io(wsBaseUrl(), {
+      auth: async (cb: (data: object) => void) => {
+        const token = (await refreshAccessToken()) || localStorage.getItem("accessToken") || "";
+        cb({ token });
+      },
+      transports: ["websocket"],
+    });
+    socketRef.current = localSocket;
+    setSocket(localSocket);
 
-    const connect = async () => {
-      const freshToken = (await refreshAccessToken()) || localStorage.getItem("accessToken");
-      if (cancelled) return;
-
-      localSocket = io(wsBaseUrl(), {
-        auth: { token: freshToken },
-        transports: ["websocket"],
-      });
-      socketRef.current = localSocket;
-      setSocket(localSocket);
-
-      // Join room for each active lot
+    // Room membership lives on the socket connection: the server only puts us in
+    // `lot:{id}` when it receives bid:watch, and bid:update is broadcast to that
+    // room. A reconnect (screen off, WiFi/cellular switch, flaky signal) creates
+    // a brand-new connection, so this MUST run on every connect — otherwise the
+    // client silently stops receiving price updates while the screen still looks
+    // live. The server answers bid:watch with the current price, which also
+    // resyncs whatever was missed while we were away.
+    const handleConnect = () => {
+      setIsConnected(true);
       activeLots.forEach((lot) => {
-        localSocket!.emit("bid:watch", {
+        localSocket.emit("bid:watch", {
           lot_id: lot.id,
           session_id: lot.session_id,
         });
       });
-
-      // Join session room to listen for lot:start (for cancelled lot freezing)
       if (liveSessionId) {
-        localSocket.on("lot:start", (data: any) => {
-          if (data.is_canceled) {
-            setFrozenLot(data);
-            setTimeout(() => {
-              setFrozenLot(null);
-              fetchActiveLots();
-            }, (data.freeze_duration_secs || 5) * 1000);
-          } else {
-            // New active lot started, refresh
-            fetchActiveLots();
-          }
-        });
+        localSocket.emit("bid:watch", { session_id: liveSessionId });
       }
     };
 
-    connect();
+    const handleDisconnect = () => setIsConnected(false);
+
+    // Join session room to listen for lot:start (for cancelled lot freezing)
+    const handleLotStart = (data: any) => {
+      if (data.is_canceled) {
+        setFrozenLot(data);
+        setTimeout(() => {
+          setFrozenLot(null);
+          fetchActiveLots();
+        }, (data.freeze_duration_secs || 5) * 1000);
+      } else {
+        // New active lot started, refresh
+        fetchActiveLots();
+      }
+    };
+
+    localSocket.on("connect", handleConnect);
+    localSocket.on("disconnect", handleDisconnect);
+    if (liveSessionId) {
+      localSocket.on("lot:start", handleLotStart);
+    }
+
+    // Android tears down sockets aggressively once the PWA is backgrounded, and
+    // the client may not notice until it is resumed. Reconnect on the spot
+    // instead of waiting out the backoff.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !localSocket.connected) {
+        localSocket.connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      cancelled = true;
-      if (localSocket) {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (localSocket.connected) {
         activeLots.forEach((lot) => {
-          localSocket!.emit("bid:unwatch", { lot_id: lot.id });
+          localSocket.emit("bid:unwatch", { lot_id: lot.id });
         });
-        localSocket.off("lot:start");
-        localSocket.disconnect();
       }
+      localSocket.off("connect", handleConnect);
+      localSocket.off("disconnect", handleDisconnect);
+      localSocket.off("lot:start", handleLotStart);
+      localSocket.disconnect();
       socketRef.current = null;
       setSocket(null);
+      setIsConnected(false);
     };
   }, [activeLots.map(l => l.id).join(","), liveSessionId]);
 
@@ -648,6 +689,7 @@ export default function BidderBiddingRoom() {
               token={localStorage.getItem("accessToken") || ""}
               bidIncrements={bidIncrements}
               socket={socket}
+              isConnected={isConnected}
               onLotClosed={handleLotClosed}
               isSingleLot={activeLots.length === 1}
             />
