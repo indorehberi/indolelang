@@ -456,7 +456,7 @@ export default function AssetDetailPage() {
             {editMode ? (
               <>
                 <EditField label="Nama / Judul" field="title" />
-                <EditField label="Kategori" field="category" type="select" options={['MOBIL', 'MOTOR', 'ALAT_BERAT', 'PROPERTI']} />
+                <EditField label="Kategori" field="category" type="select" options={['mobil', 'motor', 'alat_berat', 'properti']} />
                 <EditField label="Harga Dasar (Rp)" field="base_price" type="number" />
                 <EditField label="Deskripsi" field="description" type="textarea" />
                 <EditField label="Lokasi Kendaraan" field="notes" type="textarea" />
