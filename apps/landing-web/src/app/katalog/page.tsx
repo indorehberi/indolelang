@@ -603,20 +603,32 @@ function KatalogContent() {
                 <div className={isStandalone ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"}>
                   {paginatedLots.map((lot) => {
                     if (isStandalone) {
+                      const CardTag = lot.isCancelled ? 'div' : Link;
+                      const cardProps = lot.isCancelled ? {} : { href: `/katalog/${lot.id}` };
                       return (
-                        <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
+                        <CardTag key={lot.id} {...(cardProps as any)} className={`bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col transition-transform ${lot.isCancelled ? '' : 'active:scale-95'}`}>
                           <div className="aspect-[4/3] bg-slate-100 relative">
                             {lot.image ? (
-                              <img src={lot.image} alt={lot.title} className="w-full h-full object-cover" />
+                              <img
+                                src={lot.image}
+                                alt={lot.title}
+                                className={`w-full h-full object-cover ${lot.isCancelled ? 'blur-sm scale-105 grayscale' : ''}`}
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-300">
                                 <span className="material-symbols-outlined text-4xl">directions_car</span>
                               </div>
                             )}
+                            {lot.isCancelled && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40">
+                                <span className="material-symbols-outlined text-white" style={{ fontSize: 28 }}>cancel</span>
+                                <p className="text-xs font-black text-white tracking-widest mt-1 drop-shadow">DIBATALKAN</p>
+                              </div>
+                            )}
                             <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                               Lot {lot.lot_number || '-'}
                             </div>
-                            {lot.grade && (
+                            {lot.grade && !lot.isCancelled && (
                               <div className="absolute top-1.5 right-1.5 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                                 Grade {lot.grade}
                               </div>
@@ -639,7 +651,7 @@ function KatalogContent() {
                               </p>
                             </div>
                           </div>
-                        </Link>
+                        </CardTag>
                       );
                     }
                     const formatRupiah = (v: number) =>
@@ -689,7 +701,7 @@ function KatalogContent() {
                         <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
                           {/* Nama unit */}
                           <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
-                            <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
+                            {lot.isCancelled ? lot.title : <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>}
                           </h4>
 
                           {/* Views & likes */}
@@ -771,16 +783,22 @@ function KatalogContent() {
                           {/* CTA */}
                           <div className="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
                             <p className="text-body-sm text-on-surface-variant">{lot.timer}</p>
-                            <Link
-                              href={`/katalog/${lot.id}`}
-                              className={`px-4 py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
-                                lot.action === "Bid"
-                                  ? "bg-error text-white hover:bg-error/90"
-                                  : "bg-premium text-on-premium hover:bg-premium/85"
-                              }`}
-                            >
-                              {lot.action}
-                            </Link>
+                            {lot.isCancelled ? (
+                              <span className="px-4 py-2 rounded-xl text-body-sm font-bold bg-slate-200 text-slate-400 cursor-not-allowed">
+                                {lot.action}
+                              </span>
+                            ) : (
+                              <Link
+                                href={`/katalog/${lot.id}`}
+                                className={`px-4 py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
+                                  lot.action === "Bid"
+                                    ? "bg-error text-white hover:bg-error/90"
+                                    : "bg-premium text-on-premium hover:bg-premium/85"
+                                }`}
+                              >
+                                {lot.action}
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </article>

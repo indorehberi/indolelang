@@ -128,7 +128,7 @@ function LotCard({
       <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
         {/* Nama unit */}
         <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
-          <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
+          {lot.isCancelled ? lot.title : <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>}
         </h4>
 
         {/* Views & likes */}
@@ -209,12 +209,18 @@ function LotCard({
 
         {/* CTA */}
         <div className="mt-auto">
-          <Link
-            href={`/katalog/${lot.id}`}
-            className="w-full px-4 py-2.5 rounded-xl font-bold text-body-sm btn-press transition-all bg-premium text-on-premium shadow-sm hover:bg-premium/85 text-center block"
-          >
-            Lihat Detail
-          </Link>
+          {lot.isCancelled ? (
+            <span className="w-full px-4 py-2.5 rounded-xl font-bold text-body-sm bg-slate-200 text-slate-400 text-center block cursor-not-allowed">
+              Dibatalkan
+            </span>
+          ) : (
+            <Link
+              href={`/katalog/${lot.id}`}
+              className="w-full px-4 py-2.5 rounded-xl font-bold text-body-sm btn-press transition-all bg-premium text-on-premium shadow-sm hover:bg-premium/85 text-center block"
+            >
+              Lihat Detail
+            </Link>
+          )}
         </div>
       </div>
     </div>
