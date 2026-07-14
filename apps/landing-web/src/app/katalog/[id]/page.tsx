@@ -47,7 +47,7 @@ export default function DetailLotPage() {
           setLot(lotData);
           setBidAmount(lotData.hammer_price || lotData.starting_price);
           setLikeCount(lotData.like_count || 0);
-          setViewCount((lotData.view_count || 0) + 1); // locally increment for immediate feedback
+          setViewCount(lotData.view_count || 0);
         } else {
           setError(result.error?.message || "Lot tidak ditemukan");
         }
@@ -59,18 +59,30 @@ export default function DetailLotPage() {
     };
 
     fetchLotDetail();
-    
-    // Increment view count in backend
-    fetch(apiUrl(`/lots/${id}/view`), { method: 'POST' }).catch(() => {});
+
+    fetch(apiUrl(`/lots/${id}/view`), { method: 'POST' })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.success && result.data) {
+          setViewCount(result.data.view_count || 0);
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   const handleLike = () => {
     const nextLiked = !isLiked;
     setIsLiked(nextLiked);
     setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
-    
-    // Fire/forget request to server
-    fetch(apiUrl(`/lots/${id}/like`), { method: 'POST' }).catch(() => {});
+
+    fetch(apiUrl(`/lots/${id}/like`), { method: 'POST' })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.success && result.data) {
+          setLikeCount(result.data.like_count || 0);
+        }
+      })
+      .catch(() => {});
 
     if (nextLiked) {
       const newHeart = { id: Date.now(), left: Math.random() * 80 - 40 };
@@ -145,9 +157,11 @@ export default function DetailLotPage() {
     ? rawImages.map((img: string) => getImageUrl(img))
     : [getImageUrl(undefined)];
 
+  const vehicleLocation = lot.asset.notes || lot.session?.branch?.address || lot.session?.branch?.city || "-";
+
   const specs = [
     { label: "Cabang Lelang", value: lot.session?.branch?.name || "Pusat" },
-    { label: "Lokasi Lelang", value: lot.session?.branch?.address || "Pusat" },
+    { label: "Lokasi Kendaraan", value: vehicleLocation },
     { label: "Kategori", value: lot.asset.category || "-" },
     { label: "Merk / Tipe", value: lot.asset.title || "-" },
     { label: "Tahun", value: lot.asset.year ? String(lot.asset.year) : "-" },
@@ -163,8 +177,8 @@ export default function DetailLotPage() {
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
     { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
     { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
-    { label: "Lokasi Kendaraan", value: lot.asset.notes || "-" },
-  ];
+  ];
+
   let isLive = lot.status === "active";
   if (lot.session) {
     const now = new Date();
@@ -335,32 +349,22 @@ export default function DetailLotPage() {
                 <span className="material-symbols-outlined text-primary">info</span>
                 Info Lot
               </h2>
-              <div className="space-y-4 text-sm">
-                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
-                  <span className="text-slate-500">Harga Dasar</span>
-                  <span className="font-bold text-primary">{formatRupiah(lot.starting_price)}</span>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between border-b border-slate-300/80 pb-2">
+                  <span className="text-slate-500">Lokasi Kendaraan</span>
+                  <span className="font-bold text-slate-800 text-right max-w-[60%]">{vehicleLocation}</span>
                 </div>
-                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
-                  <span className="text-slate-500">Jadwal Lelang</span>
-                  <span className="font-bold text-slate-800">
-                    {lot.session?.scheduled_at ? new Date(lot.session.scheduled_at).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"} WIB
-                  </span>
+                <div className="flex justify-between border-b border-slate-300/80 pb-2">
+                  <span className="text-slate-500">Cabang Lelang</span>
+                  <span className="font-bold text-slate-800">{lot.session?.branch?.name || "Pusat"}</span>
                 </div>
-                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
-                  <span className="text-slate-500">Dilihat</span>
-                  <span className="font-bold text-slate-800 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">visibility</span> {viewCount}
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-outline-variant/15 pb-2">
-                  <span className="text-slate-500">Disukai</span>
-                  <span className="font-bold text-slate-800 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-error">favorite</span> {likeCount}
-                  </span>
+                <div className="flex justify-between border-b border-slate-300/80 pb-2">
+                  <span className="text-slate-500">Status Lelang</span>
+                  <span className="font-bold text-slate-800">{isLive ? "Berlangsung" : "Akan Datang"}</span>
                 </div>
                 <div className="flex justify-between pb-1">
-                  <span className="text-slate-500">Lokasi Lelang</span>
-                  <span className="font-bold text-slate-800">{lot.session?.branch?.name || "Pusat"}</span>
+                  <span className="text-slate-500">Nomor Lot</span>
+                  <span className="font-bold text-slate-800">#{lot.lot_number}</span>
                 </div>
               </div>
             </div>
@@ -377,7 +381,7 @@ export default function DetailLotPage() {
                     {specs.map((spec, idx) => (
                       <tr
                         key={idx}
-                        className="border-b border-outline-variant/15 last:border-0 hover:bg-surface/30 transition-colors"
+                        className="border-b border-slate-300/80 last:border-0 hover:bg-surface/30 transition-colors"
                       >
                         <td className="py-2 pr-4 text-body-sm text-on-surface-variant w-[35%]">
                           {spec.label}
@@ -406,9 +410,6 @@ export default function DetailLotPage() {
                   }`}>
                     {isLive ? "Lelang Berlangsung" : "Lelang Akan Datang"}
                   </span>
-                  <span className="bg-success text-on-success px-3 py-1 rounded-full text-badge-text font-bold font-sans">
-                    {lot.asset.grade_exterior ? `Grade ${lot.asset.grade_exterior}` : "Grade B"}
-                  </span>
                 </div>
 
                 <h1 className="text-heading-lg font-bold text-on-surface leading-tight font-serif">
@@ -422,11 +423,11 @@ export default function DetailLotPage() {
 
                 <div className="space-y-4">
                   {/* Pricing Info */}
-                  <div>
-                    <span className="text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider block">
+                  <div className="flex items-end justify-between gap-3 border-b border-slate-300/80 pb-3">
+                    <span className="text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider">
                       Harga Awal Pembukaan:
                     </span>
-                    <span className="text-heading-xl font-black text-primary block mt-1">
+                    <span className="text-heading-lg font-black text-primary text-right">
                       {formatRupiah(bidAmount)}
                     </span>
                   </div>

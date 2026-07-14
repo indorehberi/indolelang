@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { LotsService } from './lots.service';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
+import { incrementLotLike, incrementLotView } from './engagementStore';
 
 const lotsService = new LotsService();
 
@@ -143,8 +144,8 @@ export class LotsController {
    */
   async incrementView(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Mock for now to prevent DB schema error until migrations are run later tonight
-      sendSuccess(res, null, 'View count incremented');
+      const metrics = incrementLotView(req.params.id);
+      sendSuccess(res, metrics, 'View count incremented');
     } catch (error) {
       next(error);
     }
@@ -155,8 +156,8 @@ export class LotsController {
    */
   async toggleLike(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Mock for now to prevent DB schema error until migrations are run later tonight
-      sendSuccess(res, null, 'Like count toggled');
+      const metrics = incrementLotLike(req.params.id);
+      sendSuccess(res, metrics, 'Like count toggled');
     } catch (error) {
       next(error);
     }

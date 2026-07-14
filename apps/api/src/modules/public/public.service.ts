@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { AssetCategory } from '@indo-lelang/shared-types';
+import { getLotEngagementMetrics } from '../lots/engagementStore';
 
 export class PublicService {
   /**
@@ -58,7 +59,7 @@ export class PublicService {
    * Get featured lots (only Mobil category for initial target)
    */
   async getFeaturedLots() {
-    return prisma.lots.findMany({
+    const lots = await prisma.lots.findMany({
       where: {
         status: {
           in: ['pending', 'PENDING', 'active', 'ACTIVE'],
@@ -81,6 +82,15 @@ export class PublicService {
       orderBy: {
         created_at: 'desc',
       },
+    });
+
+    return lots.map((lot: any) => {
+      const engagement = getLotEngagementMetrics(lot.id);
+      return {
+        ...lot,
+        view_count: engagement.view_count,
+        like_count: engagement.like_count,
+      };
     });
   }
 

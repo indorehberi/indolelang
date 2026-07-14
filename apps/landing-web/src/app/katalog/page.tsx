@@ -146,7 +146,7 @@ function KatalogContent() {
           fuel_type: dbLot.asset.fuel_type || undefined,
           year: dbLot.asset.year || undefined,
           stnk_date: dbLot.asset.stnk_date || undefined,
-          location: dbLot.session?.branch?.city || "Jakarta",
+          location: dbLot.asset.notes || dbLot.session?.branch?.city || "Jakarta",
           title: dbLot.asset.title,
           specString,
           hargaAwal: `Rp ${Number(dbLot.starting_price).toLocaleString("id-ID")}`,
@@ -163,6 +163,8 @@ function KatalogContent() {
           tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
           notes: dbLot.asset.notes || undefined,
           scheduledAt: dbLot.session?.scheduled_at || undefined,
+          view_count: dbLot.view_count || 0,
+          like_count: dbLot.like_count || 0,
         };
       });
       setLotsList(mapped);
@@ -556,17 +558,37 @@ function KatalogContent() {
                         Print Katalog
                       </button>
                       <button
-                        onClick={() => {
-                          const catalogText = lotsList.map(l => `Lot ${l.lot_number || '-'}: ${l.title || '-'} - Harga Dasar: ${l.hargaAwal} (${l.location})`).join('\n');
-                          const blob = new Blob([catalogText], { type: 'text/plain' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `katalog-lelang-${new Date().toISOString().split('T')[0]}.txt`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
+                        onClick={async () => {
+                          const { utils, writeFile } = await import('xlsx');
+                          const exportRows = (filteredLots.length > 0 ? filteredLots : lotsList).map((lot) => ({
+                            lot_number: lot.lot_number || '',
+                            title: lot.title || '',
+                            category: lot.category || '',
+                            brand: lot.brand || '',
+                            model: lot.model || '',
+                            year: lot.year || '',
+                            police_number: lot.police_number || '',
+                            color: lot.color || '',
+                            transmission: lot.transmission || '',
+                            fuel_type: lot.fuel_type || '',
+                            body_type: lot.body_type || '',
+                            odometer: lot.odometer || '',
+                            cylinder: lot.cylinder || '',
+                            grade: lot.grade || '',
+                            grade_engine: lot.grade_engine || '',
+                            grade_interior: lot.grade_interior || '',
+                            grade_exterior: lot.grade_exterior || '',
+                            stnk_date: lot.stnk_date ? new Date(lot.stnk_date).toLocaleDateString('id-ID') : '',
+                            location: lot.location || '',
+                            starting_price: lot.hargaDasar || '',
+                            scheduled_at: lot.scheduledAt ? new Date(lot.scheduledAt).toLocaleString('id-ID') : '',
+                            status: lot.badge || '',
+                          }));
+
+                          const worksheet = utils.json_to_sheet(exportRows);
+                          const workbook = utils.book_new();
+                          utils.book_append_sheet(workbook, worksheet, 'Katalog Lelang');
+                          writeFile(workbook, `katalog-lelang-${new Date().toISOString().split('T')[0]}.xlsx`);
                         }}
                         className="w-fit px-4 py-2 bg-primary text-on-primary rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
                       >
@@ -671,29 +693,29 @@ function KatalogContent() {
 
                           {/* Views & likes */}
                           <div className="flex items-center justify-center gap-3 text-[11px] text-outline mb-2">
-                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> 0</span>
-                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> 0</span>
+                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> {lot.view_count ?? 0}</span>
+                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> {lot.like_count ?? 0}</span>
                           </div>
 
                           {/* Lokasi Unit */}
                           <p className="text-body-sm text-outline flex items-center justify-center gap-1.5 mb-1">
                             <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-                            <span>{lot.notes || 'N/A'}</span>
+                            <span>{lot.location || 'N/A'}</span>
                           </p>
 
                           {/* Batas pelunasan */}
-                          <p className="text-[11px] text-warning font-semibold mb-0.5 flex items-center justify-center gap-1">
+                          <p className="text-[11px] text-info font-semibold mb-0.5 flex items-center justify-center gap-1">
                             <span className="material-symbols-outlined text-sm">schedule</span>
-                            Batas Pelunasan : 5 HK
+                            Batas Pelunasan : 3 HK
                           </p>
                           <p className="text-[10px] text-on-surface-variant mb-3">{lot.scheduledAt ? formatDeadlineDate(lot.scheduledAt) : 'N/A'}</p>
 
                           {/* Tabel Info Kendaraan */}
-                          <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
-                            <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                          <div className="border border-slate-300/80 rounded-xl overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
+                            <div className="bg-slate-800/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide border-b border-slate-700/90">
                               Info Kendaraan
                             </div>
-                            <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
+                            <div className="grid grid-cols-3 divide-x divide-slate-700/90">
                               {[
                                 { icon: "calendar_today", val: lot.year || "-" },
                                 { icon: "settings", val: lot.transmission || "-" },
@@ -701,11 +723,11 @@ function KatalogContent() {
                               ].map((c, i) => (
                                 <div key={i} className="px-2 py-2 text-center">
                                   <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                                  <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
+                                  <p className="text-[10px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
                                 </div>
                               ))}
                             </div>
-                            <div className="grid grid-cols-3 divide-x divide-outline-variant/10 border-t border-outline-variant/10">
+                            <div className="grid grid-cols-3 divide-x divide-slate-700/90 border-t border-slate-700/90">
                               {[
                                 { icon: "confirmation_number", val: lot.police_number || "-" },
                                 { icon: "local_gas_station", val: lot.fuel_type || "-" },
@@ -713,7 +735,7 @@ function KatalogContent() {
                               ].map((c, i) => (
                                 <div key={i} className="px-2 py-2 text-center">
                                   <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                                  <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
+                                  <p className="text-[10px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
                                 </div>
                               ))}
                             </div>
@@ -721,24 +743,24 @@ function KatalogContent() {
 
                           {/* Grade Kendaraan */}
                           {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
-                            <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
-                              <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                            <div className="border border-slate-300/80 rounded-xl overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
+                              <div className="bg-slate-800/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide border-b border-slate-700/90">
                                 Grade Kendaraan
                               </div>
-                              <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
+                              <div className="grid grid-cols-3 divide-x divide-slate-700/90">
                                 {[
                                   { grade: lot.grade_engine, label: "Mesin" },
                                   { grade: lot.grade_exterior, label: "Eksterior" },
                                   { grade: lot.grade_interior, label: "Interior" },
                                 ].map((g, i) => (
-                                  <div key={i} className="px-2 py-2 text-center">
+                                  <div key={i} className="px-2 py-2 text-center text-white">
                                     <p className={`text-lg font-black leading-none ${
                                       g.grade === 'A' ? 'text-green-600' :
                                       g.grade === 'B' ? 'text-blue-600' :
                                       g.grade === 'C' ? 'text-amber-600' :
                                       g.grade === 'N/A' ? 'text-slate-400' : 'text-red-600'
                                     }`}>{g.grade || "-"}</p>
-                                    <p className="text-[9px] text-on-surface-variant mt-0.5">{g.label}</p>
+                                    <p className="text-[9px] text-slate-300 mt-0.5">{g.label}</p>
                                   </div>
                                 ))}
                               </div>

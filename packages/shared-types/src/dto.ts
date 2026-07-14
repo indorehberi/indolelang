@@ -285,6 +285,8 @@ export interface LotDTO {
     email: string;
     phone?: string | null;
   };
+  view_count?: number;
+  like_count?: number;
   invoice_id?: string;
   payment_status?: string;
   created_at: string;

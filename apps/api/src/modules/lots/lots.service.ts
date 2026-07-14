@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { paymentsService } from '../payments/payments.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
 import { activeLots, getSocketIo } from '../../lib/socket';
+import { getLotEngagementMetrics } from './engagementStore';
 
 export class LotsService {
   /**
@@ -72,6 +73,7 @@ export class LotsService {
       // "seconds remaining", so without this the control room has nothing to
       // show until a bid:update tick arrives over the socket.
       const live = l.status === 'active' ? activeLots.get(l.id) : undefined;
+      const engagement = getLotEngagementMetrics(l.id);
 
       return {
         id: l.id,
@@ -148,6 +150,8 @@ export class LotsService {
           email: l.winner.email,
           phone: l.winner.phone,
         } : undefined,
+        view_count: engagement.view_count,
+        like_count: engagement.like_count,
         invoice_id: l.invoices?.[0]?.id,
         payment_status: l.invoices?.[0]?.status,
         created_at: l.created_at.toISOString(),
@@ -185,6 +189,8 @@ export class LotsService {
     if (!l) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
     }
+
+    const engagement = getLotEngagementMetrics(l.id);
 
     return {
       id: l.id,
@@ -255,6 +261,8 @@ export class LotsService {
         created_at: l.session.created_at.toISOString(),
         updated_at: l.session.updated_at.toISOString(),
       } : undefined,
+      view_count: engagement.view_count,
+      like_count: engagement.like_count,
       created_at: l.created_at.toISOString(),
       updated_at: l.updated_at.toISOString(),
     };
