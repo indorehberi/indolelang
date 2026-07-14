@@ -7,6 +7,7 @@ import { apiUrl, apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
+import { useRefreshOnForeground } from "@/hooks/useRefreshOnForeground";
 
 interface CartGroup {
   session_date: string;
@@ -42,7 +43,7 @@ export default function BidderCart() {
 
   const [loading, setLoading] = useState(true);
 
-  const fetchCart = async () => {
+  const fetchCart = async ({ silent = false }: { silent?: boolean } = {}) => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -51,7 +52,7 @@ export default function BidderCart() {
     }
 
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await apiFetch("/checkout/cart");
       const resData = await response.json();
       if (response.ok && resData.success) {
@@ -69,13 +70,17 @@ export default function BidderCart() {
     } catch (err) {
       console.error("Failed to fetch cart", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCart();
   }, []);
+
+  // Invoices and deposit balances change server-side while the PWA sits in the
+  // background; refresh them when the user comes back instead of on mount only.
+  useRefreshOnForeground(() => fetchCart({ silent: true }));
 
   if (loading) {
     return (

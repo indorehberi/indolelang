@@ -9,7 +9,10 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            refetchOnWindowFocus: false,
+            // An installed PWA is resumed rather than reloaded, so refetching on
+            // focus is the only thing that keeps auction data from going stale
+            // for as long as the app stays open.
+            refetchOnWindowFocus: true,
             retry: 1,
             staleTime: 5000,
           },

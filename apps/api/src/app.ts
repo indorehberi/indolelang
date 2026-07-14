@@ -89,6 +89,15 @@ app.get('/api/uploads/*', (req, res) => {
 
 const apiPrefix = env.API_PREFIX || '/api/v1';
 
+// Auction data — prices, bids, lot status, deposits — must never be served from
+// a cache. Express only sets an ETag by default and no Cache-Control at all,
+// which leaves browsers and mobile-carrier proxies free to reuse a response.
+// Registered after the /uploads handlers above so asset photos stay cacheable.
+app.use(apiPrefix, (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // Routes mounted directly under prefix
 app.use(apiPrefix, userRoutes);
 app.use(apiPrefix, branchRoutes);

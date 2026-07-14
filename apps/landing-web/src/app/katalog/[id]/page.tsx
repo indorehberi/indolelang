@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useRefreshOnForeground } from "@/hooks/useRefreshOnForeground";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BidderBottomNav from "@/components/layout/BidderBottomNav";
@@ -31,32 +32,40 @@ export default function DetailLotPage() {
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [flyingHearts, setFlyingHearts] = useState<{ id: number; left: number }[]>([]);
 
+  // `silent` is used by the foreground refresh below: it re-reads the price
+  // without flashing the skeleton, and keeps the already-rendered lot on screen
+  // if the network hiccups instead of replacing it with an error.
+  const fetchLotDetail = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!id) return;
+    try {
+      if (!silent) setLoading(true);
+      const res = await fetch(apiUrl(`/lots/${id}`));
+      if (!res.ok) {
+        throw new Error("Gagal memuat detail lot dari API");
+      }
+      const result = await res.json();
+      if (result.success && result.data) {
+        const lotData = result.data;
+        setLot(lotData);
+        setBidAmount(lotData.hammer_price || lotData.starting_price);
+        setLikeCount(lotData.like_count || 0);
+        setViewCount(lotData.view_count || 0);
+      } else if (!silent) {
+        setError(result.error?.message || "Lot tidak ditemukan");
+      }
+    } catch (err: any) {
+      if (!silent) setError(err.message || "Terjadi kesalahan saat memuat data.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [id]);
+
+  // Prices and lot status move during a session; a resumed PWA would otherwise
+  // still show whatever this page loaded when it was first opened.
+  useRefreshOnForeground(() => fetchLotDetail({ silent: true }));
+
   useEffect(() => {
     if (!id) return;
-
-    const fetchLotDetail = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(apiUrl(`/lots/${id}`));
-        if (!res.ok) {
-          throw new Error("Gagal memuat detail lot dari API");
-        }
-        const result = await res.json();
-        if (result.success && result.data) {
-          const lotData = result.data;
-          setLot(lotData);
-          setBidAmount(lotData.hammer_price || lotData.starting_price);
-          setLikeCount(lotData.like_count || 0);
-          setViewCount(lotData.view_count || 0);
-        } else {
-          setError(result.error?.message || "Lot tidak ditemukan");
-        }
-      } catch (err: any) {
-        setError(err.message || "Terjadi kesalahan saat memuat data.");
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchLotDetail();
 
@@ -68,7 +77,7 @@ export default function DetailLotPage() {
         }
       })
       .catch(() => {});
-  }, [id]);
+  }, [id, fetchLotDetail]);
 
   const handleLike = () => {
     const nextLiked = !isLiked;

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, getImageUrl, getAssetImages } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
+import { useRefreshOnForeground } from "@/hooks/useRefreshOnForeground";
 
 const formatRupiah = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -27,8 +28,7 @@ export default function BidderHome() {
   const [isSoldLots, setIsSoldLots] = useState(false);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("Semua");
 
-  useEffect(() => {
-    const fetchHomeData = async () => {
+  const fetchHomeData = useCallback(async () => {
       try {
         const token = localStorage.getItem("accessToken");
         if (!token) {
@@ -98,10 +98,15 @@ export default function BidderHome() {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchHomeData();
   }, [router]);
+
+  useEffect(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
+
+  // The PWA is resumed, not reloaded — without this the NIPL counts and lot
+  // prices below stay frozen at whatever they were when the app was first opened.
+  useRefreshOnForeground(fetchHomeData);
 
   const filteredLots = useMemo(() => {
     if (activeCategoryFilter === "Semua") return lots;
