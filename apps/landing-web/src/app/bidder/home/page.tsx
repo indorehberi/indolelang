@@ -247,7 +247,7 @@ export default function BidderHome() {
                const firstImage = lot.asset ? getAssetImages(lot.asset)[0] : null;
                return (
                  <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
-                   <div className="aspect-[3/4] bg-slate-100 relative">
+                   <div className="aspect-[4/3] bg-slate-100 relative">
                      {firstImage ? (
                        <img src={getImageUrl(firstImage)} alt={lot.asset?.brand || 'Kendaraan'} className="w-full h-full object-cover" />
                      ) : (

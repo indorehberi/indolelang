@@ -250,7 +250,7 @@ function KatalogContent() {
       )}
       <BidderBottomNav />
 
-      <Header />
+      {!isStandalone && <Header />}
 
       <main>
         {/* ====== CATALOG HERO ====== */}
@@ -525,7 +525,7 @@ function KatalogContent() {
                     if (isStandalone) {
                       return (
                         <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
-                          <div className="aspect-[3/4] bg-slate-100 relative">
+                          <div className="aspect-[4/3] bg-slate-100 relative">
                             {lot.image ? (
                               <img src={lot.image} alt={lot.title} className="w-full h-full object-cover" />
                             ) : (
