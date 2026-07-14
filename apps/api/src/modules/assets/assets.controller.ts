@@ -85,6 +85,7 @@ export class AssetsController {
       
       // Access control for editing
       const userRole = req.user!.role;
+      // Admin and Superadmin may edit any asset; provider and inspector have restricted edit flows.
       if (userRole === Role.INSPECTOR && asset.status !== 'pending') {
         res.status(403).json({ success: false, error: { message: 'Inspector hanya dapat mengedit unit dengan status pending' } });
         return;
@@ -96,11 +97,6 @@ export class AssetsController {
         }
         if (asset.status !== 'rejected') {
           res.status(403).json({ success: false, error: { message: 'Hanya barang berstatus ditolak yang dapat diedit' } });
-          return;
-        }
-      } else {
-        if (!asset.created_by_admin) {
-          res.status(403).json({ success: false, error: { message: 'Admin tidak dapat mengedit detail dasar barang yang diajukan oleh provider' } });
           return;
         }
       }
