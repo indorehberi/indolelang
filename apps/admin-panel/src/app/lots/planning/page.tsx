@@ -180,8 +180,25 @@ export default function LotPlanningPage() {
       const res = await apiFetch(`/admin/lots/${lot.id}/cancel`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'Gagal membatalkan lot');
-      
+
       toast.success('Lot berhasil dibatalkan');
+      fetchLots();
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUncancelLot = async (lot: Lot) => {
+    if (!confirm('Aktifkan kembali lot ini? Lot akan kembali ke kondisi normal dan bisa dilelang lagi.')) return;
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/admin/lots/${lot.id}/uncancel`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal mengaktifkan kembali lot');
+
+      toast.success('Lot berhasil diaktifkan kembali');
       fetchLots();
     } catch (err: any) {
       toast.error(err.message || 'Terjadi kesalahan');
@@ -251,11 +268,16 @@ export default function LotPlanningPage() {
                         <td>{formatRupiah(lot.starting_price)}</td>
                         <td style={{ textAlign: 'center' }}>
                           {lot.status === 'cancelled' ? (
-                            <span className="badge" style={{ backgroundColor: '#f87171', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>Dibatalkan</span>
-                          ) : (activeSessionObj?.status === 'published' || activeSessionObj?.status === 'live') ? (
-                            <button className="btn btn-xs btn-warning" disabled={loading} onClick={() => handleCancelLot(lot)}>Batalkan</button>
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span className="badge" style={{ backgroundColor: '#f87171', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>Dibatalkan</span>
+                              <button className="btn btn-xs btn-success" disabled={loading} onClick={() => handleUncancelLot(lot)}>Aktifkan Kembali</button>
+                              <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                            </div>
                           ) : (
-                            <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                              <button className="btn btn-xs btn-warning" disabled={loading} onClick={() => handleCancelLot(lot)}>Batalkan</button>
+                              <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                            </div>
                           )}
                         </td>
                       </tr>

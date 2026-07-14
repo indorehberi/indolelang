@@ -110,6 +110,23 @@ export class LotsController {
     }
   }
 
+  /**
+   * Reverse a cancellation, returning the lot to pending (Admin/Operator only)
+   */
+  async uncancelLot(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const oldLot = await lotsService.getLotById(id);
+      await lotsService.uncancelLot(id);
+
+      logAdminAction(req, 'UNCANCEL_LOT', 'lots', id, oldLot, null);
+
+      sendSuccess(res, null, 'Lot berhasil diaktifkan kembali');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async markAsPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;

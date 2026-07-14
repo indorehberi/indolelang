@@ -95,19 +95,20 @@ function LotCard({
     <div className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group">
       {/* ── FOTO ─────────────────────────────────── */}
       <div className="relative">
-        <div className="aspect-[4/3] overflow-hidden bg-surface-container-low">
-          {lot.isCancelled ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-200">
-              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 56 }}>cancel</span>
-              <p className="text-2xl font-black text-slate-500 tracking-widest mt-2">DIBATALKAN</p>
+        <div className="aspect-[4/3] overflow-hidden bg-surface-container-low relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className={`w-full h-full object-cover transition-transform duration-500 ${
+              lot.isCancelled ? "blur-sm scale-105 grayscale" : "group-hover:scale-105"
+            }`}
+            alt={lot.title}
+            src={lot.image}
+          />
+          {lot.isCancelled && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 40 }}>cancel</span>
+              <p className="text-xl font-black text-white tracking-widest mt-1 drop-shadow">DIBATALKAN</p>
             </div>
-          ) : (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              alt={lot.title}
-              src={lot.image}
-            />
           )}
         </div>
         {/* No lot — pojok kiri atas */}

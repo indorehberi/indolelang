@@ -53,6 +53,13 @@ router.post(
 );
 
 router.post(
+  '/admin/lots/:id/uncancel',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.uncancelLot
+);
+
+router.post(
   '/admin/lots/:id/paid',
   authenticate,
   authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),

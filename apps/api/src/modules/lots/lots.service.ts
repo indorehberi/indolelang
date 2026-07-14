@@ -510,6 +510,25 @@ export class LotsService {
   }
 
   /**
+   * Reverse a cancellation, returning the lot to normal (pending) so the
+   * control room can activate it in sequence again like any other lot.
+   */
+  async uncancelLot(id: string): Promise<void> {
+    const lot = await prisma.lots.findUnique({ where: { id } });
+    if (!lot) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot lelang tidak ditemukan');
+    }
+    if (lot.status !== LotStatus.CANCELLED) {
+      throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot ini tidak dalam status dibatalkan');
+    }
+
+    await prisma.lots.update({
+      where: { id },
+      data: { status: LotStatus.PENDING },
+    });
+  }
+
+  /**
    * Admin explicitly marks lot as paid (manual bypass)
    */
   async markAsPaid(id: string): Promise<string> {

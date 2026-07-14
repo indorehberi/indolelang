@@ -61,8 +61,11 @@ export class PublicService {
   async getFeaturedLots() {
     const lots = await prisma.lots.findMany({
       where: {
+        // Cancelled lots stay in the feed (rendered blurred with a "DIBATALKAN"
+        // overlay on the client) instead of disappearing, so bidders who saw it
+        // earlier don't wonder where the unit went.
         status: {
-          in: ['pending', 'PENDING', 'active', 'ACTIVE'],
+          in: ['pending', 'PENDING', 'active', 'ACTIVE', 'cancelled', 'CANCELLED'],
         },
         session: {
           status: {
