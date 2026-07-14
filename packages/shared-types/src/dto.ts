@@ -263,6 +263,7 @@ export interface AssetDTO {
   bpkb_status?: string;
   stnk_status?: string;
   frame_number?: string;
+  stnk_date?: string;
   created_by_admin: boolean;
   created_at: string;
   updated_at: string;

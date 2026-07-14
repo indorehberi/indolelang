@@ -120,6 +120,7 @@ export default function DetailLotPage() {
 
   const specs = [
     { label: "Cabang Lelang", value: lot.session?.branch?.name || "Pusat" },
+    { label: "Lokasi Lelang", value: lot.session?.branch?.address || "Pusat" },
     { label: "Kategori", value: lot.asset.category || "-" },
     { label: "Merk / Tipe", value: lot.asset.title || "-" },
     { label: "Tahun", value: lot.asset.year ? String(lot.asset.year) : "-" },
@@ -135,8 +136,8 @@ export default function DetailLotPage() {
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
     { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
     { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
-    { label: "Deskripsi", value: lot.asset.description || "-" }
-  ];
+    { label: "Lokasi Kendaraan", value: lot.asset.notes || "-" },
+  ];
   let isLive = lot.status === "active";
   if (lot.session) {
     const now = new Date();

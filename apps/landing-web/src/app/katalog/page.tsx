@@ -117,13 +117,24 @@ function KatalogContent() {
           badgeStyle: isCancelled ? "bg-slate-500 text-white" : (isLive ? "bg-error text-white" : "bg-primary text-on-primary"),
           isCancelled,
           grade: dbLot.asset.grade_engine || dbLot.asset.grade_interior || (dbLot.asset.condition === "BARU" ? "A" : "B"),
+          grade_engine: dbLot.asset.grade_engine || undefined,
+          grade_exterior: dbLot.asset.grade_exterior || undefined,
+          grade_interior: dbLot.asset.grade_interior || undefined,
+          transmission: dbLot.asset.transmission || undefined,
+          odometer: dbLot.asset.odometer || undefined,
+          police_number: dbLot.asset.police_number || undefined,
+          fuel_type: dbLot.asset.fuel_type || undefined,
+          year: dbLot.asset.year || undefined,
+          stnk_date: dbLot.asset.stnk_date || undefined,
           location: dbLot.session?.branch?.city || "Jakarta",
           title: dbLot.asset.title,
           specString,
           hargaAwal: `Rp ${Number(dbLot.starting_price).toLocaleString("id-ID")}`,
+          hargaDasar: Number(dbLot.starting_price),
           hargaValue: Number(dbLot.starting_price),
           deposit: "Rp 5.000.000",
           timer: timerText,
+          timerLabel: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
           action: isCancelled ? "Dibatalkan" : (isLive ? "Bid" : "Lihat Detail"),
           category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
@@ -514,10 +525,33 @@ function KatalogContent() {
                     </p>
                   </div>
                   {!isStandalone && (
-                    <button className="w-fit px-4 py-2 bg-secondary-fixed text-on-secondary-fixed rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-secondary-fixed-dim transition-colors">
-                      <span className="material-symbols-outlined text-base">notifications_active</span>
-                      Ingatkan Saya
-                    </button>
+                    <div className="flex gap-2 print:hidden">
+                      <button
+                        onClick={() => window.print()}
+                        className="w-fit px-4 py-2 bg-secondary-fixed text-on-secondary-fixed rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-secondary-fixed-dim transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">print</span>
+                        Print Katalog
+                      </button>
+                      <button
+                        onClick={() => {
+                          const catalogText = lotsList.map(l => `Lot ${l.lot_number || '-'}: ${l.title || '-'} - Harga Dasar: ${l.hargaAwal} (${l.location})`).join('\n');
+                          const blob = new Blob([catalogText], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `katalog-lelang-${new Date().toISOString().split('T')[0]}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="w-fit px-4 py-2 bg-primary text-on-primary rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">download</span>
+                        Download Katalog
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -564,63 +598,150 @@ function KatalogContent() {
                         </Link>
                       );
                     }
+                    const formatRupiah = (v: number) =>
+                      new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+                    const formatStnk = (iso: string | undefined) => {
+                      if (!iso) return "-";
+                      return new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+                    };
+
                     return (
                       <article
-                      key={lot.id}
-                      className={`auction-card bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/60 shadow-sm group ${lot.isCancelled ? 'grayscale opacity-75' : ''}`}
-                    >
-                      {/* Image */}
-                      <div className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          alt={lot.alt}
-                          src={lot.image}
-                        />
-                        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
-                          Lot {lot.lot_number || '-'}
-                        </div>
-
-                        {lot.grade && (
-                          <div className="absolute top-2 right-2 bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
-                            Grade {lot.grade}
+                        key={lot.id}
+                        className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group"
+                      >
+                        {/* ── FOTO ─────────────────────────────────── */}
+                        <div className="relative">
+                          <div className="aspect-[4/3] overflow-hidden bg-surface-container-low">
+                            {lot.isCancelled ? (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-200">
+                                <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 56 }}>cancel</span>
+                                <p className="text-2xl font-black text-slate-500 tracking-widest mt-2">DIBATALKAN</p>
+                              </div>
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                alt={lot.title}
+                                src={lot.image}
+                              />
+                            )}
                           </div>
-                        )}
-                      </div>
+                          {/* No lot — pojok kiri atas */}
+                          <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+                            Lot {lot.lot_number || "-"}
+                          </div>
+                          {/* Harga dasar box — menutup ~50% bawah foto */}
+                          {!lot.isCancelled && (
+                            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10">
+                              <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">Harga Dasar</p>
+                              <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Body */}
-                      <div className="p-5">
-                        <div className="flex items-center gap-2 text-body-sm text-on-surface-variant flex-wrap">
-                          <span className="material-symbols-outlined text-base text-primary">location_on</span>
-                          <span>{lot.location}</span>
-                          <span className="text-outline/30">•</span>
-                          <span className="material-symbols-outlined text-base text-primary">calendar_today</span>
-                          <span>{lot.tanggal}</span>
+                        {/* ── BODY ─────────────────────────────────── */}
+                        <div className={`flex flex-col flex-1 px-4 pb-4 ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
+                          {/* Nama unit */}
+                          <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
+                            <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
+                          </h4>
+
+                          {/* Views & likes */}
+                          <div className="flex items-center gap-3 text-[11px] text-outline mb-2">
+                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> 0</span>
+                            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> 0</span>
+                          </div>
+
+                          {/* Lokasi & tanggal */}
+                          <p className="text-body-sm text-outline flex items-center gap-1.5 mb-1 flex-wrap">
+                            <span className="material-symbols-outlined text-sm text-primary">location_on</span>
+                            <span>{lot.location}</span>
+                            <span className="text-outline/40">•</span>
+                            <span className="material-symbols-outlined text-sm text-primary">calendar_today</span>
+                            <span>{lot.timerLabel || "Segera"}</span>
+                          </p>
+
+                          {/* Batas pelunasan */}
+                          <p className="text-[11px] text-warning font-semibold mb-3 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">schedule</span>
+                            Batas Pelunasan: 3 hari
+                          </p>
+
+                          {/* Tabel Info Kendaraan */}
+                          <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3">
+                            <div className="bg-surface-container-lowest px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                              Info Kendaraan
+                            </div>
+                            <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
+                              {[
+                                { icon: "calendar_today", val: lot.year || "-" },
+                                { icon: "settings", val: lot.transmission || "-" },
+                                { icon: "speed", val: lot.odometer ? `${Number(lot.odometer).toLocaleString("id-ID")} km` : "-" },
+                              ].map((c, i) => (
+                                <div key={i} className="px-2 py-2 text-center">
+                                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
+                                  <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-3 divide-x divide-outline-variant/10 border-t border-outline-variant/10">
+                              {[
+                                { icon: "confirmation_number", val: lot.police_number || "-" },
+                                { icon: "local_gas_station", val: lot.fuel_type || "-" },
+                                { icon: "article", val: formatStnk(lot.stnk_date) },
+                              ].map((c, i) => (
+                                <div key={i} className="px-2 py-2 text-center">
+                                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
+                                  <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Grade Kendaraan */}
+                          {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
+                            <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3">
+                              <div className="bg-surface-container-lowest px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
+                                Grade Kendaraan
+                              </div>
+                              <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
+                                {[
+                                  { grade: lot.grade_engine, label: "Mesin" },
+                                  { grade: lot.grade_exterior, label: "Eksterior" },
+                                  { grade: lot.grade_interior, label: "Interior" },
+                                ].map((g, i) => (
+                                  <div key={i} className="px-2 py-2 text-center">
+                                    <p className={`text-lg font-black leading-none ${
+                                      g.grade === 'A' ? 'text-green-600' :
+                                      g.grade === 'B' ? 'text-blue-600' :
+                                      g.grade === 'C' ? 'text-amber-600' : 'text-red-600'
+                                    }`}>{g.grade || "-"}</p>
+                                    <p className="text-[9px] text-on-surface-variant mt-0.5">{g.label}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* CTA */}
+                          <div className="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+                            <p className="text-body-sm text-on-surface-variant">{lot.timer}</p>
+                            <Link
+                              href={`/katalog/${lot.id}`}
+                              className={`px-4 py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
+                                lot.action === "Bid"
+                                  ? "bg-error text-white hover:bg-error/90"
+                                  : "bg-premium text-on-premium hover:bg-premium/85"
+                              }`}
+                            >
+                              {lot.action}
+                            </Link>
+                          </div>
                         </div>
-                        <h3 className="text-heading-md font-bold text-on-surface mt-2 group-hover:text-premium transition-colors">
-                          <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>
-                        </h3>
-                        <p className="text-body-sm text-outline mt-1 mb-2 font-medium">{lot.specString}</p>
-                        <div className="mt-3">
-                          <p className="text-body-sm text-outline">Harga Awal</p>
-                          <p className="text-body-md font-bold text-primary">{lot.hargaAwal}</p>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-outline-variant/10 flex items-center justify-between">
-                          <p className="text-body-sm text-on-surface-variant">{lot.timer}</p>
-                          <Link
-                            href={`/katalog/${lot.id}`}
-                            className={`px-4 py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
-                              lot.action === "Bid"
-                                ? "bg-error text-white hover:bg-error/90"
-                                : "bg-premium text-on-premium hover:bg-premium/85"
-                            }`}
-                          >
-                            {lot.action}
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  )})}
+                      </article>
+                    );
+                  })}
                   {filteredLots.length === 0 && (
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 py-16 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-white/60">
                       <span className="material-symbols-outlined text-6xl text-outline mb-4">inventory_2</span>

@@ -110,7 +110,6 @@ export default function NewAssetPage() {
     doc_keur: false,
     doc_sph: false,
 
-    // Photos
     photo_front: '',
     photo_back: '',
     photo_right: '',
@@ -118,6 +117,7 @@ export default function NewAssetPage() {
     photo_engine: '',
     photo_interior: '',
     photo_stnk: '',
+    notes: '',
   });
 
   const [providers, setProviders] = useState<{ id: string; company_name: string; full_name: string }[]>([]);
@@ -166,6 +166,7 @@ export default function NewAssetPage() {
     if (!formData.model.trim()) e.model = 'Tipe/Model wajib diisi';
     if (!formData.year) e.year = 'Tahun wajib diisi';
     if (!formData.police_number.trim()) e.police_number = 'No Polisi wajib diisi';
+    if (!formData.notes.trim()) e.notes = 'Lokasi Kendaraan wajib diisi';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -317,6 +318,10 @@ export default function NewAssetPage() {
             </Field>
           </div>
           
+          <Field label="Lokasi Kendaraan saat ini" required error={errors.notes}>
+            <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Contoh: Pool Cilandak, Jakarta Selatan" />
+          </Field>
+
           <Field label="Deskripsi Tambahan">
             <textarea rows={4} className="form-textarea" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Deskripsi kondisi atau catatan khusus..." />
           </Field>

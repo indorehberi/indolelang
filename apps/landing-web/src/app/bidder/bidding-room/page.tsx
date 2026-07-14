@@ -23,7 +23,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
   token: string;
   bidIncrements: number[];
   socket: Socket | null;
-  onLotClosed: () => void;
+  onLotClosed: (data?: any) => void;
   isSingleLot: boolean;
 }) {
   const toast = useToast();
@@ -36,8 +36,30 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
   const [isBidEnabled, setIsBidEnabled] = useState<boolean>(false);
   const [startCountdown, setStartCountdown] = useState<number | null>(3);
   const [currentImageIdx, setCurrentImageIdx] = useState<number>(0);
+  const [isCancelledOverlay, setIsCancelledOverlay] = useState(false);
+  const [cancelCountdown, setCancelCountdown] = useState(5);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   
   const assetImages = getAssetImages(lot.asset);
+
+  const playBeep = () => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     if (startCountdown === null) return;
@@ -117,10 +139,32 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
       }
     };
 
+    const handleLotSync = (data: any) => {
+      if (data.lot_id !== lot.id) return;
+      setCurrentPrice(data.current_price);
+      setTimeLeft(data.time_remaining);
+    };
+
     const handleLotClosed = (data: any) => {
       if (data.lot_id === lot.id) {
         setStartCountdown(null);
         onLotClosed(data);
+      }
+    };
+
+    const handleLotCancelled = (data: any) => {
+      if (data.lot_id === lot.id || !data.lot_id) {
+        setIsCancelledOverlay(true);
+        setCancelCountdown(5);
+        let count = 5;
+        const iv = setInterval(() => {
+          count--;
+          setCancelCountdown(count);
+          if (count <= 0) {
+            clearInterval(iv);
+            onLotClosed(data);
+          }
+        }, 1000);
       }
     };
 
@@ -147,6 +191,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
     socket.on("bid:update", handleBidUpdate);
     socket.on("bid:error", handleBidError);
     socket.on("lot:closed", handleLotClosed);
+    socket.on("lot:cancelled", handleLotCancelled);
     socket.on("lot:start", handleLotStartCountdown);
 
     return () => {
@@ -154,6 +199,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
       socket.off("bid:update", handleBidUpdate);
       socket.off("bid:error", handleBidError);
       socket.off("lot:closed", handleLotClosed);
+      socket.off("lot:cancelled", handleLotCancelled);
       socket.off("lot:start", handleLotStartCountdown);
     };
   }, [socket, lot.id, onLotClosed, playBeep]);
@@ -190,6 +236,16 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, onLotClosed, isSingl
           <span className="material-symbols-outlined text-white mb-4 animate-bounce" style={{ fontSize: '100px' }}>notifications_active</span>
           <div className="text-white text-8xl font-black">{startCountdown}</div>
           <div className="text-white text-lg font-bold mt-2">Persiapkan Diri Anda!</div>
+        </div>
+      )}
+
+      {isCancelledOverlay && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-red-900/80 backdrop-blur-sm rounded-xl">
+          <span className="material-symbols-outlined text-white mb-3" style={{ fontSize: '80px' }}>cancel</span>
+          <div className="text-white text-3xl font-black tracking-widest mb-1">DIBATALKAN</div>
+          <div className="text-white/80 text-base">Lanjut ke lot berikutnya dalam</div>
+          <div className="text-white text-7xl font-black mt-2 animate-pulse">{cancelCountdown}</div>
+          <div className="text-white/80 text-sm mt-1">detik</div>
         </div>
       )}
 

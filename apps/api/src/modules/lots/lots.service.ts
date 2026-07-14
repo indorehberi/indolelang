@@ -5,7 +5,7 @@ import { LotDTO, PaginationMeta, LotStatus, AssetStatus, SessionStatus } from '@
 import { Prisma } from '@prisma/client';
 import { paymentsService } from '../payments/payments.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
-import { activeLots } from '../../lib/socket';
+import { activeLots, getSocketIo } from '../../lib/socket';
 
 export class LotsService {
   /**
@@ -114,6 +114,11 @@ export class LotsService {
           photo_interior: l.asset.photo_interior || undefined,
           photo_stnk: l.asset.photo_stnk || undefined,
           grade: l.asset.grade || undefined,
+          grade_engine: l.asset.grade_engine || undefined,
+          grade_interior: l.asset.grade_interior || undefined,
+          grade_exterior: l.asset.grade_exterior || undefined,
+          stnk_date: l.asset.stnk_date ? l.asset.stnk_date.toISOString() : undefined,
+          notes: l.asset.notes || undefined,
           created_at: l.asset.created_at.toISOString(),
           updated_at: l.asset.updated_at.toISOString(),
         },
@@ -223,6 +228,8 @@ export class LotsService {
         photo_engine: l.asset.photo_engine || undefined,
         photo_interior: l.asset.photo_interior || undefined,
         photo_stnk: l.asset.photo_stnk || undefined,
+        stnk_date: l.asset.stnk_date ? l.asset.stnk_date.toISOString() : undefined,
+        notes: l.asset.notes || undefined,
         created_by_admin: l.asset.created_by_admin,
         created_at: l.asset.created_at.toISOString(),
         updated_at: l.asset.updated_at.toISOString(),
@@ -474,6 +481,24 @@ export class LotsService {
       where: { id },
       data: { status: LotStatus.CANCELLED },
     });
+
+    // Check if active in socket
+    const active = activeLots.get(id);
+    if (active) {
+      if (active.timerInterval) {
+        clearInterval(active.timerInterval);
+      }
+      activeLots.delete(id);
+    }
+
+    // Emit socket cancelled event
+    const ioServer = getSocketIo();
+    if (ioServer) {
+      ioServer.to(`lot:${id}`).to(`session:${lot.session_id}`).emit('lot:cancelled', {
+        lot_id: id,
+        session_id: lot.session_id,
+      });
+    }
   }
 
   /**

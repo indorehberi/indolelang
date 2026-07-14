@@ -82,6 +82,19 @@ const DOC_LABELS: { key: keyof AssetDetail; label: string }[] = [
   { key: 'doc_sph', label: 'SPH' },
 ];
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '0.45rem 0.65rem',
+  border: '1px solid var(--border)',
+  borderRadius: '0.375rem',
+  fontSize: '0.875rem',
+  background: 'var(--bg-primary)',
+  color: 'var(--text-primary)',
+  boxSizing: 'border-box',
+};
+
+const selectStyle: React.CSSProperties = { ...inputStyle };
+
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -90,10 +103,12 @@ export default function AssetDetailPage() {
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState<Partial<AssetDetail>>({});
   const [userRole, setUserRole] = useState<string>('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Photo order state - array of photo keys in display order
+  // Photo order state
   const [photoOrder, setPhotoOrder] = useState<string[]>([]);
   const [photoOrderDirty, setPhotoOrderDirty] = useState(false);
 
@@ -109,11 +124,8 @@ export default function AssetDetailPage() {
         const data = await res.json();
         const a: AssetDetail = data.data;
         setAsset(a);
-
-        // Build initial photo order from the photo_* fields that have values
-        const initial = PHOTO_LABELS
-          .filter((p) => !!a[p.key])
-          .map((p) => p.key);
+        setForm(a);
+        const initial = PHOTO_LABELS.filter((p) => !!a[p.key]).map((p) => p.key);
         setPhotoOrder(initial);
       } else {
         setAsset(null);
@@ -158,6 +170,66 @@ export default function AssetDetailPage() {
     } catch (err) { console.error(err); }
   };
 
+  const handleFormChange = (field: keyof AssetDetail, value: unknown) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!asset) return;
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        title: form.title,
+        category: form.category,
+        description: form.description,
+        base_price: form.base_price ? Number(form.base_price) : undefined,
+        brand: form.brand,
+        model: form.model,
+        color: form.color,
+        fuel_type: form.fuel_type,
+        transmission: form.transmission,
+        body_type: form.body_type,
+        year: form.year ? Number(form.year) : undefined,
+        police_number: form.police_number,
+        bpkb_number: form.bpkb_number,
+        frame_number: form.frame_number,
+        engine_number: form.engine_number,
+        cylinder: form.cylinder ? Number(form.cylinder) : undefined,
+        odometer: form.odometer ? Number(form.odometer) : undefined,
+        notes: form.notes,
+        doc_stnk: form.doc_stnk,
+        doc_bpkb: form.doc_bpkb,
+        doc_faktur: form.doc_faktur,
+        doc_kwitansi: form.doc_kwitansi,
+        doc_form_a: form.doc_form_a,
+        doc_copy_ktp: form.doc_copy_ktp,
+        doc_keur: form.doc_keur,
+        doc_sph: form.doc_sph,
+      };
+
+      // Remove undefined keys
+      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+      const res = await apiFetch(`/assets/${assetId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        showToast('success', 'Data barang berhasil disimpan');
+        setEditMode(false);
+        setTimeout(() => fetchData(), 500);
+      } else {
+        const errData = await res.json();
+        showToast('error', errData.error?.message || 'Gagal menyimpan data barang');
+      }
+    } catch {
+      showToast('error', 'Koneksi ke server gagal');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const movePhoto = (index: number, direction: 'up' | 'down') => {
     setPhotoOrder((prev) => {
       const arr = [...prev];
@@ -173,28 +245,18 @@ export default function AssetDetailPage() {
     if (!asset) return;
     setSaving(true);
     try {
-      // Build update payload: reorder all photo_* fields by assigning values from current order
-      const photoValues = photoOrder.map((key) => asset[key as keyof AssetDetail] as string);
       const updateBody: Record<string, string | null> = {};
-
-      // Reset all photo fields to null first
       PHOTO_LABELS.forEach((p) => { updateBody[p.key] = null; });
-
-      // Reassign according to order into the original slot names
-      // Strategy: preserve the _key names but just reorder values
-      // We save the new ordered array into images JSON field keyed by position
       photoOrder.forEach((origKey, idx) => {
         const targetKey = PHOTO_LABELS[idx]?.key;
         if (targetKey) {
           updateBody[targetKey as string] = asset[origKey as keyof AssetDetail] as string;
         }
       });
-
       const res = await apiFetch(`/assets/${assetId}`, {
         method: 'PUT',
         body: JSON.stringify(updateBody),
       });
-
       if (res.ok) {
         showToast('success', 'Urutan foto berhasil disimpan');
         setPhotoOrderDirty(false);
@@ -225,6 +287,58 @@ export default function AssetDetailPage() {
     </div>
   );
 
+  const EditField = ({
+    label, field, type = 'text', options,
+  }: {
+    label: string;
+    field: keyof AssetDetail;
+    type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox';
+    options?: string[];
+  }) => {
+    const val = form[field];
+    return (
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
+        <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
+        <div style={{ flex: 1 }}>
+          {type === 'textarea' ? (
+            <textarea
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical' }}
+              value={(val as string) ?? ''}
+              onChange={(e) => handleFormChange(field, e.target.value)}
+            />
+          ) : type === 'select' && options ? (
+            <select
+              style={selectStyle}
+              value={(val as string) ?? ''}
+              onChange={(e) => handleFormChange(field, e.target.value)}
+            >
+              <option value="">— Pilih —</option>
+              {options.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          ) : type === 'checkbox' ? (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!(val)}
+                onChange={(e) => handleFormChange(field, e.target.checked)}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span style={{ color: 'var(--text-primary)' }}>{val ? 'Ada' : 'Tidak Ada'}</span>
+            </label>
+          ) : (
+            <input
+              type={type}
+              style={inputStyle}
+              value={(val as string | number) ?? ''}
+              onChange={(e) => handleFormChange(field, type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -246,6 +360,7 @@ export default function AssetDetailPage() {
   }
 
   const statusVariant = asset.status === 'approved' ? 'success' : asset.status === 'rejected' ? 'danger' : 'warning';
+  const canEdit = ['admin', 'superadmin'].includes(userRole);
 
   return (
     <DashboardLayout>
@@ -266,24 +381,50 @@ export default function AssetDetailPage() {
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Detail Barang</h1>
+          <h1 className="page-title">{editMode ? '✏️ Edit Barang' : 'Detail Barang'}</h1>
           <p className="page-subtitle">
             <span style={{ cursor: 'pointer', color: 'var(--primary)' }} onClick={() => router.push('/assets')}>
               Daftar Barang
             </span>{' '}
-            &bull; Detail
+            &bull; {editMode ? 'Edit' : 'Detail'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Button variant="outline" onClick={() => router.push('/assets')}>← Kembali</Button>
-          {['admin', 'superadmin'].includes(userRole) && asset.status === 'pending' && (
+          {editMode ? (
             <>
-              <Button variant="success" onClick={handleApprove}>✓ Approve</Button>
-              <Button variant="danger" onClick={handleReject}>✕ Reject</Button>
+              <Button variant="outline" onClick={() => { setEditMode(false); setForm(asset); }}>✕ Batal</Button>
+              <Button variant="primary" onClick={handleSaveEdit} disabled={saving}>
+                {saving ? 'Menyimpan...' : '💾 Simpan Perubahan'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => router.push('/assets')}>← Kembali</Button>
+              {canEdit && (
+                <Button variant="primary" onClick={() => setEditMode(true)}>✏️ Edit Data</Button>
+              )}
+              {canEdit && asset.status === 'pending' && (
+                <>
+                  <Button variant="success" onClick={handleApprove}>✓ Approve</Button>
+                  <Button variant="danger" onClick={handleReject}>✕ Reject</Button>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {/* Edit mode notice */}
+      {editMode && (
+        <div style={{
+          background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '0.5rem',
+          padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#1d4ed8',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
+          <span>ℹ️</span>
+          <span>Mode edit aktif. Ubah data yang diperlukan lalu klik <strong>Simpan Perubahan</strong>.</span>
+        </div>
+      )}
 
       {/* Asset Banner */}
       <Card title="">
@@ -292,13 +433,13 @@ export default function AssetDetailPage() {
             🚗
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{asset.title}</div>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{editMode ? (form.title || asset.title) : asset.title}</div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
               Ditambahkan: {formatDate(asset.created_at)} &bull; Diperbarui: {formatDate(asset.updated_at)}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Badge variant="info">{asset.category}</Badge>
+            <Badge variant="info">{editMode ? (form.category || asset.category) : asset.category}</Badge>
             <Badge variant={statusVariant}>{asset.status}</Badge>
             {asset.pool_status && <Badge variant="default">{asset.pool_status === 'in_pool' ? 'Di Pool' : 'Keluar Pool'}</Badge>}
           </div>
@@ -312,27 +453,59 @@ export default function AssetDetailPage() {
 
           {/* Informasi Umum */}
           <Card title="Informasi Umum">
-            <InfoRow label="Harga Dasar" value={<strong style={{ color: 'var(--primary)' }}>{formatPrice(asset.base_price)}</strong>} />
-            <InfoRow label="Deskripsi" value={asset.description} />
-            <InfoRow label="Catatan (Notes)" value={asset.notes} />
-            {asset.rejection_reason && <InfoRow label="Alasan Ditolak" value={<span style={{ color: 'var(--danger)' }}>{asset.rejection_reason}</span>} />}
+            {editMode ? (
+              <>
+                <EditField label="Nama / Judul" field="title" />
+                <EditField label="Kategori" field="category" type="select" options={['MOBIL', 'MOTOR', 'ALAT_BERAT', 'PROPERTI']} />
+                <EditField label="Harga Dasar (Rp)" field="base_price" type="number" />
+                <EditField label="Deskripsi" field="description" type="textarea" />
+                <EditField label="Lokasi Kendaraan" field="notes" type="textarea" />
+              </>
+            ) : (
+              <>
+                <InfoRow label="Harga Dasar" value={<strong style={{ color: 'var(--primary)' }}>{formatPrice(asset.base_price)}</strong>} />
+                <InfoRow label="Deskripsi" value={asset.description} />
+                <InfoRow label="Lokasi Kendaraan" value={asset.notes} />
+                {asset.rejection_reason && <InfoRow label="Alasan Ditolak" value={<span style={{ color: 'var(--danger)' }}>{asset.rejection_reason}</span>} />}
+              </>
+            )}
           </Card>
 
           {/* Spesifikasi Kendaraan */}
           <Card title="Spesifikasi Kendaraan">
-            <InfoRow label="Merek (Brand)" value={asset.brand} />
-            <InfoRow label="Model / Tipe" value={asset.model} />
-            <InfoRow label="Warna" value={asset.color} />
-            <InfoRow label="Jenis Bahan Bakar" value={asset.fuel_type} />
-            <InfoRow label="Transmisi" value={asset.transmission} />
-            <InfoRow label="Tipe Bodi" value={asset.body_type} />
-            <InfoRow label="Tahun" value={asset.year} />
-            <InfoRow label="No Polisi" value={asset.police_number} />
-            <InfoRow label="No BPKB" value={asset.bpkb_number} />
-            <InfoRow label="No Rangka" value={asset.frame_number} />
-            <InfoRow label="No Mesin" value={asset.engine_number} />
-            <InfoRow label="Kapasitas Mesin (CC)" value={asset.cylinder} />
-            <InfoRow label="Odometer (km)" value={asset.odometer?.toLocaleString('id-ID')} />
+            {editMode ? (
+              <>
+                <EditField label="Merek (Brand)" field="brand" />
+                <EditField label="Model / Tipe" field="model" />
+                <EditField label="Warna" field="color" />
+                <EditField label="Jenis Bahan Bakar" field="fuel_type" type="select" options={['Bensin', 'Solar', 'Hybrid', 'EV']} />
+                <EditField label="Transmisi" field="transmission" type="select" options={['Manual', 'Otomatis']} />
+                <EditField label="Tipe Bodi" field="body_type" />
+                <EditField label="Tahun" field="year" type="number" />
+                <EditField label="No Polisi" field="police_number" />
+                <EditField label="No BPKB" field="bpkb_number" />
+                <EditField label="No Rangka" field="frame_number" />
+                <EditField label="No Mesin" field="engine_number" />
+                <EditField label="Kapasitas Mesin (CC)" field="cylinder" type="number" />
+                <EditField label="Odometer (km)" field="odometer" type="number" />
+              </>
+            ) : (
+              <>
+                <InfoRow label="Merek (Brand)" value={asset.brand} />
+                <InfoRow label="Model / Tipe" value={asset.model} />
+                <InfoRow label="Warna" value={asset.color} />
+                <InfoRow label="Jenis Bahan Bakar" value={asset.fuel_type} />
+                <InfoRow label="Transmisi" value={asset.transmission} />
+                <InfoRow label="Tipe Bodi" value={asset.body_type} />
+                <InfoRow label="Tahun" value={asset.year} />
+                <InfoRow label="No Polisi" value={asset.police_number} />
+                <InfoRow label="No BPKB" value={asset.bpkb_number} />
+                <InfoRow label="No Rangka" value={asset.frame_number} />
+                <InfoRow label="No Mesin" value={asset.engine_number} />
+                <InfoRow label="Kapasitas Mesin (CC)" value={asset.cylinder} />
+                <InfoRow label="Odometer (km)" value={asset.odometer?.toLocaleString('id-ID')} />
+              </>
+            )}
           </Card>
 
           {/* Hasil Inspeksi */}
@@ -353,22 +526,40 @@ export default function AssetDetailPage() {
 
           {/* Kelengkapan Dokumen */}
           <Card title="Kelengkapan Dokumen">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              {DOC_LABELS.map(({ key, label }) => {
-                const present = !!asset[key as keyof AssetDetail];
-                return (
-                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.5rem', borderRadius: '0.375rem', background: present ? '#dcfce7' : '#fee2e2', fontSize: '0.8rem', fontWeight: 600 }}>
-                    <span>{present ? '✅' : '❌'}</span>
-                    <span style={{ color: present ? '#166534' : '#991b1b' }}>{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              {asset.stnk_date && <span>STNK: {formatDate(asset.stnk_date)}</span>}
-              {asset.stnk_tax_date && <span>Pajak STNK: {formatDate(asset.stnk_tax_date)}</span>}
-              {asset.keur_date && <span>KEUR: {formatDate(asset.keur_date)}</span>}
-            </div>
+            {editMode ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {DOC_LABELS.map(({ key, label }) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.5rem', borderRadius: '0.375rem', background: form[key as keyof AssetDetail] ? '#dcfce7' : '#fee2e2', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!(form[key as keyof AssetDetail])}
+                      onChange={(e) => handleFormChange(key as keyof AssetDetail, e.target.checked)}
+                      style={{ width: '14px', height: '14px' }}
+                    />
+                    <span style={{ color: form[key as keyof AssetDetail] ? '#166534' : '#991b1b' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  {DOC_LABELS.map(({ key, label }) => {
+                    const present = !!asset[key as keyof AssetDetail];
+                    return (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.5rem', borderRadius: '0.375rem', background: present ? '#dcfce7' : '#fee2e2', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <span>{present ? '✅' : '❌'}</span>
+                        <span style={{ color: present ? '#166534' : '#991b1b' }}>{label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {asset.stnk_date && <span>STNK: {formatDate(asset.stnk_date)}</span>}
+                  {asset.stnk_tax_date && <span>Pajak STNK: {formatDate(asset.stnk_tax_date)}</span>}
+                  {asset.keur_date && <span>KEUR: {formatDate(asset.keur_date)}</span>}
+                </div>
+              </>
+            )}
           </Card>
         </div>
 

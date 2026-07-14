@@ -532,12 +532,13 @@ function ProviderAjukanBarangContent() {
                 </div>
 
                 <div className="panel-form-group mt-4">
-                  <label className="panel-form-label">Catatan</label>
+                  <label className="panel-form-label">Lokasi Kendaraan saat ini <span className="text-error">*</span></label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => handleChange('notes', e.target.value)}
-                    placeholder="Catatan tambahan untuk tim kurator (opsional)"
+                    placeholder="Contoh: Pool Sunter, Jakarta Utara — Jl. Danau Sunter No. 12"
                     className="panel-form-textarea h-20"
+                    required
                   />
                 </div>
               </div>
