@@ -190,7 +190,7 @@ export default function BidderDeposit() {
       const submitData = await submitRes.json();
       if (submitRes.ok && submitData.success) {
         toast.success("Bukti transfer berhasil diunggah! Mohon tunggu persetujuan Admin.");
-        router.push("/bidder/dashboard");
+        router.push("/bidder/home");
       } else {
         throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
       }

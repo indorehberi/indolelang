@@ -154,7 +154,7 @@ function EkycStatusContent() {
         <div className="pt-6 space-y-3">
           {isVerified ? (
             <Link
-              href="/bidder/dashboard"
+              href="/bidder/home"
               className="w-full py-4 bg-premium text-on-premium rounded-xl text-body-md font-bold hover:bg-premium/85 transition-all btn-press btn-shine shadow-md flex items-center justify-center gap-1.5"
             >
               Lanjut ke Dashboard (Akun Aktif) 🚀
@@ -177,7 +177,7 @@ function EkycStatusContent() {
 
           <div className="text-center pt-2">
             <Link
-              href="/bidder/dashboard"
+              href="/bidder/home"
               className="text-xs font-bold text-primary hover:text-primary/80 transition-all hover:underline"
             >
               ← Kembali ke Dashboard

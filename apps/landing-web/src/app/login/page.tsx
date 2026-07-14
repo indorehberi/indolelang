@@ -47,7 +47,7 @@ export default function LoginPage() {
         }
 
         if (user.role === "bidder") {
-          router.push("/bidder/dashboard");
+          router.push("/bidder/home");
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
         } else if (user.role === "user") {

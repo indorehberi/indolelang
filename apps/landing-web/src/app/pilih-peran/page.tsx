@@ -36,7 +36,7 @@ export default function PilihPeranPage() {
 
         if (bidderData) {
           if (bidderData.status === "aktif") {
-            router.push("/bidder/dashboard");
+            router.push("/bidder/home");
           } else {
             router.push("/ekyc/status");
           }

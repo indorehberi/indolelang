@@ -280,7 +280,7 @@ function CartGroupCard({
       const submitData = await submitRes.json();
       if (submitRes.ok && submitData.success) {
         toast.success("Bukti transfer berhasil diunggah! Pembayaran Anda akan diverifikasi.");
-        router.push("/bidder/dashboard");
+        router.push("/bidder/home");
       } else {
         throw new Error(submitData.error?.message || "Gagal menyimpan bukti transfer.");
       }
@@ -314,7 +314,7 @@ function CartGroupCard({
                 <span className="material-symbols-outlined text-6xl text-success mb-4">task_alt</span>
                 <h3 className="text-xl font-bold text-slate-800">Pembayaran Lunas!</h3>
                 <p className="text-slate-600 text-sm mt-2">Deposit NIPL Anda cukup untuk melunasi seluruh tagihan ini.</p>
-                <Link href="/bidder/dashboard" className="mt-6 inline-block py-2 px-6 bg-primary text-white font-bold rounded-lg hover:bg-primary/90">
+                <Link href="/bidder/home" className="mt-6 inline-block py-2 px-6 bg-primary text-white font-bold rounded-lg hover:bg-primary/90">
                   Kembali ke Dashboard
                 </Link>
               </div>
