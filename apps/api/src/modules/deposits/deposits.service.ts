@@ -144,9 +144,20 @@ export class DepositsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Jenis unit tidak valid');
     }
 
-    // Add unique code to amount
-    const uniqueCode = Math.floor(Math.random() * 9) + 1;
-    amount = amount + uniqueCode;
+    // Add unique code for each NIPL purchased (random 1-999)
+    let numNipls = 1;
+    if (package_type === 'unlimited') {
+      numNipls = 5;
+    } else {
+      numNipls = parseInt(package_type, 10) || 1;
+    }
+
+    let totalUniqueCode = 0;
+    for (let i = 0; i < numNipls; i++) {
+      totalUniqueCode += Math.floor(Math.random() * 999) + 1;
+    }
+
+    amount = amount + totalUniqueCode;
 
     const transferFee = manualTransferFee;
     const refundFee = manualRefundFee;
@@ -184,6 +195,7 @@ export class DepositsService {
         gateway_fee: new Prisma.Decimal(0),
         transfer_fee: new Prisma.Decimal(transferFee),
         refund_fee: new Prisma.Decimal(refundFee),
+        unique_code: totalUniqueCode,
         is_manual: true,
         unit_type,
         package_type,

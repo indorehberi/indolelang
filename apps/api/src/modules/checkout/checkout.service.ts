@@ -218,13 +218,21 @@ export class CheckoutService {
         if (remainingRequired.lessThanOrEqualTo(0)) break;
         
         const depositAmount = new Prisma.Decimal(d.amount);
-        if (depositAmount.lessThanOrEqualTo(remainingRequired)) {
+        const uniqueCodeVal = new Prisma.Decimal(Number(d.unique_code || 0));
+        
+        // Base amount of the deposit without unique code
+        const baseDepositAmount = depositAmount.minus(uniqueCodeVal);
+        
+        if (baseDepositAmount.lessThanOrEqualTo(remainingRequired)) {
           depositDeduction = depositDeduction.add(depositAmount);
-          remainingRequired = remainingRequired.minus(depositAmount);
+          remainingRequired = remainingRequired.minus(baseDepositAmount);
           consumedDepositIds.push(d.id);
         } else {
-          depositDeduction = depositDeduction.add(remainingRequired);
-          const remainderAmount = depositAmount.minus(remainingRequired);
+          // Consume remainingRequired base amount plus the unique code of this deposit
+          const consumedWithUniqueCode = remainingRequired.add(uniqueCodeVal);
+          depositDeduction = depositDeduction.add(consumedWithUniqueCode);
+          
+          const remainderAmount = depositAmount.minus(consumedWithUniqueCode);
           remainingRequired = new Prisma.Decimal(0);
           consumedDepositIds.push(d.id);
           
@@ -236,6 +244,7 @@ export class CheckoutService {
             gateway_fee: 0,
             transfer_fee: 0,
             refund_fee: 0,
+            unique_code: 0, // Remainder has no unique code
             is_manual: d.is_manual,
             unit_type: d.unit_type,
             package_type: '1', // Remaining NIPL becomes standard (satuan) as per user rules
@@ -253,10 +262,6 @@ export class CheckoutService {
     consumeDeposits(activeDeposits.filter(d => d.unit_type === 'mobil'), requiredMobilValue);
 
     let finalAmount = totalInvoices.minus(depositDeduction);
-
-    // Generate random unique code between 1 and 999
-    const uniqueCode = Math.floor(Math.random() * 999) + 1;
-    finalAmount = finalAmount.add(uniqueCode);
     if (finalAmount.lessThan(0)) {
        finalAmount = new Prisma.Decimal(0); // Cannot be negative
     }
@@ -289,7 +294,7 @@ export class CheckoutService {
              subtotal_amount: totalInvoices,
              deposit_deduction: depositDeduction,
              final_amount: grandTotal,
-             unique_code: uniqueCode,
+             unique_code: 0, // Removed unique code from checkout orders
              gateway_fee: 0,
              status: Number(grandTotal) === 0 ? 'paid' : 'unpaid',
              payment_method: paymentMethod,

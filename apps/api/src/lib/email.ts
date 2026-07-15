@@ -33,6 +33,9 @@ async function getTransporter() {
       port,
       secure: port === 465,
       auth: user && pass ? { user, pass } : undefined,
+      tls: {
+        rejectUnauthorized: false,
+      },
     }),
     fromAddress: from,
   };

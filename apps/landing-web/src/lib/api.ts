@@ -1,3 +1,21 @@
+if (typeof window !== 'undefined') {
+  const originalJson = Response.prototype.json;
+  Response.prototype.json = async function() {
+    try {
+      return await originalJson.call(this);
+    } catch (e) {
+      console.error("JSON parse error hijacked:", e);
+      return {
+        success: false,
+        error: {
+          code: "INVALID_JSON_RESPONSE",
+          message: "Server mengembalikan respon tidak valid (halaman HTML/Error). Silakan coba sesaat lagi."
+        }
+      };
+    }
+  };
+}
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const API_PREFIX = '/api/v1';
 

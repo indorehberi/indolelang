@@ -36,6 +36,14 @@ export default function BidderProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [isEditingEnabled, setIsEditingEnabled] = useState(false);
+  const isVerified = ekycStatus === "approved" || ekycStatus === "verified";
+
+  const handleCancelEdit = () => {
+    setIsEditingEnabled(false);
+    loadProfileData();
+  };
+
   const loadProfileData = async () => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
@@ -205,13 +213,14 @@ export default function BidderProfile() {
           userObj.npwp_url = npwpUrl;
           localStorage.setItem("user", JSON.stringify(userObj));
         }
-        toast.success("Profil berhasil diperbarui!");
+        toast.success("Profil Anda berhasil diperbarui!");
+        setIsEditingEnabled(false);
         loadProfileData();
       } else {
         toast.error(resData.error?.message || "Gagal memperbarui profil.");
       }
     } catch (err) {
-      toast.error("Koneksi gagal. Pastikan API server aktif.");
+      toast.error("Koneksi gagal saat memperbarui profil.");
     } finally {
       setIsSaving(false);
     }
@@ -226,217 +235,278 @@ export default function BidderProfile() {
   }
 
   return (
-    <BidderLayout pageTitle="Profil & eKYC">
-      <p className="page-subtitle">Kelola informasi akun Anda dan pantau verifikasi identitas</p>
-
-      <div className="grid-2">
-        {/* Profile Card */}
-        <div className="card">
-          <div className="card-header">Data Profil Pengguna</div>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="panel-form-group">
-              <label className="panel-form-label">Nama Lengkap (Sesuai KTP)</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="panel-form-input"
-                required
-              />
+    <BidderLayout pageTitle="PROFIL SAYA">
+      <div className="grid-2-1">
+        {/* Left Column Form */}
+        <div>
+          <div className="card">
+            <div className="card-header flex justify-between items-center">
+              <span>Informasi Personal</span>
+              {isVerified && !isEditingEnabled && (
+                <span className="badge-ui success flex items-center gap-1 text-[10px]">
+                  <span className="material-symbols-outlined text-xs">verified</span> VERIFIED
+                </span>
+              )}
             </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Nomor Induk Kependudukan (NIK)</label>
-              <input
-                type="text"
-                value={nik || (ekycStatus !== "unverified" ? "Belum diisi" : "")}
-                disabled
-                className="panel-form-input bg-slate-50 cursor-not-allowed"
-                placeholder="Disubmit melalui halaman eKYC"
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Alamat Email</label>
-              <input
-                type="email"
-                value={email}
-                disabled
-                className="panel-form-input bg-slate-50 cursor-not-allowed"
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Nomor WhatsApp / Telepon</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="panel-form-input"
-                required
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Alamat Lengkap</label>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="panel-form-input min-h-[80px] resize-y"
-                placeholder="Alamat domisili saat ini"
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Pekerjaan</label>
-              <select
-                value={occupation}
-                onChange={(e) => setOccupation(e.target.value)}
-                className="panel-form-input"
-              >
-                <option value="ASN">ASN</option>
-                <option value="Pegawai Swasta">Pegawai Swasta</option>
-                <option value="Wiraswasta">Wiraswasta</option>
-                <option value="Lainnya">Lainnya</option>
-              </select>
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Bank <span className="text-error">*</span></label>
-              <input
-                list="banks"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                className="panel-form-input"
-                required
-                placeholder="Ketik atau pilih nama bank"
-              />
-              <datalist id="banks">
-                <option value="BCA">BCA (Bank Central Asia)</option>
-                <option value="Mandiri">Bank Mandiri</option>
-                <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
-                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
-                <option value="CIMB Niaga">CIMB Niaga</option>
-                <option value="Permata">Bank Permata</option>
-                <option value="Danamon">Bank Danamon</option>
-                <option value="BTN">BTN (Bank Tabungan Negara)</option>
-                <option value="Maybank">Maybank Indonesia</option>
-                <option value="Mega">Bank Mega</option>
-                <option value="BTPN">BTPN</option>
-                <option value="OCBC NISP">OCBC NISP</option>
-                <option value="Panin">Panin Bank</option>
-                <option value="Muamalat">Bank Muamalat</option>
-                <option value="Sinarmas">Bank Sinarmas</option>
-                <option value="Bukopin">KB Bukopin</option>
-                <option value="DKI">Bank DKI</option>
-                <option value="BJB">Bank BJB</option>
-                <option value="Jago">Bank Jago</option>
-                <option value="SeaBank">SeaBank</option>
-                <option value="Neo Commerce">Bank Neo Commerce (BNC)</option>
-                <option value="Blu">Blu by BCA Digital</option>
-                <option value="Jenius">Jenius (BTPN)</option>
-                <option value="BPD Bali">BPD Bali</option>
-                <option value="BPD DIY">BPD DIY</option>
-                <option value="BPD Jateng">Bank Jateng</option>
-                <option value="BPD Jatim">Bank Jatim</option>
-              </datalist>
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">No Rekening <span className="text-error">*</span></label>
-              <div className="flex gap-2">
+            
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="panel-form-group">
+                <label className="panel-form-label">Nama Lengkap Sesuai KTP</label>
                 <input
                   type="text"
-                  value={bankAccountNo}
-                  onChange={(e) => setBankAccountNo(e.target.value)}
-                  className="panel-form-input flex-1"
-                  required
-                  placeholder="Contoh: 1234567890"
+                  value={name}
+                  disabled
+                  className="panel-form-input bg-slate-50 cursor-not-allowed"
                 />
-                {bankInquiryMode === "auto" && (
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Nomor NIK KTP</label>
+                <input
+                  type="text"
+                  value={nik || (ekycStatus !== "unverified" ? "Belum diisi" : "")}
+                  disabled
+                  className="panel-form-input bg-slate-50 cursor-not-allowed"
+                  placeholder="Disubmit melalui halaman eKYC"
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Alamat Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="panel-form-input bg-slate-50 cursor-not-allowed"
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Nomor WhatsApp / Telepon</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  required
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Alamat Lengkap</label>
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input min-h-[80px] resize-y ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  placeholder="Alamat domisili saat ini"
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Pekerjaan</label>
+                <select
+                  value={occupation}
+                  onChange={(e) => setOccupation(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                >
+                  <option value="ASN">ASN</option>
+                  <option value="Pegawai Swasta">Pegawai Swasta</option>
+                  <option value="Wiraswasta">Wiraswasta</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Bank <span className="text-error">*</span></label>
+                <input
+                  list="banks"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  required
+                  placeholder="Ketik atau pilih nama bank"
+                />
+                <datalist id="banks">
+                  <option value="BCA">BCA (Bank Central Asia)</option>
+                  <option value="Mandiri">Bank Mandiri</option>
+                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                  <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                  <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                  <option value="CIMB Niaga">CIMB Niaga</option>
+                  <option value="Permata">Bank Permata</option>
+                  <option value="Danamon">Bank Danamon</option>
+                  <option value="BTN">BTN (Bank Tabungan Negara)</option>
+                  <option value="Maybank">Maybank Indonesia</option>
+                  <option value="Mega">Bank Mega</option>
+                  <option value="BTPN">BTPN</option>
+                  <option value="OCBC NISP">OCBC NISP</option>
+                  <option value="Panin">Panin Bank</option>
+                  <option value="Muamalat">Bank Muamalat</option>
+                  <option value="Sinarmas">Bank Sinarmas</option>
+                  <option value="Bukopin">KB Bukopin</option>
+                  <option value="DKI">Bank DKI</option>
+                  <option value="BJB">Bank BJB</option>
+                  <option value="Jago">Bank Jago</option>
+                  <option value="SeaBank">SeaBank</option>
+                  <option value="Neo Commerce">Bank Neo Commerce (BNC)</option>
+                  <option value="Blu">Blu by BCA Digital</option>
+                  <option value="Jenius">Jenius (BTPN)</option>
+                  <option value="BPD Bali">BPD Bali</option>
+                  <option value="BPD DIY">BPD DIY</option>
+                  <option value="BPD Jateng">Bank Jateng</option>
+                  <option value="BPD Jatim">Bank Jatim</option>
+                </datalist>
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">No Rekening <span className="text-error">*</span></label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={bankAccountNo}
+                    onChange={(e) => setBankAccountNo(e.target.value)}
+                    disabled={isVerified && !isEditingEnabled}
+                    className={`panel-form-input flex-1 ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                    required
+                    placeholder="Contoh: 1234567890"
+                  />
+                  {bankInquiryMode === "auto" && (
+                    <button
+                      type="button"
+                      onClick={handleCheckBank}
+                      disabled={isCheckingBank || !bankName || !bankAccountNo || (isVerified && !isEditingEnabled)}
+                      className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-sm text-sm flex items-center justify-center disabled:opacity-50 min-w-[120px]"
+                    >
+                      {isCheckingBank ? (
+                        <span className="material-symbols-outlined animate-spin">sync</span>
+                      ) : (
+                        "Cek Rekening"
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {bankInquiryMode === "manual" && (
+                <div className="panel-form-group">
+                  <label className="panel-form-label">Konfirmasi No Rekening <span className="text-error">*</span></label>
+                  <input
+                    type="text"
+                    value={confirmBankAccountNo}
+                    onChange={(e) => setConfirmBankAccountNo(e.target.value)}
+                    disabled={isVerified && !isEditingEnabled}
+                    className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                    required
+                    placeholder="Ketik ulang nomor rekening"
+                  />
+                </div>
+              )}
+
+              <div className="panel-form-group">
+                <label className="panel-form-label">A/N Rekening <span className="text-error">*</span></label>
+                <input
+                  type="text"
+                  value={bankAccountName}
+                  onChange={(e) => setBankAccountName(e.target.value)}
+                  disabled={bankInquiryMode === "auto" || (isVerified && !isEditingEnabled)}
+                  className={`panel-form-input ${(bankInquiryMode === 'auto' || (isVerified && !isEditingEnabled)) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  required
+                  readOnly={bankInquiryMode === "auto"}
+                  placeholder={bankInquiryMode === "auto" ? "Nama akan muncul otomatis setelah Anda menekan Cek Rekening" : "Ketik nama lengkap pemilik rekening"}
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Nomor NPWP</label>
+                <input
+                  type="text"
+                  value={npwp}
+                  onChange={(e) => setNpwp(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  placeholder="Opsional, disarankan"
+                />
+              </div>
+              <div className="panel-form-group">
+                <label className="panel-form-label">Upload Dokumen NPWP</label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setNpwpFile(e.target.files[0]);
+                      }
+                    }}
+                    disabled={isVerified && !isEditingEnabled}
+                    className="w-full px-4 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer focus:border-premium outline-none flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                   <button
                     type="button"
-                    onClick={handleCheckBank}
-                    disabled={isCheckingBank || !bankName || !bankAccountNo}
-                    className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-sm text-sm flex items-center justify-center disabled:opacity-50 min-w-[120px]"
+                    onClick={handleNpwpUpload}
+                    disabled={!npwpFile || isUploadingNpwp || (isVerified && !isEditingEnabled)}
+                    className="px-4 py-2 bg-secondary text-white font-bold rounded-xl disabled:opacity-50"
                   >
-                    {isCheckingBank ? (
-                      <span className="material-symbols-outlined animate-spin">sync</span>
-                    ) : (
-                      "Cek Rekening"
-                    )}
+                    {isUploadingNpwp ? "Upload..." : "Upload"}
+                  </button>
+                </div>
+                {npwpUrl && (
+                  <div className="text-xs text-success mt-2 font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    Dokumen NPWP tersimpan
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                {isVerified ? (
+                  !isEditingEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEnabled(true)}
+                      className="w-full sm:w-auto px-6 py-3 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-lg">edit</span>
+                      Ajukan Edit Data
+                    </button>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="flex-1 px-6 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Mengajukan...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-lg">done</span>
+                            Ajukan
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-lg">close</span>
+                        Batal
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md"
+                  >
+                    {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
                   </button>
                 )}
               </div>
-            </div>
-
-            {bankInquiryMode === "manual" && (
-              <div className="panel-form-group">
-                <label className="panel-form-label">Konfirmasi No Rekening <span className="text-error">*</span></label>
-                <input
-                  type="text"
-                  value={confirmBankAccountNo}
-                  onChange={(e) => setConfirmBankAccountNo(e.target.value)}
-                  className="panel-form-input"
-                  required
-                  placeholder="Ketik ulang nomor rekening"
-                />
-              </div>
-            )}
-
-            <div className="panel-form-group">
-              <label className="panel-form-label">A/N Rekening <span className="text-error">*</span></label>
-              <input
-                type="text"
-                value={bankAccountName}
-                onChange={(e) => setBankAccountName(e.target.value)}
-                className={`panel-form-input ${bankInquiryMode === 'auto' ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
-                required
-                readOnly={bankInquiryMode === "auto"}
-                placeholder={bankInquiryMode === "auto" ? "Nama akan muncul otomatis setelah Anda menekan Cek Rekening" : "Ketik nama lengkap pemilik rekening"}
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Nomor NPWP</label>
-              <input
-                type="text"
-                value={npwp}
-                onChange={(e) => setNpwp(e.target.value)}
-                className="panel-form-input"
-                placeholder="Opsional, disarankan"
-              />
-            </div>
-            <div className="panel-form-group">
-              <label className="panel-form-label">Upload Dokumen NPWP</label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      setNpwpFile(e.target.files[0]);
-                    }
-                  }}
-                  className="w-full px-4 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer focus:border-premium outline-none flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={handleNpwpUpload}
-                  disabled={!npwpFile || isUploadingNpwp}
-                  className="px-4 py-2 bg-secondary text-white font-bold rounded-xl disabled:opacity-50"
-                >
-                  {isUploadingNpwp ? "Upload..." : "Upload"}
-                </button>
-              </div>
-              {npwpUrl && (
-                <div className="text-xs text-success mt-2 font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">check_circle</span>
-                  Dokumen NPWP tersimpan
-                </div>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md shadow-primary/20"
-            >
-              {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
-            </button>
-          </form>
+            </form>
+          </div>
         </div>
 
         {/* KYC Status Card */}

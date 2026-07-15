@@ -278,22 +278,40 @@ export default function BidderDeposit() {
                 </div>
               </div>
 
-              {/* Quantity Selection */}
+              {/* Quantity Selection via Radio Buttons */}
               <div className="panel-form-group">
-                <label className="panel-form-label">Paket Pembelian NIPL</label>
-                <select
-                  value={packageType}
-                  onChange={(e) => setPackageType(e.target.value)}
-                  className="panel-form-select"
-                >
-                  <option value="1">1 Tiket NIPL (Hak menang 1 unit)</option>
-                  <option value="2">2 Tiket NIPL (Hak menang 2 unit)</option>
-                  <option value="3">3 Tiket NIPL (Hak menang 3 unit)</option>
-                  <option value="4">4 Tiket NIPL (Hak menang 4 unit)</option>
-                  <option value="unlimited">
-                    Unlimited NIPL (Hak menang tak terbatas - {formatRupiah(unitType === 'mobil' ? 25000000 : 5000000)})
-                  </option>
-                </select>
+                <label className="panel-form-label mb-2 block">Paket Pembelian NIPL</label>
+                <div className="flex flex-col gap-2.5 mt-2">
+                  {[
+                    { value: "1", label: "1 Tiket NIPL", desc: "Hak menang 1 unit lelang" },
+                    { value: "2", label: "2 Tiket NIPL", desc: "Hak menang 2 unit lelang" },
+                    { value: "3", label: "3 Tiket NIPL", desc: "Hak menang 3 unit lelang" },
+                    { value: "4", label: "4 Tiket NIPL", desc: "Hak menang 4 unit lelang" },
+                    { value: "unlimited", label: "Unlimited NIPL", desc: `Hak menang tak terbatas (${formatRupiah(unitType === 'mobil' ? 25000000 : 5000000)})` }
+                  ].map((option) => (
+                    <label 
+                      key={option.value}
+                      className={`flex items-center gap-3 p-3.5 border rounded-xl cursor-pointer transition-all ${
+                        packageType === option.value
+                          ? "border-primary bg-primary/5 text-on-surface"
+                          : "border-outline-variant/30 hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="packageType"
+                        value={option.value}
+                        checked={packageType === option.value}
+                        onChange={() => setPackageType(option.value)}
+                        className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm leading-none mb-1">{option.label}</span>
+                        <span className="text-[11px] text-slate-500">{option.desc}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Total Payment Info */}

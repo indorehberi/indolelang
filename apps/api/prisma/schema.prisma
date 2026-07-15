@@ -290,6 +290,7 @@ model deposits {
   transfer_fee       Decimal?  @default(0)
   refund_fee         Decimal?  @default(0)
   transfer_proof_url String?
+  unique_code        Int?      @default(0)
   is_manual          Boolean?  @default(false)
   status             String    @default("pending")
   paid_at            DateTime?

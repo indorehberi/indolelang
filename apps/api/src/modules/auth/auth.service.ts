@@ -481,6 +481,10 @@ export class AuthService {
 			await sendEmail({ to: email, subject, text, html });
 		} catch (emailError) {
 			logger.error({ emailError, email }, 'Failed to send password reset email');
+			console.log('\n==================================================');
+			console.log(`[DEBUG / DEV ONLY] PASSWORD RESET LINK FOR ${email}:`);
+			console.log(resetUrl);
+			console.log('==================================================\n');
 			throw new AppError(500, ErrorCode.INTERNAL_SERVER_ERROR, 'Gagal mengirim email reset password. Silakan coba beberapa saat lagi atau hubungi admin.');
 		}
 	}

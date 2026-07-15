@@ -83,6 +83,28 @@ export default function AuctionResultsPage() {
     return true;
   });
 
+  const handleDownloadBapl = async (invoiceId: string) => {
+    try {
+      const response = await apiFetch(`/documents/bapl/${invoiceId}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BAPL-${invoiceId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const errData = await response.json().catch(() => null);
+        toast.error(errData?.error?.message || 'Gagal mengunduh BAPL');
+      }
+    } catch (err) {
+      toast.error('Gagal mengunduh BAPL. Periksa koneksi Anda.');
+    }
+  };
+
   const handleMarkAsPaid = async (lotId: string) => {
     if (!confirm('Tandai lot ini sebagai sudah dibayar dan generate BAPL?')) return;
     
@@ -93,7 +115,9 @@ export default function AuctionResultsPage() {
       if (response.ok && data.success) {
         toast.success('Berhasil! BAPL akan diunduh secara otomatis.');
         // Automatically download BAPL
-        window.open(apiUrl(`/documents/bapl/${data.data.invoice_id}/download`), '_blank');
+        if (data.data?.invoice_id) {
+          handleDownloadBapl(data.data.invoice_id);
+        }
         fetchLots(); // Refresh
       } else {
         toast.error(data.error?.message || 'Gagal menandai sebagai dibayar');
@@ -259,7 +283,7 @@ export default function AuctionResultsPage() {
                         {lot.status === 'sold' && lot.payment_status === 'paid' && lot.invoice_id && (
                           <button
                             className="btn btn-sm btn-outline"
-                            onClick={() => window.open(apiUrl(`/documents/bapl/${lot.invoice_id}/download`), '_blank')}
+                            onClick={() => handleDownloadBapl(lot.invoice_id)}
                             style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                           >
                             Unduh BAPL

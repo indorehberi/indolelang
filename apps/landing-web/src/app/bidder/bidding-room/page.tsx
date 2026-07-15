@@ -431,6 +431,13 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
                   <span className="font-medium text-slate-800">{lot.asset?.location || "-"}</span>
                 </div>
               </div>
+
+              {lot.asset?.description && (
+                <div className="mt-4 pt-3 border-t border-slate-100">
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1">CATATAN TAMBAHAN</span>
+                  <span className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{lot.asset.description}</span>
+                </div>
+              )}
             
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">Harga Dasar (Limit)</span>
