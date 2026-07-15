@@ -327,6 +327,7 @@ export default function AssetsInspectionPage() {
               <thead>
                 <tr>
                   <th>Barang</th>
+                  <th>No. Polisi</th>
                   <th>Kategori</th>
                   <th>Provider</th>
                   <th>Harga Dasar</th>
@@ -336,61 +337,63 @@ export default function AssetsInspectionPage() {
               </thead>
               <tbody>
                 {assets.map((asset) => (
-                  <tr key={asset.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--wf-text-primary)' }}>{asset.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--wf-text-muted)', marginTop: '2px' }}>
-                        ID: {asset.id.split('-')[0]}...
-                      </div>
-                    </td>
-                    <td>
-                      <Badge variant="info">{asset.category.replace('_', ' ')}</Badge>
-                    </td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>
-                      {asset.provider_id?.split('-')[0]}...
-                    </td>
-                    <td style={{ fontWeight: 600 }}>
-                      Rp {asset.base_price.toLocaleString('id-ID')}
-                    </td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>
-                      {new Date(asset.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Button size="sm" variant="primary" onClick={() => openInspection(asset)}>
-                        🔍 Inspeksi
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      {/* ═══════════════════════════════════════════
-          MODAL FORM INSPEKSI
-      ═══════════════════════════════════════════ */}
-      {showModal && selectedAsset && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.55)', padding: '1rem',
-        }}>
-          <div style={{
-            background: 'var(--wf-bg-primary, #fff)',
-            borderRadius: '1rem',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            width: '100%',
-            maxWidth: '860px',
-            maxHeight: '92vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '1.25rem 1.5rem',
+                  {loading ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--wf-text-muted)' }}>
+                ⏳ Memuat data...
+              </div>
+            ) : assets.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--wf-text-muted)' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
+                <div style={{ fontWeight: 600 }}>Tidak ada barang yang menunggu inspeksi</div>
+                <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Semua pengajuan barang sudah diproses.</div>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Barang</th>
+                      <th>No. Polisi</th>
+                      <th>Kategori</th>
+                      <th>Provider</th>
+                      <th>Harga Dasar</th>
+                      <th>Tanggal Masuk</th>
+                      <th style={{ textAlign: 'right' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assets.map((asset) => (
+                      <tr key={asset.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--wf-text-primary)' }}>{asset.title}</div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--wf-text-muted)', marginTop: '2px' }}>
+                            ID: {asset.id.split('-')[0]}...
+                          </div>
+                        </td>
+                        <td style={{ fontSize: '0.85rem' }}>{asset.police_number || '-'}</td>
+                        <td>
+                          <Badge variant="info">{asset.category.replace('_', ' ')}</Badge>
+                        </td>
+                        <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>
+                          {asset.provider_id?.split('-')[0]}...
+                        </td>
+                        <td style={{ fontWeight: 600 }}>
+                          Rp {asset.base_price.toLocaleString('id-ID')}
+                        </td>
+                        <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>
+                          {new Date(asset.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <Button size="sm" variant="primary" onClick={() => openInspection(asset)}>
+                            🔍 Inspeksi
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
               borderBottom: '1px solid var(--wf-border)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
             }}>

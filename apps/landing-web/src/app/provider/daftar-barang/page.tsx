@@ -250,12 +250,13 @@ export default function ProviderDaftarBarang() {
         </div>
 
         <div className="table-wrapper">
-          <table className="dashboard-table">
+            <table className="dashboard-table">
             <thead>
               <tr>
                 <th>ID Barang</th>
                 <th>Nama Unit Barang</th>
                 <th>Kategori</th>
+                <th>No. Polisi</th>
                 <th>Cabang</th>
                 <th>Harga Dasar Limit</th>
                 <th>Status</th>
@@ -266,17 +267,18 @@ export default function ProviderDaftarBarang() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Memuat data Barang...</td>
+                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Memuat data Barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-500 font-medium">Belum ada Barang terdaftar.</td>
+                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Belum ada Barang terdaftar.</td>
                 </tr>
               ) : assets.map((asset) => (
                 <tr key={asset.id}>
                   <td>#{asset.id.slice(0, 8)}</td>
                   <td className="font-bold text-slate-800">{asset.name}</td>
                   <td>{asset.category}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{asset.police_number || '-'}</td>
                   <td>{branchName(asset.branch_id)}</td>
                   <td className="font-bold">{formatRupiah(asset.limitPrice)}</td>
                   <td>

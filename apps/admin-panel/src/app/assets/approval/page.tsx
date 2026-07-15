@@ -258,6 +258,7 @@ export default function AssetsApprovalPage() {
               <tr>
                 <th>Tanggal Masuk</th>
                 <th>Nama Barang / Deskripsi</th>
+                <th>No. Polisi</th>
                 <th>Kategori</th>
                 <th>Taksiran Harga Dasar</th>
                 <th>Status</th>
@@ -267,11 +268,11 @@ export default function AssetsApprovalPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center">Memuat antrean barang...</td>
+                  <td colSpan={7} className="text-center">Memuat antrean barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted">Tidak ada barang yang berstatus approved.</td>
+                  <td colSpan={7} className="text-center text-muted">Tidak ada barang yang berstatus approved.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
@@ -293,6 +294,7 @@ export default function AssetsApprovalPage() {
                         </div>
                       </div>
                     </td>
+                    <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>
                     <td>
                       <span style={{ textTransform: 'capitalize' }}>
                         {asset.category.replace('_', ' ')}

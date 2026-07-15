@@ -647,6 +647,7 @@ export default function AssetsPage() {
                 <th>Nama Barang</th>
                 <th>Kategori</th>
                 <th>Provider</th>
+                <th>No. Polisi</th>
                 <th>Harga Dasar</th>
                 <th>Status</th>
                 <th>Tanggal Masuk</th>
@@ -656,11 +657,11 @@ export default function AssetsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center">Memuat daftar barang...</td>
+                  <td colSpan={8} className="text-center">Memuat daftar barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
+                  <td colSpan={8} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
@@ -681,6 +682,7 @@ export default function AssetsPage() {
                     <td style={{ fontSize: '0.85rem' }}>
                       {asset.provider?.company_name || asset.provider?.full_name || 'Admin'}
                     </td>
+                    <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>
                     <td>
                       <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
                     </td>
