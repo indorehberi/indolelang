@@ -56,6 +56,7 @@ export default function AssetsPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchPolice, setSearchPolice] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -389,6 +390,7 @@ export default function AssetsPage() {
       if (providerFilter) query += `&provider_id=${providerFilter}`;
       if (categoryFilter) query += `&category=${categoryFilter}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (searchPolice) query += `&police_number=${encodeURIComponent(searchPolice)}`;
       if (poolFilter) query += `&pool_status=${poolFilter}`;
       if (dateFrom) query += `&date_from=${dateFrom}`;
       if (dateTo) query += `&date_to=${dateTo}`;
@@ -518,6 +520,9 @@ export default function AssetsPage() {
 
   return (
     <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Barang">
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
+        <input type="text" placeholder="Cari No. Polisi..." value={searchPolice} onChange={e => setSearchPolice(e.target.value)} className="panel-form-input" style={{ width: '200px' }} />
+      </div>
       <div className="toolbar">
         <div className="toolbar-left">
           <h1 className="page-title">Katalog Barang</h1>

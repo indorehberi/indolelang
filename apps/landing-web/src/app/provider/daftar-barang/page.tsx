@@ -42,6 +42,7 @@ export default function ProviderDaftarBarang() {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
+  const [searchPolice, setSearchPolice] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [poolFilter, setPoolFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -71,6 +72,7 @@ export default function ProviderDaftarBarang() {
 
       const params = new URLSearchParams({ per_page: "200" });
       if (search) params.set("search", search);
+      if (searchPolice) params.set("police_number", searchPolice);
       if (statusFilter) params.set("status", statusFilter);
       if (poolFilter) params.set("pool_status", poolFilter);
       if (dateFrom) params.set("date_from", dateFrom);
@@ -199,6 +201,14 @@ export default function ProviderDaftarBarang() {
               onChange={(e) => setSearch(e.target.value)}
               className="panel-form-input"
               style={{ width: "180px", padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}
+            />
+            <input
+              type="text"
+              placeholder="Cari No. Polisi..."
+              value={searchPolice}
+              onChange={(e) => setSearchPolice(e.target.value)}
+              className="panel-form-input"
+              style={{ width: "160px", padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}
             />
             <select
               value={statusFilter}

@@ -122,6 +122,7 @@ export const getAssetsQuerySchema = z.object({
       AssetCategory.PROPERTI,
     ]).optional(),
     search: z.string().optional(),
+    police_number: z.string().optional(),
     branch_id: z.string().uuid().optional(),
     pool_status: z.enum(['in_pool', 'out_pool']).optional(),
     date_from: z.string().optional(),

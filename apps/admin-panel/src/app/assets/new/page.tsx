@@ -100,6 +100,7 @@ export default function NewAssetPage() {
     bpkb_number: '',
     frame_number: '',
     engine_number: '',
+    branch_id: '',
     
     // Document Boolean
     doc_stnk: false,
