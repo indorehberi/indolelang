@@ -578,14 +578,7 @@ function KatalogContent() {
                     </p>
                   </div>
                   {!isStandalone && (
-                    <div className="flex gap-2 print:hidden">
-                      <button
-                        onClick={() => window.print()}
-                        className="w-fit px-4 py-2 bg-secondary-fixed text-on-secondary-fixed rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-secondary-fixed-dim transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-base">print</span>
-                        Print Katalog
-                      </button>
+                    <div className="flex gap-2">
                       <button
                         onClick={async () => {
                           const { utils, writeFile } = await import('xlsx');
@@ -621,8 +614,8 @@ function KatalogContent() {
                         }}
                         className="w-fit px-4 py-2 bg-primary text-on-primary rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-base">download</span>
-                        Download Katalog
+                        <span className="material-symbols-outlined text-base">print</span>
+                        Print Katalog Lot
                       </button>
                     </div>
                   )}
