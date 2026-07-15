@@ -741,8 +741,6 @@ export class DocumentsService {
       .update(`bapl-${invoiceId}-${Date.now()}`)
       .digest('hex');
 
-    const qrDataUrl = await QRCode.toDataURL(`http://localhost:3000/verify/${qrHash}`);
-
     const htmlContent = `
       <html>
       <head>
@@ -780,7 +778,7 @@ export class DocumentsService {
           <table style="width: 100%; margin: 10px 0;">
             <tr><td style="width: 200px;">Harga Terbentuk Lelang</td><td>: ${this.formatRupiah(Number(invoice.hammer_price))}</td></tr>
             <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.commission))}</td></tr>
-            <tr><td>Biaya PMK</td><td>: PMK41</td></tr>
+            <tr><td>Biaya PMK</td><td>: ${this.formatRupiah(Number(invoice.pmk41_amount || 0))}</td></tr>
             <tr><td><strong>Sisa Pelunasan</strong></td><td><strong>: ${this.formatRupiah(Number(invoice.total))}</strong></td></tr>
           </table>
 
@@ -808,12 +806,6 @@ export class DocumentsService {
             <div class="sig-line"></div>
             <div style="font-weight: bold;">${pejabatLelang}</div>
           </div>
-        </div>
-
-        <div class="qr-container">
-          <img class="qr-img" src="${qrDataUrl}" alt="QR Verification" />
-          <div style="font-size: 10px; color: #a0aec0; margin-top: 6px;">Pindai QR Code untuk memverifikasi keaslian dokumen ini</div>
-          <div style="font-family: monospace; font-size: 9px; color: #cbd5e0; margin-top: 2px;">Hash: ${qrHash}</div>
         </div>
       </body>
       </html>
