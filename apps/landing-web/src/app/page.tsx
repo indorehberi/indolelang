@@ -303,7 +303,7 @@ export default function Home() {
           jenisLelang: "English Auction",
           featured: true,
         };
-      });
+      }).sort((a: any, b: any) => (a.lot_number || 0) - (b.lot_number || 0));
       setLotsList(mapped);
     }
   }, [dbFeaturedLots]);
@@ -417,7 +417,7 @@ export default function Home() {
             jenisLelang: item.jenisLelang || "Lelang Terbuka",
             featured: false,
           }));
-          setLotsList([...initialLots, ...parsed]);
+          setLotsList([...initialLots, ...parsed].sort((a: any, b: any) => (a.lot_number || 0) - (b.lot_number || 0)));
 
           // Set temporary timer for stored lots if live
           setTimers((prev) => {

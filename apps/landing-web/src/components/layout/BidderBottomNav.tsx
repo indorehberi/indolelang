@@ -118,17 +118,17 @@ export default function BidderBottomNav() {
         href={LELANG_HREF}
         aria-label="Ruang Lelang"
         className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: `calc(env(safe-area-inset-bottom) + 20px)` }}
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + 28px)` }}
       >
         <span
-          className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[72px] h-[72px] border-4 border-white ${
+          className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[60px] h-[60px] border-[3px] border-white ${
             lelangActive ? "bg-rose-600" : "bg-rose-500"
           } ${isLive ? "animate-pulse-soft" : ""}`}
         >
-          <span className="material-symbols-outlined text-[28px] leading-none filled">gavel</span>
-          <span className="text-[11px] font-black tracking-wide leading-none mt-0.5">LELANG</span>
+          <span className="material-symbols-outlined text-[22px] leading-none filled">gavel</span>
+          <span className="text-[10px] font-black tracking-wide leading-none mt-0.5">LELANG</span>
           {isLive && (
-            <span className="text-[7px] font-bold leading-none mt-0.5 uppercase tracking-wider opacity-90">
+            <span className="text-[6px] font-bold leading-none mt-0.5 uppercase tracking-wider opacity-90">
               Sedang Live
             </span>
           )}
