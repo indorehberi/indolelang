@@ -39,5 +39,6 @@ export const getLotsQuerySchema = z.object({
     session_id: z.string().uuid('ID Sesi Lelang tidak valid').optional(),
     status: z.string().optional(),
     provider_id: z.string().uuid().optional(),
+    police_number: z.string().optional(),
   }),
 });

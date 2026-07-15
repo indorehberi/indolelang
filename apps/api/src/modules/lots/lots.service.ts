@@ -17,7 +17,8 @@ export class LotsService {
     perPage: number,
     sessionId?: string,
     status?: string,
-    providerId?: string
+    providerId?: string,
+    policeNumber?: string
   ): Promise<{ lots: any[]; meta: PaginationMeta }> {
     const where: Prisma.lotsWhereInput = {};
 
@@ -31,8 +32,11 @@ export class LotsService {
     if (sessionId) {
       where.session_id = sessionId;
     }
-    if (providerId) {
-      where.asset = { provider_id: providerId };
+    if (providerId || policeNumber) {
+      where.asset = {
+        ...(providerId ? { provider_id: providerId } : {}),
+        ...(policeNumber ? { police_number: { contains: policeNumber, mode: 'insensitive' } } : {}),
+      };
     }
 
     const skip = (page - 1) * perPage;
