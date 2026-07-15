@@ -120,6 +120,7 @@ export default function NewAssetPage() {
     photo_interior: '',
     photo_stnk: '',
     notes: '',
+    pool_status: 'in_pool',
   });
 
   const [providers, setProviders] = useState<{ id: string; company_name: string; full_name: string }[]>([]);
