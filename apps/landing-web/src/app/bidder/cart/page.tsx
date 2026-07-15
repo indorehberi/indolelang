@@ -40,6 +40,10 @@ export default function BidderCart() {
   const [totalDepositValue, setTotalDepositValue] = useState<number>(0);
   const [hasUnlimited, setHasUnlimited] = useState<boolean>(false);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  // Defaults match the backend's own fallback (checkout.service.ts) in case
+  // /settings/public is unreachable — kept in sync deliberately, not a
+  // separate source of truth.
+  const [niplSettings, setNiplSettings] = useState({ mobil: 5000000, motor: 1000000 });
 
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +64,7 @@ export default function BidderCart() {
         setActiveDeposits(resData.data.active_deposits || []);
         setTotalDepositValue(resData.data.total_deposit_value || 0);
         setHasUnlimited(resData.data.has_unlimited || false);
-        
+
         if (resData.data.pending_orders?.length > 0) {
            setPendingOrders(resData.data.pending_orders);
         } else {
@@ -74,8 +78,33 @@ export default function BidderCart() {
     }
   };
 
+  // On-screen NIPL deduction estimate (before the bidder submits checkout)
+  // used to be hardcoded here instead of reading the real "Deposit Jaminan
+  // NIPL" values from Pengaturan Platform — so if an admin changed those
+  // settings, the preview shown to the bidder silently went stale. The
+  // amount actually charged was always correct (processCheckout computes it
+  // server-side from the same settings), only this preview was wrong.
+  const fetchNiplSettings = async () => {
+    try {
+      const res = await apiFetch("/settings/public");
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        const byKey = (key: string) => data.data.find((s: any) => s.key === key)?.value;
+        const mobil = Number(byKey("nipl_deposit_amount"));
+        const motor = Number(byKey("nipl_motor_deposit_amount"));
+        setNiplSettings({
+          mobil: mobil > 0 ? mobil : 5000000,
+          motor: motor > 0 ? motor : 1000000,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch NIPL settings", err);
+    }
+  };
+
   useEffect(() => {
     fetchCart();
+    fetchNiplSettings();
   }, []);
 
   // Invoices and deposit balances change server-side while the PWA sits in the
@@ -116,6 +145,7 @@ export default function BidderCart() {
                 totalDepositValue={totalDepositValue}
                 hasUnlimited={hasUnlimited}
                 activeDeposits={activeDeposits}
+                niplSettings={niplSettings}
                 onPaid={fetchCart}
               />
             </div>
@@ -138,6 +168,7 @@ export default function BidderCart() {
                 totalDepositValue={order.deposit_deduction}
                 hasUnlimited={false} // Already applied
                 activeDeposits={[]} // Not needed for existing order
+                niplSettings={niplSettings}
                 onPaid={fetchCart}
                 existingOrder={order}
               />
@@ -154,6 +185,7 @@ function CartGroupCard({
   totalDepositValue,
   hasUnlimited,
   activeDeposits,
+  niplSettings,
   onPaid,
   existingOrder
 }: {
@@ -161,6 +193,7 @@ function CartGroupCard({
   totalDepositValue: number;
   hasUnlimited: boolean;
   activeDeposits: any[];
+  niplSettings: { mobil: number; motor: number };
   onPaid: () => void;
   existingOrder?: any;
 }) {
@@ -194,9 +227,11 @@ function CartGroupCard({
       return existingOrder.deposit_deduction || 0;
     }
 
-    // NIPL amounts
-    const settingsMotorNipl = 1000000;
-    const settingsMobilNipl = 5000000;
+    // NIPL amounts — from Pengaturan Platform (Deposit Jaminan NIPL), not
+    // hardcoded, so this preview matches what processCheckout actually
+    // charges server-side using the same settings.
+    const settingsMotorNipl = niplSettings.motor;
+    const settingsMobilNipl = niplSettings.mobil;
 
     // Selected invoices counts
     let selectedMotorCount = 0;
