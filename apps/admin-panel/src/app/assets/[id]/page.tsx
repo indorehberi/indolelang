@@ -273,8 +273,12 @@ export default function AssetDetailPage() {
         keur_date: form.keur_date ? new Date(form.keur_date).toISOString() : undefined,
       };
 
-      // Remove undefined keys
-      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+      // Remove undefined/null keys — fields the DB stored as null (never
+      // filled in) flow into `form` as-is via setForm(a) in fetchData(),
+      // and updateAssetSchema's `.optional()` fields reject `null` with
+      // "Expected string, received null" since optional only allows
+      // undefined/missing, not null.
+      Object.keys(payload).forEach((k) => (payload[k] === undefined || payload[k] === null) && delete payload[k]);
 
       const res = await apiFetch(`/assets/${assetId}`, {
         method: 'PUT',
