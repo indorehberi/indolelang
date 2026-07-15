@@ -295,16 +295,16 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, isConnected, onLotCl
         </div>
       )}
 
-      <div className="p-5 flex flex-col md:flex-row gap-6">
-        
-        <div className="w-full md:w-1/2 flex flex-col gap-6">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+      <div className="p-4 flex flex-col md:flex-row gap-6">
+
+        <div className="w-full md:w-1/2 flex flex-col gap-6 min-w-0">
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 min-w-0">
             <div className="space-y-4">
-              <div>
+              <div className="min-w-0">
                 <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Harga Tertinggi Saat Ini</span>
-                <div className={`text-3xl sm:text-4xl font-black flex items-center gap-2 truncate overflow-hidden ${bidLogs[0]?.isMe ? 'text-green-600' : 'text-primary'}`}>
+                <div className={`text-2xl sm:text-4xl font-black flex flex-wrap items-center gap-2 min-w-0 break-words ${bidLogs[0]?.isMe ? 'text-green-600' : 'text-primary'}`}>
                   {formatRupiah(currentPrice)}
-                  {bidLogs[0]?.isMe && <span className="material-symbols-outlined text-4xl text-amber-500 flex-shrink-0" title="Anda penawar tertinggi!">emoji_events</span>}
+                  {bidLogs[0]?.isMe && <span className="material-symbols-outlined text-3xl sm:text-4xl text-amber-500 flex-shrink-0" title="Anda penawar tertinggi!">emoji_events</span>}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Harga Dasar:</span>
