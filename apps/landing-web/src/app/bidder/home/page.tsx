@@ -3,19 +3,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch, getImageUrl, getAssetImages } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
 import { useRefreshOnForeground } from "@/hooks/useRefreshOnForeground";
+import LotCard, { mapLotToCard } from "@/components/lots/LotCard";
 
-const formatRupiah = (value: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
+const PER_PAGE = 20;
 
 export default function BidderHome() {
   const router = useRouter();
@@ -27,6 +22,16 @@ export default function BidderHome() {
   const [lots, setLots] = useState<any[]>([]);
   const [isSoldLots, setIsSoldLots] = useState(false);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+    setIsPWA(
+      window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes("android-app://")
+    );
+  }, []);
 
   const fetchHomeData = useCallback(async () => {
       try {
@@ -118,16 +123,33 @@ export default function BidderHome() {
     return lots.filter((lot) => lot.asset?.category?.toUpperCase() === activeCategoryFilter.toUpperCase());
   }, [lots, activeCategoryFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredLots.length / PER_PAGE));
+  const validPage = Math.min(currentPage, totalPages);
+  const paginatedLots = filteredLots.slice((validPage - 1) * PER_PAGE, validPage * PER_PAGE);
+
+  // Reset to page 1 whenever the visible set changes underneath us.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategoryFilter, isSoldLots]);
+
   if (loading) {
     return (
-      <BidderLayout pageTitle="Beranda">
+      <BidderLayout pageTitle="Beranda" hidePwaTopbar={isPWA}>
         <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
-    <BidderLayout pageTitle="Beranda">
+    <BidderLayout pageTitle="Beranda" hidePwaTopbar={isPWA}>
+
+      {/* PWA: banner replaces the topbar (mobile only). */}
+      {isPWA && (
+        <div className="lg:hidden -mx-6 -mt-6 mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/banner_bidku.png" alt="Banner Bidku" className="w-full h-auto object-cover" />
+        </div>
+      )}
 
       {/* Welcome Text (No Card) */}
       <div className="mb-6 px-1">
@@ -209,19 +231,26 @@ export default function BidderHome() {
         <div className="flex justify-between items-end mb-3 px-1">
           <div>
             <h3 className="text-base font-bold text-slate-800">
-              {isSoldLots ? "Katalog Lot Terjual" : "Katalog Lelang Terdekat"}
+              {isSoldLots ? "Riwayat Lot Terjual" : "Katalog Lelang Terdekat"}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {session 
-                ? new Date(session.scheduled_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) 
+              {session
+                ? new Date(session.scheduled_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
                 : "Belum ada jadwal"}
             </p>
-            {isSoldLots && (
-              <p className="text-[10px] text-primary font-semibold mt-1">Lot terjual</p>
-            )}
           </div>
           <Link href="/katalog" className="text-primary text-xs font-bold hover:underline">Lihat Semua</Link>
         </div>
+
+        {/* No published session at all — tell the user, then fall back to the
+            history of already-sold lots below. */}
+        {isSoldLots && (
+          <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+            <span className="material-symbols-outlined text-3xl text-amber-500 mb-1">event_busy</span>
+            <p className="text-sm font-bold text-amber-800">Belum ada jadwal sesi lelang baru</p>
+            <p className="text-xs text-amber-700 mt-0.5">Sementara itu, berikut riwayat lot yang sudah terjual.</p>
+          </div>
+        )}
 
         {/* Category Filters for Local Lots */}
         {lots.length > 0 && (
@@ -231,8 +260,8 @@ export default function BidderHome() {
                 key={cat}
                 onClick={() => setActiveCategoryFilter(cat)}
                 className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors border ${
-                  activeCategoryFilter === cat 
-                    ? "bg-primary text-on-primary border-primary" 
+                  activeCategoryFilter === cat
+                    ? "bg-primary text-on-primary border-primary"
                     : "bg-surface text-slate-500 border-outline-variant/50 hover:bg-slate-100"
                 }`}
               >
@@ -248,49 +277,37 @@ export default function BidderHome() {
              <p className="text-slate-500 text-sm">Belum ada lot yang tersedia</p>
            </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filteredLots.map((lot: any) => {
-               const firstImage = lot.asset ? getAssetImages(lot.asset)[0] : null;
-               return (
-                 <Link href={`/katalog/${lot.id}`} key={lot.id} className="bg-surface border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm flex flex-col active:scale-95 transition-transform">
-                   <div className="aspect-[4/3] bg-slate-100 relative">
-                     {firstImage ? (
-                       <img src={getImageUrl(firstImage)} alt={lot.asset?.brand || 'Kendaraan'} className="w-full h-full object-cover" />
-                     ) : (
-                       <div className="w-full h-full flex items-center justify-center text-slate-300">
-                         <span className="material-symbols-outlined text-4xl">directions_car</span>
-                       </div>
-                     )}
-                     <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                       Lot {lot.lot_number || '-'}
-                     </div>
-                   {lot.asset?.grade && (
-                     <div className="absolute top-1.5 right-1.5 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                       Grade {lot.asset.grade}
-                     </div>
-                   )}
-                 </div>
-                 <div className="p-2.5 flex-1 flex flex-col justify-between">
-                   <div>
-                     <h4 className="font-bold text-slate-800 text-xs leading-snug line-clamp-2 mb-1">{lot.asset?.brand} {lot.asset?.model}</h4>
-                     <p className="text-[10px] text-slate-500 mb-1">{lot.asset?.police_number} • {lot.asset?.year || lot.asset?.manufacturing_year} • {lot.asset?.odometer ? `${(lot.asset.odometer/1000).toFixed(0)}k KM` : '-'}</p>
-                   </div>
-                   <div className="mt-2">
-                     <p className="text-[10px] text-slate-500">{isSoldLots ? "Harga Terbentuk" : "Harga Dasar"}</p>
-                     <p className="text-sm font-black text-primary leading-none">{formatRupiah(isSoldLots ? (lot.hammer_price || lot.starting_price) : lot.starting_price)}</p>
-                     <p className="text-[9px] text-slate-400 mt-1 italic">
-                       +Biaya PMK41 (1,1%)
-                     </p>
-                     <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-0.5 font-semibold">
-                       <span className="material-symbols-outlined text-[10px]">location_on</span>
-                       <span className="truncate">{session?.branch?.name || lot.session?.branch?.name || "Jakarta"}</span>
-                     </p>
-                   </div>
-                 </div>
-               </Link>
-             );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {paginatedLots.map((lot: any) => (
+                <LotCard key={lot.id} lot={mapLotToCard(lot)} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={validPage <= 1}
+                  className="w-9 h-9 rounded-full flex items-center justify-center border border-outline-variant/50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                  aria-label="Halaman sebelumnya"
+                >
+                  <span className="material-symbols-outlined text-lg">chevron_left</span>
+                </button>
+                <span className="text-xs font-semibold text-slate-600">
+                  Halaman {validPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={validPage >= totalPages}
+                  className="w-9 h-9 rounded-full flex items-center justify-center border border-outline-variant/50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                  aria-label="Halaman berikutnya"
+                >
+                  <span className="material-symbols-outlined text-lg">chevron_right</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

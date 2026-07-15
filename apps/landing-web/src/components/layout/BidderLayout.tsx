@@ -14,6 +14,9 @@ import { clearAuthAndRedirect } from "../../lib/api";
 interface BidderLayoutProps {
   children: React.ReactNode;
   pageTitle: string;
+  // When true, suppress the PWA topbar on mobile (the page draws its own
+  // full-bleed header, e.g. the beranda banner). Desktop keeps its topbar.
+  hidePwaTopbar?: boolean;
 }
 
 /**
@@ -25,7 +28,7 @@ interface BidderLayoutProps {
  *   is the only way to reach the bidder pages once the bottom tab bar is gone.
  * - Installed PWA: app chrome (topbar + bottom tab bar), no site Header/Footer.
  */
-export default function BidderLayout({ children, pageTitle }: BidderLayoutProps) {
+export default function BidderLayout({ children, pageTitle, hidePwaTopbar = false }: BidderLayoutProps) {
   const pathname = usePathname();
   const [userName, setUserName] = useState("Budi Santoso");
   const [userInitial, setUserInitial] = useState("BS");
@@ -212,7 +215,7 @@ export default function BidderLayout({ children, pageTitle }: BidderLayoutProps)
         {/* ====== TOPBAR — desktop always, mobile only inside the PWA ====== */}
         <header
           className={`h-16 border-b border-outline-variant/20 bg-white/95 sticky top-0 z-20 items-center justify-between px-6 shadow-sm ${
-            isPWA ? "flex" : "hidden"
+            isPWA && !hidePwaTopbar ? "flex" : "hidden"
           } lg:flex`}
         >
           <div className="flex flex-col justify-center">
