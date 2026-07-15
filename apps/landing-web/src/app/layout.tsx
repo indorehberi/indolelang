@@ -77,7 +77,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-                if (!sessionStorage.getItem('pwa-splash-shown') && window.location.pathname === '/') {
+                if (!sessionStorage.getItem('pwa-splash-shown')) {
                   document.documentElement.classList.add('pwa-splash-active');
                 }
               }
