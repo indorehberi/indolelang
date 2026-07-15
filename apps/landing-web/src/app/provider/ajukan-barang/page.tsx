@@ -319,6 +319,10 @@ function ProviderAjukanBarangContent() {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
         description: formData.description,
+        // Cabang is optional now — send undefined rather than "" when left
+        // unselected, since the backend's uuid validation rejects an empty
+        // string as an invalid uuid (it only treats undefined as "not set").
+        branch_id: formData.branch_id || undefined,
         cylinder: formData.cylinder && formData.cylinder !== "N/A" && formData.cylinder !== "n/a" ? Number(formData.cylinder) : undefined,
         odometer: formData.odometer && formData.odometer !== "N/A" && formData.odometer !== "n/a" ? Number(formData.odometer) : undefined,
         stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,

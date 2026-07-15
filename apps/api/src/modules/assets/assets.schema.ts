@@ -1,6 +1,16 @@
 import { z } from 'zod';
 import { AssetCategory, AssetStatus } from '@indo-lelang/shared-types';
 
+// Provider/admin forms leave uuid-referencing selects (provider_id, branch_id,
+// inspector_id) at an unselected "" default now that they're no longer forced
+// required. `z.string().uuid().optional()` only treats `undefined` as "not
+// provided" — an empty string is still a defined value and fails `.uuid()`
+// with a confusing "Invalid uuid" error. Normalize "" (and null) to
+// undefined before the uuid check runs, so leaving these fields blank is
+// treated the same everywhere regardless of which frontend sent the request.
+const optionalUuid = () =>
+  z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().uuid().optional());
+
 export const createAssetSchema = z.object({
   body: z.object({
     // Submission forms (provider "Ajukan Titip Jual", admin "Tambah Barang")
@@ -12,7 +22,7 @@ export const createAssetSchema = z.object({
     description: z.string().optional(),
     base_price: z.any().optional().transform(v => (v === undefined ? undefined : Number(v))),
     images: z.any().optional(),
-    provider_id: z.string().uuid().optional(),
+    provider_id: optionalUuid(),
     brand: z.string().optional(),
     model: z.string().optional(),
     color: z.string().optional(),
@@ -38,7 +48,7 @@ export const createAssetSchema = z.object({
     doc_copy_ktp: z.any().optional(),
     doc_keur: z.any().optional(),
     doc_sph: z.any().optional(),
-    branch_id: z.string().uuid().optional(),
+    branch_id: optionalUuid(),
     pool_status: z.enum(['in_pool', 'out_pool']).optional(),
     notes: z.string().optional(),
     photo_front: z.string().optional(),
@@ -77,7 +87,7 @@ export const updateAssetSchema = z.object({
       ])
       .optional(),
 
-    inspector_id: z.string().uuid().optional(),
+    inspector_id: optionalUuid(),
     inspection_date: z.string().datetime().optional(),
     inspection_pic_name: z.string().optional(),
     inspection_doc_url: z.string().optional(),
@@ -109,7 +119,7 @@ export const updateAssetSchema = z.object({
     frame_number: z.string().optional(),
     cylinder: z.union([z.number(), z.string()]).optional(),
     odometer: z.union([z.number(), z.string()]).optional(),
-    branch_id: z.string().uuid().optional(),
+    branch_id: optionalUuid(),
     pool_status: z.string().optional(),
     notes: z.string().optional(),
     rejection_reason: z.string().optional(),
@@ -134,7 +144,7 @@ export const getAssetsQuerySchema = z.object({
     page: z.string().transform((val) => parseInt(val, 10)).default('1'),
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
     status: z.string().optional(),
-    provider_id: z.string().uuid().optional(),
+    provider_id: optionalUuid(),
     category: z.enum([
       AssetCategory.MOBIL,
       AssetCategory.MOTOR,
@@ -143,7 +153,7 @@ export const getAssetsQuerySchema = z.object({
     ]).optional(),
     search: z.string().optional(),
     police_number: z.string().optional(),
-    branch_id: z.string().uuid().optional(),
+    branch_id: optionalUuid(),
     pool_status: z.enum(['in_pool', 'out_pool']).optional(),
     date_from: z.string().optional(),
     date_to: z.string().optional(),
