@@ -31,6 +31,15 @@ export default function DetailLotPage() {
   const [viewCount, setViewCount] = useState<number>(0);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [flyingHearts, setFlyingHearts] = useState<{ id: number; left: number }[]>([]);
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+    setIsPWA(
+      window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes("android-app://")
+    );
+  }, []);
 
   // `silent` is used by the foreground refresh below: it re-reads the price
   // without flashing the skeleton, and keeps the already-rendered lot on screen
@@ -127,14 +136,23 @@ export default function DetailLotPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-surface flex flex-col pb-20 lg:pb-0">
-        <Header />
+        {isPWA ? (
+          <header className="h-14 sticky top-0 z-30 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm flex items-center gap-2 px-3">
+            <button onClick={() => router.push("/katalog")} aria-label="Kembali ke Katalog" className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low">
+              <span className="material-symbols-outlined text-on-surface">arrow_back</span>
+            </button>
+            <span className="text-base font-extrabold text-on-surface">Detail Lot</span>
+          </header>
+        ) : (
+          <Header />
+        )}
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center">
             <span className="material-symbols-outlined text-4xl text-primary animate-spin">sync</span>
             <p className="text-body-md text-on-surface-variant mt-3 font-semibold">Memuat detail lot...</p>
           </div>
         </main>
-        <Footer />
+        {!isPWA && <Footer />}
         <BidderBottomNav />
       </div>
     );
@@ -143,7 +161,16 @@ export default function DetailLotPage() {
   if (error || !lot) {
     return (
       <div className="min-h-screen bg-surface flex flex-col pb-20 lg:pb-0">
-        <Header />
+        {isPWA ? (
+          <header className="h-14 sticky top-0 z-30 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm flex items-center gap-2 px-3">
+            <button onClick={() => router.push("/katalog")} aria-label="Kembali ke Katalog" className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low">
+              <span className="material-symbols-outlined text-on-surface">arrow_back</span>
+            </button>
+            <span className="text-base font-extrabold text-on-surface">Detail Lot</span>
+          </header>
+        ) : (
+          <Header />
+        )}
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center max-w-md px-6">
             <span className="material-symbols-outlined text-5xl text-error">error</span>
@@ -155,7 +182,7 @@ export default function DetailLotPage() {
             </Link>
           </div>
         </main>
-        <Footer />
+        {!isPWA && <Footer />}
         <BidderBottomNav />
       </div>
     );
@@ -169,8 +196,6 @@ export default function DetailLotPage() {
   const vehicleLocation = lot.asset.notes || lot.session?.branch?.address || lot.session?.branch?.city || "-";
 
   const specs = [
-    { label: "Cabang Lelang", value: lot.session?.branch?.name || "Pusat" },
-    { label: "Lokasi Kendaraan", value: vehicleLocation },
     { label: "Kategori", value: lot.asset.category || "-" },
     { label: "Merk / Tipe", value: lot.asset.title || "-" },
     { label: "Tahun", value: lot.asset.year ? String(lot.asset.year) : "-" },
@@ -186,6 +211,7 @@ export default function DetailLotPage() {
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
     { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
     { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
+    { label: "Deskripsi Tambahan", value: lot.asset.description || "-" },
   ];
 
   let isLive = lot.status === "active";
@@ -261,7 +287,16 @@ export default function DetailLotPage() {
       )}
       <BidderBottomNav />
 
-      <Header />
+      {isPWA ? (
+        <header className="h-14 sticky top-0 z-30 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm flex items-center gap-2 px-3">
+          <button onClick={() => router.push("/katalog")} aria-label="Kembali ke Katalog" className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low">
+            <span className="material-symbols-outlined text-on-surface">arrow_back</span>
+          </button>
+          <span className="text-base font-extrabold text-on-surface">Detail Lot</span>
+        </header>
+      ) : (
+        <Header />
+      )}
 
       <main className="max-w-container-max mx-auto px-6 py-6 pb-24">
         {/* Breadcrumbs */}
@@ -474,7 +509,7 @@ export default function DetailLotPage() {
         </div>
       </main>
 
-      <Footer />
+      {!isPWA && <Footer />}
 
       {/* Photo Zoom Lightbox */}
       {zoomOpen && (

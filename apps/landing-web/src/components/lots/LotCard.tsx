@@ -48,7 +48,7 @@ export interface LotCardData {
   isCancelled: boolean;
   lot_number: number;
   hargaDasar: number;
-  priceLabel: string;
+  priceLabel?: string;
   view_count: number;
   like_count: number;
   location: string;
@@ -161,7 +161,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         {/* Harga box — menutup ~50% bawah foto */}
         {!lot.isCancelled && (
           <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
-            <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{lot.priceLabel}</p>
+            <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{lot.priceLabel ?? "Harga Dasar"}</p>
             <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
           </div>
         )}
