@@ -65,7 +65,7 @@ function KatalogContent() {
   const [lokasi, setLokasi] = useState("Semua Lokasi");
   const [status, setStatus] = useState("Semua Status");
   const [jenisLelangFilter, setJenisLelangFilter] = useState("Semua Jenis Lelang");
-  const [urutan, setUrutan] = useState("Urutkan Terbaru");
+  const [urutan, setUrutan] = useState("No Lot Terendah");
   const [minHarga, setMinHarga] = useState("");
   const [maxHarga, setMaxHarga] = useState("");
   const [showMobileFilter, setShowMobileFilter] = useState(false);
@@ -248,7 +248,26 @@ function KatalogContent() {
     const matchesPrice = priceVal >= minVal && priceVal <= maxVal;
 
     return matchesSearch && matchesCategory && matchesLokasi && matchesStatus && matchesJenisLelang && matchesPrice;
-  }).sort((a, b) => (a.lot_number || 0) - (b.lot_number || 0));
+  }).sort((a, b) => {
+    if (urutan === "No Lot Terendah") {
+      return (a.lot_number || 0) - (b.lot_number || 0);
+    }
+    if (urutan === "No Lot Tertinggi") {
+      return (b.lot_number || 0) - (a.lot_number || 0);
+    }
+    if (urutan === "Harga Terendah") {
+      return a.hargaValue - b.hargaValue;
+    }
+    if (urutan === "Harga Tertinggi") {
+      return b.hargaValue - a.hargaValue;
+    }
+    if (urutan === "Jadwal Terdekat") {
+      const dateA = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Infinity;
+      const dateB = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Infinity;
+      return dateA - dateB;
+    }
+    return (a.lot_number || 0) - (b.lot_number || 0);
+  });
 
   const itemsPerPage = 6;
   const totalPages = Math.ceil(filteredLots.length / itemsPerPage) || 1;
@@ -435,7 +454,8 @@ function KatalogContent() {
                     onChange={(e) => setUrutan(e.target.value)}
                     className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-body-md px-3 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                   >
-                    <option>Urutkan Terbaru</option>
+                    <option>No Lot Terendah</option>
+                    <option>No Lot Tertinggi</option>
                     <option>Harga Terendah</option>
                     <option>Harga Tertinggi</option>
                     <option>Jadwal Terdekat</option>
@@ -462,7 +482,7 @@ function KatalogContent() {
                         setLokasi("Semua Lokasi");
                         setStatus("Semua Status");
                         setJenisLelangFilter("Semua Jenis Lelang");
-                        setUrutan("Urutkan Terbaru");
+                        setUrutan("No Lot Terendah");
                         setMinHarga("");
                         setMaxHarga("");
                         setSearchQuery("");
