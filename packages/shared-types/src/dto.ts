@@ -145,6 +145,7 @@ export interface BidderDTO {
   kyc?: {
     id: string;
     status: string;
+    nik?: string;
     ktp_url?: string;
     selfie_url?: string;
   };

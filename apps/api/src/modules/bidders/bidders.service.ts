@@ -243,6 +243,7 @@ export class BiddersService {
         ? {
             id: bidder.user.kyc_document.id,
             status: bidder.user.kyc_document.status,
+            nik: bidder.user.kyc_document.nik || undefined,
             ktp_url: bidder.user.kyc_document.ktp_url || undefined,
             selfie_url: bidder.user.kyc_document.selfie_url || undefined,
           }

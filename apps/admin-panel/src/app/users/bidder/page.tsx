@@ -16,9 +16,15 @@ interface Bidder {
   rejection_reason?: string;
   active_nipl_count?: number;
   submitted_at: string;
+  address?: string;
+  occupation?: string;
+  bank_name?: string;
+  bank_account_no?: string;
+  bank_account_name?: string;
   kyc?: {
     id: string;
     status: string;
+    nik?: string;
     ktp_url?: string;
     selfie_url?: string;
   };
@@ -28,6 +34,32 @@ interface Bidder {
     email: string;
     phone: string | null;
   };
+}
+
+/**
+ * Downloads a file client-side regardless of origin: fetch it as a blob first
+ * (KTP/selfie URLs point at S3 or the API's own /uploads static route, both
+ * plain public GETs) so the `download` attribute — which browsers ignore on
+ * cross-origin anchors — actually forces a save instead of just navigating to
+ * the image. Falls back to opening the URL in a new tab if the fetch fails
+ * (e.g. no CORS on an older upload).
+ */
+async function downloadFile(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.open(url, '_blank', 'noopener');
+  }
 }
 
 export default function BidderListPage() {
@@ -42,6 +74,7 @@ export default function BidderListPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedBidder, setSelectedBidder] = useState<Bidder | null>(null);
 
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '' });
@@ -238,6 +271,16 @@ export default function BidderListPage() {
                     <td>{bidder.submitted_at.split('T')[0]}</td>
                     <td>
                       <div className="d-flex gap-1" style={{ display: 'flex', gap: '0.5rem' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBidder(bidder);
+                            setShowViewModal(true);
+                          }}
+                        >
+                          Lihat
+                        </Button>
                         {bidder.status === 'antri' && (
                           <Button
                             variant="outline"
@@ -309,6 +352,80 @@ export default function BidderListPage() {
               </div>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* VIEW MODAL — full bidder profile + downloadable KYC documents */}
+      {showViewModal && selectedBidder && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '2rem' }}>
+          <div style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <Card>
+              <h3 style={{ marginBottom: '1rem' }}>Detail Bidder</h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', marginBottom: '1.5rem' }}>
+                <div><strong>Nama:</strong> {selectedBidder.user?.full_name || '-'}</div>
+                <div><strong>Email:</strong> {selectedBidder.user?.email || '-'}</div>
+                <div><strong>Telepon:</strong> {selectedBidder.user?.phone || '-'}</div>
+                <div><strong>NIK:</strong> {selectedBidder.kyc?.nik || '-'}</div>
+                <div><strong>Pekerjaan:</strong> {selectedBidder.occupation || '-'}</div>
+                <div><strong>Status:</strong> {getStatusBadge(selectedBidder.status)}</div>
+                <div style={{ gridColumn: '1 / -1' }}><strong>Alamat:</strong> {selectedBidder.address || '-'}</div>
+                <div><strong>Bank:</strong> {selectedBidder.bank_name || '-'}</div>
+                <div><strong>No. Rekening:</strong> {selectedBidder.bank_account_no || '-'}</div>
+                <div><strong>Nama Pemilik Rekening:</strong> {selectedBidder.bank_account_name || '-'}</div>
+                <div><strong>NIPL Aktif:</strong> {selectedBidder.active_nipl_count || 0}</div>
+                <div><strong>Tanggal Ajukan:</strong> {selectedBidder.submitted_at.split('T')[0]}</div>
+                {selectedBidder.rejection_reason && (
+                  <div style={{ gridColumn: '1 / -1' }}><strong>Alasan Ditolak:</strong> {selectedBidder.rejection_reason}</div>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto KTP</h4>
+                  {selectedBidder.kyc?.ktp_url ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedBidder.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedBidder.kyc!.ktp_url!, `ktp-${selectedBidder.user?.full_name || selectedBidder.id}.jpg`)}
+                      >
+                        Unduh KTP
+                      </Button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada KTP</div>
+                  )}
+                </div>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto Selfie</h4>
+                  {selectedBidder.kyc?.selfie_url ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedBidder.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedBidder.kyc!.selfie_url!, `selfie-${selectedBidder.user?.full_name || selectedBidder.id}.jpg`)}
+                      >
+                        Unduh Selfie
+                      </Button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada Selfie</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="outline" type="button" onClick={() => setShowViewModal(false)}>Tutup</Button>
+              </div>
+            </Card>
+          </div>
         </div>
       )}
 
