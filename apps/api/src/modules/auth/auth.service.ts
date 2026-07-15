@@ -22,8 +22,8 @@ export class AuthService {
 	 */
 	async register(data: RegisterRequest): Promise<AuthUser> {
 		// 1. Check if email exists
-		const existingEmail = await prisma.users.findUnique({
-			where: { email: data.email },
+		const existingEmail = await prisma.users.findFirst({
+			where: { email: data.email, deleted_at: null },
 		});
 		if (existingEmail) {
 			if (existingEmail.status === UserStatus.PENDING) {
@@ -36,8 +36,8 @@ export class AuthService {
 
 		// 2. Check if phone exists
 		if (data.phone) {
-			const existingPhone = await prisma.users.findUnique({
-				where: { phone: data.phone },
+			const existingPhone = await prisma.users.findFirst({
+				where: { phone: data.phone, deleted_at: null },
 			});
 			if (existingPhone) {
 				if (existingPhone.status === UserStatus.PENDING) {
@@ -150,8 +150,8 @@ export class AuthService {
 		}
 
 		// 2. Find user by email
-		let user = await prisma.users.findUnique({
-			where: { email: email },
+		let user = await prisma.users.findFirst({
+			where: { email: email, deleted_at: null },
 			include: { kyc_document: true },
 		});
 
@@ -199,8 +199,8 @@ export class AuthService {
 
 		// If phone number is supplied, check for duplicates
 		if (data.phone) {
-			const existingPhone = await prisma.users.findUnique({
-				where: { phone: data.phone },
+			const existingPhone = await prisma.users.findFirst({
+				where: { phone: data.phone, deleted_at: null },
 			});
 			if (existingPhone) {
 				throw new AppError(409, ErrorCode.USER_ALREADY_EXISTS, 'Nomor telepon sudah terdaftar');
@@ -277,6 +277,7 @@ export class AuthService {
 		// 2. Find user (by email or phone)
 		const user = await prisma.users.findFirst({
 			where: {
+				deleted_at: null,
 				OR: [
 					{ email: email },
 					{ phone: email }
@@ -372,7 +373,7 @@ export class AuthService {
 		if (!redis.isOpen) {
 			// In development if Redis is down, we allow default OTP
 			if (otp === '123456') {
-				const user = await prisma.users.findUnique({ where: { phone } });
+				const user = await prisma.users.findFirst({ where: { phone, deleted_at: null } });
 				if (user && user.status === UserStatus.PENDING) {
 					await prisma.users.update({
 						where: { id: user.id },
@@ -411,7 +412,7 @@ export class AuthService {
 		await redis.del(`otp:${phone}`);
 
 		// Activate user
-		const user = await prisma.users.findUnique({ where: { id: otpData.userId } });
+		const user = await prisma.users.findFirst({ where: { id: otpData.userId, deleted_at: null } });
 		if (user && user.status === UserStatus.PENDING) {
 			await prisma.users.update({
 				where: { id: user.id },
@@ -427,8 +428,8 @@ export class AuthService {
 		try {
 			const decoded = verifyRefreshToken(token);
 
-			const user = await prisma.users.findUnique({
-				where: { id: decoded.id },
+const user = await prisma.users.findFirst({
+			where: { id: decoded.id, deleted_at: null },
 			});
 
 			if (!user) {
@@ -456,7 +457,7 @@ export class AuthService {
 	 * Handle forgot password request, sending email reset link
 	 */
 	async forgotPassword(email: string): Promise<void> {
-		const user = await prisma.users.findUnique({ where: { email } });
+		const user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
 		if (!user) {
 			throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Email anda belum terdaftar, gunakan email yang sudah didaftarkan');
 		}

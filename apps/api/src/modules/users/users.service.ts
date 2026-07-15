@@ -102,7 +102,7 @@ export class UsersService {
    */
   async getUserById(id: string): Promise<UserDTO> {
     const user = await prisma.users.findFirst({
-      where: { id },
+      where: { id, deleted_at: null },
     });
 
     if (!user) {
@@ -573,12 +573,19 @@ export class UsersService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Pengguna tidak ditemukan');
     }
 
-    await prisma.users.update({
-      where: { id },
-      data: {
-        deleted_at: new Date(),
-        status: UserStatus.SUSPENDED, // suspend as well when deleted
-      },
-    });
+    await prisma.$transaction([
+      prisma.bidders.deleteMany({ where: { user_id: id } }),
+      prisma.providers.deleteMany({ where: { user_id: id } }),
+      prisma.kyc_documents.deleteMany({ where: { user_id: id } }),
+      prisma.users.update({
+        where: { id },
+        data: {
+          deleted_at: new Date(),
+          status: UserStatus.SUSPENDED,
+          email: `deleted-${id}@deleted.indo-lelang`,
+          phone: null,
+        },
+      }),
+    ]);
   }
 }
