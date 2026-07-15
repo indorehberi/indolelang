@@ -18,10 +18,10 @@ interface BidLog {
 }
 
 // Sub-component to manage a single active lot
-function ActiveLotCard({ lot, token, bidIncrements, socket, isConnected, onLotClosed, isSingleLot }: {
+function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClosed, isSingleLot }: {
   lot: any;
   token: string;
-  bidIncrements: number[];
+  bidIncrement: number;
   socket: Socket | null;
   isConnected: boolean;
   onLotClosed: (data?: any) => void;
@@ -221,7 +221,7 @@ function ActiveLotCard({ lot, token, bidIncrements, socket, isConnected, onLotCl
     });
   };
 
-  const minIncrement = 500000;
+  const minIncrement = bidIncrement;
 
   const formatRupiah = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -473,7 +473,7 @@ export default function BidderBiddingRoom() {
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
   
   // Settings for bidding
-  const [bidIncrements, setBidIncrements] = useState<number[]>([500000, 1000000, 2000000]);
+  const [bidIncrement, setBidIncrement] = useState<number>(500000);
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -527,13 +527,11 @@ export default function BidderBiddingRoom() {
         const resSettings = await fetch(apiUrl("/settings/public"));
         const setgData = await resSettings.json();
         if (resSettings.ok && setgData.success) {
-          let b1 = 500000, b2 = 1000000, b3 = 2000000;
+          let b1 = 500000;
           setgData.data.forEach((item: any) => {
             if (item.key === 'bid_increment_1') b1 = Number(item.value);
-            if (item.key === 'bid_increment_2') b2 = Number(item.value);
-            if (item.key === 'bid_increment_3') b3 = Number(item.value);
           });
-          setBidIncrements([b1, b2, b3]);
+          setBidIncrement(b1);
         }
       } catch (e) {}
     } catch (err) {
@@ -687,7 +685,7 @@ export default function BidderBiddingRoom() {
               key={lot.id}
               lot={lot}
               token={localStorage.getItem("accessToken") || ""}
-              bidIncrements={bidIncrements}
+              bidIncrement={bidIncrement}
               socket={socket}
               isConnected={isConnected}
               onLotClosed={handleLotClosed}

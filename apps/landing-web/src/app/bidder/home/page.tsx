@@ -88,12 +88,27 @@ export default function BidderHome() {
           setLots(featuredData.data);
           setIsSoldLots(false);
         } else {
-          // No active lots, fall back to sold lot history
-          const soldRes = await apiFetch("/lots?status=sold&per_page=50");
-          const soldData = await soldRes.json();
-          if (soldData.success) {
-            setLots(soldData.data || []);
-            setIsSoldLots(true);
+          // No active lots — only show sold lot history if the feature toggle
+          // is ON. While it's OFF (default) dummy/test data stays hidden.
+          let showSoldHistory = false;
+          try {
+            const settingsRes = await fetch(apiUrl('/public/settings'));
+            const settingsData = await settingsRes.json();
+            if (settingsRes.ok && settingsData.success) {
+              showSoldHistory = settingsData.data?.feat_show_sold_history === 'true';
+            }
+          } catch { /* keep showSoldHistory = false */ }
+
+          if (showSoldHistory) {
+            const soldRes = await apiFetch("/lots?status=sold&per_page=50");
+            const soldData = await soldRes.json();
+            if (soldData.success) {
+              setLots(soldData.data || []);
+              setIsSoldLots(true);
+            }
+          } else {
+            setLots([]);
+            setIsSoldLots(false);
           }
         }
       } catch (err) {

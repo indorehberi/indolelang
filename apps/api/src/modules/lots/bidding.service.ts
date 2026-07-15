@@ -237,14 +237,23 @@ export class BiddingService {
           let found = false;
           for (const tier of tiers) {
             if (tier.max_price === null || hammerPrice <= tier.max_price) {
-              adminFee = Number(tier.fee);
+              if (tier.fee_type === 'percentage') {
+                adminFee = Math.round((hammerPrice * Number(tier.fee)) / 100);
+              } else {
+                adminFee = Number(tier.fee);
+              }
               found = true;
               break;
             }
           }
           if (!found && tiers.length > 0) {
             // Jika melebihi semua max_price, gunakan fee tier terakhir
-            adminFee = Number(tiers[tiers.length - 1].fee);
+            const lastTier = tiers[tiers.length - 1];
+            if (lastTier.fee_type === 'percentage') {
+              adminFee = Math.round((hammerPrice * Number(lastTier.fee)) / 100);
+            } else {
+              adminFee = Number(lastTier.fee);
+            }
           }
         } catch (e) {
           console.error("Gagal parse admin_fee_tiers, fallback ke default", e);

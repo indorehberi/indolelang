@@ -54,8 +54,6 @@ export default function PlatformSettingsPage() {
 
   // Bidding Room Settings
   const [bidIncrement1, setBidIncrement1] = useState('500000');
-  const [bidIncrement2, setBidIncrement2] = useState('1000000');
-  const [bidIncrement3, setBidIncrement3] = useState('2000000');
   const [isSavingBidding, setIsSavingBidding] = useState(false);
 
   // New financial settings
@@ -64,16 +62,26 @@ export default function PlatformSettingsPage() {
   const [ppnDppLain, setPpnDppLain] = useState('12');
   const [pph23, setPph23] = useState('2');
   const [adminFeeTiers, setAdminFeeTiers] = useState<any[]>([
-    { max_price: 200000000, fee: 3500000 },
-    { max_price: 400000000, fee: 4000000 },
-    { max_price: 600000000, fee: 4500000 },
-    { max_price: null, fee: 6000000 }
+    { max_price: null, fee_type: 'flat', fee: 5000000 }
   ]);
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testEmailTo, setTestEmailTo] = useState('');
+
+  // Saving states for financial rules sections
+  const [isSavingDeposit, setIsSavingDeposit] = useState(false);
+  const [isSavingTax, setIsSavingTax] = useState(false);
+  const [isSavingAdminFee, setIsSavingAdminFee] = useState(false);
+
+  // Saving states for integrations sections
+  const [isSavingPaymentMode, setIsSavingPaymentMode] = useState(false);
+  const [isSavingManualTransfer, setIsSavingManualTransfer] = useState(false);
+  const [isSavingFeeTimeout, setIsSavingFeeTimeout] = useState(false);
+  const [isSavingS3, setIsSavingS3] = useState(false);
+  const [isSavingVerihubs, setIsSavingVerihubs] = useState(false);
+  const [isSavingSMTP, setIsSavingSMTP] = useState(false);
 
   // Integrations & Payment Modes
   const [apiKeys, setApiKeys] = useState({
@@ -127,6 +135,7 @@ export default function PlatformSettingsPage() {
     feat_category_properti: 'Kategori Properti',
     feat_category_heavy: 'Kategori Alat Berat',
     feat_referral_program: 'Program Referral',
+    feat_show_sold_history: 'Tampilkan Riwayat Lot Terjual (PWA)',
   };
 
 
@@ -195,7 +204,14 @@ export default function PlatformSettingsPage() {
               setAuctionSessionEndTrigger(item.value);
             } else if (item.key === 'admin_fee_tiers') {
               try {
-                setAdminFeeTiers(JSON.parse(item.value));
+                const parsed = JSON.parse(item.value);
+                if (Array.isArray(parsed)) {
+                  setAdminFeeTiers(parsed.map((t: any) => ({
+                    max_price: t.max_price !== undefined ? t.max_price : null,
+                    fee_type: t.fee_type || 'flat',
+                    fee: t.fee !== undefined ? t.fee : 0
+                  })));
+                }
               } catch(e) {}
             } else if (item.key === 'bapl_pejabat_penjual') {
               setPejabatPenjual(item.value);
@@ -203,10 +219,6 @@ export default function PlatformSettingsPage() {
               setPejabatLelang(item.value);
             } else if (item.key === 'bid_increment_1') {
               setBidIncrement1(item.value);
-            } else if (item.key === 'bid_increment_2') {
-              setBidIncrement2(item.value);
-            } else if (item.key === 'bid_increment_3') {
-              setBidIncrement3(item.value);
             } else if (item.key in newApiKeys) {
               (newApiKeys as any)[item.key] = item.value;
             }
@@ -421,8 +433,6 @@ export default function PlatformSettingsPage() {
     try {
       const updates = [
         { key: 'bid_increment_1', value: bidIncrement1.toString() },
-        { key: 'bid_increment_2', value: bidIncrement2.toString() },
-        { key: 'bid_increment_3', value: bidIncrement3.toString() },
       ];
 
       const { ok, failedKeys } = await saveSettings(updates);
@@ -439,42 +449,220 @@ export default function PlatformSettingsPage() {
     }
   };
 
-  const handleSaveFinancials = async () => {
-    if (!tax || !nipl || !niplMotor) {
-      toast.error('Semua bidang (PPN, NIPL) harus diisi dan tidak boleh kosong atau dihapus.');
+  const handleSaveDepositSettings = async () => {
+    if (!nipl || !niplMotor) {
+      toast.error('Deposit NIPL tidak boleh kosong.');
       return;
     }
-
-    setIsSaving(true);
+    setIsSavingDeposit(true);
     try {
       const updates = [
-        { key: 'tax_percentage', value: tax },
         { key: 'nipl_deposit_amount', value: nipl },
         { key: 'nipl_motor_deposit_amount', value: niplMotor },
-        { key: 'FEE_BEARER', value: feeBearer },
         { key: 'fee_bearer_deposit', value: feeBearerDeposit },
         { key: 'fee_bearer_refund', value: feeBearerRefund },
         { key: 'fee_bearer_pelunasan', value: feeBearerPelunasan },
         { key: 'fee_bearer_settlement', value: feeBearerSettlement },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Deposit berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan pengaturan deposit.');
+    } finally {
+      setIsSavingDeposit(false);
+    }
+  };
+
+  const handleSaveTaxSettings = async () => {
+    if (!tax || !pmk41 || !dppLain || !ppnDppLain || !pph23) {
+      toast.error('Semua bidang pajak dan potongan harus diisi.');
+      return;
+    }
+    setIsSavingTax(true);
+    try {
+      const updates = [
+        { key: 'tax_percentage', value: tax },
         { key: 'pmk41_percentage', value: pmk41 },
         { key: 'dpp_lain_multiplier', value: dppLain },
         { key: 'ppn_dpp_lain_percentage', value: ppnDppLain },
         { key: 'pph23_percentage', value: pph23 },
-        { key: 'admin_fee_tiers', value: JSON.stringify(adminFeeTiers) },
       ];
-
       const { ok, failedKeys } = await saveSettings(updates);
       setIsConfirmModalOpen(false);
       await fetchSettings();
       if (ok) {
-        toast.success('Aturan keuangan berhasil disimpan secara permanen!');
+        toast.success('Persentase pajak & potongan berhasil disimpan!');
       } else {
-        toast.error(`Sebagian aturan keuangan gagal disimpan: ${failedKeys.join(', ')}`);
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
       }
     } catch (e) {
-      toast.error('Gagal menyimpan aturan keuangan. Periksa koneksi Anda.');
+      toast.error('Gagal menyimpan pajak & potongan.');
     } finally {
-      setIsSaving(false);
+      setIsSavingTax(false);
+    }
+  };
+
+  const handleSaveAdminFeeSettings = async () => {
+    setIsSavingAdminFee(true);
+    try {
+      const updates = [
+        { key: 'admin_fee_tiers', value: JSON.stringify(adminFeeTiers) },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Tiered Admin Fee berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan Tiered Admin Fee.');
+    } finally {
+      setIsSavingAdminFee(false);
+    }
+  };
+
+  const handleSavePaymentMode = async () => {
+    setIsSavingPaymentMode(true);
+    try {
+      const updates = [
+        { key: 'deposit_payment_mode', value: apiKeys.deposit_payment_mode },
+        { key: 'midtrans_is_production', value: apiKeys.midtrans_is_production },
+        { key: 'midtrans_notification_url', value: apiKeys.midtrans_notification_url },
+        { key: 'midtrans_server_key', value: apiKeys.midtrans_server_key },
+        { key: 'midtrans_client_key', value: apiKeys.midtrans_client_key },
+        { key: 'midtrans_iris_creator_key', value: apiKeys.midtrans_iris_creator_key },
+        { key: 'midtrans_iris_approver_key', value: apiKeys.midtrans_iris_approver_key },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Mode Pembayaran & Midtrans berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi pembayaran.');
+    } finally {
+      setIsSavingPaymentMode(false);
+    }
+  };
+
+  const handleSaveManualTransfer = async () => {
+    setIsSavingManualTransfer(true);
+    try {
+      const updates = [
+        { key: 'manual_payment_bank', value: apiKeys.manual_payment_bank },
+        { key: 'manual_payment_account', value: apiKeys.manual_payment_account },
+        { key: 'manual_payment_name', value: apiKeys.manual_payment_name },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Instruksi Transfer Manual berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan instruksi manual.');
+    } finally {
+      setIsSavingManualTransfer(false);
+    }
+  };
+
+  const handleSaveFeeTimeout = async () => {
+    setIsSavingFeeTimeout(true);
+    try {
+      const updates = [
+        { key: 'manual_transfer_fee', value: apiKeys.manual_transfer_fee },
+        { key: 'manual_refund_fee', value: apiKeys.manual_refund_fee },
+        { key: 'deposit_timeout_minutes', value: apiKeys.deposit_timeout_minutes },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Biaya Transfer, Refund & Timeout berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan biaya & timeout.');
+    } finally {
+      setIsSavingFeeTimeout(false);
+    }
+  };
+
+  const handleSaveS3 = async () => {
+    setIsSavingS3(true);
+    try {
+      const updates = [
+        { key: 'aws_bucket', value: apiKeys.aws_bucket },
+        { key: 'aws_access_key', value: apiKeys.aws_access_key },
+        { key: 'aws_secret_key', value: apiKeys.aws_secret_key },
+        { key: 'aws_endpoint', value: apiKeys.aws_endpoint },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Konfigurasi S3 / R2 berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi S3.');
+    } finally {
+      setIsSavingS3(false);
+    }
+  };
+
+  const handleSaveVerihubs = async () => {
+    setIsSavingVerihubs(true);
+    try {
+      const updates = [
+        { key: 'verihubs_api_key', value: apiKeys.verihubs_api_key },
+        { key: 'bank_inquiry_mode', value: apiKeys.bank_inquiry_mode },
+        { key: 'xendit_api_key', value: apiKeys.xendit_api_key },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Verihubs & Validasi Rekening berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi Verihubs.');
+    } finally {
+      setIsSavingVerihubs(false);
+    }
+  };
+
+  const handleSaveSmtp = async () => {
+    setIsSavingSMTP(true);
+    try {
+      const updates = [
+        { key: 'smtp_host', value: apiKeys.smtp_host },
+        { key: 'smtp_port', value: apiKeys.smtp_port },
+        { key: 'smtp_user', value: apiKeys.smtp_user },
+        { key: 'smtp_password', value: apiKeys.smtp_password },
+        { key: 'smtp_from', value: apiKeys.smtp_from },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Konfigurasi SMTP berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi SMTP.');
+    } finally {
+      setIsSavingSMTP(false);
     }
   };
 
@@ -584,22 +772,12 @@ export default function PlatformSettingsPage() {
           <div className="mt-4" style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderRadius: 'var(--radius)', border: '1px solid', padding: '1.5rem' }}>
             <h2 className="card-title text-purple-800">Pengaturan Bidding Room</h2>
             <div className="alert alert-info mt-3 mb-4 text-xs">
-              Parameter yang digunakan pada layar Bidding Bidder (opsi kelipatan bid dan countdown awal).
+              Parameter yang digunakan pada layar Bidding Bidder (kelipatan bid dan countdown awal).
             </div>
 
             <div className="form-group">
-              <label className="form-label text-purple-900">Bid Increment 1 (Rp)</label>
+              <label className="form-label text-purple-900">Bid Increment (Rp)</label>
               <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement1} onChange={(e) => setBidIncrement1(e.target.value)} required />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label text-purple-900">Bid Increment 2 (Rp)</label>
-              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement2} onChange={(e) => setBidIncrement2(e.target.value)} required />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label text-purple-900">Bid Increment 3 (Rp)</label>
-              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement3} onChange={(e) => setBidIncrement3(e.target.value)} required />
             </div>
 
             <p className="text-xs text-muted mt-1">
@@ -612,14 +790,8 @@ export default function PlatformSettingsPage() {
           </div>
 
           <Card className="mt-4">
-            <h2 className="card-title">Aturan Keuangan Balai Lelang</h2>
-            
-            <div className="alert alert-info mt-3 mb-4 text-xs">
-              <strong>Info:</strong> Komisi Admin (Bidder) dan Provider Fee tidak lagi diatur di sini karena menggunakan skema <strong>Tiered Admin Fee</strong> berdasarkan Harga Terbentuk (Hammer Price), dan Fee Provider diatur secara spesifik pada masing-masing profil Provider.
-            </div>
-
-
-            <div className="form-group">
+            <h2 className="card-title">Aturan Keuangan: Deposit Jaminan</h2>
+            <div className="form-group mt-3">
               <label className="form-label">Deposit Jaminan NIPL Kendaraan (Rp) <span className="required">*</span></label>
               <input type="number" className="form-input" value={nipl} onChange={(e) => setNipl(e.target.value)} required />
             </div>
@@ -667,10 +839,15 @@ export default function PlatformSettingsPage() {
               </div>
             </div>
 
-            <hr className="my-4" />
-            <h3 className="card-title text-sm mb-3">Persentase Pajak &amp; Potongan Lainnya</h3>
+            <button className="btn btn-primary w-100" onClick={handleSaveDepositSettings} disabled={isSavingDeposit}>
+              {isSavingDeposit ? 'Menyimpan...' : 'Simpan Pengaturan Deposit'}
+            </button>
+          </Card>
+
+          <Card className="mt-4">
+            <h2 className="card-title">Aturan Keuangan: Pajak &amp; Potongan</h2>
             
-            <div className="form-group">
+            <div className="form-group mt-3">
               <label className="form-label">Pajak Pertambahan Nilai / PPN (%)</label>
               <input type="number" step="0.1" className="form-input" value={tax} onChange={(e) => setTax(e.target.value)} required />
             </div>
@@ -691,9 +868,14 @@ export default function PlatformSettingsPage() {
               <input type="number" step="0.1" className="form-input" value={pph23} onChange={(e) => setPph23(e.target.value)} required />
             </div>
 
-            <hr className="my-4" />
-            <h3 className="card-title text-sm mb-3">Tiered Admin Fee (Untuk Bidder)</h3>
-            <div className="alert alert-secondary text-xs mb-3">
+            <button className="btn btn-primary w-100" onClick={() => setIsConfirmModalOpen(true)}>
+              Simpan Pajak &amp; Potongan
+            </button>
+          </Card>
+
+          <Card className="mt-4">
+            <h2 className="card-title">Aturan Keuangan: Tiered Admin Fee (Untuk Bidder)</h2>
+            <div className="alert alert-secondary text-xs mt-3 mb-3">
               Kosongkan batas harga maksimal pada baris terakhir untuk menetapkan fee tanpa batas atas (<i>Unlimited</i>).
             </div>
             
@@ -702,7 +884,9 @@ export default function PlatformSettingsPage() {
                 <thead className="table-light">
                   <tr>
                     <th>Batas Harga Terbentuk (Max)</th>
-                    <th>Nominal Admin Fee (Rp)</th>
+                    <th>Tipe Admin Fee</th>
+                    <th>Nominal / Persentase Fee</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -724,8 +908,24 @@ export default function PlatformSettingsPage() {
                         />
                       </td>
                       <td>
+                        <select
+                          className="form-input"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          value={tier.fee_type || 'flat'}
+                          onChange={(e) => {
+                            const newTiers = [...adminFeeTiers];
+                            newTiers[index].fee_type = e.target.value;
+                            setAdminFeeTiers(newTiers);
+                          }}
+                        >
+                          <option value="flat">Flat (Rp)</option>
+                          <option value="percentage">Persentase (%)</option>
+                        </select>
+                      </td>
+                      <td>
                         <input 
                           type="number" 
+                          step="0.01"
                           className="form-input" 
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                           value={tier.fee} 
@@ -736,19 +936,36 @@ export default function PlatformSettingsPage() {
                           }}
                         />
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          style={{ padding: '0.25rem 0.5rem' }}
+                          onClick={() => {
+                            if (window.confirm("Yakin ingin menghapus Tier ini?")) {
+                              const newTiers = adminFeeTiers.filter((_, idx) => idx !== index);
+                              setAdminFeeTiers(newTiers);
+                            }
+                          }}
+                        >
+                          Hapus
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <button 
                 className="btn btn-outline-primary btn-sm"
-                onClick={() => setAdminFeeTiers([...adminFeeTiers, { max_price: null, fee: 0 }])}
+                onClick={() => setAdminFeeTiers([...adminFeeTiers, { max_price: null, fee_type: 'flat', fee: 0 }])}
               >
                 + Tambah Tier
               </button>
             </div>
             
-            <button className="btn btn-primary w-100" onClick={() => setIsConfirmModalOpen(true)}>Simpan Parameter</button>
+            <button className="btn btn-primary w-100" onClick={handleSaveAdminFeeSettings} disabled={isSavingAdminFee}>
+              {isSavingAdminFee ? 'Menyimpan...' : 'Simpan Tiered Admin Fee'}
+            </button>
           </Card>
         </div>
 
@@ -805,55 +1022,26 @@ export default function PlatformSettingsPage() {
         </div>
       </div>
       
-      {/* Integrations Column */}
-      <Card>
-        <h2 className="card-title">Integrasi API Pihak Ketiga</h2>
-        <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Kunci API (API Keys) di bawah ini akan dienkripsi AES-256 secara otomatis saat disimpan ke dalam database.</p>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          <div>
-            <h3 className="text-md fw-bold mb-3">Mode Pembayaran & Midtrans</h3>
-            
+      {/* Integrations Column - Split into 6 separate Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Card 1: Mode Pembayaran Deposit NIPL */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Mode Pembayaran Deposit NIPL</h3>
             <div className="form-group mb-4" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
-              <label className="form-label fw-bold">Mode Pembayaran Deposit NIPL</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: '#fff', border: '1px solid var(--border)', borderRadius: '0.375rem' }}>
-                <span className="badge badge-warning">Transfer Manual</span>
-                <span className="text-xs text-muted">Payment gateway (Midtrans) belum aktif — semua pembayaran deposit &amp; pelunasan diverifikasi manual oleh admin.</span>
-              </div>
+              <label className="form-label fw-bold">Mode Pembayaran</label>
+              <select 
+                className="form-input"
+                value={apiKeys.deposit_payment_mode} 
+                onChange={(e) => setApiKeys({...apiKeys, deposit_payment_mode: e.target.value})}
+              >
+                <option value="manual">Transfer Manual</option>
+                <option value="auto">Otomatis (Midtrans)</option>
+              </select>
             </div>
 
-            <div style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', marginBottom: '1.5rem', background: '#fff' }}>
-              <h4 className="fw-bold text-sm mb-3">Instruksi Transfer Manual (Ditampilkan ke Bidder)</h4>
-              <div className="form-group mb-2">
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>Nama Bank</label>
-                <input type="text" className="form-input" value={apiKeys.manual_payment_bank} onChange={(e) => setApiKeys({...apiKeys, manual_payment_bank: e.target.value})} placeholder="Contoh: BCA" />
-              </div>
-              <div className="form-group mb-2">
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>Nomor Rekening</label>
-                <input type="text" className="form-input" value={apiKeys.manual_payment_account} onChange={(e) => setApiKeys({...apiKeys, manual_payment_account: e.target.value})} placeholder="Contoh: 7015886161" />
-              </div>
-              <div className="form-group mb-2">
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>Atas Nama Rekening</label>
-                <input type="text" className="form-input" value={apiKeys.manual_payment_name} onChange={(e) => setApiKeys({...apiKeys, manual_payment_name: e.target.value})} placeholder="Contoh: PT Indo Lelang Sejahtera" />
-              </div>
-            </div>
-
-            <div className="form-group mb-2 mt-3" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#fff' }}>
-              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Transfer (Rp)</label>
-              <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Jika isi 0, biaya transfer ditanggung oleh Admin. Jika diisi angka (misal 2500), Bidder wajib membayar biaya ini saat deposit.</p>
-              
-              <label className="form-label fw-bold mt-3" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Refund (Rp)</label>
-              <input type="number" className="form-input" value={apiKeys.manual_refund_fee} onChange={(e) => setApiKeys({...apiKeys, manual_refund_fee: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Admin. Jika diisi angka, Bidder akan membayar biaya ini saat beli deposit atau dipotong saat pencairan.</p>
-
-              <label className="form-label fw-bold mt-3" style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Batas Waktu Pembayaran NIPL (Menit)</label>
-              <input type="number" className="form-input" value={apiKeys.deposit_timeout_minutes} onChange={(e) => setApiKeys({...apiKeys, deposit_timeout_minutes: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Waktu hitung mundur (countdown) yang diberikan kepada bidder untuk menyelesaikan pembayaran NIPL sebelum dibatalkan.</p>
-            </div>
-
-            <details className="mb-2" style={{ padding: '0.75rem 1rem', border: '1px dashed var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
-              <summary style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Konfigurasi Midtrans (belum digunakan — payment gateway nonaktif)</summary>
+            <details className="mb-3" style={{ padding: '0.75rem 1rem', border: '1px dashed var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
+              <summary style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Konfigurasi Midtrans</summary>
               <div className="form-group mb-2 mt-3">
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>Mode Production?</label>
                 <select className="form-input" value={apiKeys.midtrans_is_production} onChange={(e) => setApiKeys({...apiKeys, midtrans_is_production: e.target.value})}>
@@ -883,7 +1071,61 @@ export default function PlatformSettingsPage() {
               </div>
             </details>
 
-            <h3 className="text-md fw-bold mb-3 mt-4">Amazon S3 / Cloudflare R2 (Penyimpanan Foto)</h3>
+            <button className="btn btn-primary w-100" onClick={handleSavePaymentMode} disabled={isSavingPaymentMode}>
+              {isSavingPaymentMode ? 'Menyimpan...' : 'Simpan Mode Pembayaran'}
+            </button>
+          </Card>
+
+          {/* Card 2: Instruksi Transfer Manual */}
+          <Card>
+            <h3 className="fw-bold text-sm mb-3">Instruksi Transfer Manual (Ditampilkan ke Bidder)</h3>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Nama Bank</label>
+              <input type="text" className="form-input" value={apiKeys.manual_payment_bank} onChange={(e) => setApiKeys({...apiKeys, manual_payment_bank: e.target.value})} placeholder="Contoh: BCA" />
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Nomor Rekening</label>
+              <input type="text" className="form-input" value={apiKeys.manual_payment_account} onChange={(e) => setApiKeys({...apiKeys, manual_payment_account: e.target.value})} placeholder="Contoh: 7015886161" />
+            </div>
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Atas Nama Rekening</label>
+              <input type="text" className="form-input" value={apiKeys.manual_payment_name} onChange={(e) => setApiKeys({...apiKeys, manual_payment_name: e.target.value})} placeholder="Contoh: PT Indo Lelang Sejahtera" />
+            </div>
+
+            <button className="btn btn-primary w-100" onClick={handleSaveManualTransfer} disabled={isSavingManualTransfer}>
+              {isSavingManualTransfer ? 'Menyimpan...' : 'Simpan Instruksi Transfer'}
+            </button>
+          </Card>
+
+          {/* Card 3: Biaya & Batas Waktu */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Biaya Transfer, Refund &amp; Timeout NIPL</h3>
+            <div className="form-group mb-2">
+              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Transfer (Rp)</label>
+              <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Jika isi 0, biaya transfer ditanggung oleh Admin. Jika diisi angka, Bidder wajib membayar biaya ini saat deposit.</p>
+            </div>
+            <div className="form-group mb-2">
+              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Refund (Rp)</label>
+              <input type="number" className="form-input" value={apiKeys.manual_refund_fee} onChange={(e) => setApiKeys({...apiKeys, manual_refund_fee: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Jika isi 0, biaya refund ditanggung oleh Admin. Jika diisi angka, Bidder akan membayar biaya ini saat beli deposit atau dipotong saat pencairan.</p>
+            </div>
+            <div className="form-group mb-3">
+              <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Batas Waktu Pembayaran NIPL (Menit)</label>
+              <input type="number" className="form-input" value={apiKeys.deposit_timeout_minutes} onChange={(e) => setApiKeys({...apiKeys, deposit_timeout_minutes: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Waktu hitung mundur (countdown) yang diberikan kepada bidder untuk menyelesaikan pembayaran NIPL sebelum dibatalkan.</p>
+            </div>
+
+            <button className="btn btn-primary w-100" onClick={handleSaveFeeTimeout} disabled={isSavingFeeTimeout}>
+              {isSavingFeeTimeout ? 'Menyimpan...' : 'Simpan Biaya &amp; Batas Waktu'}
+            </button>
+          </Card>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Card 4: Amazon S3 / Cloudflare R2 */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Amazon S3 / Cloudflare R2 (Penyimpanan Foto)</h3>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Bucket Name</label>
               <input type="text" placeholder="indo-lelang-bucket" className="form-input" value={apiKeys.aws_bucket} onChange={(e) => setApiKeys({...apiKeys, aws_bucket: e.target.value})} />
@@ -896,18 +1138,25 @@ export default function PlatformSettingsPage() {
               <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Secret Key</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.aws_secret_key} onChange={(e) => setApiKeys({...apiKeys, aws_secret_key: e.target.value})} />
             </div>
-            <div className="form-group mb-2">
+            <div className="form-group mb-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Endpoint URL (Khusus Cloudflare R2 / MinIO)</label>
               <input type="text" placeholder="https://<ACCOUNT_ID>.r2.cloudflarestorage.com" className="form-input" value={apiKeys.aws_endpoint} onChange={(e) => setApiKeys({...apiKeys, aws_endpoint: e.target.value})} />
               <p className="text-xs text-muted mt-1">Biarkan kosong jika menggunakan AWS S3 biasa. Wajib diisi jika menggunakan Cloudflare R2.</p>
             </div>
-            
-            <h3 className="text-md fw-bold mb-3 mt-4">Verihubs & Validasi Rekening Bank</h3>
+
+            <button className="btn btn-primary w-100" onClick={handleSaveS3} disabled={isSavingS3}>
+              {isSavingS3 ? 'Menyimpan...' : 'Simpan Penyimpanan'}
+            </button>
+          </Card>
+
+          {/* Card 5: Verihubs & Validasi Rekening Bank */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Verihubs &amp; Validasi Rekening Bank</h3>
             <div className="form-group mb-2" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
               <label className="form-label fw-bold">Mode Validasi Rekening Bidder</label>
               <select className="form-input" value={apiKeys.bank_inquiry_mode || 'manual'} onChange={(e) => setApiKeys({...apiKeys, bank_inquiry_mode: e.target.value})}>
                 <option value="auto">Otomatis (Validasi API Xendit)</option>
-                <option value="manual">Manual (Isi Nama & Konfirmasi Nomor Saja)</option>
+                <option value="manual">Manual (Isi Nama &amp; Konfirmasi Nomor Saja)</option>
               </select>
               <p className="text-xs text-muted mt-1">Jika Manual, Bidder diminta mengetik nama rekeningnya sendiri tanpa kena biaya validasi.</p>
             </div>
@@ -918,16 +1167,22 @@ export default function PlatformSettingsPage() {
             </div>
             
             {apiKeys.bank_inquiry_mode === 'auto' && (
-              <div className="form-group mb-2">
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>Xendit API Key (Disbursement & Validasi Bank)</label>
+              <div className="form-group mb-3">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>Xendit API Key (Disbursement &amp; Validasi Bank)</label>
                 <input type="password" placeholder="********" className="form-input" value={apiKeys.xendit_api_key} onChange={(e) => setApiKeys({...apiKeys, xendit_api_key: e.target.value})} />
               </div>
             )}
-          </div>
-          <div>
+
+            <button className="btn btn-primary w-100" onClick={handleSaveVerihubs} disabled={isSavingVerihubs}>
+              {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Verihubs &amp; Validasi'}
+            </button>
+          </Card>
+
+          {/* Card 6: SMTP (Email) */}
+          <Card>
             <h3 className="text-md fw-bold mb-3">SMTP (Email)</h3>
             <div className="alert alert-info mb-3" style={{ fontSize: '0.8rem' }}>
-              Pengaturan ini disimpan terenkripsi di database dan <strong>tidak memerlukan restart server</strong>. Klik &quot;Test Kirim Email&quot; setelah menyimpan untuk memverifikasi konfigurasi berfungsi.
+              Pengaturan SMTP disimpan terenkripsi. Uji email setelah menyimpan.
             </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Host</label>
@@ -944,15 +1199,18 @@ export default function PlatformSettingsPage() {
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Password</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.smtp_password} onChange={(e) => setApiKeys({...apiKeys, smtp_password: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Untuk Gmail: gunakan App Password (bukan password akun biasa).</p>
             </div>
-            <div className="form-group mb-2">
+            <div className="form-group mb-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Sender Name &amp; Email (From)</label>
               <input type="text" className="form-input" value={apiKeys.smtp_from} onChange={(e) => setApiKeys({...apiKeys, smtp_from: e.target.value})} placeholder='"Indo Lelang" <noreply@indo-lelang.com>' />
             </div>
 
+            <button className="btn btn-primary w-100 mb-3" onClick={handleSaveSmtp} disabled={isSavingSMTP}>
+              {isSavingSMTP ? 'Menyimpan...' : 'Simpan SMTP'}
+            </button>
+
             {/* Test Email */}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem' }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
               <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>🧪 Test Kirim Email</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input
@@ -972,14 +1230,10 @@ export default function PlatformSettingsPage() {
                   {isSendingTest ? 'Mengirim...' : '📨 Kirim Test'}
                 </button>
               </div>
-              <p className="text-xs text-muted mt-1">Simpan konfigurasi SMTP terlebih dahulu, lalu uji di sini.</p>
             </div>
-          </div>
+          </Card>
         </div>
-        <button className="btn btn-primary mt-3" onClick={handleSaveIntegrations} disabled={isSaving}>
-          {isSaving ? 'Menyimpan...' : 'Simpan Konfigurasi Integrasi'}
-        </button>
-      </Card>
+      </div>
       
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
@@ -996,16 +1250,15 @@ export default function PlatformSettingsPage() {
               <p className="mb-2">Anda akan menyimpan nilai berikut:</p>
               <ul>
                 <li>PPN: <strong>{tax}%</strong></li>
-                <li>Deposit NIPL Mobil: <strong>Rp {parseInt(nipl).toLocaleString('id-ID')}</strong></li>
-                <li>Deposit NIPL Motor: <strong>Rp {parseInt(niplMotor).toLocaleString('id-ID')}</strong></li>
-                <li>Biaya Gateway: <strong>{feeBearer === 'admin' ? 'Ditanggung Admin' : 'Ditanggung Customer'}</strong></li>
+                <li>Potongan PMK 41: <strong>{pmk41}%</strong></li>
+                <li>Potongan PPh 23: <strong>{pph23}%</strong></li>
               </ul>
               <p className="mt-2 text-danger fw-bold">Tindakan ini tidak bisa dibatalkan secara sepihak setelah invoice terbit. Lanjutkan?</p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setIsConfirmModalOpen(false)} disabled={isSaving}>Batal</button>
-              <button className="btn btn-danger" onClick={handleSaveFinancials} disabled={isSaving}>
-                {isSaving ? 'Menyimpan...' : 'Ya, Saya Yakin & Simpan'}
+              <button className="btn btn-outline" onClick={() => setIsConfirmModalOpen(false)} disabled={isSavingTax}>Batal</button>
+              <button className="btn btn-danger" onClick={handleSaveTaxSettings} disabled={isSavingTax}>
+                {isSavingTax ? 'Menyimpan...' : 'Ya, Saya Yakin & Simpan'}
               </button>
             </div>
           </div>

@@ -157,6 +157,7 @@ export enum FeatureToggle {
   MULTI_BRANCH = 'feat_multi_branch',
   ANALYTICS_DASHBOARD = 'feat_analytics_dashboard',
   AUDIT_TRAIL = 'feat_audit_trail',
+  SHOW_SOLD_HISTORY = 'feat_show_sold_history',
 }
 
 // Default feature toggle values
@@ -171,4 +172,5 @@ export const FEATURE_TOGGLE_DEFAULTS: Record<FeatureToggle, boolean> = {
   [FeatureToggle.MULTI_BRANCH]: true,
   [FeatureToggle.ANALYTICS_DASHBOARD]: true,
   [FeatureToggle.AUDIT_TRAIL]: true,
+  [FeatureToggle.SHOW_SOLD_HISTORY]: false,
 };
