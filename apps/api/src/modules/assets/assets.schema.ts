@@ -11,6 +11,16 @@ import { AssetCategory, AssetStatus } from '@indo-lelang/shared-types';
 const optionalUuid = () =>
   z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().uuid().optional());
 
+// branches.id is `String @id @default(uuid())` — a plain string PK, not a
+// DB-enforced uuid format. The production seed (seed-prod.ts) upserts the
+// default Jakarta branch with a hardcoded human-readable id
+// ("default-jakarta-branch-id-production") instead of a generated uuid, so
+// real branch_id values in production aren't guaranteed to be uuid-shaped.
+// Validate branch_id as a normal optional string (still normalizing ""/null
+// to undefined) rather than enforcing `.uuid()`.
+const optionalBranchId = () =>
+  z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().optional());
+
 export const createAssetSchema = z.object({
   body: z.object({
     // Submission forms (provider "Ajukan Titip Jual", admin "Tambah Barang")
@@ -48,7 +58,7 @@ export const createAssetSchema = z.object({
     doc_copy_ktp: z.any().optional(),
     doc_keur: z.any().optional(),
     doc_sph: z.any().optional(),
-    branch_id: optionalUuid(),
+    branch_id: optionalBranchId(),
     pool_status: z.enum(['in_pool', 'out_pool']).optional(),
     notes: z.string().optional(),
     photo_front: z.string().optional(),
@@ -119,7 +129,7 @@ export const updateAssetSchema = z.object({
     frame_number: z.string().optional(),
     cylinder: z.union([z.number(), z.string()]).optional(),
     odometer: z.union([z.number(), z.string()]).optional(),
-    branch_id: optionalUuid(),
+    branch_id: optionalBranchId(),
     pool_status: z.string().optional(),
     notes: z.string().optional(),
     rejection_reason: z.string().optional(),
@@ -153,7 +163,7 @@ export const getAssetsQuerySchema = z.object({
     ]).optional(),
     search: z.string().optional(),
     police_number: z.string().optional(),
-    branch_id: optionalUuid(),
+    branch_id: optionalBranchId(),
     pool_status: z.enum(['in_pool', 'out_pool']).optional(),
     date_from: z.string().optional(),
     date_to: z.string().optional(),
