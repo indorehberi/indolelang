@@ -229,7 +229,8 @@ function KatalogContent() {
     const matchesSearch =
       !query ||
       l.title.toLowerCase().includes(query) ||
-      l.location.toLowerCase().includes(query);
+      l.location.toLowerCase().includes(query) ||
+      (l.police_number && l.police_number.toLowerCase().includes(query));
     const matchesCategory =
       activeCategory === "Semua Lot" || l.category === activeCategory;
     const matchesLokasi =

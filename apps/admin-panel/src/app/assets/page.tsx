@@ -408,7 +408,7 @@ export default function AssetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, search, statusFilter, providerFilter, poolFilter, dateFrom, dateTo]);
+  }, [categoryFilter, search, searchPolice, statusFilter, providerFilter, poolFilter, dateFrom, dateTo]);
 
   const fetchProviders = async () => {
     try {

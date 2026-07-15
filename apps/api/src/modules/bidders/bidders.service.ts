@@ -133,12 +133,29 @@ export class BiddersService {
     const statusOrder: Record<string, number> = { antri: 0, aktif: 1, ditolak: 2, nonaktif: 3 };
     records.sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
 
-    const niplCounts = await prisma.deposits.groupBy({
-      by: ['user_id'],
-      where: { user_id: { in: records.map((r) => r.user_id) }, status: 'paid' },
-      _count: { id: true },
+    const deposits = await prisma.deposits.findMany({
+      where: {
+        user_id: { in: records.map((r) => r.user_id) },
+        status: 'paid',
+      },
+      select: {
+        user_id: true,
+        package_type: true,
+      },
     });
-    const niplByUser = new Map(niplCounts.map((n) => [n.user_id, n._count.id]));
+
+    const niplByUser = new Map<string, number>();
+    for (const dep of deposits) {
+      const current = niplByUser.get(dep.user_id) || 0;
+      let count = 0;
+      if (dep.package_type === 'unlimited') {
+        count = 999;
+      } else {
+        const parsed = parseInt(dep.package_type || '0', 10);
+        count = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      niplByUser.set(dep.user_id, current + count);
+    }
 
     return {
       bidders: records.map((b) => this.mapToDTO(b, niplByUser.get(b.user_id) || 0)),
@@ -152,7 +169,19 @@ export class BiddersService {
       include: { user: { include: { kyc_document: true } } },
     });
     if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
-    return this.mapToDTO(bidder);
+
+    const deposits = await prisma.deposits.findMany({
+      where: { user_id: bidder.user_id, status: 'paid' },
+      select: { package_type: true },
+    });
+
+    const niplCount = deposits.reduce((sum, d) => {
+      if (d.package_type === 'unlimited') return sum + 999;
+      const n = parseInt(d.package_type || '0', 10);
+      return sum + (Number.isNaN(n) ? 0 : n);
+    }, 0);
+
+    return this.mapToDTO(bidder, niplCount);
   }
 
   async approve(id: string, reviewerId: string): Promise<BidderDTO> {
@@ -189,7 +218,18 @@ export class BiddersService {
       body: 'Selamat, pengajuan Anda sebagai Bidder telah disetujui. Anda sekarang dapat membeli NIPL dan mengikuti lelang.',
     });
 
-    return this.mapToDTO(updated);
+    const deposits = await prisma.deposits.findMany({
+      where: { user_id: bidder.user_id, status: 'paid' },
+      select: { package_type: true },
+    });
+
+    const niplCount = deposits.reduce((sum, d) => {
+      if (d.package_type === 'unlimited') return sum + 999;
+      const n = parseInt(d.package_type || '0', 10);
+      return sum + (Number.isNaN(n) ? 0 : n);
+    }, 0);
+
+    return this.mapToDTO(updated, niplCount);
   }
 
   async reject(id: string, reviewerId: string, reason: string): Promise<BidderDTO> {
@@ -219,7 +259,18 @@ export class BiddersService {
       body: `Mohon maaf, pengajuan Anda sebagai Bidder ditolak. Alasan: ${reason}. Silakan ajukan kembali.`,
     });
 
-    return this.mapToDTO(updated);
+    const deposits = await prisma.deposits.findMany({
+      where: { user_id: bidder.user_id, status: 'paid' },
+      select: { package_type: true },
+    });
+
+    const niplCount = deposits.reduce((sum, d) => {
+      if (d.package_type === 'unlimited') return sum + 999;
+      const n = parseInt(d.package_type || '0', 10);
+      return sum + (Number.isNaN(n) ? 0 : n);
+    }, 0);
+
+    return this.mapToDTO(updated, niplCount);
   }
 
   private mapToDTO(bidder: any, niplCount?: number): BidderDTO {

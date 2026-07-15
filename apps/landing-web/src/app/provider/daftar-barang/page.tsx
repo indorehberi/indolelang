@@ -16,6 +16,7 @@ interface Asset {
   branch_id?: string;
   pool_status?: string;
   rejection_reason?: string;
+  police_number?: string;
   date: string;
 }
 
@@ -91,6 +92,7 @@ export default function ProviderDaftarBarang() {
           branch_id: a.branch_id,
           pool_status: a.pool_status,
           rejection_reason: a.rejection_reason,
+          police_number: a.police_number,
           date: new Date(a.created_at).toLocaleDateString("id-ID", {
             day: "numeric", month: "long", year: "numeric",
           }),
@@ -102,7 +104,7 @@ export default function ProviderDaftarBarang() {
     } finally {
       setLoading(false);
     }
-  }, [router, search, statusFilter, poolFilter, dateFrom, dateTo]);
+  }, [router, search, searchPolice, statusFilter, poolFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     const t = setTimeout(() => {
