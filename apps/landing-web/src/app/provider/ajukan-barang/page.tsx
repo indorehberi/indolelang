@@ -44,8 +44,8 @@ const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
   KTM: ['Duke 200', 'Duke 250', 'Duke 390', 'RC 200', 'RC 250']
 };
 
-const COLORS = ['Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
-const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
+const COLORS = ['N/A', 'Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
+const BODY_TYPES = ['N/A', 'Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
 
 interface Branch {
   id: string;
@@ -326,8 +326,8 @@ function ProviderAjukanBarangContent() {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
         description: `${formData.description}\n\nJenis Lelang: ${auctionType}`,
-        cylinder: formData.cylinder ? Number(formData.cylinder) : undefined,
-        odometer: formData.odometer ? Number(formData.odometer) : undefined,
+        cylinder: formData.cylinder && formData.cylinder !== "N/A" && formData.cylinder !== "n/a" ? Number(formData.cylinder) : undefined,
+        odometer: formData.odometer && formData.odometer !== "N/A" && formData.odometer !== "n/a" ? Number(formData.odometer) : undefined,
         stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,
         stnk_tax_date: formData.stnk_tax_date ? new Date(formData.stnk_tax_date).toISOString() : undefined,
         keur_date: formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined,
@@ -414,9 +414,9 @@ function ProviderAjukanBarangContent() {
                   <div className="panel-form-group">
                     <label className="panel-form-label">Tahun Pembuatan</label>
                     <input
-                      type="number"
+                      type="text"
                       value={formData.year}
-                      onChange={(e) => handleChange('year', Number(e.target.value))}
+                      onChange={(e) => handleChange('year', e.target.value)}
                       className="panel-form-input"
                       required
                     />
@@ -559,6 +559,7 @@ function ProviderAjukanBarangContent() {
                     <select value={formData.transmission} onChange={(e) => handleChange('transmission', e.target.value)} className="panel-form-select">
                       <option value="Otomatis">Otomatis</option>
                       <option value="Manual">Manual</option>
+                      <option value="N/A">N/A</option>
                     </select>
                   </div>
                 </div>
@@ -571,6 +572,7 @@ function ProviderAjukanBarangContent() {
                       <option value="Solar">Solar</option>
                       <option value="Hybrid">Hybrid</option>
                       <option value="EV">EV (Listrik)</option>
+                      <option value="N/A">N/A</option>
                     </select>
                   </div>
                   {formData.category !== "motor" && (
@@ -587,11 +589,11 @@ function ProviderAjukanBarangContent() {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div className="panel-form-group">
                     <label className="panel-form-label">Kapasitas Mesin (CC)</label>
-                    <input type="number" value={formData.cylinder} onChange={(e) => handleChange('cylinder', e.target.value)} placeholder="Contoh: 1500" className="panel-form-input" />
+                    <input type="text" value={formData.cylinder} onChange={(e) => handleChange('cylinder', e.target.value)} placeholder="Contoh: 1500" className="panel-form-input" />
                   </div>
                   <div className="panel-form-group">
                     <label className="panel-form-label">Odometer (KM)</label>
-                    <input type="number" value={formData.odometer} onChange={(e) => handleChange('odometer', e.target.value)} placeholder="Contoh: 45000" className="panel-form-input" />
+                    <input type="text" value={formData.odometer} onChange={(e) => handleChange('odometer', e.target.value)} placeholder="Contoh: 45000" className="panel-form-input" />
                   </div>
                 </div>
 

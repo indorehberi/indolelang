@@ -1383,7 +1383,10 @@ export default function PlatformSettingsPage() {
                     style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                     onClick={() => {
                       const filteredIds = filteredSoldLots.map((l: any) => l.id);
-                      setSelectedVisibleLotIds(Array.from(new Set([...selectedVisibleLotIds, ...filteredIds])));
+                      setSelectedVisibleLotIds((prev) => {
+                        const prevArray = Array.isArray(prev) ? prev : [];
+                        return Array.from(new Set([...prevArray, ...filteredIds]));
+                      });
                     }}
                   >
                     Pilih Semua yang Tampil
@@ -1394,7 +1397,10 @@ export default function PlatformSettingsPage() {
                     style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                     onClick={() => {
                       const filteredIds = filteredSoldLots.map((l: any) => l.id);
-                      setSelectedVisibleLotIds(selectedVisibleLotIds.filter(id => !filteredIds.includes(id)));
+                      setSelectedVisibleLotIds((prev) => {
+                        const prevArray = Array.isArray(prev) ? prev : [];
+                        return prevArray.filter(id => !filteredIds.includes(id));
+                      });
                     }}
                   >
                     Batal Pilih Semua yang Tampil
@@ -1419,7 +1425,7 @@ export default function PlatformSettingsPage() {
                     </thead>
                     <tbody>
                       {filteredSoldLots.map((lot: any) => {
-                        const isChecked = selectedVisibleLotIds.includes(lot.id);
+                        const isChecked = Array.isArray(selectedVisibleLotIds) && selectedVisibleLotIds.includes(lot.id);
                         return (
                           <tr key={lot.id}>
                             <td style={{ textAlign: 'center' }}>
@@ -1428,9 +1434,15 @@ export default function PlatformSettingsPage() {
                                 checked={isChecked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedVisibleLotIds([...selectedVisibleLotIds, lot.id]);
+                                    setSelectedVisibleLotIds((prev) => {
+                                      const prevArray = Array.isArray(prev) ? prev : [];
+                                      return Array.from(new Set([...prevArray, lot.id]));
+                                    });
                                   } else {
-                                    setSelectedVisibleLotIds(selectedVisibleLotIds.filter(id => id !== lot.id));
+                                    setSelectedVisibleLotIds((prev) => {
+                                      const prevArray = Array.isArray(prev) ? prev : [];
+                                      return prevArray.filter(id => id !== lot.id);
+                                    });
                                   }
                                 }}
                               />

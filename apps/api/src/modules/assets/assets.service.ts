@@ -6,6 +6,13 @@ import { Prisma } from '@prisma/client';
 import { notificationsService } from '../notifications/notifications.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
 
+const parseOptionalInt = (val: any) => {
+  if (val === undefined) return undefined;
+  if (val === null || val === 'N/A' || val === 'n/a' || val === '') return null;
+  const parsed = parseInt(val, 10);
+  return isNaN(parsed) ? null : parsed;
+};
+
 export class AssetsService {
   /**
    * Get list of assets (paginated, filtered, searched)
@@ -136,12 +143,12 @@ export class AssetsService {
         fuel_type: data.fuel_type || null,
         transmission: data.transmission || null,
         body_type: data.body_type || null,
-        year: data.year ? parseInt(data.year) : null,
+        year: parseOptionalInt(data.year),
         police_number: data.police_number || null,
         bpkb_number: data.bpkb_number || null,
         frame_number: data.frame_number || null,
-        cylinder: data.cylinder ? parseInt(data.cylinder) : null,
-        odometer: data.odometer ? parseInt(data.odometer) : null,
+        cylinder: parseOptionalInt(data.cylinder),
+        odometer: parseOptionalInt(data.odometer),
         
         is_recommended: data.is_recommended === true || data.is_recommended === 'true' ? true : false,
         engine_number: data.engine_number || null,
@@ -223,12 +230,12 @@ export class AssetsService {
         fuel_type: data.fuel_type,
         transmission: data.transmission,
         body_type: data.body_type,
-        year: data.year,
+        year: parseOptionalInt(data.year),
         police_number: data.police_number,
         bpkb_number: data.bpkb_number,
         frame_number: data.frame_number,
-        cylinder: data.cylinder,
-        odometer: data.odometer,
+        cylinder: parseOptionalInt(data.cylinder),
+        odometer: parseOptionalInt(data.odometer),
       } as any,
     });
 
@@ -266,12 +273,12 @@ export class AssetsService {
         fuel_type: data.fuel_type ?? undefined,
         transmission: data.transmission ?? undefined,
         body_type: data.body_type ?? undefined,
-        year: data.year ? parseInt(data.year) : undefined,
+        year: parseOptionalInt(data.year),
         police_number: data.police_number ?? undefined,
         bpkb_number: data.bpkb_number ?? undefined,
         frame_number: data.frame_number ?? undefined,
-        cylinder: data.cylinder ? parseInt(data.cylinder) : undefined,
-        odometer: data.odometer ? parseInt(data.odometer) : undefined,
+        cylinder: parseOptionalInt(data.cylinder),
+        odometer: parseOptionalInt(data.odometer),
         
         is_recommended: data.is_recommended !== undefined ? (data.is_recommended === true || data.is_recommended === 'true') : undefined,
         engine_number: data.engine_number ?? undefined,

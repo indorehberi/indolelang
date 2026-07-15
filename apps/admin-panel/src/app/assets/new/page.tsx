@@ -15,10 +15,10 @@ const GRADE_OPTIONS = [
   { value: 'D', label: 'Grade D (Kurang)' },
 ];
 
-const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV'];
-const TRANSMISSION_OPTIONS = ['Otomatis', 'Manual'];
-const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
-const BRAND_OPTIONS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza', 'Lainnya'];
+const FUEL_OPTIONS = ['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV'];
+const TRANSMISSION_OPTIONS = ['N/A', 'Otomatis', 'Manual'];
+const BODY_OPTIONS = ['N/A', 'Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
+const BRAND_OPTIONS = ['N/A', 'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza', 'Lainnya'];
 const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
   Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
   Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
@@ -43,7 +43,7 @@ const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
   XPENG: ['G6', 'X9'],
   Denza: ['D9']
 };
-const COLOR_OPTIONS = ['Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
+const COLOR_OPTIONS = ['N/A', 'Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
 
 const PHOTO_FIELDS = [
   { key: "photo_front", label: "Foto Depan" },
@@ -409,13 +409,13 @@ export default function NewAssetPage() {
             </Field>
 
             <Field label="Tahun Buat" required error={errors.year}>
-              <input type="number" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} min="1900" max={new Date().getFullYear()} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} />
             </Field>
             <Field label="Kapasitas Mesin (CC)">
-              <input type="number" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.cylinder} onChange={e => setFormData({ ...formData, cylinder: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.cylinder} onChange={e => setFormData({ ...formData, cylinder: e.target.value })} />
             </Field>
             <Field label="Odometer (KM)">
-              <input type="number" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.odometer} onChange={e => setFormData({ ...formData, odometer: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.odometer} onChange={e => setFormData({ ...formData, odometer: e.target.value })} />
             </Field>
           </div>
         </Card>

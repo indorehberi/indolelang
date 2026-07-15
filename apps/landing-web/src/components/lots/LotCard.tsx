@@ -175,27 +175,27 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         </h4>
 
         {/* Views & likes */}
-        <div className="flex items-center justify-center gap-3 text-[11px] text-outline mb-2">
-          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> {lot.view_count ?? 0}</span>
-          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> {lot.like_count ?? 0}</span>
+        <div className="flex items-center justify-center gap-3 text-[10px] text-slate-400 mb-2">
+          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-xs opacity-70">visibility</span> {lot.view_count ?? 0}</span>
+          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-xs opacity-70">favorite</span> {lot.like_count ?? 0}</span>
         </div>
 
         {/* Lokasi Unit */}
-        <p className="text-body-sm text-outline flex items-center justify-center gap-1.5 mb-1">
-          <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-          <span>{lot.location || "N/A"}</span>
-        </p>
+        <div className="mb-2">
+          <span className="text-[10px] text-white bg-red-600 font-bold px-2.5 py-0.5 rounded-full inline-block uppercase tracking-wider">
+            {lot.location || "N/A"}
+          </span>
+        </div>
 
         {/* Batas pelunasan */}
-        <p className="text-[11px] text-info font-semibold mb-0.5 flex items-center justify-center gap-1">
-          <span className="material-symbols-outlined text-sm">schedule</span>
+        <p className="text-[11px] text-info font-bold mb-0.5">
           Batas Pelunasan : 3 HK
         </p>
         <p className="text-[10px] text-on-surface-variant mb-3">{lot.scheduledAt ? formatDeadlineDate(lot.scheduledAt) : "N/A"}</p>
 
         {/* Tabel Info Kendaraan */}
-        <div className="border border-slate-300/80 rounded-xl overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
-          <div className="bg-slate-800/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide border-b border-slate-700/90">
+        <div className="-mx-4 border-y border-slate-300/80 overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
+          <div className="bg-slate-800/90 px-3 py-1 text-[9px] font-bold uppercase tracking-wide border-b border-slate-700/90">
             Info Kendaraan
           </div>
           <div className="grid grid-cols-3 divide-x divide-slate-700/90">
@@ -204,9 +204,9 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
               { icon: "settings", val: lot.transmission || "-" },
               { icon: "speed", val: lot.odometer ? `${Number(lot.odometer).toLocaleString("id-ID")} km` : "-" },
             ].map((c, i) => (
-              <div key={i} className="px-2 py-2 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                <p className="text-[10px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
+              <div key={i} className="px-0.5 py-1 text-center">
+                <span className="material-symbols-outlined text-primary" style={{ fontSize: 11 }}>{c.icon}</span>
+                <p className="text-[9px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
               </div>
             ))}
           </div>
@@ -216,9 +216,9 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
               { icon: "local_gas_station", val: lot.fuel_type || "-" },
               { icon: "article", val: formatStnk(lot.stnk_date) },
             ].map((c, i) => (
-              <div key={i} className="px-2 py-2 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                <p className="text-[10px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
+              <div key={i} className="px-0.5 py-1 text-center">
+                <span className="material-symbols-outlined text-primary" style={{ fontSize: 11 }}>{c.icon}</span>
+                <p className="text-[9px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
               </div>
             ))}
           </div>
@@ -226,8 +226,8 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
 
         {/* Grade Kendaraan */}
         {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
-          <div className="border border-slate-300/80 rounded-xl overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
-            <div className="bg-slate-800/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide border-b border-slate-700/90">
+          <div className="-mx-4 border-y border-slate-300/80 overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
+            <div className="bg-slate-800/90 px-3 py-1 text-[9px] font-bold uppercase tracking-wide border-b border-slate-700/90">
               Grade Kendaraan
             </div>
             <div className="grid grid-cols-3 divide-x divide-slate-700/90">
@@ -236,14 +236,14 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
                 { grade: lot.grade_exterior, label: "Eksterior" },
                 { grade: lot.grade_interior, label: "Interior" },
               ].map((g, i) => (
-                <div key={i} className="px-2 py-2 text-center text-white">
-                  <p className={`text-lg font-black leading-none ${
+                <div key={i} className="px-1 py-1.5 text-center text-white">
+                  <p className={`text-base font-black leading-none ${
                     g.grade === "A" ? "text-green-600" :
                     g.grade === "B" ? "text-blue-600" :
                     g.grade === "C" ? "text-amber-600" :
                     g.grade === "N/A" ? "text-slate-400" : "text-red-600"
                   }`}>{g.grade || "-"}</p>
-                  <p className="text-[9px] text-slate-300 mt-0.5">{g.label}</p>
+                  <p className="text-[8px] text-slate-300 mt-0.5">{g.label}</p>
                 </div>
               ))}
             </div>
@@ -251,16 +251,15 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         )}
 
         {/* CTA */}
-        <div className="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
-          <p className="text-body-sm text-on-surface-variant">{lot.timer}</p>
+        <div className="mt-auto pt-3 border-t border-outline-variant/10 flex justify-center w-full">
           {lot.isCancelled ? (
-            <span className="px-4 py-2 rounded-xl text-body-sm font-bold bg-slate-200 text-slate-400 cursor-not-allowed">
+            <span className="w-full text-center py-2 rounded-xl text-body-sm font-bold bg-slate-200 text-slate-400 cursor-not-allowed">
               {lot.action}
             </span>
           ) : (
             <Link
               href={`/katalog/${lot.id}`}
-              className={`px-4 py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
+              className={`w-full text-center py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
                 lot.action === "Bid"
                   ? "bg-error text-white hover:bg-error/90"
                   : "bg-premium text-on-premium hover:bg-premium/85"

@@ -22,13 +22,13 @@ interface AssetDetail {
   fuel_type?: string;
   transmission?: string;
   body_type?: string;
-  year?: number;
+  year?: number | string;
   police_number?: string;
   bpkb_number?: string;
   frame_number?: string;
   engine_number?: string;
-  cylinder?: number;
-  odometer?: number;
+  cylinder?: number | string;
+  odometer?: number | string;
   grade_interior?: string;
   grade_exterior?: string;
   grade_engine?: string;
@@ -189,13 +189,13 @@ export default function AssetDetailPage() {
         fuel_type: form.fuel_type,
         transmission: form.transmission,
         body_type: form.body_type,
-        year: form.year ? Number(form.year) : undefined,
+        year: form.year && form.year !== 'N/A' && form.year !== 'n/a' ? Number(form.year) : (form.year === 'N/A' || form.year === 'n/a' ? 'N/A' : undefined),
         police_number: form.police_number,
         bpkb_number: form.bpkb_number,
         frame_number: form.frame_number,
         engine_number: form.engine_number,
-        cylinder: form.cylinder ? Number(form.cylinder) : undefined,
-        odometer: form.odometer ? Number(form.odometer) : undefined,
+        cylinder: form.cylinder && form.cylinder !== 'N/A' && form.cylinder !== 'n/a' ? Number(form.cylinder) : (form.cylinder === 'N/A' || form.cylinder === 'n/a' ? 'N/A' : undefined),
+        odometer: form.odometer && form.odometer !== 'N/A' && form.odometer !== 'n/a' ? Number(form.odometer) : (form.odometer === 'N/A' || form.odometer === 'n/a' ? 'N/A' : undefined),
         notes: form.notes,
         doc_stnk: form.doc_stnk,
         doc_bpkb: form.doc_bpkb,
@@ -478,16 +478,16 @@ export default function AssetDetailPage() {
                 <EditField label="Merek (Brand)" field="brand" />
                 <EditField label="Model / Tipe" field="model" />
                 <EditField label="Warna" field="color" />
-                <EditField label="Jenis Bahan Bakar" field="fuel_type" type="select" options={['Bensin', 'Solar', 'Hybrid', 'EV']} />
-                <EditField label="Transmisi" field="transmission" type="select" options={['Manual', 'Otomatis']} />
+                <EditField label="Jenis Bahan Bakar" field="fuel_type" type="select" options={['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV']} />
+                <EditField label="Transmisi" field="transmission" type="select" options={['N/A', 'Manual', 'Otomatis']} />
                 <EditField label="Tipe Bodi" field="body_type" />
-                <EditField label="Tahun" field="year" type="number" />
+                <EditField label="Tahun" field="year" />
                 <EditField label="No Polisi" field="police_number" />
                 <EditField label="No BPKB" field="bpkb_number" />
                 <EditField label="No Rangka" field="frame_number" />
                 <EditField label="No Mesin" field="engine_number" />
-                <EditField label="Kapasitas Mesin (CC)" field="cylinder" type="number" />
-                <EditField label="Odometer (km)" field="odometer" type="number" />
+                <EditField label="Kapasitas Mesin (CC)" field="cylinder" />
+                <EditField label="Odometer (km)" field="odometer" />
               </>
             ) : (
               <>

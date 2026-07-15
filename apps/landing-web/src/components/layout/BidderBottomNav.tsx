@@ -27,6 +27,8 @@ const scrollNavItems: { name: string; href: string; icon: string; theme: NavThem
     theme: { activeIcon: "text-orange-600", activeBg: "bg-orange-500/12", activeText: "text-orange-700 font-bold" } },
   { name: "Beli NIPL", href: "/bidder/deposit", icon: "payments",
     theme: { activeIcon: "text-emerald-600", activeBg: "bg-emerald-500/12", activeText: "text-emerald-700 font-bold" } },
+  { name: "SPACER", href: "#spacer", icon: "",
+    theme: { activeIcon: "", activeBg: "", activeText: "" } },
   { name: "Aktifitas", href: "/bidder/dashboard", icon: "query_stats",
     theme: { activeIcon: "text-sky-600", activeBg: "bg-sky-500/12", activeText: "text-sky-700 font-bold" } },
   { name: "Keranjang", href: "/bidder/cart", icon: "shopping_cart",
@@ -88,17 +90,20 @@ export default function BidderBottomNav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {scrollNavItems.map((item) => {
+          if (item.name === "SPACER") {
+            return <div key="spacer" className="flex-none w-14" />;
+          }
           const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[64px] px-1"
+              className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[60px] px-0.5"
             >
-              <span className={`flex items-center justify-center px-3.5 py-1.5 rounded-full transition-all duration-200 ${
+              <span className={`flex items-center justify-center px-3 py-1 rounded-full transition-all duration-200 ${
                 active ? `${item.theme.activeBg} ${item.theme.activeIcon}` : "bg-transparent text-slate-400"
               }`}>
-                <span className={`material-symbols-outlined text-xl transition-all ${active ? "filled scale-105 font-bold" : ""}`}>
+                <span className={`material-symbols-outlined text-lg transition-all ${active ? "filled scale-105 font-bold" : ""}`}>
                   {item.icon}
                 </span>
               </span>
@@ -118,18 +123,18 @@ export default function BidderBottomNav() {
         href={LELANG_HREF}
         aria-label="Ruang Lelang"
         className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: `calc(env(safe-area-inset-bottom) + 20px)` }}
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + 8px)` }}
       >
         <span
-          className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[72px] h-[72px] border-4 border-white ${
+          className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[54px] h-[54px] border-2 border-white ${
             lelangActive ? "bg-rose-600" : "bg-rose-500"
           } ${isLive ? "animate-pulse-soft" : ""}`}
         >
-          <span className="material-symbols-outlined text-[28px] leading-none filled">gavel</span>
-          <span className="text-[11px] font-black tracking-wide leading-none mt-0.5">LELANG</span>
+          <span className="material-symbols-outlined text-[20px] leading-none filled">gavel</span>
+          <span className="text-[9px] font-black tracking-wide leading-none mt-0.5">LELANG</span>
           {isLive && (
-            <span className="text-[7px] font-bold leading-none mt-0.5 uppercase tracking-wider opacity-90">
-              Sedang Live
+            <span className="text-[6px] font-bold leading-none mt-0.5 uppercase tracking-wider opacity-90">
+              LIVE
             </span>
           )}
         </span>

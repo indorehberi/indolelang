@@ -48,9 +48,9 @@ const GRADE_OPTIONS = [
   { value: 'E', label: 'E — Buruk' },
 ];
 
-const FUEL_OPTIONS = ['Bensin', 'Solar', 'Hybrid', 'EV', 'Gas'];
-const TRANSMISSION_OPTIONS = ['Manual', 'Otomatis', 'CVT', 'DCT'];
-const BODY_OPTIONS = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Sport', 'Lainnya'];
+const FUEL_OPTIONS = ['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV', 'Gas'];
+const TRANSMISSION_OPTIONS = ['N/A', 'Manual', 'Otomatis', 'CVT', 'DCT'];
+const BODY_OPTIONS = ['N/A', 'Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Sport', 'Lainnya'];
 
 const Field = ({ label, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode;
@@ -214,9 +214,9 @@ export default function AssetsInspectionPage() {
     if (!selectedAsset) return;
     const payload = {
       ...formData,
-      year: parseInt(formData.year),
-      cylinder: parseInt(formData.cylinder),
-      odometer: parseInt(formData.odometer),
+      year: formData.year && formData.year !== 'N/A' && formData.year !== 'n/a' ? parseInt(formData.year) : (formData.year === 'N/A' || formData.year === 'n/a' ? 'N/A' : undefined),
+      cylinder: formData.cylinder && formData.cylinder !== 'N/A' && formData.cylinder !== 'n/a' ? parseInt(formData.cylinder) : (formData.cylinder === 'N/A' || formData.cylinder === 'n/a' ? 'N/A' : undefined),
+      odometer: formData.odometer && formData.odometer !== 'N/A' && formData.odometer !== 'n/a' ? parseInt(formData.odometer) : (formData.odometer === 'N/A' || formData.odometer === 'n/a' ? 'N/A' : undefined),
     };
     const res = await apiFetch(`/admin/assets/${selectedAsset.id}/inspect`, {
       method: 'PUT',
@@ -566,11 +566,9 @@ export default function AssetsInspectionPage() {
                     </Field>
                     <Field label="Tahun Buat" required error={errors.year}>
                       <input
-                        type="number"
+                        type="text"
                         className={`form-input${errors.year ? ' form-input-error' : ''}`}
                         placeholder="2020"
-                        min={1900}
-                        max={new Date().getFullYear()}
                         value={formData.year}
                         disabled
                         onChange={(e) => setFormData({ ...formData, year: e.target.value })}
@@ -578,10 +576,9 @@ export default function AssetsInspectionPage() {
                     </Field>
                     <Field label="Odometer (KM)" error={errors.odometer}>
                       <input
-                        type="number"
+                        type="text"
                         className={`form-input${errors.odometer ? ' form-input-error' : ''}`}
                         placeholder="50000"
-                        min={0}
                         value={formData.odometer}
                         disabled
                         onChange={(e) => setFormData({ ...formData, odometer: e.target.value })}
@@ -625,10 +622,9 @@ export default function AssetsInspectionPage() {
                     </Field>
                     <Field label="Kapasitas Mesin (CC)" error={errors.cylinder}>
                       <input
-                        type="number"
+                        type="text"
                         className={`form-input${errors.cylinder ? ' form-input-error' : ''}`}
                         placeholder="1500"
-                        min={1}
                         value={formData.cylinder}
                         disabled
                         onChange={(e) => setFormData({ ...formData, cylinder: e.target.value })}
