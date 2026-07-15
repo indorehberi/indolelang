@@ -127,8 +127,10 @@ export default function BidderHome() {
   useRefreshOnForeground(fetchHomeData);
 
   const filteredLots = useMemo(() => {
-    if (activeCategoryFilter === "Semua") return lots;
-    return lots.filter((lot) => lot.asset?.category?.toUpperCase() === activeCategoryFilter.toUpperCase());
+    const list = activeCategoryFilter === "Semua" 
+      ? lots 
+      : lots.filter((lot) => lot.asset?.category?.toUpperCase() === activeCategoryFilter.toUpperCase());
+    return [...list].sort((a, b) => (a.lot_number || 0) - (b.lot_number || 0));
   }, [lots, activeCategoryFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLots.length / PER_PAGE));

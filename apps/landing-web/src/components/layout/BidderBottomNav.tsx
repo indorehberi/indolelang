@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useBidderSession } from "../../hooks/useBidderSession";
 import { useRefreshOnForeground } from "../../hooks/useRefreshOnForeground";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, clearAuthAndRedirect } from "../../lib/api";
 
 // The bottom tab bar is PWA-only chrome. In a normal browser (mobile or
 // desktop) the bidder area uses the site Header + the sidebar/drawer instead,
@@ -110,6 +110,21 @@ export default function BidderBottomNav() {
             </Link>
           );
         })}
+
+        {/* Tombol Logout */}
+        <button
+          onClick={() => clearAuthAndRedirect("Anda telah logout.")}
+          className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[64px] px-1 text-slate-400 hover:text-red-600"
+        >
+          <span className="flex items-center justify-center px-3.5 py-1.5 rounded-full transition-all duration-200 bg-transparent text-slate-400 hover:bg-red-500/12 hover:text-red-600">
+            <span className="material-symbols-outlined text-xl">
+              logout
+            </span>
+          </span>
+          <span className="text-[11px] tracking-wide font-medium">
+            Logout
+          </span>
+        </button>
       </nav>
 
       {/* LELANG FAB — pinned dead-center, half above the bar, never scrolls.
@@ -118,7 +133,7 @@ export default function BidderBottomNav() {
         href={LELANG_HREF}
         aria-label="Ruang Lelang"
         className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: `calc(env(safe-area-inset-bottom) + 28px)` }}
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + 36px)` }}
       >
         <span
           className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[60px] h-[60px] border-[3px] border-white ${

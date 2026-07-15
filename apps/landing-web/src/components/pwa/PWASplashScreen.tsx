@@ -32,7 +32,7 @@ export default function PWASplashScreen() {
       if (window.location.pathname === "/") {
         const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         if (token) {
-          router.replace("/bidder/dashboard");
+          router.replace("/bidder/home");
         } else {
           router.replace("/login");
         }
@@ -65,7 +65,7 @@ export default function PWASplashScreen() {
       document.documentElement.classList.remove("pwa-splash-active");
       
       if (token && isBidder) {
-        router.replace("/bidder/dashboard");
+        router.replace("/bidder/home");
       } else {
         router.replace("/login");
       }
