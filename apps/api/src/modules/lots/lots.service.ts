@@ -683,6 +683,44 @@ export class LotsService {
       },
     };
   }
+
+  /**
+   * Bidding activity for the "Statistik" chart on the bidder dashboard:
+   * bid counts per day of the current month, and per month of the current
+   * year. All boundaries use UTC so results don't shift with the server's
+   * local timezone.
+   */
+  async getBidActivityStats(userId: string): Promise<{
+    daily: { name: string; bids: number }[];
+    monthly: { name: string; bids: number }[];
+  }> {
+    const now = new Date();
+    const startOfYear = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+
+    const bids = await prisma.bids.findMany({
+      where: { bidder_id: userId, created_at: { gte: startOfYear } },
+      select: { created_at: true },
+    });
+
+    const startOfMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+    const dailyCounts = new Array(daysInMonth).fill(0);
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthlyCounts = new Array(now.getUTCMonth() + 1).fill(0);
+
+    for (const bid of bids) {
+      monthlyCounts[bid.created_at.getUTCMonth()] += 1;
+      if (bid.created_at.getTime() >= startOfMonth) {
+        dailyCounts[bid.created_at.getUTCDate() - 1] += 1;
+      }
+    }
+
+    return {
+      daily: dailyCounts.map((bids, i) => ({ name: String(i + 1), bids })),
+      monthly: monthlyCounts.map((bids, i) => ({ name: monthNames[i], bids })),
+    };
+  }
 }
 
 export const lotsService = new LotsService();

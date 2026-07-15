@@ -15,8 +15,9 @@ const controller = new LotsController();
 
 // Public endpoints
 router.get('/lots', validate(getLotsQuerySchema), controller.getLots);
-// NOTE: /lots/history/me MUST come before /lots/:id to avoid Express treating "history" as an :id param
+// NOTE: /lots/history/* MUST come before /lots/:id to avoid Express treating "history" as an :id param
 router.get('/lots/history/me', authenticate, controller.getMyHistory);
+router.get('/lots/history/stats', authenticate, controller.getMyActivityStats);
 router.get('/lots/:id', controller.getLotById);
 router.post('/lots/:id/view', controller.incrementView);
 router.post('/lots/:id/like', controller.toggleLike);

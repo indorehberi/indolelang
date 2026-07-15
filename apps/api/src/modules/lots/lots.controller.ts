@@ -158,6 +158,20 @@ export class LotsController {
   }
 
   /**
+   * GET /lots/history/stats — Bid counts per day (this month) and per month
+   * (this year) for the "Statistik Bidding" chart on the bidder dashboard.
+   */
+  async getMyActivityStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const stats = await lotsService.getBidActivityStats(userId);
+      sendSuccess(res, stats, 'Statistik aktivitas bidding berhasil dimuat');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * POST /lots/:id/view — Increment view count (public endpoint)
    */
   async incrementView(req: Request, res: Response, next: NextFunction): Promise<void> {

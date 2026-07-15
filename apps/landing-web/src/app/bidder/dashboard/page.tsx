@@ -24,6 +24,8 @@ export default function BidderDashboard() {
   const [loading, setLoading] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
   const [chartFilter, setChartFilter] = useState("month"); // 'month' or 'year'
+  const [chartDataMonth, setChartDataMonth] = useState<{ name: string; bids: number }[]>([]);
+  const [chartDataYear, setChartDataYear] = useState<{ name: string; bids: number }[]>([]);
 
   // Upgrade Provider Modal State
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -125,6 +127,14 @@ export default function BidderDashboard() {
       const resNotifData = await resNotifications.json();
       if (resNotifications.ok && resNotifData.success) {
         setNotifications(resNotifData.data || []);
+      }
+
+      // 5. Fetch real bidding activity for the "Statistik Bidding" chart
+      const resStats = await apiFetch("/lots/history/stats");
+      const resStatsData = await resStats.json();
+      if (resStats.ok && resStatsData.success) {
+        setChartDataMonth(resStatsData.data.daily || []);
+        setChartDataYear(resStatsData.data.monthly || []);
       }
     } catch (err) {
       console.error("Failed to load dashboard data", err);
@@ -239,18 +249,6 @@ export default function BidderDashboard() {
     );
   }
 
-  const mockChartDataMonth = [
-    { name: '1', bids: 2 }, { name: '5', bids: 5 }, { name: '10', bids: 8 },
-    { name: '15', bids: 12 }, { name: '20', bids: 3 }, { name: '25', bids: 7 },
-    { name: '30', bids: 10 }
-  ];
-  
-  const mockChartDataYear = [
-    { name: 'Jan', bids: 20 }, { name: 'Feb', bids: 15 }, { name: 'Mar', bids: 30 },
-    { name: 'Apr', bids: 45 }, { name: 'Mei', bids: 25 }, { name: 'Jun', bids: 50 },
-    { name: 'Jul', bids: 35 }
-  ];
-
   return (
     <BidderLayout pageTitle="Statistik">
 
@@ -350,7 +348,7 @@ export default function BidderDashboard() {
             <div className="py-4 w-full h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={chartFilter === 'month' ? mockChartDataMonth : mockChartDataYear}
+                  data={chartFilter === 'month' ? chartDataMonth : chartDataYear}
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
