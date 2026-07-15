@@ -325,7 +325,7 @@ function ProviderAjukanBarangContent() {
       const payload = {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
-        description: `${formData.description}\n\nJenis Lelang: ${auctionType}`,
+        description: formData.description,
         cylinder: formData.cylinder && formData.cylinder !== "N/A" && formData.cylinder !== "n/a" ? Number(formData.cylinder) : undefined,
         odometer: formData.odometer && formData.odometer !== "N/A" && formData.odometer !== "n/a" ? Number(formData.odometer) : undefined,
         stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,

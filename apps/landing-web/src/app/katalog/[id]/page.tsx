@@ -211,7 +211,6 @@ export default function DetailLotPage() {
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
     { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
     { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },
-    { label: "CATATAN TAMBAHAN", value: lot.asset.description || "-" },
   ];
 
   let isLive = lot.status === "active";
@@ -439,16 +438,24 @@ export default function DetailLotPage() {
                 </table>
               </div>
 
-              {lot.asset.description && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                    CATATAN TAMBAHAN
-                  </h4>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {lot.asset.description}
-                  </p>
-                </div>
-              )}
+              {(() => {
+                const cleanDescription = (lot.asset.description || "")
+                  .replace(/jenis lelang\s*:\s*[^\r\n]*/gi, "")
+                  .trim();
+                
+                if (!cleanDescription) return null;
+
+                return (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      CATATAN TAMBAHAN
+                    </h4>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {cleanDescription}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
           </div>
