@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUrl } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
@@ -62,46 +62,39 @@ export default function BidderHome() {
            setNiplCounts({ motor: motorCount, mobil: mobilCount });
         }
 
-        // 1. Fetch nearest live session first. The API returns the session list
-        // directly in `data` (already ordered by scheduled_at ascending), not
-        // nested under `data.sessions`.
+        // Fetch nearest session for header display (live first, then published)
         let sessionRes = await apiFetch("/sessions?status=live");
         let sessionData = await sessionRes.json();
         let sessions: any[] = Array.isArray(sessionData.data) ? sessionData.data : [];
 
-        // 2. If no live session, fall back to the next published one
         if (!sessionData.success || sessions.length === 0) {
           sessionRes = await apiFetch("/sessions?status=published");
           sessionData = await sessionRes.json();
           sessions = Array.isArray(sessionData.data) ? sessionData.data : [];
         }
 
-        let hasActiveLots = false;
-
         if (sessionData.success && sessions.length > 0) {
-           const nearestSession = sessions[0];
-
-           // Lots are fetched from /lots filtered by session — there is no
-           // /sessions/:id/lots endpoint.
-           const lotsRes = await apiFetch(`/lots?session_id=${nearestSession.id}&per_page=100`);
-           const lotsData = await lotsRes.json();
-           if (lotsData.success && lotsData.data?.length > 0) {
-             setSession(nearestSession);
-             setLots(lotsData.data);
-             setIsSoldLots(false);
-             hasActiveLots = true;
-           }
+          setSession(sessions[0]);
+        } else {
+          setSession(null);
         }
-        
-        if (!hasActiveLots) {
-           setSession(null);
-           // No published session with lots, fetch sold lots instead
-           const soldRes = await apiFetch("/lots?status=sold&per_page=50");
-           const soldData = await soldRes.json();
-           if (soldData.success) {
-             setLots(soldData.data || []);
-             setIsSoldLots(true);
-           }
+
+        // Fetch all featured lots from all active sessions — same endpoint
+        // as the Katalog page so both views always show consistent data.
+        const featuredRes = await fetch(apiUrl('/public/lots/featured'));
+        const featuredData = await featuredRes.json();
+
+        if (featuredRes.ok && featuredData.data?.length > 0) {
+          setLots(featuredData.data);
+          setIsSoldLots(false);
+        } else {
+          // No active lots, fall back to sold lot history
+          const soldRes = await apiFetch("/lots?status=sold&per_page=50");
+          const soldData = await soldRes.json();
+          if (soldData.success) {
+            setLots(soldData.data || []);
+            setIsSoldLots(true);
+          }
         }
       } catch (err) {
         console.error("Error fetching home data:", err);
@@ -231,7 +224,7 @@ export default function BidderHome() {
         <div className="flex justify-between items-end mb-3 px-1">
           <div>
             <h3 className="text-base font-bold text-slate-800">
-              {isSoldLots ? "Riwayat Lot Terjual" : "Katalog Lelang Terdekat"}
+              {isSoldLots ? "Riwayat Lot Terjual" : "Katalog Lelang"}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               {session
