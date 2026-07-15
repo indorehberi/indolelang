@@ -120,18 +120,14 @@ export default function BidderHome() {
 
   if (loading) {
     return (
-      <BidderLayout pageTitle="Beranda" hideHeader={true}>
+      <BidderLayout pageTitle="Beranda">
         <PageSkeleton />
       </BidderLayout>
     );
   }
 
   return (
-    <BidderLayout pageTitle="Beranda" hideHeader={true}>
-      {/* Full Width Banner replacing header */}
-      <div className="-mx-6 -mt-6 mb-6">
-        <img src="/images/banner_bidku.png" alt="Banner Bidku" className="w-full h-auto object-cover" />
-      </div>
+    <BidderLayout pageTitle="Beranda">
 
       {/* Welcome Text (No Card) */}
       <div className="mb-6 px-1">
