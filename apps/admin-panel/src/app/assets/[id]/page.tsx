@@ -95,6 +95,63 @@ const inputStyle: React.CSSProperties = {
 
 const selectStyle: React.CSSProperties = { ...inputStyle };
 
+const EditField = ({
+  label, value, onChange, type = 'text', options,
+}: {
+  label: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
+  options?: string[];
+}) => (
+  <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
+    <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
+    <div style={{ flex: 1 }}>
+      {type === 'date' ? (
+        <input
+          type="date"
+          style={inputStyle}
+          value={value ? String(value).slice(0, 10) : ''}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : type === 'textarea' ? (
+        <textarea
+          rows={3}
+          style={{ ...inputStyle, resize: 'vertical' }}
+          value={(value as string) ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : type === 'select' && options ? (
+        <select
+          style={selectStyle}
+          value={(value as string) ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">— Pilih —</option>
+          {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : type === 'checkbox' ? (
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!value}
+            onChange={(e) => onChange(e.target.checked)}
+            style={{ width: '16px', height: '16px' }}
+          />
+          <span style={{ color: 'var(--text-primary)' }}>{value ? 'Ada' : 'Tidak Ada'}</span>
+        </label>
+      ) : (
+        <input
+          type={type}
+          style={inputStyle}
+          value={(value as string | number) ?? ''}
+          onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+        />
+      )}
+    </div>
+  </div>
+);
+
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -296,65 +353,6 @@ export default function AssetDetailPage() {
     </div>
   );
 
-  const EditField = ({
-    label, field, type = 'text', options,
-  }: {
-    label: string;
-    field: keyof AssetDetail;
-    type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
-    options?: string[];
-  }) => {
-    const val = form[field];
-    return (
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
-        <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
-        <div style={{ flex: 1 }}>
-          {type === 'date' ? (
-            <input
-              type="date"
-              style={inputStyle}
-              value={val ? String(val).slice(0, 10) : ''}
-              onChange={(e) => handleFormChange(field, e.target.value)}
-            />
-          ) : type === 'textarea' ? (
-            <textarea
-              rows={3}
-              style={{ ...inputStyle, resize: 'vertical' }}
-              value={(val as string) ?? ''}
-              onChange={(e) => handleFormChange(field, e.target.value)}
-            />
-          ) : type === 'select' && options ? (
-            <select
-              style={selectStyle}
-              value={(val as string) ?? ''}
-              onChange={(e) => handleFormChange(field, e.target.value)}
-            >
-              <option value="">— Pilih —</option>
-              {options.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          ) : type === 'checkbox' ? (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={!!(val)}
-                onChange={(e) => handleFormChange(field, e.target.checked)}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <span style={{ color: 'var(--text-primary)' }}>{val ? 'Ada' : 'Tidak Ada'}</span>
-            </label>
-          ) : (
-            <input
-              type={type}
-              style={inputStyle}
-              value={(val as string | number) ?? ''}
-              onChange={(e) => handleFormChange(field, type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
-            />
-          )}
-        </div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <DashboardLayout>
@@ -471,12 +469,12 @@ export default function AssetDetailPage() {
           <Card title="Informasi Umum">
             {editMode ? (
               <>
-                <EditField label="Nama / Judul" field="title" />
-                <EditField label="Kategori" field="category" type="select" options={['mobil', 'motor', 'alat_berat', 'properti']} />
-                <EditField label="Harga Dasar (Rp)" field="base_price" type="number" />
-                <EditField label="Status Pool" field="pool_status" type="select" options={['in_pool', 'out_pool']} />
-                <EditField label="Deskripsi" field="description" type="textarea" />
-                <EditField label="Lokasi Kendaraan" field="notes" type="textarea" />
+                <EditField label="Nama / Judul" value={form.title} onChange={(v) => handleFormChange('title', v)} />
+                <EditField label="Kategori" value={form.category} onChange={(v) => handleFormChange('category', v)} type="select" options={['mobil', 'motor', 'alat_berat', 'properti']} />
+                <EditField label="Harga Dasar (Rp)" value={form.base_price} onChange={(v) => handleFormChange('base_price', v)} type="number" />
+                <EditField label="Status Pool" value={form.pool_status} onChange={(v) => handleFormChange('pool_status', v)} type="select" options={['in_pool', 'out_pool']} />
+                <EditField label="Deskripsi" value={form.description} onChange={(v) => handleFormChange('description', v)} type="textarea" />
+                <EditField label="Lokasi Kendaraan" value={form.notes} onChange={(v) => handleFormChange('notes', v)} type="textarea" />
               </>
             ) : (
               <>
@@ -492,19 +490,19 @@ export default function AssetDetailPage() {
           <Card title="Spesifikasi Kendaraan">
             {editMode ? (
               <>
-                <EditField label="Merek (Brand)" field="brand" />
-                <EditField label="Model / Tipe" field="model" />
-                <EditField label="Warna" field="color" />
-                <EditField label="Jenis Bahan Bakar" field="fuel_type" type="select" options={['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV']} />
-                <EditField label="Transmisi" field="transmission" type="select" options={['N/A', 'Manual', 'Otomatis']} />
-                <EditField label="Tipe Bodi" field="body_type" />
-                <EditField label="Tahun" field="year" />
-                <EditField label="No Polisi" field="police_number" />
-                <EditField label="No BPKB" field="bpkb_number" />
-                <EditField label="No Rangka" field="frame_number" />
-                <EditField label="No Mesin" field="engine_number" />
-                <EditField label="Kapasitas Mesin (CC)" field="cylinder" />
-                <EditField label="Odometer (km)" field="odometer" />
+                <EditField label="Merek (Brand)" value={form.brand} onChange={(v) => handleFormChange('brand', v)} />
+                <EditField label="Model / Tipe" value={form.model} onChange={(v) => handleFormChange('model', v)} />
+                <EditField label="Warna" value={form.color} onChange={(v) => handleFormChange('color', v)} />
+                <EditField label="Jenis Bahan Bakar" value={form.fuel_type} onChange={(v) => handleFormChange('fuel_type', v)} type="select" options={['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV']} />
+                <EditField label="Transmisi" value={form.transmission} onChange={(v) => handleFormChange('transmission', v)} type="select" options={['N/A', 'Manual', 'Otomatis']} />
+                <EditField label="Tipe Bodi" value={form.body_type} onChange={(v) => handleFormChange('body_type', v)} />
+                <EditField label="Tahun" value={form.year} onChange={(v) => handleFormChange('year', v)} />
+                <EditField label="No Polisi" value={form.police_number} onChange={(v) => handleFormChange('police_number', v)} />
+                <EditField label="No BPKB" value={form.bpkb_number} onChange={(v) => handleFormChange('bpkb_number', v)} />
+                <EditField label="No Rangka" value={form.frame_number} onChange={(v) => handleFormChange('frame_number', v)} />
+                <EditField label="No Mesin" value={form.engine_number} onChange={(v) => handleFormChange('engine_number', v)} />
+                <EditField label="Kapasitas Mesin (CC)" value={form.cylinder} onChange={(v) => handleFormChange('cylinder', v)} />
+                <EditField label="Odometer (km)" value={form.odometer} onChange={(v) => handleFormChange('odometer', v)} />
               </>
             ) : (
               <>
@@ -531,11 +529,11 @@ export default function AssetDetailPage() {
             <Card title="Hasil Inspeksi">
               {editMode ? (
                 <>
-                  <EditField label="Inspektor (PIC)" field="inspection_pic_name" />
-                  <EditField label="Tanggal Inspeksi" field="inspection_date" type="date" />
-                  <EditField label="Grade Interior" field="grade_interior" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
-                  <EditField label="Grade Eksterior" field="grade_exterior" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
-                  <EditField label="Grade Mesin" field="grade_engine" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                  <EditField label="Inspektor (PIC)" value={form.inspection_pic_name} onChange={(v) => handleFormChange('inspection_pic_name', v)} />
+                  <EditField label="Tanggal Inspeksi" value={form.inspection_date} onChange={(v) => handleFormChange('inspection_date', v)} type="date" />
+                  <EditField label="Grade Interior" value={form.grade_interior} onChange={(v) => handleFormChange('grade_interior', v)} type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                  <EditField label="Grade Eksterior" value={form.grade_exterior} onChange={(v) => handleFormChange('grade_exterior', v)} type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                  <EditField label="Grade Mesin" value={form.grade_engine} onChange={(v) => handleFormChange('grade_engine', v)} type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
                 </>
               ) : (
                 <>
@@ -573,9 +571,9 @@ export default function AssetDetailPage() {
             ) : null}
             {editMode && (
               <div style={{ marginTop: '0.75rem' }}>
-                <EditField label="Masa Berlaku STNK" field="stnk_date" type="date" />
-                <EditField label="Masa Berlaku Pajak" field="stnk_tax_date" type="date" />
-                <EditField label="Masa Berlaku KEUR" field="keur_date" type="date" />
+                <EditField label="Masa Berlaku STNK" value={form.stnk_date} onChange={(v) => handleFormChange('stnk_date', v)} type="date" />
+                <EditField label="Masa Berlaku Pajak" value={form.stnk_tax_date} onChange={(v) => handleFormChange('stnk_tax_date', v)} type="date" />
+                <EditField label="Masa Berlaku KEUR" value={form.keur_date} onChange={(v) => handleFormChange('keur_date', v)} type="date" />
               </div>
             )}
             {!editMode && (
