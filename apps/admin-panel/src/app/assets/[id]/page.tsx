@@ -197,6 +197,7 @@ export default function AssetDetailPage() {
         cylinder: form.cylinder && form.cylinder !== 'N/A' && form.cylinder !== 'n/a' ? Number(form.cylinder) : (form.cylinder === 'N/A' || form.cylinder === 'n/a' ? 'N/A' : undefined),
         odometer: form.odometer && form.odometer !== 'N/A' && form.odometer !== 'n/a' ? Number(form.odometer) : (form.odometer === 'N/A' || form.odometer === 'n/a' ? 'N/A' : undefined),
         notes: form.notes,
+        pool_status: form.pool_status,
         doc_stnk: form.doc_stnk,
         doc_bpkb: form.doc_bpkb,
         doc_faktur: form.doc_faktur,
@@ -205,6 +206,14 @@ export default function AssetDetailPage() {
         doc_copy_ktp: form.doc_copy_ktp,
         doc_keur: form.doc_keur,
         doc_sph: form.doc_sph,
+        inspection_pic_name: form.inspection_pic_name,
+        inspection_date: form.inspection_date ? new Date(form.inspection_date).toISOString() : undefined,
+        grade_interior: form.grade_interior,
+        grade_exterior: form.grade_exterior,
+        grade_engine: form.grade_engine,
+        stnk_date: form.stnk_date ? new Date(form.stnk_date).toISOString() : undefined,
+        stnk_tax_date: form.stnk_tax_date ? new Date(form.stnk_tax_date).toISOString() : undefined,
+        keur_date: form.keur_date ? new Date(form.keur_date).toISOString() : undefined,
       };
 
       // Remove undefined keys
@@ -292,7 +301,7 @@ export default function AssetDetailPage() {
   }: {
     label: string;
     field: keyof AssetDetail;
-    type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox';
+    type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
     options?: string[];
   }) => {
     const val = form[field];
@@ -300,7 +309,14 @@ export default function AssetDetailPage() {
       <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
         <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
         <div style={{ flex: 1 }}>
-          {type === 'textarea' ? (
+          {type === 'date' ? (
+            <input
+              type="date"
+              style={inputStyle}
+              value={val ? String(val).slice(0, 10) : ''}
+              onChange={(e) => handleFormChange(field, e.target.value)}
+            />
+          ) : type === 'textarea' ? (
             <textarea
               rows={3}
               style={{ ...inputStyle, resize: 'vertical' }}
@@ -458,6 +474,7 @@ export default function AssetDetailPage() {
                 <EditField label="Nama / Judul" field="title" />
                 <EditField label="Kategori" field="category" type="select" options={['mobil', 'motor', 'alat_berat', 'properti']} />
                 <EditField label="Harga Dasar (Rp)" field="base_price" type="number" />
+                <EditField label="Status Pool" field="pool_status" type="select" options={['in_pool', 'out_pool']} />
                 <EditField label="Deskripsi" field="description" type="textarea" />
                 <EditField label="Lokasi Kendaraan" field="notes" type="textarea" />
               </>
@@ -508,18 +525,31 @@ export default function AssetDetailPage() {
             )}
           </Card>
 
-          {/* Hasil Inspeksi */}
-          {(asset.grade_interior || asset.grade_exterior || asset.grade_engine) && (
+          {/* Hasil Inspeksi — always shown in edit mode so grades/inspection
+              data can be filled in for the first time, not just corrected. */}
+          {(editMode || asset.grade_interior || asset.grade_exterior || asset.grade_engine) && (
             <Card title="Hasil Inspeksi">
-              <InfoRow label="Inspektor" value={asset.inspection_pic_name} />
-              <InfoRow label="Tanggal Inspeksi" value={formatDate(asset.inspection_date)} />
-              <InfoRow label="Grade Interior" value={asset.grade_interior} />
-              <InfoRow label="Grade Eksterior" value={asset.grade_exterior} />
-              <InfoRow label="Grade Mesin" value={asset.grade_engine} />
-              {asset.inspection_doc_url && (
-                <InfoRow label="Dokumen Inspeksi" value={
-                  <a href={getImageUrl(asset.inspection_doc_url)} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Lihat Dokumen ↗</a>
-                } />
+              {editMode ? (
+                <>
+                  <EditField label="Inspektor (PIC)" field="inspection_pic_name" />
+                  <EditField label="Tanggal Inspeksi" field="inspection_date" type="date" />
+                  <EditField label="Grade Interior" field="grade_interior" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                  <EditField label="Grade Eksterior" field="grade_exterior" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                  <EditField label="Grade Mesin" field="grade_engine" type="select" options={['N/A', 'A', 'B', 'C', 'D']} />
+                </>
+              ) : (
+                <>
+                  <InfoRow label="Inspektor" value={asset.inspection_pic_name} />
+                  <InfoRow label="Tanggal Inspeksi" value={formatDate(asset.inspection_date)} />
+                  <InfoRow label="Grade Interior" value={asset.grade_interior} />
+                  <InfoRow label="Grade Eksterior" value={asset.grade_exterior} />
+                  <InfoRow label="Grade Mesin" value={asset.grade_engine} />
+                  {asset.inspection_doc_url && (
+                    <InfoRow label="Dokumen Inspeksi" value={
+                      <a href={getImageUrl(asset.inspection_doc_url)} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Lihat Dokumen ↗</a>
+                    } />
+                  )}
+                </>
               )}
             </Card>
           )}
@@ -540,7 +570,15 @@ export default function AssetDetailPage() {
                   </label>
                 ))}
               </div>
-            ) : (
+            ) : null}
+            {editMode && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <EditField label="Masa Berlaku STNK" field="stnk_date" type="date" />
+                <EditField label="Masa Berlaku Pajak" field="stnk_tax_date" type="date" />
+                <EditField label="Masa Berlaku KEUR" field="keur_date" type="date" />
+              </div>
+            )}
+            {!editMode && (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   {DOC_LABELS.map(({ key, label }) => {

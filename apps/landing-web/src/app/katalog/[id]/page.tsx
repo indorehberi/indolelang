@@ -195,6 +195,9 @@ export default function DetailLotPage() {
 
   const vehicleLocation = lot.asset.notes || lot.session?.branch?.address || lot.session?.branch?.city || "-";
 
+  const formatSpecDate = (iso: string | undefined) =>
+    iso ? new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" }) : "-";
+
   const specs = [
     { label: "Kategori", value: lot.asset.category || "-" },
     { label: "Merk / Tipe", value: lot.asset.title || "-" },
@@ -206,8 +209,10 @@ export default function DetailLotPage() {
     { label: "Odometer", value: lot.asset.odometer ? `${lot.asset.odometer.toLocaleString("id-ID")} km` : "-" },
     { label: "Kapasitas Mesin", value: lot.asset.cylinder ? `${lot.asset.cylinder} cc` : "-" },
     { label: "Nomor Rangka", value: lot.asset.frame_number || "-" },
-    { label: "Status BPKB", value: lot.asset.bpkb_status || "-" },
-    { label: "Status STNK", value: lot.asset.stnk_status || "-" },
+    { label: "Nomor BPKB", value: lot.asset.bpkb_number || "-" },
+    { label: "Masa Berlaku STNK", value: formatSpecDate(lot.asset.stnk_date) },
+    { label: "Masa Berlaku Pajak", value: formatSpecDate(lot.asset.stnk_tax_date) },
+    { label: "Masa Berlaku KIR/KEUR", value: formatSpecDate(lot.asset.keur_date) },
     { label: "Grade Mesin", value: lot.asset.grade_engine || "-" },
     { label: "Grade Interior", value: lot.asset.grade_interior || "-" },
     { label: "Grade Eksterior", value: lot.asset.grade_exterior || "-" },

@@ -83,7 +83,10 @@ describe('Assets Module Integration Tests', () => {
       if (res.body.data?.id) assetId = res.body.data.id;
     });
 
-    it('should reject asset with missing required fields', async () => {
+    it('accepts a submission with only a partial body — every field is optional', async () => {
+      // The "Ajukan Titip Jual" / "Tambah Barang" forms treat every field as
+      // optional; createAsset() fills in defaults (category, base_price) for
+      // whatever is left out rather than rejecting the request.
       const res = await request(app)
         .post('/api/v1/assets')
         .set('Authorization', `Bearer ${providerToken}`)
@@ -91,8 +94,11 @@ describe('Assets Module Integration Tests', () => {
           title: 'Missing Fields',
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
+      expect([200, 201]).toContain(res.status);
+      expect(res.body.success).toBe(true);
+      if (res.body.data?.id) {
+        await prisma.assets.deleteMany({ where: { id: res.body.data.id } });
+      }
     });
   });
 

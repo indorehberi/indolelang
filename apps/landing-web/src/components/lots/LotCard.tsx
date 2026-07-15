@@ -30,7 +30,7 @@ export function formatDeadlineDate(scheduledAt: string | undefined): string {
 const formatRupiah = (v: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
 
-const formatStnk = (iso: string | undefined) => {
+const formatPajak = (iso: string | undefined) => {
   if (!iso) return "-";
   return new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
 };
@@ -58,7 +58,7 @@ export interface LotCardData {
   odometer?: number;
   police_number?: string;
   fuel_type?: string;
-  stnk_date?: string;
+  stnk_tax_date?: string;
   grade_engine?: string;
   grade_exterior?: string;
   grade_interior?: string;
@@ -120,7 +120,7 @@ export function mapLotToCard(dbLot: any): LotCardData {
     odometer: dbLot.asset?.odometer || undefined,
     police_number: dbLot.asset?.police_number || undefined,
     fuel_type: dbLot.asset?.fuel_type || undefined,
-    stnk_date: dbLot.asset?.stnk_date || undefined,
+    stnk_tax_date: dbLot.asset?.stnk_tax_date || undefined,
     grade_engine: dbLot.asset?.grade_engine || undefined,
     grade_exterior: dbLot.asset?.grade_exterior || undefined,
     grade_interior: dbLot.asset?.grade_interior || undefined,
@@ -214,7 +214,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
             {[
               { icon: "confirmation_number", val: lot.police_number || "-" },
               { icon: "local_gas_station", val: lot.fuel_type || "-" },
-              { icon: "article", val: formatStnk(lot.stnk_date) },
+              { icon: "receipt_long", val: formatPajak(lot.stnk_tax_date) },
             ].map((c, i) => (
               <div key={i} className="px-0.5 py-1 text-center">
                 <span className="material-symbols-outlined text-primary" style={{ fontSize: 11 }}>{c.icon}</span>

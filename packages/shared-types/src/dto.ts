@@ -261,10 +261,11 @@ export interface AssetDTO {
   grade_engine?: string;
   grade_interior?: string;
   grade_exterior?: string;
-  bpkb_status?: string;
-  stnk_status?: string;
+  bpkb_number?: string;
   frame_number?: string;
   stnk_date?: string;
+  stnk_tax_date?: string;
+  keur_date?: string;
   created_by_admin: boolean;
   created_at: string;
   updated_at: string;

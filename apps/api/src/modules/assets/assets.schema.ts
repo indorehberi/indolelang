@@ -3,10 +3,14 @@ import { AssetCategory, AssetStatus } from '@indo-lelang/shared-types';
 
 export const createAssetSchema = z.object({
   body: z.object({
-    category: z.nativeEnum(AssetCategory),
-    title: z.string().min(3),
+    // Submission forms (provider "Ajukan Titip Jual", admin "Tambah Barang")
+    // treat every field as optional — assets.service.ts's createAsset() fills
+    // in sensible defaults for category/title/base_price when omitted, since
+    // those columns are NOT NULL at the DB level.
+    category: z.nativeEnum(AssetCategory).optional(),
+    title: z.string().optional(),
     description: z.string().optional(),
-    base_price: z.any().transform(v => Number(v)),
+    base_price: z.any().optional().transform(v => (v === undefined ? undefined : Number(v))),
     images: z.any().optional(),
     provider_id: z.string().uuid().optional(),
     brand: z.string().optional(),
@@ -57,9 +61,9 @@ export const updateAssetSchema = z.object({
         AssetCategory.PROPERTI,
       ])
       .optional(),
-    title: z.string().min(5, 'Nama barang minimal 5 karakter').optional(),
+    title: z.string().optional(),
     description: z.string().optional(),
-    base_price: z.number().positive('Harga dasar harus lebih besar dari 0').optional(),
+    base_price: z.any().optional().transform(v => (v === undefined || v === '' ? undefined : Number(v))),
     images: z.string().optional(),
     status: z
       .enum([
@@ -75,8 +79,24 @@ export const updateAssetSchema = z.object({
 
     inspector_id: z.string().uuid().optional(),
     inspection_date: z.string().datetime().optional(),
+    inspection_pic_name: z.string().optional(),
+    inspection_doc_url: z.string().optional(),
     grade_interior: z.string().optional(),
     grade_exterior: z.string().optional(),
+    grade_engine: z.string().optional(),
+    engine_number: z.string().optional(),
+    is_recommended: z.any().optional(),
+    stnk_date: z.any().optional(),
+    stnk_tax_date: z.any().optional(),
+    keur_date: z.any().optional(),
+    doc_stnk: z.any().optional(),
+    doc_bpkb: z.any().optional(),
+    doc_faktur: z.any().optional(),
+    doc_kwitansi: z.any().optional(),
+    doc_form_a: z.any().optional(),
+    doc_copy_ktp: z.any().optional(),
+    doc_keur: z.any().optional(),
+    doc_sph: z.any().optional(),
     brand: z.string().optional(),
     model: z.string().optional(),
     color: z.string().optional(),
@@ -132,21 +152,24 @@ export const getAssetsQuerySchema = z.object({
 
 export const inspectAssetSchema = z.object({
   body: z.object({
-    inspection_date: z.string().datetime(),
-    inspection_pic_name: z.string().min(1, 'PIC Inspeksi wajib diisi'),
-    grade_interior: z.string(),
-    grade_exterior: z.string(),
-    grade_engine: z.string(),
+    // All optional — the admin "Tambah Barang" form submits this same body
+    // regardless of what was left blank, and inspection is meant to be
+    // revisable rather than a one-shot required gate.
+    inspection_date: z.string().datetime().optional(),
+    inspection_pic_name: z.string().optional(),
+    grade_interior: z.string().optional(),
+    grade_exterior: z.string().optional(),
+    grade_engine: z.string().optional(),
     inspection_doc_url: z.string().optional(),
-    category: z.nativeEnum(AssetCategory),
-    brand: z.string().min(1, 'Merek wajib diisi'),
-    model: z.string().min(1, 'Tipe wajib diisi'),
+    category: z.nativeEnum(AssetCategory).optional(),
+    brand: z.string().optional(),
+    model: z.string().optional(),
     color: z.string().optional(),
     fuel_type: z.string().optional(),
     transmission: z.string().optional(),
     body_type: z.string().optional(),
-    year: z.number().int().min(1900),
-    police_number: z.string().min(1, 'No Polisi wajib diisi'),
+    year: z.number().int().min(1900).optional(),
+    police_number: z.string().optional(),
     bpkb_number: z.string().optional(),
     frame_number: z.string().optional(),
     cylinder: z.number().int().positive('CC harus positif').optional(),

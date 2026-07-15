@@ -415,16 +415,20 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
                   <span className="font-medium text-slate-800">{lot.asset?.odometer || "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">BPKB</span>
-                  <span className="font-medium text-slate-800">{lot.asset?.bpkb_status || "-"}</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No BPKB</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.bpkb_number || "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">STNK</span>
-                  <span className="font-medium text-slate-800">{lot.asset?.stnk_status || "-"}</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Masa Berlaku STNK</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.stnk_date ? new Date(lot.asset.stnk_date).toLocaleDateString("id-ID") : "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Tanggal Pajak</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Masa Berlaku Pajak</span>
                   <span className="font-medium text-slate-800">{lot.asset?.stnk_tax_date ? new Date(lot.asset.stnk_tax_date).toLocaleDateString("id-ID") : "-"}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Masa Berlaku KIR/KEUR</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.keur_date ? new Date(lot.asset.keur_date).toLocaleDateString("id-ID") : "-"}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Lokasi</span>

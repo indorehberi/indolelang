@@ -101,6 +101,11 @@ export default function NewAssetPage() {
     frame_number: '',
     engine_number: '',
     branch_id: '',
+
+    // Masa Berlaku Dokumen
+    stnk_date: '',
+    stnk_tax_date: '',
+    keur_date: '',
     
     // Document Boolean
     doc_stnk: false,
@@ -169,22 +174,15 @@ export default function NewAssetPage() {
     fetchBranches();
   }, []);
 
+  // provider_id is the only hard requirement left: it's a foreign key with no
+  // sensible default, and createAsset() silently falls back to the admin's
+  // own account as "provider" if it's left blank — worth blocking rather than
+  // letting an asset get misattributed. Every other field is optional per
+  // spec; assets.service.ts fills in defaults for title/category/base_price
+  // when they're left blank.
   const validateForm = () => {
     const e: Record<string, string> = {};
     if (!formData.provider_id) e.provider_id = 'Pilih Provider pemilik barang';
-    if (!formData.title) e.title = 'Nama Barang wajib diisi';
-    if (!formData.base_price) e.base_price = 'Harga Dasar wajib diisi';
-    if (!formData.inspection_pic_name.trim()) e.inspection_pic_name = 'PIC Inspeksi wajib diisi';
-    if (!formData.category) e.category = 'Kategori wajib dipilih';
-    if (!formData.brand.trim()) e.brand = 'Merek wajib diisi';
-    if (!formData.model.trim()) e.model = 'Tipe/Model wajib diisi';
-    if (!formData.year) e.year = 'Tahun wajib diisi';
-    if (!formData.police_number.trim()) e.police_number = 'No Polisi wajib diisi';
-    if (!formData.notes.trim()) e.notes = 'Lokasi Kendaraan wajib diisi';
-    if (!formData.branch_id) e.branch_id = 'Pilih Cabang penempatan barang';
-
-    // Require at least front photo to ensure catalog shows image
-    if (!formData.photo_front) e.photo_front = 'Foto depan wajib diunggah';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -274,6 +272,11 @@ export default function NewAssetPage() {
         bpkb_number: formData.bpkb_number,
         frame_number: formData.frame_number,
         engine_number: formData.engine_number,
+
+        // Masa Berlaku Dokumen
+        stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,
+        stnk_tax_date: formData.stnk_tax_date ? new Date(formData.stnk_tax_date).toISOString() : undefined,
+        keur_date: formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined,
 
         // Docs
         doc_stnk: formData.doc_stnk,
@@ -367,15 +370,15 @@ export default function NewAssetPage() {
               </select>
             </Field>
             
-            <Field label="Nama Barang (Judul)" required error={errors.title}>
+            <Field label="Nama Barang (Judul)">
               <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Contoh: Toyota Avanza 1.5 G MT 2020" />
             </Field>
             
-            <Field label="Harga Dasar (Rp)" required error={errors.base_price}>
+            <Field label="Harga Dasar (Rp)">
               <input type="number" min="0" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.base_price} onChange={e => setFormData({ ...formData, base_price: e.target.value })} placeholder="Contoh: 150000000" />
             </Field>
 
-            <Field label="Kategori" required error={errors.category}>
+            <Field label="Kategori">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
                 <option value="mobil">Mobil</option>
                 <option value="motor">Motor</option>
@@ -385,12 +388,12 @@ export default function NewAssetPage() {
             </Field>
           </div>
           
-          <Field label="Lokasi Kendaraan saat ini" required error={errors.notes}>
+          <Field label="Lokasi Kendaraan saat ini">
             <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Contoh: Pool Cilandak, Jakarta Selatan" />
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-            <Field label="Cabang" required error={errors.branch_id}>
+            <Field label="Cabang">
               <select className={`form-select ${errors.branch_id ? 'border-red-500' : ''}`} value={(formData as any).branch_id || ''} onChange={e => setFormData({ ...formData, branch_id: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}>
                 <option value="">-- Pilih Cabang --</option>
                 {branches.map((b) => (
@@ -415,26 +418,26 @@ export default function NewAssetPage() {
         {/* Section 2: Hasil Inspeksi Admin */}
         <Card title="2. Hasil Inspeksi">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Field label="Tanggal Inspeksi" required>
+            <Field label="Tanggal Inspeksi">
               <input type="datetime-local" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.inspection_date.substring(0, 16)} onChange={e => setFormData({ ...formData, inspection_date: e.target.value + ':00Z' })} />
             </Field>
-            <Field label="PIC Inspeksi" required error={errors.inspection_pic_name}>
+            <Field label="PIC Inspeksi">
               <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.inspection_pic_name} onChange={e => setFormData({ ...formData, inspection_pic_name: e.target.value })} />
             </Field>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-            <Field label="Grade Interior" required>
+            <Field label="Grade Interior">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.grade_interior} onChange={e => setFormData({ ...formData, grade_interior: e.target.value })}>
                 {GRADE_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
               </select>
             </Field>
-            <Field label="Grade Eksterior" required>
+            <Field label="Grade Eksterior">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.grade_exterior} onChange={e => setFormData({ ...formData, grade_exterior: e.target.value })}>
                 {GRADE_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
               </select>
             </Field>
-            <Field label="Grade Mesin" required>
+            <Field label="Grade Mesin">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.grade_engine} onChange={e => setFormData({ ...formData, grade_engine: e.target.value })}>
                 {GRADE_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
               </select>
@@ -453,13 +456,13 @@ export default function NewAssetPage() {
         {/* Section 3: Data & Verifikasi Kendaraan */}
         <Card title="3. Spesifikasi Kendaraan">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <Field label="Merek" required error={errors.brand}>
+            <Field label="Merek">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })}>
                 <option value="">Pilih...</option>
                 {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
             </Field>
-            <Field label="Tipe / Model" required error={errors.model}>
+            <Field label="Tipe / Model">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })}>
                 <option value="">Pilih...</option>
                 {(formData.brand && CAR_MODELS_BY_BRAND[formData.brand] ? CAR_MODELS_BY_BRAND[formData.brand] : []).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -492,7 +495,7 @@ export default function NewAssetPage() {
               </select>
             </Field>
 
-            <Field label="Tahun Buat" required error={errors.year}>
+            <Field label="Tahun Buat">
               <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} />
             </Field>
             <Field label="Kapasitas Mesin (CC)">
@@ -507,7 +510,7 @@ export default function NewAssetPage() {
         {/* Section 4: Identifikasi */}
         <Card title="4. Nomor Identifikasi">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Field label="No Polisi" required error={errors.police_number}>
+            <Field label="No Polisi">
               <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.police_number} onChange={e => setFormData({ ...formData, police_number: e.target.value })} />
             </Field>
             <Field label="No BPKB">
@@ -522,8 +525,23 @@ export default function NewAssetPage() {
           </div>
         </Card>
 
-        {/* Section 5: Kelengkapan Dokumen Fisik */}
-        <Card title="5. Kelengkapan Dokumen Fisik">
+        {/* Section 5: Masa Berlaku Dokumen */}
+        <Card title="5. Masa Berlaku Dokumen">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <Field label="Masa Berlaku STNK">
+              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.stnk_date} onChange={e => setFormData({ ...formData, stnk_date: e.target.value })} />
+            </Field>
+            <Field label="Masa Berlaku Pajak">
+              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.stnk_tax_date} onChange={e => setFormData({ ...formData, stnk_tax_date: e.target.value })} />
+            </Field>
+            <Field label="Masa Berlaku KEUR">
+              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.keur_date} onChange={e => setFormData({ ...formData, keur_date: e.target.value })} />
+            </Field>
+          </div>
+        </Card>
+
+        {/* Section 6: Kelengkapan Dokumen Fisik */}
+        <Card title="6. Kelengkapan Dokumen Fisik">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
             {Object.entries({
               doc_stnk: 'STNK',
@@ -548,8 +566,8 @@ export default function NewAssetPage() {
           </div>
         </Card>
 
-        {/* Section 6: Foto Barang */}
-        <Card title="6. Foto Barang (Wajib Minimal Depan)">
+        {/* Section 7: Foto Barang */}
+        <Card title="7. Foto Barang (Opsional)">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {PHOTO_FIELDS.map((pf) => (
               <div key={pf.key} style={{ border: '1px dashed #cbd5e1', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>

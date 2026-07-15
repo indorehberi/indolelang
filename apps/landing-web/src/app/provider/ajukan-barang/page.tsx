@@ -315,13 +315,6 @@ function ProviderAjukanBarangContent() {
         return;
       }
 
-      const missingPhotos = PHOTO_FIELDS.filter((p) => !formData[p.key]).map((p) => p.label);
-      if (missingPhotos.length > 0) {
-        toast.warning(`Harap unggah semua foto wajib: ${missingPhotos.join(", ")}`);
-        setIsSubmitting(false);
-        return;
-      }
-
       const payload = {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
@@ -418,7 +411,6 @@ function ProviderAjukanBarangContent() {
                       value={formData.year}
                       onChange={(e) => handleChange('year', e.target.value)}
                       className="panel-form-input"
-                      required
                     />
                   </div>
                 </div>
@@ -433,7 +425,6 @@ function ProviderAjukanBarangContent() {
                         handleChange('model', '');
                       }} 
                       className="panel-form-select" 
-                      required
                     >
                       <option value="" disabled>Pilih Merek...</option>
                       {getAvailableBrands().map(b => <option key={b} value={b}>{b}</option>)}
@@ -447,7 +438,6 @@ function ProviderAjukanBarangContent() {
                         value={formData.model} 
                         onChange={(e) => handleChange('model', e.target.value)} 
                         className="panel-form-select" 
-                        required
                       >
                         <option value="" disabled>Pilih Model...</option>
                         {getAvailableModels().map(m => <option key={m} value={m}>{m}</option>)}
@@ -460,7 +450,6 @@ function ProviderAjukanBarangContent() {
                         onChange={(e) => handleChange('model', e.target.value)}
                         placeholder="Contoh: Avanza G 1.3 MT"
                         className="panel-form-input"
-                        required
                       />
                     )}
                   </div>
@@ -475,7 +464,6 @@ function ProviderAjukanBarangContent() {
                       onChange={(e) => handleChange('base_price', Number(e.target.value.replace(/\D/g, '')))}
                       className="panel-form-input"
                       placeholder="Contoh: 100000000"
-                      required
                     />
                   </div>
                   <div className="panel-form-group">
@@ -499,7 +487,6 @@ function ProviderAjukanBarangContent() {
                       value={formData.branch_id}
                       onChange={(e) => handleChange('branch_id', e.target.value)}
                       className="panel-form-select"
-                      required
                     >
                       <option value="" disabled>Pilih Cabang...</option>
                       {branches.map((b) => (
@@ -527,18 +514,16 @@ function ProviderAjukanBarangContent() {
                     onChange={(e) => handleChange('description', e.target.value)}
                     placeholder="Keterangan kondisi mesin, body, dll."
                     className="panel-form-textarea h-24"
-                    required
                   />
                 </div>
 
                 <div className="panel-form-group mt-4">
-                  <label className="panel-form-label">Lokasi Kendaraan saat ini <span className="text-error">*</span></label>
+                  <label className="panel-form-label">Lokasi Kendaraan saat ini</label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => handleChange('notes', e.target.value)}
                     placeholder="Contoh: Pool Sunter, Jakarta Utara — Jl. Danau Sunter No. 12"
                     className="panel-form-textarea h-20"
-                    required
                   />
                 </div>
               </div>
@@ -663,7 +648,7 @@ function ProviderAjukanBarangContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {PHOTO_FIELDS.map((item) => (
                     <div key={item.key} className="panel-form-group">
-                      <label className="panel-form-label">{item.label} <span className="text-error">*</span></label>
+                      <label className="panel-form-label">{item.label}</label>
                       <input
                         type="file"
                         accept="image/*"

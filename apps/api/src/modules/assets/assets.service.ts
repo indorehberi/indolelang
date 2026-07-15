@@ -130,10 +130,13 @@ export class AssetsService {
     const a = await prisma.assets.create({
       data: {
         provider_id: providerId,
-        category: data.category as any,
-        title: data.title,
+        // category/title/base_price are NOT NULL columns with no DB default,
+        // so "making the form optional" means falling back here rather than
+        // letting Prisma throw when a field is left blank.
+        category: (data.category || 'mobil') as any,
+        title: data.title && String(data.title).trim() ? data.title : 'Unit Tanpa Nama',
         description: data.description || null,
-        base_price: new Prisma.Decimal(data.base_price),
+        base_price: new Prisma.Decimal(data.base_price || 0),
         images: data.images ? (typeof data.images === 'string' ? data.images : JSON.stringify(data.images)) : '{}',
         status: AssetStatus.PENDING,
 
@@ -216,7 +219,9 @@ export class AssetsService {
       data: {
         status: AssetStatus.INSPECTED,
         inspector_id: inspectorId,
-        inspection_date: new Date(data.inspection_date),
+        // Inspection date is optional in the form; default to "now" rather
+        // than writing an Invalid Date when it's left blank.
+        inspection_date: data.inspection_date ? new Date(data.inspection_date) : new Date(),
         inspection_pic_name: data.inspection_pic_name,
         grade_interior: data.grade_interior,
         grade_exterior: data.grade_exterior,
