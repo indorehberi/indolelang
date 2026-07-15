@@ -817,7 +817,7 @@ export default function FinanceManager({
                             <span className="text-muted">User ID: {refund.user_id.substring(0, 8)}...</span>
                           )}
                         </td>
-                        <td>{refund.session?.title || 'Sesi ID: ' + refund.session_id.substring(0, 8)}</td>
+                        <td>{refund.session?.title || (refund.session_id ? 'Sesi ID: ' + refund.session_id.substring(0, 8) : 'Lintas Sesi')}</td>
                         <td><strong className="text-primary">{formatRupiah(refund.amount)}</strong></td>
                         <td>
                           {refund.va_number ? (

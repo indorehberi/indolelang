@@ -55,10 +55,11 @@ export default function BidderHome() {
            const activeDeposits = depData.data?.deposits?.filter((d: any) => d.status === 'active' || d.status === 'paid') || [];
            let motorCount = 0;
            let mobilCount = 0;
-           activeDeposits.forEach((d: any) => {
-             if (d.unit_type === 'motor') motorCount += (d.nipl_count || 1);
-             else if (d.unit_type === 'mobil') mobilCount += (d.nipl_count || 1);
-           });
+            activeDeposits.forEach((d: any) => {
+              const count = d.package_type === "unlimited" ? 999 : (parseInt(d.package_type || "1", 10) || 1);
+              if (d.unit_type === 'motor') motorCount += count;
+              else if (d.unit_type === 'mobil') mobilCount += count;
+            });
            setNiplCounts({ motor: motorCount, mobil: mobilCount });
         }
 

@@ -104,8 +104,9 @@ export default function BidderDashboard() {
         let mobilCount = 0;
         
         successDeposits.forEach((d: any) => {
-          if (d.unit_type === "motor") motorCount++;
-          else if (d.unit_type === "mobil") mobilCount++;
+          const count = d.package_type === "unlimited" ? 999 : (parseInt(d.package_type || "1", 10) || 1);
+          if (d.unit_type === "motor") motorCount += count;
+          else if (d.unit_type === "mobil") mobilCount += count;
         });
 
         setNiplMotorCount(motorCount);
