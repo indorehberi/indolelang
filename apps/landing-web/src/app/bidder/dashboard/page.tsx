@@ -279,8 +279,14 @@ export default function BidderDashboard() {
         </div>
       )}
 
-      {/* eKYC Alert Box */}
-      {!isProfileComplete ? (
+      {/* eKYC Alert Box — an admin approval always wins over the raw-field
+          completeness check below. Older/manually-created bidder accounts
+          can have permanently blank address/bank fields on `users` (the
+          mirror in bidders.service.ts only runs on a fresh /bidders/apply
+          submission, which is blocked once already "aktif"), so without this
+          guard an approved bidder could be stuck seeing "Profil Belum
+          Lengkap" forever with no way to clear it. */}
+      {bidderStatus === "aktif" ? null : !isProfileComplete ? (
         <div className="alert-box danger">
           <span className="material-symbols-outlined">error</span>
           <div>

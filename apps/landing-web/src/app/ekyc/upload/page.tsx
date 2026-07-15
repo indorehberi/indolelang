@@ -283,6 +283,7 @@ export default function EkycUploadPage() {
       const response = await apiFetch("/bidders/apply", {
         method: "POST",
         body: JSON.stringify({
+          nik,
           address,
           occupation,
           bank_name: bankName,
