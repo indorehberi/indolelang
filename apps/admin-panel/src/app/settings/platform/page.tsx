@@ -83,6 +83,51 @@ export default function PlatformSettingsPage() {
   const [isSavingVerihubs, setIsSavingVerihubs] = useState(false);
   const [isSavingSMTP, setIsSavingSMTP] = useState(false);
 
+  // Sold Lots Visibility configuration popup states
+  const [isSoldLotsModalOpen, setIsSoldLotsModalOpen] = useState(false);
+  const [soldLots, setSoldLots] = useState<any[]>([]);
+  const [selectedVisibleLotIds, setSelectedVisibleLotIds] = useState<string[]>([]);
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterNoPolisi, setFilterNoPolisi] = useState('');
+
+  const fetchSoldLots = async () => {
+    try {
+      const res = await apiFetch('/admin/lots?status=sold&per_page=100');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSoldLots(data.data || []);
+      }
+    } catch (e) {
+      toast.error("Gagal memuat daftar lot terjual");
+    }
+  };
+
+  const loadVisibleSoldLotIds = async () => {
+    try {
+      const res = await apiFetch('/admin/settings/feat_visible_sold_lot_ids');
+      const data = await res.json();
+      if (res.ok && data.success && data.data?.value) {
+        setSelectedVisibleLotIds(JSON.parse(data.data.value));
+      } else {
+        setSelectedVisibleLotIds([]);
+      }
+    } catch (e) {
+      setSelectedVisibleLotIds([]);
+    }
+  };
+
+  const filteredSoldLots = soldLots.filter((lot) => {
+    const title = (lot.asset?.title || "").toLowerCase();
+    const brand = (lot.asset?.brand || "").toLowerCase();
+    const model = (lot.asset?.model || "").toLowerCase();
+    const police = (lot.asset?.police_number || "").toLowerCase();
+    
+    const matchTitle = !filterTitle || title.includes(filterTitle.toLowerCase()) || brand.includes(filterTitle.toLowerCase()) || model.includes(filterTitle.toLowerCase());
+    const matchPolice = !filterNoPolisi || police.includes(filterNoPolisi.toLowerCase());
+    
+    return matchTitle && matchPolice;
+  });
+
   // Integrations & Payment Modes
   const [apiKeys, setApiKeys] = useState({
     deposit_payment_mode: 'auto',
@@ -268,6 +313,7 @@ export default function PlatformSettingsPage() {
 
       // Toggle fitur lainnya
       ensureToggle('feat_referral_program', 'false');
+      ensureToggle('feat_show_sold_history', 'false');
 
       setToggles(loadedToggles);
     } catch (e: any) {
@@ -312,6 +358,13 @@ export default function PlatformSettingsPage() {
         }
         toast.success(`Fitur ${key} berhasil diubah menjadi ${newValue === 'true' ? 'AKTIF' : 'NONAKTIF'}!`);
         fetchSettings();
+
+        // Open Sold Lots visibility configuration modal if turned ON
+        if (key === 'feat_show_sold_history' && newValue === 'true') {
+          await fetchSoldLots();
+          await loadVisibleSoldLotIds();
+          setIsSoldLotsModalOpen(true);
+        }
       } else {
         toast.error(data?.error?.message || `Gagal mengubah fitur ${key}. Perubahan tidak tersimpan di server.`);
       }
@@ -993,7 +1046,23 @@ export default function PlatformSettingsPage() {
                   ) : (
                     toggles.map((item) => (
                       <tr key={item.key}>
-                        <td><strong>{toggleNames[item.key] || item.key.replace('feat_', '').replace(/_/g, ' ').toUpperCase()}</strong></td>
+                        <td>
+                          <strong>{toggleNames[item.key] || item.key.replace('feat_', '').replace(/_/g, ' ').toUpperCase()}</strong>
+                          {item.key === 'feat_show_sold_history' && item.value === 'true' && (
+                            <button
+                              type="button"
+                              className="btn btn-link btn-xs"
+                              style={{ padding: 0, marginLeft: '8px', fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                              onClick={async () => {
+                                await fetchSoldLots();
+                                await loadVisibleSoldLotIds();
+                                setIsSoldLotsModalOpen(true);
+                              }}
+                            >
+                              ⚙️ Atur Lot Terpilih
+                            </button>
+                          )}
+                        </td>
                         <td><code style={{ fontSize: '0.85rem' }}>{item.key}</code></td>
                         <td>
                           {item.value === 'true' ? (
@@ -1259,6 +1328,148 @@ export default function PlatformSettingsPage() {
               <button className="btn btn-outline" onClick={() => setIsConfirmModalOpen(false)} disabled={isSavingTax}>Batal</button>
               <button className="btn btn-danger" onClick={handleSaveTaxSettings} disabled={isSavingTax}>
                 {isSavingTax ? 'Menyimpan...' : 'Ya, Saya Yakin & Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sold Lots Visibility Configuration Modal */}
+      {isSoldLotsModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal" style={{ maxWidth: '750px', width: '90%' }}>
+            <div className="modal-header">
+              Atur Visibilitas Lot Terjual di PWA
+              <button className="modal-close" onClick={() => setIsSoldLotsModalOpen(false)}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <div className="alert alert-info mb-3 text-xs">
+                Pilih lot terjual mana saja yang ingin ditampilkan di halaman Beranda PWA ketika belum ada lelang aktif (membantu menyembunyikan lot dummy).
+              </div>
+
+              {/* Filters */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group mb-0">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Merek / Model / Judul</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Cari..."
+                    value={filterTitle}
+                    onChange={(e) => setFilterTitle(e.target.value)}
+                  />
+                </div>
+                <div className="form-group mb-0">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nomor Polisi</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Cari No. Polisi..."
+                    value={filterNoPolisi}
+                    onChange={(e) => setFilterNoPolisi(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Bulk Actions */}
+              <div className="flex gap-2 mb-3 items-center" style={{ justifyContent: 'space-between' }}>
+                <div className="text-xs text-muted">
+                  Terpilih: <strong>{selectedVisibleLotIds.length}</strong> lot
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                    onClick={() => {
+                      const filteredIds = filteredSoldLots.map((l: any) => l.id);
+                      setSelectedVisibleLotIds(Array.from(new Set([...selectedVisibleLotIds, ...filteredIds])));
+                    }}
+                  >
+                    Pilih Semua yang Tampil
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                    onClick={() => {
+                      const filteredIds = filteredSoldLots.map((l: any) => l.id);
+                      setSelectedVisibleLotIds(selectedVisibleLotIds.filter(id => !filteredIds.includes(id)));
+                    }}
+                  >
+                    Batal Pilih Semua yang Tampil
+                  </button>
+                </div>
+              </div>
+
+              {/* Lots List */}
+              <div style={{ border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: '300px', overflowY: 'auto', background: '#fff' }}>
+                {filteredSoldLots.length === 0 ? (
+                  <div className="p-4 text-center text-muted text-sm">Tidak ada lot terjual yang sesuai filter.</div>
+                ) : (
+                  <table className="table table-sm mb-0">
+                    <thead className="table-light" style={{ position: 'sticky', top: 0 }}>
+                      <tr>
+                        <th style={{ width: '40px', textAlign: 'center' }}>Tampil</th>
+                        <th>No. Lot</th>
+                        <th>Aset / Unit</th>
+                        <th>No. Polisi</th>
+                        <th>Harga Terbentuk (Hammer Price)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSoldLots.map((lot: any) => {
+                        const isChecked = selectedVisibleLotIds.includes(lot.id);
+                        return (
+                          <tr key={lot.id}>
+                            <td style={{ textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedVisibleLotIds([...selectedVisibleLotIds, lot.id]);
+                                  } else {
+                                    setSelectedVisibleLotIds(selectedVisibleLotIds.filter(id => id !== lot.id));
+                                  }
+                                }}
+                              />
+                            </td>
+                            <td>{lot.lot_number}</td>
+                            <td><strong>{lot.asset?.title || `${lot.asset?.brand || ""} ${lot.asset?.model || ""}`}</strong></td>
+                            <td><code>{lot.asset?.police_number || "-"}</code></td>
+                            <td>Rp {Number(lot.hammer_price || lot.starting_price).toLocaleString('id-ID')}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setIsSoldLotsModalOpen(false)}>Batal</button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    const response = await apiFetch('/admin/settings/feat_visible_sold_lot_ids', {
+                      method: 'PUT',
+                      body: JSON.stringify({ value: JSON.stringify(selectedVisibleLotIds) }),
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                      toast.success("Daftar lot terjual yang ditampilkan berhasil disimpan!");
+                      setIsSoldLotsModalOpen(false);
+                    } else {
+                      toast.error("Gagal menyimpan daftar lot terjual");
+                    }
+                  } catch (e) {
+                    toast.error("Gagal menyimpan daftar lot terjual");
+                  }
+                }}
+              >
+                Submit / Simpan Pilihan
               </button>
             </div>
           </div>
