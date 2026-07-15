@@ -83,11 +83,11 @@ export default function GoogleAuthModal({
         body: JSON.stringify({
           idToken,
           action: currentAction,
+          role: defaultRole,
         }),
       });
 
       const resData = await response.json();
-      
       if (response.ok && resData.success) {
         const user = resData.data.user;
         const accessToken = resData.data.accessToken;
@@ -98,12 +98,10 @@ export default function GoogleAuthModal({
         }
 
         onClose();
-        if (user.role === "bidder") {
+        if (user.role === "bidder" || user.role === "user") {
           router.push("/bidder/dashboard");
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
-        } else if (user.role === "user") {
-          router.push("/pilih-peran");
         } else if (["admin", "operator", "superadmin"].includes(user.role)) {
           let adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
           if (typeof window !== "undefined" && window.location.hostname !== 'localhost') {

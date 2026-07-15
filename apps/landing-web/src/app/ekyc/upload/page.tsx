@@ -579,7 +579,7 @@ export default function EkycUploadPage() {
               className="w-4.5 h-4.5 accent-premium rounded border-outline-variant focus:ring-premium mt-0.5"
             />
             <span className="leading-tight select-none">
-              Saya menyatakan bahwa data yang saya berikan adalah benar dan menyetujui pemrosesan identitas (e-KYC) sesuai dengan <Link href="/syarat" target="_blank" className="text-primary hover:underline font-semibold">Syarat & Ketentuan</Link> serta <Link href="/kebijakan" target="_blank" className="text-primary hover:underline font-semibold">Kebijakan Privasi</Link> IndoLelang.
+              Saya menyatakan bahwa data yang saya berikan adalah benar dan menyetujui pemrosesan identitas (e-KYC) sesuai dengan <Link href="https://bidku.co.id/syarat" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Syarat & Ketentuan</Link> serta <Link href="https://bidku.co.id/kebijakan" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Kebijakan Privasi</Link> IndoLelang.
             </span>
           </label>
 

@@ -290,8 +290,8 @@ describe('Authentication Module Integration Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('accessToken');
       expect(res.body.data.user.email).toBe(googleEmail);
-      expect(res.body.data.user.role).toBe(Role.USER);
-      expect(res.body.data.user.status).toBe(UserStatus.ACTIVE);
+      expect(res.body.data.user.role).toBe(Role.BIDDER);
+      expect(res.body.data.user.status).toBe(UserStatus.PENDING);
     });
 
     it('should successfully log in an existing user using Google OAuth', async () => {

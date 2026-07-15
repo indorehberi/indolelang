@@ -122,6 +122,7 @@ export default function NewAssetPage() {
   });
 
   const [providers, setProviders] = useState<{ id: string; company_name: string; full_name: string }[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string; city: string }[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -145,6 +146,15 @@ export default function NewAssetPage() {
         setLoadingProviders(false);
       }
     };
+    const fetchBranches = async () => {
+      try {
+        const res = await apiFetch('/branches?is_active=true');
+        const data = await res.json();
+        if (res.ok && data.success) setBranches(data.data || []);
+      } catch (err) {
+        console.error('Failed to fetch branches', err);
+      }
+    };
     
     let picName = '';
     try {
@@ -154,6 +164,7 @@ export default function NewAssetPage() {
     
     setFormData(prev => ({ ...prev, inspection_pic_name: picName }));
     fetchProviders();
+    fetchBranches();
   }, []);
 
   const validateForm = () => {
@@ -168,6 +179,10 @@ export default function NewAssetPage() {
     if (!formData.year) e.year = 'Tahun wajib diisi';
     if (!formData.police_number.trim()) e.police_number = 'No Polisi wajib diisi';
     if (!formData.notes.trim()) e.notes = 'Lokasi Kendaraan wajib diisi';
+    if (!formData.branch_id) e.branch_id = 'Pilih Cabang penempatan barang';
+
+    // Require at least front photo to ensure catalog shows image
+    if (!formData.photo_front) e.photo_front = 'Foto depan wajib diunggah';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -231,9 +246,58 @@ export default function NewAssetPage() {
     
     setProcessing(true);
     try {
+      // Normalize payload to match Provider Ajukan Titip Jual
+      const payload: any = {
+        category: formData.category,
+        title: formData.title || `${formData.brand} ${formData.model} ${formData.year}`,
+        description: formData.description,
+        base_price: Number(formData.base_price) || undefined,
+        provider_id: formData.provider_id || undefined,
+        branch_id: formData.branch_id || undefined,
+        pool_status: formData.pool_status || 'in_pool',
+
+        // Specs
+        brand: formData.brand,
+        model: formData.model,
+        color: formData.color,
+        fuel_type: formData.fuel_type,
+        transmission: formData.transmission,
+        body_type: formData.body_type,
+        year: formData.year ? (isNaN(Number(formData.year)) ? formData.year : Number(formData.year)) : undefined,
+        cylinder: formData.cylinder ? (isNaN(Number(formData.cylinder)) ? undefined : Number(formData.cylinder)) : undefined,
+        odometer: formData.odometer ? (isNaN(Number(formData.odometer)) ? undefined : Number(formData.odometer)) : undefined,
+
+        // IDs
+        police_number: formData.police_number,
+        bpkb_number: formData.bpkb_number,
+        frame_number: formData.frame_number,
+        engine_number: formData.engine_number,
+
+        // Docs
+        doc_stnk: formData.doc_stnk,
+        doc_bpkb: formData.doc_bpkb,
+        doc_faktur: formData.doc_faktur,
+        doc_kwitansi: formData.doc_kwitansi,
+        doc_form_a: formData.doc_form_a,
+        doc_copy_ktp: formData.doc_copy_ktp,
+        doc_keur: formData.doc_keur,
+        doc_sph: formData.doc_sph,
+
+        // Photos
+        photo_front: formData.photo_front,
+        photo_back: formData.photo_back,
+        photo_right: formData.photo_right,
+        photo_left: formData.photo_left,
+        photo_engine: formData.photo_engine,
+        photo_interior: formData.photo_interior,
+        photo_stnk: formData.photo_stnk,
+
+        notes: formData.notes,
+      };
+
       const res = await apiFetch('/assets', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -322,6 +386,24 @@ export default function NewAssetPage() {
           <Field label="Lokasi Kendaraan saat ini" required error={errors.notes}>
             <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Contoh: Pool Cilandak, Jakarta Selatan" />
           </Field>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+            <Field label="Cabang" required error={errors.branch_id}>
+              <select className={`form-select ${errors.branch_id ? 'border-red-500' : ''}`} value={(formData as any).branch_id || ''} onChange={e => setFormData({ ...formData, branch_id: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}>
+                <option value="">-- Pilih Cabang --</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name} ({b.city})</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Status Pool">
+              <select value={(formData as any).pool_status || 'in_pool'} onChange={e => setFormData({ ...formData, pool_status: e.target.value })} className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}>
+                <option value="in_pool">In Pool</option>
+                <option value="out_pool">Out Pool</option>
+              </select>
+            </Field>
+          </div>
 
           <Field label="Deskripsi Tambahan">
             <textarea rows={4} className="form-textarea" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Deskripsi kondisi atau catatan khusus..." />

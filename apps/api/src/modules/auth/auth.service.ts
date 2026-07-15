@@ -193,9 +193,8 @@ export class AuthService {
 			};
 		}
 
-		// 4. If user doesn't exist, register them as a plain user. They choose to
-		// become a Bidder or Provider afterwards via /bidders/apply or /providers/apply.
-		let role: any = Role.USER;
+		// 4. If user doesn't exist, register them as a bidder by default for Google OAuth.
+		let role: Role = data.role || Role.BIDDER;
 
 		// If phone number is supplied, check for duplicates
 		if (data.phone) {

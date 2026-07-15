@@ -255,8 +255,9 @@ export default function BidderProfile() {
                 <input
                   type="text"
                   value={name}
-                  disabled
-                  className="panel-form-input bg-slate-50 cursor-not-allowed"
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                 />
               </div>
               <div className="panel-form-group">
@@ -264,8 +265,9 @@ export default function BidderProfile() {
                 <input
                   type="text"
                   value={nik || (ekycStatus !== "unverified" ? "Belum diisi" : "")}
-                  disabled
-                  className="panel-form-input bg-slate-50 cursor-not-allowed"
+                  onChange={(e) => setNik(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                   placeholder="Disubmit melalui halaman eKYC"
                 />
               </div>
@@ -274,8 +276,9 @@ export default function BidderProfile() {
                 <input
                   type="email"
                   value={email}
-                  disabled
-                  className="panel-form-input bg-slate-50 cursor-not-allowed"
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isVerified && !isEditingEnabled}
+                  className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                 />
               </div>
               <div className="panel-form-group">
@@ -405,11 +408,11 @@ export default function BidderProfile() {
                   type="text"
                   value={bankAccountName}
                   onChange={(e) => setBankAccountName(e.target.value)}
-                  disabled={bankInquiryMode === "auto" || (isVerified && !isEditingEnabled)}
-                  className={`panel-form-input ${(bankInquiryMode === 'auto' || (isVerified && !isEditingEnabled)) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  disabled={(bankInquiryMode === "auto" && !isEditingEnabled) || (isVerified && !isEditingEnabled)}
+                  className={`panel-form-input ${((bankInquiryMode === 'auto' && !isEditingEnabled) || (isVerified && !isEditingEnabled)) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                   required
-                  readOnly={bankInquiryMode === "auto"}
-                  placeholder={bankInquiryMode === "auto" ? "Nama akan muncul otomatis setelah Anda menekan Cek Rekening" : "Ketik nama lengkap pemilik rekening"}
+                  readOnly={bankInquiryMode === "auto" && !isEditingEnabled}
+                  placeholder={bankInquiryMode === "auto" && !isEditingEnabled ? "Nama akan muncul otomatis setelah Anda menekan Cek Rekening" : "Ketik nama lengkap pemilik rekening"}
                 />
               </div>
               <div className="panel-form-group">

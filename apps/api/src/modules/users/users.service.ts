@@ -73,7 +73,15 @@ export class UsersService {
       company_name: user.company_name || undefined,
       npwp: user.npwp || undefined,
       provider_status: user.provider_status || undefined,
-      active_nipl_count: user.deposits ? user.deposits.length : 0,
+      active_nipl_count: (() => {
+        const deps = user.deposits || [];
+        return deps.reduce((sum: number, d: any) => {
+          if (!d) return sum;
+          if (d.package_type === 'unlimited') return sum + 999;
+          const n = parseInt(d.package_type || '0', 10);
+          return sum + (Number.isNaN(n) ? 0 : n);
+        }, 0);
+      })(),
       kyc: user.kyc_document ? {
         id: user.kyc_document.id,
         status: user.kyc_document.status,
