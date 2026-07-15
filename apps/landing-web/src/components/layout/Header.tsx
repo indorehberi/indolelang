@@ -113,6 +113,14 @@ export default function Header() {
             </Link>
           ) : (
             <>
+              {/* Mobile-only shortcut to install the PWA, right next to Masuk.
+                  PWAInstallButton hides itself at md+ and whenever the app is
+                  not actually installable (already installed, no captured
+                  install prompt yet, etc). */}
+              <PWAInstallButton
+                label="App"
+                className="px-3 py-2 text-body-md font-bold text-primary border border-primary rounded-full btn-press transition-all hover:bg-primary/5 flex items-center gap-1"
+              />
               <Link
                 href="/login"
                 className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press btn-shine transition-all text-center"
