@@ -39,6 +39,7 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
   const [currentImageIdx, setCurrentImageIdx] = useState<number>(0);
   const [isCancelledOverlay, setIsCancelledOverlay] = useState(false);
   const [cancelCountdown, setCancelCountdown] = useState(5);
+  const cancelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   
   const assetImages = getAssetImages(lot.asset);
@@ -158,11 +159,12 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
         setIsCancelledOverlay(true);
         setCancelCountdown(5);
         let count = 5;
-        const iv = setInterval(() => {
+        if (cancelIntervalRef.current) clearInterval(cancelIntervalRef.current);
+        cancelIntervalRef.current = setInterval(() => {
           count--;
           setCancelCountdown(count);
           if (count <= 0) {
-            clearInterval(iv);
+            if (cancelIntervalRef.current) clearInterval(cancelIntervalRef.current);
             onLotClosed(data);
           }
         }, 1000);
@@ -196,6 +198,9 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     socket.on("lot:start", handleLotStartCountdown);
 
     return () => {
+      if (cancelIntervalRef.current) {
+        clearInterval(cancelIntervalRef.current);
+      }
       socket.off("lot:sync", handleLotSync);
       socket.off("bid:update", handleBidUpdate);
       socket.off("bid:error", handleBidError);
@@ -479,6 +484,8 @@ export default function BidderBiddingRoom() {
   const [activeLots, setActiveLots] = useState<any[]>([]);
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
   const [frozenLot, setFrozenLot] = useState<any | null>(null);
+  const [frozenCountdown, setFrozenCountdown] = useState<number>(5);
+  const frozenTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [closedResult, setClosedResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
@@ -619,12 +626,28 @@ export default function BidderBiddingRoom() {
     const handleLotStart = (data: any) => {
       if (data.is_canceled) {
         setFrozenLot(data);
-        setTimeout(() => {
-          setFrozenLot(null);
-          fetchActiveLots();
-        }, (data.freeze_duration_secs || 5) * 1000);
+        const duration = data.freeze_duration_secs || 5;
+        setFrozenCountdown(duration);
+        
+        if (frozenTimerRef.current) clearInterval(frozenTimerRef.current);
+        
+        let counter = duration;
+        frozenTimerRef.current = setInterval(() => {
+          counter--;
+          setFrozenCountdown(counter);
+          if (counter <= 0) {
+            if (frozenTimerRef.current) clearInterval(frozenTimerRef.current);
+            setFrozenLot(null);
+            fetchActiveLots();
+          }
+        }, 1000);
       } else {
-        // New active lot started, refresh
+        // New active lot started, immediately clear any overlays and refresh
+        if (frozenTimerRef.current) {
+          clearInterval(frozenTimerRef.current);
+        }
+        setFrozenLot(null);
+        setClosedResult(null);
         fetchActiveLots();
       }
     };
@@ -647,6 +670,9 @@ export default function BidderBiddingRoom() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (frozenTimerRef.current) {
+        clearInterval(frozenTimerRef.current);
+      }
       if (localSocket.connected) {
         activeLots.forEach((lot) => {
           localSocket.emit("bid:unwatch", { lot_id: lot.id });
@@ -685,7 +711,7 @@ export default function BidderBiddingRoom() {
             <p className="text-sm text-slate-500 mb-6">Lot ini telah dibatalkan dan dilewati.</p>
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 inline-block">
               <span className="block text-xs uppercase font-bold text-slate-400 mb-1">Lanjut otomatis dalam</span>
-              <div className="text-3xl font-black text-primary animate-pulse">{frozenLot.freeze_duration_secs} detik</div>
+              <div className="text-3xl font-black text-primary animate-pulse">{frozenCountdown} detik</div>
             </div>
           </div>
         </div>
