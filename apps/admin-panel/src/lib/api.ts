@@ -34,7 +34,7 @@ export function apiUrl(path: string): string {
 }
 
 export function getImageUrl(url: string | undefined): string {
-  if (!url) return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=600";
+  if (!url) return "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"><rect width=\"400\" height=\"300\" fill=\"%23f1f5f9\"/><g fill=\"%2394a3b8\" transform=\"translate(180, 100)\"><path d=\"M20 2C13.373 2 8 7.373 8 14v4H6c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h28c1.103 0 2-.897 2-2V20c0-1.103-.897-2-2-2h-2v-4c0-6.627-5.373-12-12-12zm-8 16v-4c0-4.411 3.589-8 8-8s8 3.589 8 8v4H12z\"/></g><text x=\"50%\" y=\"190\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"system-ui, -apple-system, sans-serif\" font-size=\"14\" font-weight=\"600\" fill=\"%2364748b\">Foto Belum Tersedia</text></svg>";
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
 
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
