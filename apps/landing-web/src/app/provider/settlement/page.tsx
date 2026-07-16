@@ -155,22 +155,23 @@ export default function ProviderSettlement() {
           ) : items.length === 0 ? (
             <div className="py-8 text-center text-slate-500">Belum ada riwayat settlement penjualan.</div>
           ) : (
-            <table className="dashboard-table text-xs" style={{ width: '100%', minWidth: '1500px' }}>
+            <table className="dashboard-table text-xs" style={{ width: '100%', minWidth: '1700px' }}>
               <thead>
                 <tr>
                   <th>No. Ref</th>
                   <th>Tanggal</th>
                   <th>Sesi Lelang</th>
                   <th>Nama Unit Aset</th>
-                  <th>Harga Terbentuk (GMV)</th>
-                  <th>Fee Lelang</th>
+                  <th>Harga Terbentuk</th>
+                  <th>PPN Pemenang (PMK 41)</th>
+                  <th>Fee Lelang (%)</th>
                   <th>DPP</th>
-                  <th>Fee DPP</th>
-                  <th>Fee DPP Lain</th>
+                  <th>DPP Nilai Lain</th>
                   <th>PPN</th>
+                  <th>Total Invoice Fee Lelang</th>
                   <th>PPh 23</th>
-                  <th>PPN PMK 41</th>
-                  <th>Nominal Bersih</th>
+                  <th>Total Penerimaan Indo Lelang</th>
+                  <th>Pembayaran ke Provider</th>
                   <th>Rekening Tujuan</th>
                   <th>Waktu Transfer</th>
                   <th>Status</th>
@@ -178,8 +179,12 @@ export default function ProviderSettlement() {
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const dpp = item.gross_amount - item.commission_deducted;
                   const bankInfo = profile ? `${profile.bank_name || '-'} - ${profile.bank_account_no || '-'}` : '-';
+                  // Total Invoice Fee Lelang (H) = DPP (E) + PPN (G) — matches
+                  // pembayaran_ke_provider.xlsx's H9 = E9+G9 identity; not a
+                  // separately stored field since it's algebraically derived.
+                  const totalInvoiceFeeLelang = item.fee_dpp + item.fee_ppn;
+                  const feeLelangPct = item.gross_amount > 0 ? (totalInvoiceFeeLelang / item.gross_amount) * 100 : 0;
 
                   return (
                     <tr key={item.id}>
@@ -188,13 +193,14 @@ export default function ProviderSettlement() {
                       <td>{item.lot?.session?.title || '-'}</td>
                       <td className="font-bold text-slate-800">{item.lot?.asset?.title || '-'}</td>
                       <td className="font-bold">{formatRupiah(item.gross_amount)}</td>
-                      <td className="text-red-600">-{formatRupiah(item.commission_deducted)}</td>
-                      <td className="font-semibold text-slate-700">{formatRupiah(dpp)}</td>
+                      <td className="text-green-600">+{formatRupiah(item.pmk41_amount)}</td>
+                      <td>{feeLelangPct.toFixed(2)}%</td>
                       <td>{formatRupiah(item.fee_dpp)}</td>
                       <td>{formatRupiah(item.fee_dpp_lain)}</td>
-                      <td className="text-red-600">-{formatRupiah(item.fee_ppn)}</td>
+                      <td>{formatRupiah(item.fee_ppn)}</td>
+                      <td className="text-red-600">-{formatRupiah(totalInvoiceFeeLelang)}</td>
                       <td className="text-green-600">+{formatRupiah(item.fee_pph23)}</td>
-                      <td className="text-green-600">+{formatRupiah(item.pmk41_amount)}</td>
+                      <td className="font-semibold text-slate-700">{formatRupiah(item.commission_deducted)}</td>
                       <td className="font-bold text-success" style={{ fontSize: '0.9rem' }}>{formatRupiah(item.net_amount)}</td>
                       <td>{bankInfo}</td>
                       <td>{item.transferred_at ? new Date(item.transferred_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
