@@ -65,6 +65,23 @@ export class BiddersController {
       next(error);
     }
   }
+
+  async adjustNipl(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const adminId = (req as any).user!.id;
+      const { mobil_count, motor_count } = req.body;
+      const result = await biddersService.adjustNiplCount(
+        req.params.id,
+        adminId,
+        mobil_count ?? 0,
+        motor_count ?? 0
+      );
+      logAdminAction(req, 'ADJUST_NIPL', 'bidders', req.params.id, null, result);
+      sendSuccess(res, result, 'Jumlah NIPL berhasil diperbarui');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default BiddersController;

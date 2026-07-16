@@ -141,12 +141,13 @@ export class BiddersService {
       select: {
         user_id: true,
         package_type: true,
+        unit_type: true,
       },
     });
 
-    const niplByUser = new Map<string, number>();
+    const niplByUser = new Map<string, { total: number; mobil: number; motor: number }>();
     for (const dep of deposits) {
-      const current = niplByUser.get(dep.user_id) || 0;
+      const current = niplByUser.get(dep.user_id) || { total: 0, mobil: 0, motor: 0 };
       let count = 0;
       if (dep.package_type === 'unlimited') {
         count = 999;
@@ -154,11 +155,17 @@ export class BiddersService {
         const parsed = parseInt(dep.package_type || '0', 10);
         count = Number.isNaN(parsed) ? 0 : parsed;
       }
-      niplByUser.set(dep.user_id, current + count);
+      current.total += count;
+      if (dep.unit_type === 'mobil') current.mobil += count;
+      else if (dep.unit_type === 'motor') current.motor += count;
+      niplByUser.set(dep.user_id, current);
     }
 
     return {
-      bidders: records.map((b) => this.mapToDTO(b, niplByUser.get(b.user_id) || 0)),
+      bidders: records.map((b) => {
+        const nipl = niplByUser.get(b.user_id) || { total: 0, mobil: 0, motor: 0 };
+        return this.mapToDTO(b, nipl.total, nipl.mobil, nipl.motor);
+      }),
       meta: { page, per_page: perPage, total, total_pages: Math.ceil(total / perPage) },
     };
   }
@@ -273,7 +280,103 @@ export class BiddersService {
     return this.mapToDTO(updated, niplCount);
   }
 
-  private mapToDTO(bidder: any, niplCount?: number): BidderDTO {
+  /**
+   * Admin adjusts NIPL count for a bidder.
+   * Expires all existing paid deposits and optionally creates a single
+   * adjustment deposit with the target count. Also supports per-unit-type
+   * adjustment (mobil/motor).
+   */
+  async adjustNiplCount(
+    bidderId: string,
+    adminId: string,
+    mobilCount: number,
+    motorCount: number
+  ): Promise<{ mobil: number; motor: number }> {
+    const bidder = await prisma.bidders.findUnique({ where: { id: bidderId } });
+    if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
+
+    const userId = bidder.user_id;
+
+    // Get current counts for audit log
+    const currentDeposits = await prisma.deposits.findMany({
+      where: { user_id: userId, status: 'paid' },
+      select: { id: true, package_type: true, unit_type: true },
+    });
+
+    const oldMobil = currentDeposits
+      .filter(d => d.unit_type === 'mobil')
+      .reduce((sum, d) => {
+        if (d.package_type === 'unlimited') return sum + 999;
+        const n = parseInt(d.package_type || '0', 10);
+        return sum + (Number.isNaN(n) ? 0 : n);
+      }, 0);
+
+    const oldMotor = currentDeposits
+      .filter(d => d.unit_type === 'motor')
+      .reduce((sum, d) => {
+        if (d.package_type === 'unlimited') return sum + 999;
+        const n = parseInt(d.package_type || '0', 10);
+        return sum + (Number.isNaN(n) ? 0 : n);
+      }, 0);
+
+    // Expire all existing paid deposits for this user
+    await prisma.deposits.updateMany({
+      where: { user_id: userId, status: 'paid' },
+      data: { status: 'expired' },
+    });
+
+    const newDeposits: any[] = [];
+
+    // Create new adjustment deposit for mobil if count > 0
+    if (mobilCount > 0) {
+      newDeposits.push(
+        prisma.deposits.create({
+          data: {
+            user_id: userId,
+            session_id: null,
+            amount: 0,
+            unit_type: 'mobil',
+            package_type: String(mobilCount),
+            va_number: null,
+            va_bank: null,
+            payment_method: 'admin_adjustment',
+            status: 'paid',
+            is_manual: true,
+            paid_at: new Date(),
+          },
+        })
+      );
+    }
+
+    // Create new adjustment deposit for motor if count > 0
+    if (motorCount > 0) {
+      newDeposits.push(
+        prisma.deposits.create({
+          data: {
+            user_id: userId,
+            session_id: null,
+            amount: 0,
+            unit_type: 'motor',
+            package_type: String(motorCount),
+            va_number: null,
+            va_bank: null,
+            payment_method: 'admin_adjustment',
+            status: 'paid',
+            is_manual: true,
+            paid_at: new Date(),
+          },
+        })
+      );
+    }
+
+    if (newDeposits.length > 0) {
+      await Promise.all(newDeposits);
+    }
+
+    return { mobil: mobilCount, motor: motorCount };
+  }
+
+  private mapToDTO(bidder: any, niplCount?: number, niplMobil?: number, niplMotor?: number): BidderDTO {
     return {
       id: bidder.id,
       user_id: bidder.user_id,
@@ -290,6 +393,8 @@ export class BiddersService {
       created_at: bidder.created_at.toISOString(),
       updated_at: bidder.updated_at.toISOString(),
       active_nipl_count: niplCount,
+      nipl_mobil: niplMobil,
+      nipl_motor: niplMotor,
       kyc: bidder.user?.kyc_document
         ? {
             id: bidder.user.kyc_document.id,

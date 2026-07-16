@@ -160,6 +160,7 @@ function KatalogContent() {
           category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
           jenisLelang: "English Auction",
           sessionId: dbLot.session_id,
+          sessionTitle: dbLot.session?.title || undefined,
           lot_number: dbLot.lot_number || 0,
           tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
           notes: dbLot.asset.notes || undefined,
@@ -581,36 +582,92 @@ function KatalogContent() {
                     <div className="flex gap-2">
                       <button
                         onClick={async () => {
-                          const { utils, writeFile } = await import('xlsx');
-                          const exportRows = (filteredLots.length > 0 ? filteredLots : lotsList).map((lot) => ({
-                            lot_number: lot.lot_number || '',
-                            title: lot.title || '',
-                            category: lot.category || '',
-                            brand: lot.brand || '',
-                            model: lot.model || '',
-                            year: lot.year || '',
-                            police_number: lot.police_number || '',
-                            color: lot.color || '',
-                            transmission: lot.transmission || '',
-                            fuel_type: lot.fuel_type || '',
-                            body_type: lot.body_type || '',
-                            odometer: lot.odometer || '',
-                            cylinder: lot.cylinder || '',
-                            grade: lot.grade || '',
-                            grade_engine: lot.grade_engine || '',
-                            grade_interior: lot.grade_interior || '',
-                            grade_exterior: lot.grade_exterior || '',
-                            stnk_date: lot.stnk_date ? new Date(lot.stnk_date).toLocaleDateString('id-ID') : '',
-                            location: lot.location || '',
-                            starting_price: lot.hargaDasar || '',
-                            scheduled_at: lot.scheduledAt ? new Date(lot.scheduledAt).toLocaleString('id-ID') : '',
-                            status: lot.badge || '',
-                          }));
+                          const { default: jsPDF } = await import('jspdf');
+                          const { default: autoTable } = await import('jspdf-autotable');
 
-                          const worksheet = utils.json_to_sheet(exportRows);
-                          const workbook = utils.book_new();
-                          utils.book_append_sheet(workbook, worksheet, 'Katalog Lelang');
-                          writeFile(workbook, `katalog-lelang-${new Date().toISOString().split('T')[0]}.xlsx`);
+                          const rows = filteredLots.length > 0 ? filteredLots : lotsList;
+
+                          // Title reflects the session name + date only when every
+                          // exported lot belongs to the same session — a mixed-session
+                          // export (the common case on this filtered listing page)
+                          // falls back to a generic title with today's date instead.
+                          const uniqueSessions = Array.from(
+                            new Set(rows.map((l) => l.sessionId).filter(Boolean))
+                          );
+                          const singleSessionTitle =
+                            uniqueSessions.length === 1 ? rows.find((l) => l.sessionId === uniqueSessions[0]) : undefined;
+                          const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                          const docTitle = singleSessionTitle?.sessionTitle
+                            ? `Katalog Lelang — ${singleSessionTitle.sessionTitle}`
+                            : 'Katalog Lelang BIDKU';
+                          const docSubtitle = singleSessionTitle?.scheduledAt
+                            ? new Date(singleSessionTitle.scheduledAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                            : todayStr;
+
+                          const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                          const pageWidth = doc.internal.pageSize.getWidth();
+
+                          doc.setFontSize(14);
+                          doc.setFont('helvetica', 'bold');
+                          doc.text(docTitle, pageWidth / 2, 12, { align: 'center' });
+                          doc.setFontSize(10);
+                          doc.setFont('helvetica', 'normal');
+                          doc.text(docSubtitle, pageWidth / 2, 18, { align: 'center' });
+
+                          const head = [[
+                            'No Lot', 'Nama Barang', 'Kategori', 'Merk/Model', 'Tahun',
+                            'No Polisi', 'Warna', 'Transmisi', 'BBM', 'Odometer',
+                            'Grade', 'Harga Dasar', 'Jadwal', 'Status',
+                          ]];
+                          const body = rows.map((lot) => ([
+                            lot.lot_number || '-',
+                            lot.title || '-',
+                            lot.category || '-',
+                            [lot.brand, lot.model].filter(Boolean).join(' ') || '-',
+                            lot.year || '-',
+                            lot.police_number || '-',
+                            lot.color || '-',
+                            lot.transmission || '-',
+                            lot.fuel_type || '-',
+                            lot.odometer ? Number(lot.odometer).toLocaleString('id-ID') : '-',
+                            lot.grade || '-',
+                            lot.hargaDasar ? `Rp ${Number(lot.hargaDasar).toLocaleString('id-ID')}` : '-',
+                            lot.scheduledAt ? new Date(lot.scheduledAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+                            lot.badge || '-',
+                          ]));
+
+                          autoTable(doc, {
+                            head,
+                            body,
+                            startY: 24,
+                            theme: 'grid',
+                            styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+                            headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', halign: 'center' },
+                            bodyStyles: { valign: 'middle' },
+                            columnStyles: {
+                              0: { cellWidth: 12 },   // No Lot
+                              1: { cellWidth: 38 },   // Nama Barang
+                              4: { cellWidth: 12 },   // Tahun
+                              5: { cellWidth: 20 },   // No Polisi
+                              9: { cellWidth: 18 },   // Odometer
+                              10: { cellWidth: 12 },  // Grade
+                              13: { cellWidth: 20 },  // Status
+                            },
+                            margin: { left: 8, right: 8 },
+                            didDrawPage: () => {
+                              const pageHeight = doc.internal.pageSize.getHeight();
+                              doc.setFontSize(8);
+                              doc.setFont('helvetica', 'italic');
+                              doc.text(
+                                'Katalog ini hanya panduan — data unit terus diperbarui dan dapat berubah sewaktu-waktu.',
+                                pageWidth / 2,
+                                pageHeight - 6,
+                                { align: 'center' }
+                              );
+                            },
+                          });
+
+                          doc.save(`katalog-lelang-${new Date().toISOString().split('T')[0]}.pdf`);
                         }}
                         className="w-fit px-4 py-2 bg-primary text-on-primary rounded-full text-body-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
                       >

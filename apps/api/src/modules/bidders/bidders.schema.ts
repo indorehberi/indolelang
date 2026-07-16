@@ -27,3 +27,10 @@ export const rejectBidderSchema = z.object({
     reason: z.string().min(3, 'Alasan penolakan wajib diisi'),
   }),
 });
+
+export const adjustNiplSchema = z.object({
+  body: z.object({
+    mobil_count: z.number().int().min(0, 'Jumlah NIPL mobil tidak boleh negatif').default(0),
+    motor_count: z.number().int().min(0, 'Jumlah NIPL motor tidak boleh negatif').default(0),
+  }),
+});

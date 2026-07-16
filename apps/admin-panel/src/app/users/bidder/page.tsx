@@ -15,6 +15,8 @@ interface Bidder {
   status: 'antri' | 'aktif' | 'ditolak' | 'nonaktif';
   rejection_reason?: string;
   active_nipl_count?: number;
+  nipl_mobil?: number;
+  nipl_motor?: number;
   submitted_at: string;
   address?: string;
   occupation?: string;
@@ -75,9 +77,12 @@ export default function BidderListPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showNiplModal, setShowNiplModal] = useState(false);
   const [selectedBidder, setSelectedBidder] = useState<Bidder | null>(null);
 
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '' });
+  const [niplFormData, setNiplFormData] = useState({ mobil_count: 0, motor_count: 0 });
+  const [niplSaving, setNiplSaving] = useState(false);
 
   const fetchBidders = useCallback(async () => {
     setLoading(true);
@@ -200,6 +205,31 @@ export default function BidderListPage() {
     }
   };
 
+  const handleAdjustNipl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBidder) return;
+    setNiplSaving(true);
+    try {
+      const response = await apiFetch(`/admin/bidders/${selectedBidder.id}/nipl`, {
+        method: 'PUT',
+        body: JSON.stringify(niplFormData),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success('Jumlah NIPL berhasil diperbarui');
+        setShowNiplModal(false);
+        fetchBidders();
+      } else {
+        toast.error(data.error?.message || 'Gagal mengubah jumlah NIPL');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Terjadi kesalahan sistem');
+    } finally {
+      setNiplSaving(false);
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Bidder">
       <div className="toolbar">
@@ -266,6 +296,13 @@ export default function BidderListPage() {
                       <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
                         {bidder.active_nipl_count || 0} NIPL
                       </Badge>
+                      {((bidder.nipl_mobil || 0) > 0 || (bidder.nipl_motor || 0) > 0) && (
+                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>
+                          {(bidder.nipl_mobil || 0) > 0 && <span>Mobil: {bidder.nipl_mobil}</span>}
+                          {(bidder.nipl_mobil || 0) > 0 && (bidder.nipl_motor || 0) > 0 && <span> · </span>}
+                          {(bidder.nipl_motor || 0) > 0 && <span>Motor: {bidder.nipl_motor}</span>}
+                        </div>
+                      )}
                     </td>
                     <td>{getStatusBadge(bidder.status)}</td>
                     <td>{bidder.submitted_at.split('T')[0]}</td>
@@ -317,6 +354,20 @@ export default function BidderListPage() {
                           }}
                         >
                           Delete
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBidder(bidder);
+                            setNiplFormData({
+                              mobil_count: bidder.nipl_mobil || 0,
+                              motor_count: bidder.nipl_motor || 0,
+                            });
+                            setShowNiplModal(true);
+                          }}
+                        >
+                          Edit NIPL
                         </Button>
                       </div>
                     </td>
@@ -473,6 +524,54 @@ export default function BidderListPage() {
               </div>
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* NIPL EDIT MODAL */}
+      {showNiplModal && selectedBidder && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <Card>
+            <h3 style={{ marginBottom: '0.5rem' }}>Edit Jumlah NIPL</h3>
+            <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
+              Bidder: <strong>{selectedBidder.user?.full_name}</strong><br />
+              NIPL saat ini: <strong>{selectedBidder.active_nipl_count || 0}</strong>
+            </p>
+            <form onSubmit={handleAdjustNipl}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>NIPL Mobil</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={niplFormData.mobil_count}
+                  onChange={(e) => setNiplFormData({ ...niplFormData, mobil_count: parseInt(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>NIPL Motor</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={niplFormData.motor_count}
+                  onChange={(e) => setNiplFormData({ ...niplFormData, motor_count: parseInt(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                />
+              </div>
+              <div style={{ padding: '0.75rem', background: '#f7fafc', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                <strong>Total NIPL setelah perubahan:</strong> {niplFormData.mobil_count + niplFormData.motor_count}
+                <br />
+                <span style={{ color: '#e53e3e', fontSize: '0.8rem' }}>
+                  ⚠ Semua deposit paid akan di-expired dan diganti deposit adjustment baru.
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setShowNiplModal(false)}>Batal</Button>
+                <Button variant="primary" type="submit" disabled={niplSaving}>
+                  {niplSaving ? 'Menyimpan...' : 'Simpan NIPL'}
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
 

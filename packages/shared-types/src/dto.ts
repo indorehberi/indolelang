@@ -142,6 +142,8 @@ export interface BidderDTO {
   created_at: string;
   updated_at: string;
   active_nipl_count?: number;
+  nipl_mobil?: number;
+  nipl_motor?: number;
   kyc?: {
     id: string;
     status: string;

@@ -4,7 +4,7 @@ import { authenticate } from '../../middleware/auth';
 import { authorize } from '../../middleware/rbac';
 import { validate } from '../../middleware/validator';
 import { Role } from '@indo-lelang/shared-types';
-import { applyBidderSchema, getBiddersQuerySchema, rejectBidderSchema } from './bidders.schema';
+import { applyBidderSchema, getBiddersQuerySchema, rejectBidderSchema, adjustNiplSchema } from './bidders.schema';
 
 const router = Router();
 const controller = new BiddersController();
@@ -44,4 +44,13 @@ router.put(
   controller.reject
 );
 
+router.put(
+  '/admin/bidders/:id/nipl',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  validate(adjustNiplSchema),
+  controller.adjustNipl
+);
+
 export default router;
+
