@@ -52,7 +52,12 @@ export class PaymentsService {
 
     const settings = await prisma.platform_settings.findMany({
       where: {
-        key: { in: ['tax_percentage', 'dpp_lain_multiplier', 'ppn_dpp_lain_percentage', 'pph23_percentage', 'pmk41_percentage'] }
+        key: {
+          in: [
+            'tax_percentage', 'dpp_lain_multiplier', 'ppn_dpp_lain_percentage', 'pph23_percentage', 'pmk41_percentage',
+            'default_provider_fee_type', 'commission_percentage',
+          ]
+        }
       }
     });
     const taxPct = parseFloat(settings.find(s => s.key === 'tax_percentage')?.value || '11.0');
@@ -60,13 +65,20 @@ export class PaymentsService {
     const ppnDppLainPct = parseFloat(settings.find(s => s.key === 'ppn_dpp_lain_percentage')?.value || '12.0') / 100;
     const pph23Pct = parseFloat(settings.find(s => s.key === 'pph23_percentage')?.value || '2.0') / 100;
     const pmk41Pct = parseFloat(settings.find(s => s.key === 'pmk41_percentage')?.value || '1.1') / 100;
+    const defaultFeeType = settings.find(s => s.key === 'default_provider_fee_type')?.value || 'percentage';
+    const defaultFeeAmount = parseFloat(settings.find(s => s.key === 'commission_percentage')?.value || '1.5');
+
+    // Fall back to the platform-wide default fee when this provider hasn't
+    // had a fee individually configured on their profile — otherwise a
+    // provider with no fee set silently settles at 0% commission.
+    const feeType = provider.provider_fee_type ?? defaultFeeType;
+    const feeAmount = provider.provider_fee_amount != null ? Number(provider.provider_fee_amount) : defaultFeeAmount;
 
     let totalInvoiceFeeLelang = 0;
-    if (provider.provider_fee_type === 'flat') {
-      totalInvoiceFeeLelang = Number(provider.provider_fee_amount || 0);
+    if (feeType === 'flat') {
+      totalInvoiceFeeLelang = feeAmount;
     } else {
-      const percentage = Number(provider.provider_fee_amount || 0) / 100;
-      totalInvoiceFeeLelang = Math.round(hammerPrice * percentage);
+      totalInvoiceFeeLelang = Math.round(hammerPrice * (feeAmount / 100));
     }
 
     const feeDpp = Math.round(totalInvoiceFeeLelang / (1 + (taxPct / 100)));

@@ -61,6 +61,11 @@ export default function PlatformSettingsPage() {
   const [dppLain, setDppLain] = useState('11/12');
   const [ppnDppLain, setPpnDppLain] = useState('12');
   const [pph23, setPph23] = useState('2');
+  // Default Fee Lelang used when a provider hasn't had a fee individually
+  // configured on their profile (users/[id] page) — without this, providers
+  // silently get 0% commission deducted, which is what looked "hardcoded".
+  const [defaultProviderFeeType, setDefaultProviderFeeType] = useState('percentage');
+  const [defaultProviderFeeAmount, setDefaultProviderFeeAmount] = useState('1.5');
   const [adminFeeTiers, setAdminFeeTiers] = useState<any[]>([
     { max_price: null, fee_type: 'flat', fee: 5000000 }
   ]);
@@ -231,6 +236,10 @@ export default function PlatformSettingsPage() {
               setPpnDppLain(item.value);
             } else if (item.key === 'pph23_percentage') {
               setPph23(item.value);
+            } else if (item.key === 'default_provider_fee_type') {
+              setDefaultProviderFeeType(item.value);
+            } else if (item.key === 'commission_percentage') {
+              setDefaultProviderFeeAmount(item.value);
             } else if (item.key === 'auction_lot_duration_secs') {
               setAuctionLotDuration(item.value);
             } else if (item.key === 'auction_lot_second_duration_secs') {
@@ -532,7 +541,7 @@ export default function PlatformSettingsPage() {
   };
 
   const handleSaveTaxSettings = async () => {
-    if (!tax || !pmk41 || !dppLain || !ppnDppLain || !pph23) {
+    if (!tax || !pmk41 || !dppLain || !ppnDppLain || !pph23 || !defaultProviderFeeAmount) {
       toast.error('Semua bidang pajak dan potongan harus diisi.');
       return;
     }
@@ -544,6 +553,8 @@ export default function PlatformSettingsPage() {
         { key: 'dpp_lain_multiplier', value: dppLain },
         { key: 'ppn_dpp_lain_percentage', value: ppnDppLain },
         { key: 'pph23_percentage', value: pph23 },
+        { key: 'default_provider_fee_type', value: defaultProviderFeeType },
+        { key: 'commission_percentage', value: defaultProviderFeeAmount },
       ];
       const { ok, failedKeys } = await saveSettings(updates);
       setIsConfirmModalOpen(false);
@@ -919,6 +930,17 @@ export default function PlatformSettingsPage() {
             <div className="form-group">
               <label className="form-label">Potongan PPh 23 Provider (%)</label>
               <input type="number" step="0.1" className="form-input" value={pph23} onChange={(e) => setPph23(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Fee Lelang Provider — Default</label>
+              <div className="d-flex gap-2">
+                <select className="form-select" style={{ maxWidth: '160px' }} value={defaultProviderFeeType} onChange={(e) => setDefaultProviderFeeType(e.target.value)}>
+                  <option value="percentage">Persentase (%)</option>
+                  <option value="flat">Flat (Rp)</option>
+                </select>
+                <input type="number" step="0.01" className="form-input" value={defaultProviderFeeAmount} onChange={(e) => setDefaultProviderFeeAmount(e.target.value)} required />
+              </div>
+              <small className="text-muted">Dipakai jika provider belum punya fee lelang tersendiri (diatur per-provider di halaman Detail Pengguna).</small>
             </div>
 
             <button className="btn btn-primary w-100" onClick={() => setIsConfirmModalOpen(true)}>
@@ -1321,6 +1343,7 @@ export default function PlatformSettingsPage() {
                 <li>PPN: <strong>{tax}%</strong></li>
                 <li>Potongan PMK 41: <strong>{pmk41}%</strong></li>
                 <li>Potongan PPh 23: <strong>{pph23}%</strong></li>
+                <li>Fee Lelang Provider (Default): <strong>{defaultProviderFeeType === 'flat' ? `Rp ${Number(defaultProviderFeeAmount).toLocaleString('id-ID')}` : `${defaultProviderFeeAmount}%`}</strong></li>
               </ul>
               <p className="mt-2 text-danger fw-bold">Tindakan ini tidak bisa dibatalkan secara sepihak setelah invoice terbit. Lanjutkan?</p>
             </div>
