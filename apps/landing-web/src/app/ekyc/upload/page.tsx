@@ -66,22 +66,35 @@ export default function EkycUploadPage() {
           setBankAccountName(user.bank_account_name || "");
         }
 
-        // Check if an application already exists and where it's at.
+        // Gate on the actual KYC document, not the bidder application status:
+        // an admin can activate an account before any documents were uploaded,
+        // and that user must still be able to submit eKYC here.
+        let kycStatus: string | null = null;
+        const kycRes = await apiFetch("/kyc/status");
+        if (kycRes.ok) {
+          const kycData = await kycRes.json();
+          if (kycData.success) kycStatus = kycData.data?.status || null;
+        }
+
+        if (kycStatus === "pending") {
+          toast.info("Pengajuan Anda sedang dalam antrean verifikasi. Anda tidak perlu mengajukan ulang saat ini.");
+          router.push("/ekyc/status");
+          return;
+        }
+
+        if (kycStatus === "approved" || kycStatus === "verified") {
+          toast.info("Akun Anda sudah terverifikasi. Tidak perlu mengajukan ulang.");
+          router.push("/ekyc/status");
+          return;
+        }
+
+        // KYC missing or rejected → allow (re)submission, prefill from the
+        // existing application if there is one.
         const bidderRes = await apiFetch("/bidders/me");
         if (bidderRes.ok) {
           const bidderData = await bidderRes.json();
           const bidder = bidderData.success ? bidderData.data : null;
           if (bidder) {
-            if (bidder.status === "antri") {
-              toast.info("Pengajuan Anda sedang dalam antrean verifikasi. Anda tidak perlu mengajukan ulang saat ini.");
-              router.push("/ekyc/status");
-              return;
-            } else if (bidder.status === "aktif") {
-              toast.info("Akun Anda sudah terverifikasi. Tidak perlu mengajukan ulang.");
-              router.push("/ekyc/status");
-              return;
-            }
-            // If ditolak/nonaktif, fall through and allow re-submission.
             setAddress(bidder.address || address);
             setOccupation(bidder.occupation || occupation);
             setBankName(bidder.bank_name || bankName);

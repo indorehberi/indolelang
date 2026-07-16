@@ -30,7 +30,14 @@ export class BiddersService {
     const existing = await prisma.bidders.findUnique({ where: { user_id: userId } });
 
     if (existing?.status === ApplicationStatus.AKTIF) {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Anda sudah menjadi bidder aktif');
+      // An admin can activate an account before any KYC documents exist
+      // (adminCreateUser without KTP/selfie) — those users must still be able
+      // to submit eKYC here, otherwise they can never pass the deposit gate.
+      // Only block resubmission when approved documents actually exist.
+      const kycDoc = await prisma.kyc_documents.findUnique({ where: { user_id: userId } });
+      if (kycDoc?.status === KycStatus.APPROVED) {
+        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Anda sudah menjadi bidder aktif');
+      }
     }
 
     const bidder = await prisma.bidders.upsert({
