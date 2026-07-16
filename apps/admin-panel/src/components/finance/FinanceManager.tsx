@@ -496,6 +496,7 @@ export default function FinanceManager({
                   <tr>
                     <th>Waktu Transaksi</th>
                     <th>Bidder</th>
+                    <th>No NIPL</th>
                     <th>Jumlah Jaminan</th>
                     <th>Virtual Account (VA)</th>
                     <th>Status Pembayaran</th>
@@ -505,9 +506,9 @@ export default function FinanceManager({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} className="text-center">Memuat data transaksi deposit...</td></tr>
+                    <tr><td colSpan={8} className="text-center">Memuat data transaksi deposit...</td></tr>
                   ) : deposits.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
+                    <tr><td colSpan={8} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
                   ) : (
                     deposits.map((deposit) => (
                       <tr key={deposit.id}>
@@ -521,6 +522,13 @@ export default function FinanceManager({
                           ) : (
                             <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
                           )}
+                        </td>
+                        <td>
+                          {deposit.user_id ? (
+                            <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                              NIPL-{deposit.user_id.substring(0, 8).toUpperCase()}
+                            </code>
+                          ) : '-'}
                         </td>
                         <td><strong className="text-primary">{formatRupiah(deposit.amount)}</strong></td>
                         <td>
