@@ -82,6 +82,35 @@ const DOC_LABELS: { key: keyof AssetDetail; label: string }[] = [
   { key: 'doc_sph', label: 'SPH' },
 ];
 
+const BRAND_OPTIONS = ['N/A', 'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza', 'Lainnya'];
+
+const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
+  Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
+  Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
+  Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
+  Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
+  Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
+  Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
+  Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
+  Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
+  Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
+  Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
+  Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
+  BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
+  'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
+  BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
+  Chery: ['Omoda E5', 'J6 (iCar 03)'],
+  MG: ['MG4 EV', 'MG ZS EV'],
+  Neta: ['V-II', 'X'],
+  AION: ['Y Plus', 'V', 'UT'],
+  VinFast: ['VF 3', 'VF 5', 'VF e34'],
+  Geely: ['EX5'],
+  XPENG: ['G6', 'X9'],
+  Denza: ['D9']
+};
+
+const COLOR_OPTIONS = ['N/A', 'Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '0.45rem 0.65rem',
@@ -96,61 +125,154 @@ const inputStyle: React.CSSProperties = {
 const selectStyle: React.CSSProperties = { ...inputStyle };
 
 const EditField = ({
-  label, value, onChange, type = 'text', options,
+  label, value, onChange, type = 'text', options: initialOptions,
 }: {
   label: string;
   value: unknown;
   onChange: (value: unknown) => void;
   type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
   options?: string[];
-}) => (
-  <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
-    <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
-    <div style={{ flex: 1 }}>
-      {type === 'date' ? (
-        <input
-          type="date"
-          style={inputStyle}
-          value={value ? String(value).slice(0, 10) : ''}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ) : type === 'textarea' ? (
-        <textarea
-          rows={3}
-          style={{ ...inputStyle, resize: 'vertical' }}
-          value={(value as string) ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ) : type === 'select' && options ? (
-        <select
-          style={selectStyle}
-          value={(value as string) ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">— Pilih —</option>
-          {options.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : type === 'checkbox' ? (
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+}) => {
+  const [localOptions, setLocalOptions] = React.useState<string[]>(initialOptions || []);
+  const [showPopup, setShowPopup] = React.useState(false);
+  const [newOption, setNewOption] = React.useState('');
+
+  React.useEffect(() => {
+    if (initialOptions) {
+      setLocalOptions(initialOptions);
+    }
+  }, [initialOptions]);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === '__ADD_NEW_OPTION__') {
+      setShowPopup(true);
+    } else {
+      onChange(val);
+    }
+  };
+
+  const handlePopupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newOption.trim();
+    if (trimmed) {
+      if (!localOptions.includes(trimmed)) {
+        setLocalOptions((prev) => [...prev, trimmed]);
+      }
+      onChange(trimmed);
+      setNewOption('');
+      setShowPopup(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', alignItems: type === 'textarea' ? 'flex-start' : 'center' }}>
+      <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
+      <div style={{ flex: 1, position: 'relative' }}>
+        {type === 'date' ? (
           <input
-            type="checkbox"
-            checked={!!value}
-            onChange={(e) => onChange(e.target.checked)}
-            style={{ width: '16px', height: '16px' }}
+            type="date"
+            style={inputStyle}
+            value={value ? String(value).slice(0, 10) : ''}
+            onChange={(e) => onChange(e.target.value)}
           />
-          <span style={{ color: 'var(--text-primary)' }}>{value ? 'Ada' : 'Tidak Ada'}</span>
-        </label>
-      ) : (
-        <input
-          type={type}
-          style={inputStyle}
-          value={(value as string | number) ?? ''}
-          onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
-        />
-      )}
+        ) : type === 'textarea' ? (
+          <textarea
+            rows={3}
+            style={{ ...inputStyle, resize: 'vertical' }}
+            value={(value as string) ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        ) : type === 'select' ? (
+          <select
+            style={selectStyle}
+            value={(value as string) ?? ''}
+            onChange={handleSelectChange}
+          >
+            <option value="">— Pilih —</option>
+            {localOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+            <option value="__ADD_NEW_OPTION__" style={{ fontWeight: 'bold', color: 'var(--primary, #3b82f6)' }}>
+              + Tambah Pilihan...
+            </option>
+          </select>
+        ) : type === 'checkbox' ? (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!value}
+              onChange={(e) => onChange(e.target.checked)}
+              style={{ width: '16px', height: '16px' }}
+            />
+            <span style={{ color: 'var(--text-primary)' }}>{value ? 'Ada' : 'Tidak Ada'}</span>
+          </label>
+        ) : (
+          <input
+            type={type}
+            style={inputStyle}
+            value={(value as string | number) ?? ''}
+            onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+          />
+        )}
+
+        {/* POPUP FOR ADDING NEW OPTION */}
+        {showPopup && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', zIndex: 9999
+          }}>
+            <div style={{
+              background: '#fff', padding: '1.5rem',
+              borderRadius: '8px', width: '320px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              border: '1px solid #ddd'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: '#333' }}>Tambahkan Pilihan Baru</h3>
+              <form onSubmit={handlePopupSubmit}>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#666', fontWeight: 500 }}>Pilihan Baru</label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Contoh: Honda Brio"
+                    style={{ ...inputStyle, border: '1px solid #ccc' }}
+                    value={newOption}
+                    onChange={(e) => setNewOption(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setShowPopup(false); setNewOption(''); }}
+                    style={{
+                      padding: '0.45rem 0.85rem', borderRadius: '4px',
+                      border: '1px solid #ccc', background: '#fff',
+                      cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, color: '#333'
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '0.45rem 0.85rem', borderRadius: '4px',
+                      border: 'none', background: 'var(--primary, #3b82f6)',
+                      color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500
+                    }}
+                  >
+                    Tambah
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 export default function AssetDetailPage() {
   const params = useParams();
@@ -494,9 +616,9 @@ export default function AssetDetailPage() {
           <Card title="Spesifikasi Kendaraan">
             {editMode ? (
               <>
-                <EditField label="Merek (Brand)" value={form.brand} onChange={(v) => handleFormChange('brand', v)} />
-                <EditField label="Model / Tipe" value={form.model} onChange={(v) => handleFormChange('model', v)} />
-                <EditField label="Warna" value={form.color} onChange={(v) => handleFormChange('color', v)} />
+                <EditField label="Merek (Brand)" value={form.brand} onChange={(v) => { handleFormChange('brand', v); handleFormChange('model', ''); }} type="select" options={BRAND_OPTIONS} />
+                <EditField label="Model / Tipe" value={form.model} onChange={(v) => handleFormChange('model', v)} type="select" options={form.brand && CAR_MODELS_BY_BRAND[form.brand as string] ? [...CAR_MODELS_BY_BRAND[form.brand as string], 'Lainnya'] : ['Lainnya']} />
+                <EditField label="Warna" value={form.color} onChange={(v) => handleFormChange('color', v)} type="select" options={COLOR_OPTIONS} />
                 <EditField label="Jenis Bahan Bakar" value={form.fuel_type} onChange={(v) => handleFormChange('fuel_type', v)} type="select" options={['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV']} />
                 <EditField label="Transmisi" value={form.transmission} onChange={(v) => handleFormChange('transmission', v)} type="select" options={['N/A', 'Manual', 'Otomatis']} />
                 <EditField label="Tipe Bodi" value={form.body_type} onChange={(v) => handleFormChange('body_type', v)} />

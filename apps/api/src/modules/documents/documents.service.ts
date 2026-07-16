@@ -746,21 +746,23 @@ export class DocumentsService {
       <html>
       <head>
         <style>
-          body { font-family: 'Inter', sans-serif; color: #2d3748; padding: 20px; line-height: 1.5; font-size: 14px; }
-          .letterhead { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1b4f72; padding-bottom: 12px; margin-bottom: 20px; }
-          .letterhead-logo { width: 70px; height: 70px; object-fit: contain; flex-shrink: 0; }
-          .letterhead-text { flex: 1; }
-          .letterhead-company { font-size: 16px; font-weight: bold; color: #1b4f72; text-transform: uppercase; margin: 0; }
-          .letterhead-address { font-size: 10.5px; color: #4a5568; margin-top: 3px; line-height: 1.4; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .title { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; }
-          .subtitle { font-size: 14px; margin-top: 5px; }
+          @page { margin: 10mm 15mm 10mm 15mm; }
+          body { font-family: 'Inter', sans-serif; color: #2d3748; padding: 0; margin: 0; line-height: 1.4; font-size: 12px; }
+          .letterhead { display: flex; flex-direction: column; align-items: center; border-bottom: 2px solid #1b4f72; padding-bottom: 8px; margin-bottom: 12px; text-align: center; }
+          .letterhead-logo { width: 280px; height: auto; margin-bottom: 4px; }
+          .letterhead-text { width: 100%; }
+          .letterhead-company { font-size: 14px; font-weight: bold; color: #1b4f72; text-transform: uppercase; margin: 0; }
+          .letterhead-address { font-size: 9.5px; color: #4a5568; margin-top: 2px; line-height: 1.3; }
+          .header { text-align: center; margin-bottom: 15px; }
+          .title { font-size: 15px; font-weight: bold; margin: 0; text-transform: uppercase; }
+          .subtitle { font-size: 12px; margin-top: 3px; }
           .content { text-align: justify; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+          .content p { margin: 6px 0; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 30px; }
           .sig-box { width: 30%; text-align: center; }
-          .sig-line { height: 60px; }
-          .qr-container { text-align: center; margin-top: 30px; }
-          .qr-img { width: 90px; height: 90px; }
+          .sig-line { height: 45px; }
+          .qr-container { text-align: center; margin-top: 20px; }
+          .qr-img { width: 80px; height: 80px; }
         </style>
       </head>
       <body>
@@ -798,9 +800,9 @@ export class DocumentsService {
             <tr><td><strong>Sisa Pelunasan</strong></td><td><strong>: ${this.formatRupiah(Number(invoice.total))}</strong></td></tr>
           </table>
 
-          <p style="margin-top: 20px;">Bahwa pelunasan harga lelang harus dibayar selambat-lambatnya 3 (tiga) hari kerja setelah tanggal pelaksanaan lelang ke Rekening PT. INDO LELANG SEJAHTERA di BCA Mutiara Taman Palem Jakarta No. Rekening : 7015-886-161. Apabila batas waktu pembayaran tersebut dilampaui, maka pemenang lelang dianggap mengundurkan diri. Uang jaminan dan semua pembayaran yang telah dilakukan akan menjadi hangus dan pemenang yang bersangkutan akan dimasukkan dalam Daftar Hitam Kantor Pelayanan Kekayaan Negara dan Lelang di seluruh Indonesia.</p>
+          <p>Bahwa pelunasan harga lelang harus dibayar selambat-lambatnya 3 (tiga) hari kerja setelah tanggal pelaksanaan lelang ke Rekening PT. INDO LELANG SEJAHTERA di BCA Mutiara Taman Palem Jakarta No. Rekening : 7015-886-161. Apabila batas waktu pembayaran tersebut dilampaui, maka pemenang lelang dianggap mengundurkan diri. Uang jaminan dan semua pembayaran yang telah dilakukan akan menjadi hangus dan pemenang yang bersangkutan akan dimasukkan dalam Daftar Hitam Kantor Pelayanan Kekayaan Negara dan Lelang di seluruh Indonesia.</p>
 
-          <div style="margin-top: 30px; text-align: right;">
+          <div style="margin-top: 10px; text-align: right;">
             <div>Ditetapkan di : ${invoice.lot.session.branch.city}</div>
             <div>Tanggal : ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
           </div>
