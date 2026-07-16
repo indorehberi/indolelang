@@ -38,6 +38,12 @@ import providerRoutes from './modules/providers/providers.routes';
 import referralRoutes from './modules/referrals/referrals.routes';
 const app = express();
 
+// Trust the first reverse proxy (Nginx / Load Balancer / Docker) so that
+// req.ip returns the real client IP from X-Forwarded-For instead of the
+// proxy's own address.  Without this, every user behind the proxy shares
+// the same rate-limit bucket and gets blocked after just a few requests.
+app.set('trust proxy', 1);
+
 // Security and utility middleware
 app.use(helmet());
 app.use(cookieParser());
