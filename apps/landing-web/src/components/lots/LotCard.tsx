@@ -182,7 +182,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
 
         {/* Lokasi Unit */}
         <div className="mb-2">
-          <span className="text-[10px] text-white bg-red-600 font-bold px-2.5 py-0.5 rounded-xl inline-block uppercase tracking-wider">
+          <span className="text-[10px] text-black/50 bg-black/25 font-bold px-2.5 py-0.5 rounded-xl inline-block uppercase tracking-wider">
             {lot.location || "N/A"}
           </span>
         </div>
