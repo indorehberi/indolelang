@@ -49,10 +49,10 @@ export default function BidderHome() {
         }
 
         // Fetch deposits for NIPL count breakdown
-        const depRes = await apiFetch("/deposits/my-deposits");
+        const depRes = await apiFetch("/deposits");
         const depData = await depRes.json();
         if (depData.success) {
-           const activeDeposits = depData.data?.deposits?.filter((d: any) => d.status === 'active' || d.status === 'paid') || [];
+           const activeDeposits = (depData.data || []).filter((d: any) => d.status === 'active' || d.status === 'paid');
            let motorCount = 0;
            let mobilCount = 0;
            let unlimitedMotor = false;
