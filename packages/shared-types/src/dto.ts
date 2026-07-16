@@ -114,6 +114,7 @@ export interface UserDTO {
   npwp?: string;
   provider_status?: string;
   active_nipl_count?: number;
+  is_unlimited_nipl?: boolean;
   pks_number?: string;
   provider_type?: string;
   address?: string;
@@ -144,6 +145,8 @@ export interface BidderDTO {
   active_nipl_count?: number;
   nipl_mobil?: number;
   nipl_motor?: number;
+  is_unlimited_mobil?: boolean;
+  is_unlimited_motor?: boolean;
   kyc?: {
     id: string;
     status: string;

@@ -102,15 +102,21 @@ export default function BidderDashboard() {
         const successDeposits = list.filter((d: any) => d.status === "paid" || d.status === "success"); // accommodate older logic if any
         let motorCount = 0;
         let mobilCount = 0;
+        let unlimitedMotor = false;
+        let unlimitedMobil = false;
         
         successDeposits.forEach((d: any) => {
+          if (d.package_type === "unlimited") {
+            if (d.unit_type === 'motor') unlimitedMotor = true;
+            else if (d.unit_type === 'mobil') unlimitedMobil = true;
+          }
           const count = d.package_type === "unlimited" ? 999 : (parseInt(d.package_type || "1", 10) || 1);
           if (d.unit_type === "motor") motorCount += count;
           else if (d.unit_type === "mobil") mobilCount += count;
         });
 
-        setNiplMotorCount(motorCount);
-        setNiplMobilCount(mobilCount);
+        setNiplMotorCount(unlimitedMotor ? -1 : motorCount);
+        setNiplMobilCount(unlimitedMobil ? -1 : mobilCount);
       }
 
       // 3. Fetch the currently running session. Session status is one of
@@ -314,12 +320,12 @@ export default function BidderDashboard() {
       <div className="grid grid-cols-3 gap-3 mb-6 text-center">
         <div className="kpi-card success flex flex-col items-center justify-center p-4">
           <div className="text-3xl mb-1"><span className="material-symbols-outlined text-4xl">two_wheeler</span></div>
-          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMotorCount}</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMotorCount === -1 ? 'Unlimited' : niplMotorCount}</div>
           <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 text-ellipsis overflow-hidden whitespace-nowrap">NIPL Aktif</div>
         </div>
         <div className="kpi-card gold flex flex-col items-center justify-center p-4">
           <div className="text-3xl mb-1"><span className="material-symbols-outlined text-4xl">directions_car</span></div>
-          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMobilCount}</div>
+          <div className="kpi-value text-ellipsis overflow-hidden whitespace-nowrap">{niplMobilCount === -1 ? 'Unlimited' : niplMobilCount}</div>
           <div className="text-[10px] text-slate-500 font-bold uppercase mt-1 text-ellipsis overflow-hidden whitespace-nowrap">NIPL Aktif</div>
         </div>
         <div className="kpi-card danger flex flex-col items-center justify-center p-4">

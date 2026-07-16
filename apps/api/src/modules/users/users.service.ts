@@ -82,6 +82,10 @@ export class UsersService {
           return sum + (Number.isNaN(n) ? 0 : n);
         }, 0);
       })(),
+      is_unlimited_nipl: (() => {
+        const deps = user.deposits || [];
+        return deps.some((d: any) => d && d.package_type === 'unlimited');
+      })(),
       kyc: user.kyc_document ? {
         id: user.kyc_document.id,
         status: user.kyc_document.status,

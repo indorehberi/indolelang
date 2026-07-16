@@ -91,9 +91,44 @@ export class BiddersService {
     return this.mapToDTO(bidder);
   }
 
+  private async getBidderNiplStats(userId: string) {
+    const deposits = await prisma.deposits.findMany({
+      where: { user_id: userId, status: 'paid' },
+      select: { package_type: true, unit_type: true },
+    });
+
+    let niplCount = 0;
+    let niplMobil = 0;
+    let niplMotor = 0;
+    let unlimitedMobil = false;
+    let unlimitedMotor = false;
+
+    for (const d of deposits) {
+      let count = 0;
+      if (d.package_type === 'unlimited') {
+        count = 999;
+        if (d.unit_type === 'mobil') unlimitedMobil = true;
+        else if (d.unit_type === 'motor') unlimitedMotor = true;
+      } else {
+        const parsed = parseInt(d.package_type || '0', 10);
+        count = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      niplCount += count;
+      if (d.unit_type === 'mobil') niplMobil += count;
+      else if (d.unit_type === 'motor') niplMotor += count;
+    }
+
+    return { niplCount, niplMobil, niplMotor, unlimitedMobil, unlimitedMotor };
+  }
+
   async getMyBidder(userId: string): Promise<BidderDTO | null> {
-    const bidder = await prisma.bidders.findUnique({ where: { user_id: userId } });
-    return bidder ? this.mapToDTO(bidder) : null;
+    const bidder = await prisma.bidders.findUnique({
+      where: { user_id: userId },
+      include: { user: { include: { kyc_document: true } } }
+    });
+    if (!bidder) return null;
+    const stats = await this.getBidderNiplStats(userId);
+    return this.mapToDTO(bidder, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
   /**
@@ -145,12 +180,14 @@ export class BiddersService {
       },
     });
 
-    const niplByUser = new Map<string, { total: number; mobil: number; motor: number }>();
+    const niplByUser = new Map<string, { total: number; mobil: number; motor: number; unlimitedMobil: boolean; unlimitedMotor: boolean }>();
     for (const dep of deposits) {
-      const current = niplByUser.get(dep.user_id) || { total: 0, mobil: 0, motor: 0 };
+      const current = niplByUser.get(dep.user_id) || { total: 0, mobil: 0, motor: 0, unlimitedMobil: false, unlimitedMotor: false };
       let count = 0;
       if (dep.package_type === 'unlimited') {
         count = 999;
+        if (dep.unit_type === 'mobil') current.unlimitedMobil = true;
+        else if (dep.unit_type === 'motor') current.unlimitedMotor = true;
       } else {
         const parsed = parseInt(dep.package_type || '0', 10);
         count = Number.isNaN(parsed) ? 0 : parsed;
@@ -163,8 +200,8 @@ export class BiddersService {
 
     return {
       bidders: records.map((b) => {
-        const nipl = niplByUser.get(b.user_id) || { total: 0, mobil: 0, motor: 0 };
-        return this.mapToDTO(b, nipl.total, nipl.mobil, nipl.motor);
+        const nipl = niplByUser.get(b.user_id) || { total: 0, mobil: 0, motor: 0, unlimitedMobil: false, unlimitedMotor: false };
+        return this.mapToDTO(b, nipl.total, nipl.mobil, nipl.motor, nipl.unlimitedMobil, nipl.unlimitedMotor);
       }),
       meta: { page, per_page: perPage, total, total_pages: Math.ceil(total / perPage) },
     };
@@ -177,18 +214,9 @@ export class BiddersService {
     });
     if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
 
-    const deposits = await prisma.deposits.findMany({
-      where: { user_id: bidder.user_id, status: 'paid' },
-      select: { package_type: true },
-    });
+    const stats = await this.getBidderNiplStats(bidder.user_id);
 
-    const niplCount = deposits.reduce((sum, d) => {
-      if (d.package_type === 'unlimited') return sum + 999;
-      const n = parseInt(d.package_type || '0', 10);
-      return sum + (Number.isNaN(n) ? 0 : n);
-    }, 0);
-
-    return this.mapToDTO(bidder, niplCount);
+    return this.mapToDTO(bidder, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
   async approve(id: string, reviewerId: string): Promise<BidderDTO> {
@@ -225,18 +253,9 @@ export class BiddersService {
       body: 'Selamat, pengajuan Anda sebagai Bidder telah disetujui. Anda sekarang dapat membeli NIPL dan mengikuti lelang.',
     });
 
-    const deposits = await prisma.deposits.findMany({
-      where: { user_id: bidder.user_id, status: 'paid' },
-      select: { package_type: true },
-    });
+    const stats = await this.getBidderNiplStats(bidder.user_id);
 
-    const niplCount = deposits.reduce((sum, d) => {
-      if (d.package_type === 'unlimited') return sum + 999;
-      const n = parseInt(d.package_type || '0', 10);
-      return sum + (Number.isNaN(n) ? 0 : n);
-    }, 0);
-
-    return this.mapToDTO(updated, niplCount);
+    return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
   async reject(id: string, reviewerId: string, reason: string): Promise<BidderDTO> {
@@ -266,18 +285,9 @@ export class BiddersService {
       body: `Mohon maaf, pengajuan Anda sebagai Bidder ditolak. Alasan: ${reason}. Silakan ajukan kembali.`,
     });
 
-    const deposits = await prisma.deposits.findMany({
-      where: { user_id: bidder.user_id, status: 'paid' },
-      select: { package_type: true },
-    });
+    const stats = await this.getBidderNiplStats(bidder.user_id);
 
-    const niplCount = deposits.reduce((sum, d) => {
-      if (d.package_type === 'unlimited') return sum + 999;
-      const n = parseInt(d.package_type || '0', 10);
-      return sum + (Number.isNaN(n) ? 0 : n);
-    }, 0);
-
-    return this.mapToDTO(updated, niplCount);
+    return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
   /**
@@ -376,7 +386,7 @@ export class BiddersService {
     return { mobil: mobilCount, motor: motorCount };
   }
 
-  private mapToDTO(bidder: any, niplCount?: number, niplMobil?: number, niplMotor?: number): BidderDTO {
+  private mapToDTO(bidder: any, niplCount?: number, niplMobil?: number, niplMotor?: number, unlimitedMobil?: boolean, unlimitedMotor?: boolean): BidderDTO {
     return {
       id: bidder.id,
       user_id: bidder.user_id,
@@ -395,6 +405,8 @@ export class BiddersService {
       active_nipl_count: niplCount,
       nipl_mobil: niplMobil,
       nipl_motor: niplMotor,
+      is_unlimited_mobil: unlimitedMobil,
+      is_unlimited_motor: unlimitedMotor,
       kyc: bidder.user?.kyc_document
         ? {
             id: bidder.user.kyc_document.id,

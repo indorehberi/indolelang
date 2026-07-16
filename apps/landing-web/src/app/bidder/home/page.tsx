@@ -17,7 +17,7 @@ export default function BidderHome() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [niplCounts, setNiplCounts] = useState({ motor: 0, mobil: 0 });
+  const [niplCounts, setNiplCounts] = useState({ motor: 0, mobil: 0, unlimitedMotor: false, unlimitedMobil: false });
   const [session, setSession] = useState<any>(null);
   const [lots, setLots] = useState<any[]>([]);
   const [isSoldLots, setIsSoldLots] = useState(false);
@@ -55,12 +55,18 @@ export default function BidderHome() {
            const activeDeposits = depData.data?.deposits?.filter((d: any) => d.status === 'active' || d.status === 'paid') || [];
            let motorCount = 0;
            let mobilCount = 0;
+           let unlimitedMotor = false;
+           let unlimitedMobil = false;
             activeDeposits.forEach((d: any) => {
+              if (d.package_type === "unlimited") {
+                if (d.unit_type === 'motor') unlimitedMotor = true;
+                else if (d.unit_type === 'mobil') unlimitedMobil = true;
+              }
               const count = d.package_type === "unlimited" ? 999 : (parseInt(d.package_type || "1", 10) || 1);
               if (d.unit_type === 'motor') motorCount += count;
               else if (d.unit_type === 'mobil') mobilCount += count;
             });
-           setNiplCounts({ motor: motorCount, mobil: mobilCount });
+           setNiplCounts({ motor: motorCount, mobil: mobilCount, unlimitedMotor, unlimitedMobil });
         }
 
         // Fetch nearest session for header display (live first, then published)
@@ -166,7 +172,7 @@ export default function BidderHome() {
       <div className="mb-6 px-1">
         <h2 className="text-xl font-bold text-slate-800 mb-1">Hallo {profile?.full_name || profile?.name || "Bidder"}</h2>
         <p className="text-sm text-slate-600">
-          Kamu memiliki <span className="font-black text-primary">{niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary">{niplCounts.mobil}</span> NIPL Mobil
+          Kamu memiliki <span className="font-black text-primary">{niplCounts.unlimitedMotor ? 'Unlimited' : niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary">{niplCounts.unlimitedMobil ? 'Unlimited' : niplCounts.mobil}</span> NIPL Mobil
         </p>
       </div>
 
