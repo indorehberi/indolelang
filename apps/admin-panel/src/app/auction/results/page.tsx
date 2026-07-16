@@ -264,8 +264,8 @@ export default function AuctionResultsPage() {
                       </td>
                       <td>
                         {lot.winner ? (
-                          <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                            {lot.winner.id.substring(0, 8).toUpperCase()}
+                          <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.8rem', wordBreak: 'break-all' }}>
+                            {lot.winner.id.toUpperCase()}
                           </code>
                         ) : '-'}
                       </td>
