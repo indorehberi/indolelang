@@ -120,7 +120,8 @@ export class DocumentsController {
       const invoiceId = req.params.invoiceId;
       await this.checkAccess(invoiceId, req);
 
-      const doc = await documentsService.generateBaplPdf(invoiceId);
+      const force = req.query.force === 'true';
+      const doc = await documentsService.generateBaplPdf(invoiceId, force);
       const filePath = path.join(process.cwd(), doc.file_url);
 
       if (!fs.existsSync(filePath)) {

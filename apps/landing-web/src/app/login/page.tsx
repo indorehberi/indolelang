@@ -51,7 +51,7 @@ export default function LoginPage() {
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
         } else if (user.role === "user") {
-          router.push("/pilih-peran");
+          router.push("/bidder/dashboard");
         } else if (["admin", "operator", "superadmin"].includes(user.role)) {
           let adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
           if (typeof window !== "undefined" && window.location.hostname !== 'localhost') {

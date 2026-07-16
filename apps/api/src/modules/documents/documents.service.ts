@@ -673,17 +673,24 @@ export class DocumentsService {
   /**
    * Generate BAPL (Berita Acara Pemenang Lelang) PDF
    */
-  async generateBaplPdf(invoiceId: string): Promise<any> {
+  async generateBaplPdf(invoiceId: string, force = false): Promise<any> {
     const existingDoc = await prisma.documents.findFirst({
       where: { invoice_id: invoiceId, type: 'bapl' },
     });
     if (existingDoc) {
       const existingPath = path.join(this.getUploadsDir(), path.basename(existingDoc.file_url));
-      if (fs.existsSync(existingPath)) {
-        const stats = fs.statSync(existingPath);
-        if (stats.size > 0) return existingDoc;
+      if (force) {
+        if (fs.existsSync(existingPath)) {
+          try { fs.unlinkSync(existingPath); } catch {}
+        }
+        await prisma.documents.delete({ where: { id: existingDoc.id } });
+      } else {
+        if (fs.existsSync(existingPath)) {
+          const stats = fs.statSync(existingPath);
+          if (stats.size > 0) return existingDoc;
+        }
+        await prisma.documents.delete({ where: { id: existingDoc.id } });
       }
-      await prisma.documents.delete({ where: { id: existingDoc.id } });
     }
 
     const invoice = await prisma.invoices.findUnique({
@@ -747,7 +754,7 @@ export class DocumentsService {
       <head>
         <style>
           @page { margin: 10mm 15mm 10mm 15mm; }
-          body { font-family: 'Inter', sans-serif; color: #2d3748; padding: 0; margin: 0; line-height: 1.4; font-size: 12px; }
+          body, table, tr, td, p { font-family: 'Inter', sans-serif; color: #2d3748; padding: 0; margin: 0; line-height: 1.4; font-size: 12px; }
           .letterhead { display: flex; flex-direction: column; align-items: center; border-bottom: 2px solid #1b4f72; padding-bottom: 8px; margin-bottom: 12px; text-align: center; }
           .letterhead-logo { width: 280px; height: auto; margin-bottom: 4px; }
           .letterhead-text { width: 100%; }
@@ -786,18 +793,18 @@ export class DocumentsService {
           <p>NIPL : ${invoice.bidder.id.substring(0, 8).toUpperCase()}</p>
           <p>Sebagai pemenang lelang Nomor Lot : ${invoice.lot.lot_number}</p>
           
-          <table style="width: 100%; margin: 10px 0;">
-            <tr><td style="width: 150px;">Jenis Barang</td><td>: ${invoice.lot.asset.category.toUpperCase()}</td></tr>
-            <tr><td>No Polisi</td><td>: ${invoice.lot.asset.police_number} Tahun : ${invoice.lot.asset.year}</td></tr>
-            <tr><td>Merk/Type</td><td>: ${invoice.lot.asset.brand} ${invoice.lot.asset.model} Warna : ${invoice.lot.asset.color}</td></tr>
+          <table style="width: 100%; margin: 8px 0; font-weight: bold;">
+            <tr><td style="width: 200px;">Jenis Barang</td><td>: ${invoice.lot.asset.category.toUpperCase()}</td></tr>
+            <tr><td>No Polisi</td><td>: ${invoice.lot.asset.police_number} &nbsp;&nbsp;&nbsp;&nbsp; Tahun : ${invoice.lot.asset.year}</td></tr>
+            <tr><td>Merk/Type</td><td>: ${invoice.lot.asset.brand} ${invoice.lot.asset.model} &nbsp;&nbsp;&nbsp;&nbsp; Warna : ${invoice.lot.asset.color}</td></tr>
           </table>
 
           <p>Dengan penawaran tertinggi sebagai berikut :</p>
-          <table style="width: 100%; margin: 10px 0;">
+          <table style="width: 100%; margin: 8px 0; font-weight: bold;">
             <tr><td style="width: 200px;">Harga Terbentuk Lelang</td><td>: ${this.formatRupiah(Number(invoice.hammer_price))}</td></tr>
             <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.commission))}</td></tr>
             <tr><td>Biaya PMK</td><td>: ${this.formatRupiah(Number(invoice.pmk41_amount || 0))}</td></tr>
-            <tr><td><strong>Sisa Pelunasan</strong></td><td><strong>: ${this.formatRupiah(Number(invoice.total))}</strong></td></tr>
+            <tr><td>Sisa Pelunasan</td><td>: ${this.formatRupiah(Number(invoice.total))}</td></tr>
           </table>
 
           <p>Bahwa pelunasan harga lelang harus dibayar selambat-lambatnya 3 (tiga) hari kerja setelah tanggal pelaksanaan lelang ke Rekening PT. INDO LELANG SEJAHTERA di BCA Mutiara Taman Palem Jakarta No. Rekening : 7015-886-161. Apabila batas waktu pembayaran tersebut dilampaui, maka pemenang lelang dianggap mengundurkan diri. Uang jaminan dan semua pembayaran yang telah dilakukan akan menjadi hangus dan pemenang yang bersangkutan akan dimasukkan dalam Daftar Hitam Kantor Pelayanan Kekayaan Negara dan Lelang di seluruh Indonesia.</p>
