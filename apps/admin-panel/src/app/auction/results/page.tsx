@@ -263,7 +263,7 @@ export default function AuctionResultsPage() {
                         <strong>{lot.asset?.police_number || '-'}</strong>
                       </td>
                       <td>
-                        {lot.winner ? (
+                        {lot.winner?.id ? (
                           <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
                             NIPL-{lot.winner.id.substring(0, 8).toUpperCase()}
                           </code>
