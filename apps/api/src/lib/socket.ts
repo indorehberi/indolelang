@@ -378,7 +378,11 @@ export async function handleAutoNextAndSessionEnd(settledLot: any) {
 
     // Check if there are remaining pending or cancelled lots in this session (we must traverse cancelled lots too)
     const nextLot = await prisma.lots.findFirst({
-      where: { session_id: sessionId, status: { in: ['pending', 'cancelled'] } },
+      where: {
+        session_id: sessionId,
+        status: { in: ['pending', 'cancelled'] },
+        lot_number: { gt: settledLot.lot_number }
+      },
       orderBy: { lot_number: 'asc' },
       include: { asset: true }
     });
