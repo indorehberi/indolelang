@@ -38,6 +38,16 @@ describe('Deposits & Payments Module Integration Tests', () => {
     });
     userId = user.id;
 
+    // 2b. Deposit creation requires an approved ('aktif') bidders row —
+    // role=BIDDER alone isn't enough (see deposits.service.ts's
+    // createDeposit gate).
+    await prisma.bidders.create({
+      data: {
+        user_id: userId,
+        status: 'aktif',
+      },
+    });
+
     // 3. Create test branch
     const branch = await prisma.branches.create({
       data: {

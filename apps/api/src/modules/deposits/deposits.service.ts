@@ -104,6 +104,18 @@ export class DepositsService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'User tidak ditemukan');
     }
 
+    // Every account registers with role='bidder' by default (see
+    // auth.service.ts), independent of whether their bidder application
+    // (KYC, address, bank info) has actually been reviewed and approved —
+    // that's tracked separately on the `bidders` row's `status` field. The
+    // role-only `authorize(Role.BIDDER)` route guard doesn't check that, so
+    // without this, a user could buy NIPL deposits before ever being
+    // approved as a bidder.
+    const bidderRecord = await prisma.bidders.findUnique({ where: { user_id: userId } });
+    if (!bidderRecord || bidderRecord.status !== 'aktif') {
+      throw new AppError(403, ErrorCode.FORBIDDEN, 'Akun Anda belum disetujui sebagai bidder aktif. Selesaikan pengajuan bidder terlebih dahulu.');
+    }
+
     // 2. No session validation needed anymore because NIPL is global (cross-session).
     const targetSessionId = null;
 
