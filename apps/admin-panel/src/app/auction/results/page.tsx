@@ -218,7 +218,9 @@ export default function AuctionResultsPage() {
                 <th>Tgl Lelang</th>
                 <th>Jam Lelang</th>
                 <th>Lokasi</th>
-                <th>Kendaraan (merk, tipe, tahun, no)</th>
+                <th>Kendaraan</th>
+                <th>No Polisi</th>
+                <th>No NIPL</th>
                 <th>Harga Limit</th>
                 <th>Status</th>
                 <th>Pembayaran</th>
@@ -227,12 +229,12 @@ export default function AuctionResultsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="text-center">Memuat data hasil lelang...</td></tr>
+                <tr><td colSpan={11} className="text-center">Memuat data hasil lelang...</td></tr>
               ) : filteredLots.length === 0 ? (
-                <tr><td colSpan={9} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
               ) : (
                 filteredLots.map((lot) => {
-                  const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'}) - ${lot.asset.police_number || '-'}` : '-';
+                  const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'})` : '-';
 
                   return (
                     <tr key={lot.id}>
@@ -256,6 +258,16 @@ export default function AuctionResultsPage() {
                       <td>
                         <div><strong>{lot.asset?.title || '-'}</strong></div>
                         <div className="text-muted" style={{ fontSize: '0.8rem' }}>{assetInfo}</div>
+                      </td>
+                      <td>
+                        <strong>{lot.asset?.police_number || '-'}</strong>
+                      </td>
+                      <td>
+                        {lot.winner ? (
+                          <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                            {lot.winner.id.substring(0, 8).toUpperCase()}
+                          </code>
+                        ) : '-'}
                       </td>
                       <td>{formatRupiah(lot.starting_price)}</td>
                       <td>
