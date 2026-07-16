@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { BAPL_LOGO_DATA_URI } from './bapl-logo';
 
 export class DocumentsService {
   private getUploadsDir(): string {
@@ -746,6 +747,11 @@ export class DocumentsService {
       <head>
         <style>
           body { font-family: 'Inter', sans-serif; color: #2d3748; padding: 20px; line-height: 1.5; font-size: 14px; }
+          .letterhead { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1b4f72; padding-bottom: 12px; margin-bottom: 20px; }
+          .letterhead-logo { width: 70px; height: 70px; object-fit: contain; flex-shrink: 0; }
+          .letterhead-text { flex: 1; }
+          .letterhead-company { font-size: 16px; font-weight: bold; color: #1b4f72; text-transform: uppercase; margin: 0; }
+          .letterhead-address { font-size: 10.5px; color: #4a5568; margin-top: 3px; line-height: 1.4; }
           .header { text-align: center; margin-bottom: 30px; }
           .title { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; }
           .subtitle { font-size: 14px; margin-top: 5px; }
@@ -758,6 +764,16 @@ export class DocumentsService {
         </style>
       </head>
       <body>
+        <div class="letterhead">
+          <img class="letterhead-logo" src="${BAPL_LOGO_DATA_URI}" alt="Logo PT Indo Lelang Sejahtera" />
+          <div class="letterhead-text">
+            <p class="letterhead-company">PT Indo Lelang Sejahtera</p>
+            <div class="letterhead-address">
+              Gedung UNIBANG, Jl. Raden Patah No.62, RT.003/RW.010, Sudimara Barat, Kec. Ciledug, Kota Tangerang, Banten 15151<br />
+              www.bidku.co.id &bull; cs@bidku.co.id &bull; +6282318037002
+            </div>
+          </div>
+        </div>
         <div class="header">
           <h1 class="title">BERITA ACARA PEMENANG LELANG</h1>
           <div class="subtitle">Nomor : ${baplNumber}</div>
