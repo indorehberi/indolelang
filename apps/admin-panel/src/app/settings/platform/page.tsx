@@ -66,6 +66,16 @@ export default function PlatformSettingsPage() {
   // silently get 0% commission deducted, which is what looked "hardcoded".
   const [defaultProviderFeeType, setDefaultProviderFeeType] = useState('percentage');
   const [defaultProviderFeeAmount, setDefaultProviderFeeAmount] = useState('1.5');
+
+  // Per-provider Fee Lelang override — lets an admin pick a specific
+  // provider and set/edit their individual fee straight from this page,
+  // instead of having to open that provider's Detail Pengguna page.
+  const [providers, setProviders] = useState<any[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState('');
+  const [providerFeeType, setProviderFeeType] = useState('percentage');
+  const [providerFeeAmount, setProviderFeeAmount] = useState('0');
+  const [providerPmk41ByProvider, setProviderPmk41ByProvider] = useState(false);
+  const [isSavingProviderFee, setIsSavingProviderFee] = useState(false);
   const [adminFeeTiers, setAdminFeeTiers] = useState<any[]>([
     { max_price: null, fee_type: 'flat', fee: 5000000 }
   ]);
@@ -431,9 +441,72 @@ export default function PlatformSettingsPage() {
   };
 
 
+  const fetchProviders = async () => {
+    try {
+      // Only active providers — usersService.updateProviderStatus() only
+      // persists provider_fee_type/amount onto the `providers` table (the
+      // table payments.service.ts actually reads for settlement) when status
+      // is 'approved' or 'rejected'; restricting this picker to providers
+      // already 'aktif' lets us always send status:'approved' as a safe
+      // no-op re-affirmation, without risking reactivating a pending/
+      // rejected/deactivated provider just because their fee was edited here.
+      const res = await apiFetch('/admin/providers?status=aktif&per_page=500');
+      const data = await res.json();
+      if (res.ok && data.success) setProviders(data.data || []);
+    } catch (e) {
+      console.error('Failed to fetch providers', e);
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
+    fetchProviders();
   }, []);
+
+  const handleSelectProvider = (userId: string) => {
+    setSelectedProviderId(userId);
+    const p = providers.find((pr) => pr.user_id === userId);
+    if (p) {
+      setProviderFeeType(p.provider_fee_type || defaultProviderFeeType);
+      setProviderFeeAmount(p.provider_fee_amount != null ? String(p.provider_fee_amount) : defaultProviderFeeAmount);
+      setProviderPmk41ByProvider(!!p.pmk41_paid_by_provider);
+    }
+  };
+
+  const handleSaveProviderFee = async () => {
+    if (!selectedProviderId) {
+      toast.error('Pilih provider terlebih dahulu.');
+      return;
+    }
+    setIsSavingProviderFee(true);
+    try {
+      // status:'approved' is required here — the backend only writes
+      // provider_fee_type/amount onto the `providers` table (what
+      // settlements actually read) when status is 'approved' or 'rejected'.
+      // This picker only ever lists providers already 'aktif' (see
+      // fetchProviders), so re-affirming 'approved' is a safe no-op rather
+      // than an unintended reactivation.
+      const res = await apiFetch(`/admin/users/${selectedProviderId}/provider-status`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: 'approved',
+          provider_fee_type: providerFeeType,
+          provider_fee_amount: Number(providerFeeAmount),
+          pmk41_paid_by_provider: providerPmk41ByProvider,
+        }),
+      });
+      if (res.ok) {
+        toast.success('Fee lelang provider berhasil disimpan!');
+        await fetchProviders();
+      } else {
+        toast.error('Gagal menyimpan fee lelang provider.');
+      }
+    } catch (e) {
+      toast.error('Koneksi ke server gagal.');
+    } finally {
+      setIsSavingProviderFee(false);
+    }
+  };
 
   const handleSaveAuctionSettings = async () => {
     if (Number(auctionLotSecondDuration) >= Number(auctionLotDuration)) {
@@ -946,6 +1019,58 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={() => setIsConfirmModalOpen(true)}>
               Simpan Pajak &amp; Potongan
             </button>
+          </Card>
+
+          <Card className="mt-4">
+            <h2 className="card-title">Fee Lelang — Per Provider</h2>
+            <div className="alert alert-secondary text-xs mt-3 mb-3">
+              Atur fee lelang khusus untuk provider tertentu, menimpa nilai default di atas. Hanya provider berstatus aktif yang bisa dipilih.
+            </div>
+
+            <div className="form-group mt-3">
+              <label className="form-label">Pilih Provider</label>
+              <select
+                className="form-select"
+                value={selectedProviderId}
+                onChange={(e) => handleSelectProvider(e.target.value)}
+              >
+                <option value="">-- Pilih Provider --</option>
+                {providers.map((p) => (
+                  <option key={p.user_id} value={p.user_id}>
+                    {p.company_name || p.user?.full_name || p.user_id}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedProviderId && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Fee Lelang Provider Ini</label>
+                  <div className="d-flex gap-2">
+                    <select className="form-select" style={{ maxWidth: '160px' }} value={providerFeeType} onChange={(e) => setProviderFeeType(e.target.value)}>
+                      <option value="percentage">Persentase (%)</option>
+                      <option value="flat">Flat (Rp)</option>
+                    </select>
+                    <input type="number" step="0.01" className="form-input" value={providerFeeAmount} onChange={(e) => setProviderFeeAmount(e.target.value)} required />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label d-flex align-items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={providerPmk41ByProvider}
+                      onChange={(e) => setProviderPmk41ByProvider(e.target.checked)}
+                    />
+                    PMK 41 ditanggung provider ini
+                  </label>
+                </div>
+
+                <button className="btn btn-primary w-100" onClick={handleSaveProviderFee} disabled={isSavingProviderFee}>
+                  {isSavingProviderFee ? 'Menyimpan...' : 'Simpan Fee Provider Ini'}
+                </button>
+              </>
+            )}
           </Card>
 
           <Card className="mt-4">
