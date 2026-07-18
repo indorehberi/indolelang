@@ -105,7 +105,7 @@ export default function Footer() {
           </p>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-body-sm font-medium">
             <Link href="/syarat" className="text-primary underline hover:text-primary/80 transition-colors">
-              Ketentuan Umum
+              Syarat dan Ketentuan Lelang
             </Link>
             <Link href="/kebijakan" className="text-primary underline hover:text-primary/80 transition-colors">
               Kebijakan Privasi

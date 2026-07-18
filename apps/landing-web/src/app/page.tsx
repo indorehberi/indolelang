@@ -500,7 +500,7 @@ export default function Home() {
                 <h1 className="text-heading-3xl md:text-[3.25rem] md:leading-[1.08] font-extrabold text-on-background tracking-tight font-serif">
                   Lelang Digital <span className="text-primary">Terpercaya</span>,
                   <br className="hidden sm:block" />
-                  Cepat &amp; Transparan
+                   Cepat &amp; Transparan
                 </h1>
 
                 <p className="text-body-lg text-on-surface-variant max-w-md leading-relaxed">

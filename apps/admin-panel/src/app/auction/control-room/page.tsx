@@ -73,6 +73,133 @@ interface BidLog {
   time: string;
 }
 
+function AuctionRoomSimulation() {
+  const recentActivity = [
+    { bidder: 'B-1048', amount: 485000000, time: '08:42:11' },
+    { bidder: 'B-2201', amount: 490000000, time: '08:42:08' },
+    { bidder: 'B-3905', amount: 495000000, time: '08:42:03' },
+  ];
+
+  const participants = ['B-1048', 'B-2201', 'B-3905', 'B-7710', 'B-9023'];
+
+  return (
+    <Card title="Simulasi Ruang Lelang (Desktop Preview)" className="mb-4">
+      <div
+        style={{
+          border: '1px solid var(--wf-border)',
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #fffaf3 0%, #fff 100%)',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--wf-primary)', fontWeight: 700 }}>
+              Lelang Sedang Berlangsung
+            </div>
+            <h3 style={{ fontSize: '1.2rem', margin: '0.2rem 0 0', color: 'var(--wf-text)' }}>Toyota Hilux 2.4 G Double Cabin</h3>
+          </div>
+          <div
+            style={{
+              padding: '0.45rem 0.8rem',
+              borderRadius: '999px',
+              background: '#ffe6d0',
+              color: 'var(--wf-primary)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ● Live Now
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.65fr 1fr', gap: '1rem' }}>
+          <div
+            style={{
+              background: 'var(--wf-white)',
+              border: '1px solid var(--wf-border)',
+              borderRadius: '10px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)', textTransform: 'uppercase', fontWeight: 700 }}>Lot 014</div>
+                <div style={{ fontSize: '0.95rem', color: 'var(--wf-text-light)' }}>Kendaraan · 2020 · Putih</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)', textTransform: 'uppercase', fontWeight: 700 }}>Sisa Waktu</div>
+                <div style={{ fontSize: '2.3rem', fontWeight: 800, color: 'var(--wf-primary)' }}>01:18</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem' }}>
+              <div style={{ background: '#f8f9fa', borderRadius: '8px', padding: '0.8rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)', textTransform: 'uppercase' }}>Harga Awal</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700 }}>Rp 450.000.000</div>
+              </div>
+              <div style={{ background: '#f8f9fa', borderRadius: '8px', padding: '0.8rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)', textTransform: 'uppercase' }}>Harga Sekarang</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--wf-success)' }}>Rp 495.000.000</div>
+              </div>
+              <div style={{ background: '#f8f9fa', borderRadius: '8px', padding: '0.8rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)', textTransform: 'uppercase' }}>Penawar</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700 }}>B-3905</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff7ed', borderRadius: '8px', padding: '0.8rem', border: '1px dashed #f2c087' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--wf-primary)', marginBottom: '0.35rem' }}>Tahap penawaran aktif</div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--wf-text-light)' }}>Penawaran bertambah Rp 5.000.000 per langkah. Anti-sniping aktif sejak 30 detik terakhir.</div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--wf-white)',
+              border: '1px solid var(--wf-border)',
+              borderRadius: '10px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--wf-primary)', textTransform: 'uppercase' }}>Aktivitas Terakhir</div>
+            {recentActivity.map((item) => (
+              <div key={item.bidder} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', background: 'var(--wf-bg)', borderRadius: '6px' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{item.bidder}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)' }}>{item.time}</div>
+                </div>
+                <div style={{ fontWeight: 700, color: 'var(--wf-success)' }}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.amount)}</div>
+              </div>
+            ))}
+
+            <div style={{ borderTop: '1px solid var(--wf-border)', paddingTop: '0.75rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--wf-primary)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Peserta Aktif</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {participants.map((participant) => (
+                  <span key={participant} style={{ padding: '0.3rem 0.55rem', borderRadius: '999px', background: '#f1f5f9', color: 'var(--wf-text-light)', fontSize: '0.8rem' }}>
+                    {participant}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function ControlRoomPage() {
   const [activeTab, setActiveTab] = useState<'live' | 'arsip'>('live');
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -633,7 +760,9 @@ export default function ControlRoomPage() {
       </div>
 
       {activeTab === 'live' ? (
-        <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        <>
+          <AuctionRoomSimulation />
+          <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         {/* LEFT COLUMN: ACTIVE BIDDING & QUEUE */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
@@ -876,7 +1005,8 @@ export default function ControlRoomPage() {
             )}
           </div>
         </Card>
-      </div>
+          </div>
+        </>
       ) : (
         <Card title={`Arsip Sesi: ${sessionDetails?.title || '-'}`}>
           {sessionDetails?.status !== 'closed' ? (
