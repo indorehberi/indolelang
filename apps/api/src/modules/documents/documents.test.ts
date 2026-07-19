@@ -6,6 +6,11 @@ import { generateAccessToken } from '../../lib/jwt';
 import { Role, UserStatus } from '../../../../../packages/shared-types/src/enums';
 import fs from 'fs';
 import path from 'path';
+import { htmlToPdf } from '../../lib/pdf';
+
+jest.mock('../../lib/pdf', () => ({
+  htmlToPdf: jest.fn(),
+}));
 
 describe('Documents Generation & Verification Module Integration Tests', () => {
   const bidder1Email = 'bidder1@example.com';
@@ -32,7 +37,9 @@ describe('Documents Generation & Verification Module Integration Tests', () => {
   beforeAll(async () => {
     // Cleanup leftovers
     await prisma.documents.deleteMany({});
+    await prisma.settlements.deleteMany({});
     await prisma.invoices.deleteMany({});
+    await prisma.bids.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
     await prisma.nipl_allocations.deleteMany({});
@@ -185,10 +192,16 @@ describe('Documents Generation & Verification Module Integration Tests', () => {
     adminToken = generateAccessToken({ id: adminId, email: adminEmail, role: Role.ADMIN, status: UserStatus.ACTIVE });
   });
 
+  beforeEach(() => {
+    (htmlToPdf as jest.Mock).mockResolvedValue(Buffer.from('mocked pdf content'));
+  });
+
   afterAll(async () => {
     // Cleanup
     await prisma.documents.deleteMany({});
+    await prisma.settlements.deleteMany({});
     await prisma.invoices.deleteMany({});
+    await prisma.bids.deleteMany({});
     await prisma.lots.deleteMany({});
     await prisma.assets.deleteMany({});
     await prisma.nipl_allocations.deleteMany({});

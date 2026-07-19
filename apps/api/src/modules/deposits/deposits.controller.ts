@@ -19,11 +19,12 @@ export class DepositsController {
 
       let userId: string | undefined;
 
-      // Bidder can only see their own deposits
-      if (req.user!.role === Role.BIDDER) {
+      // Only staff roles can view other users' deposits
+      const isStaff = [Role.SUPERADMIN, Role.ADMIN, Role.OPERATOR, Role.FINANCE].includes(req.user!.role as Role);
+      if (!isStaff) {
         userId = req.user!.id;
       } else {
-        // Admin/Operator/Superadmin can optionally filter by user_id
+        // Admin/Operator/Superadmin/Finance can optionally filter by user_id
         userId = req.query.user_id as string || undefined;
       }
 

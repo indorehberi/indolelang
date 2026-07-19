@@ -102,7 +102,9 @@ export class DocumentsController {
 
       let userId: string | undefined;
 
-      if (req.user!.role === Role.BIDDER) {
+      // Only staff roles can view other users' invoices
+      const isStaff = [Role.SUPERADMIN, Role.ADMIN, Role.OPERATOR, Role.FINANCE].includes(req.user!.role as Role);
+      if (!isStaff) {
         userId = req.user!.id;
       } else {
         userId = (req.query.user_id as string) || undefined;

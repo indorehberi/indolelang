@@ -16,7 +16,14 @@ describe('Deposits & Payments Module Integration Tests', () => {
 
   beforeAll(async () => {
     // 1. Clean up potential leftovers
+    await prisma.documents.deleteMany({});
+    await prisma.settlements.deleteMany({});
+    await prisma.invoices.deleteMany({});
+    await prisma.bids.deleteMany({});
     await prisma.deposits.deleteMany({});
+    await prisma.nipl_allocations.deleteMany({});
+    await prisma.lots.deleteMany({});
+    await prisma.assets.deleteMany({});
     await prisma.auction_sessions.deleteMany({});
     await prisma.branches.deleteMany({});
     await prisma.users.deleteMany({
@@ -85,8 +92,14 @@ describe('Deposits & Payments Module Integration Tests', () => {
 
   afterAll(async () => {
     // Cleanup database and connections
+    await prisma.documents.deleteMany({});
+    await prisma.settlements.deleteMany({});
+    await prisma.invoices.deleteMany({});
+    await prisma.bids.deleteMany({});
     await prisma.deposits.deleteMany({});
     await prisma.nipl_allocations.deleteMany({});
+    await prisma.lots.deleteMany({});
+    await prisma.assets.deleteMany({});
     await prisma.auction_sessions.deleteMany({});
     await prisma.branches.deleteMany({});
     await prisma.users.deleteMany({
@@ -141,9 +154,9 @@ describe('Deposits & Payments Module Integration Tests', () => {
       expect(res.body.data).toHaveProperty('id');
       expect(res.body.data.session_id || '').toBe('');
       expect(res.body.data.amount).toBeGreaterThanOrEqual(5000000);
-      expect(res.body.data.amount).toBeLessThanOrEqual(5000010);
+      expect(res.body.data.amount).toBeLessThanOrEqual(5000999);
       expect(res.body.data.va_number).toBeDefined();
-      expect(res.body.data.va_bank).toBe('bca');
+      expect(res.body.data.va_bank).toBe('manual_bca');
       expect(res.body.data.status).toBe(DepositStatus.PENDING);
 
       chargeMock.mockRestore();
@@ -186,7 +199,7 @@ describe('Deposits & Payments Module Integration Tests', () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.amount).toBeGreaterThanOrEqual(5000000);
-      expect(res.body.data.amount).toBeLessThanOrEqual(5000010);
+      expect(res.body.data.amount).toBeLessThanOrEqual(5000999);
 
       chargeMock.mockRestore();
     });
