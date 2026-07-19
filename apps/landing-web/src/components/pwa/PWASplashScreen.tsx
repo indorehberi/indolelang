@@ -64,10 +64,12 @@ export default function PWASplashScreen() {
       // Remove the blocking CSS class from HTML element so page is fully interactive and visible
       document.documentElement.classList.remove("pwa-splash-active");
       
-      if (token && isBidder) {
-        router.replace("/bidder/home");
-      } else {
-        router.replace("/login");
+      if (window.location.pathname === "/") {
+        if (token && isBidder) {
+          router.replace("/bidder/home");
+        } else {
+          router.replace("/login");
+        }
       }
 
       // Unmount the splash component from DOM so it doesn't block click events

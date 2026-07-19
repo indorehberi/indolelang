@@ -11,7 +11,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { hashPassword, comparePassword } from '../../lib/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../lib/jwt';
 import { sendEmail } from '../../lib/email';
-import { sendWhatsAppOtp } from '../../lib/whatsapp';
+import { sendWhatsAppOtp, sendWhatsAppNotification } from '../../lib/whatsapp';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
 import crypto from 'crypto';
@@ -505,6 +505,14 @@ const user = await prisma.users.findFirst({
 
 		try {
 			await sendEmail({ to: email, subject, text, html });
+
+			// Send WhatsApp reset link if user has a registered phone
+			if (user.phone) {
+				const waMessage = `[Indo-Lelang] Halo, Anda menerima pesan ini karena meminta reset password untuk akun Anda.\n\nSilakan klik tautan berikut untuk mengatur ulang kata sandi Anda:\n${resetUrl}\n\nTautan ini berlaku selama 1 jam. Jika Anda tidak meminta ini, silakan abaikan pesan ini.`;
+				sendWhatsAppNotification(user.phone, waMessage).catch((err) => {
+					logger.error({ err, phone: user.phone }, 'Failed to send password reset WhatsApp notification');
+				});
+			}
 		} catch (emailError) {
 			logger.error({ emailError, email }, 'Failed to send password reset email');
 			console.log('\n==================================================');
