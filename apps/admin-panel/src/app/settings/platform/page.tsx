@@ -168,6 +168,7 @@ export default function PlatformSettingsPage() {
     smtp_port: '',
     smtp_from: '',
     verihubs_api_key: '',
+    fonnte_token: '',
     xendit_api_key: '',
     bank_inquiry_mode: 'manual',
   });
@@ -283,6 +284,8 @@ export default function PlatformSettingsPage() {
               setPejabatLelang(item.value);
             } else if (item.key === 'bid_increment_1') {
               setBidIncrement1(item.value);
+            } else if (item.key === 'smtp_password' || item.key === 'fonnte_token') {
+              (newApiKeys as any)[item.key] = '';
             } else if (item.key in newApiKeys) {
               (newApiKeys as any)[item.key] = item.value;
             }
@@ -764,16 +767,18 @@ export default function PlatformSettingsPage() {
         { key: 'verihubs_api_key', value: apiKeys.verihubs_api_key },
         { key: 'bank_inquiry_mode', value: apiKeys.bank_inquiry_mode },
         { key: 'xendit_api_key', value: apiKeys.xendit_api_key },
+        { key: 'fonnte_token', value: apiKeys.fonnte_token },
       ];
       const { ok, failedKeys } = await saveSettings(updates);
       await fetchSettings();
+      setApiKeys((prev) => ({ ...prev, fonnte_token: '' }));
       if (ok) {
-        toast.success('Verihubs & Validasi Rekening berhasil disimpan!');
+        toast.success('Pengaturan WhatsApp & Validasi berhasil disimpan!');
       } else {
         toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
       }
     } catch (e) {
-      toast.error('Gagal menyimpan konfigurasi Verihubs.');
+      toast.error('Gagal menyimpan konfigurasi WhatsApp.');
     } finally {
       setIsSavingVerihubs(false);
     }
@@ -791,6 +796,7 @@ export default function PlatformSettingsPage() {
       ];
       const { ok, failedKeys } = await saveSettings(updates);
       await fetchSettings();
+      setApiKeys((prev) => ({ ...prev, smtp_password: '' }));
       if (ok) {
         toast.success('Konfigurasi SMTP berhasil disimpan!');
       } else {
@@ -1365,9 +1371,9 @@ export default function PlatformSettingsPage() {
             </button>
           </Card>
 
-          {/* Card 5: Verihubs & Validasi Rekening Bank */}
+          {/* Card 5: WhatsApp Gateway & Validasi Rekening Bank */}
           <Card>
-            <h3 className="text-md fw-bold mb-3">Verihubs &amp; Validasi Rekening Bank</h3>
+            <h3 className="text-md fw-bold mb-3">WhatsApp Gateway &amp; Validasi Rekening Bank</h3>
             <div className="form-group mb-2" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
               <label className="form-label fw-bold">Mode Validasi Rekening Bidder</label>
               <select className="form-input" value={apiKeys.bank_inquiry_mode || 'manual'} onChange={(e) => setApiKeys({...apiKeys, bank_inquiry_mode: e.target.value})}>
@@ -1381,6 +1387,12 @@ export default function PlatformSettingsPage() {
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Verihubs API Key (eKYC)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.verihubs_api_key} onChange={(e) => setApiKeys({...apiKeys, verihubs_api_key: e.target.value})} />
             </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Fonnte API Token (WhatsApp OTP &amp; Notification)</label>
+              <input type="password" placeholder="Kosong (tidak diubah)" className="form-input" value={apiKeys.fonnte_token} onChange={(e) => setApiKeys({...apiKeys, fonnte_token: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Token ini selalu dikosongkan pada tampilan demi alasan keamanan.</p>
+            </div>
             
             {apiKeys.bank_inquiry_mode === 'auto' && (
               <div className="form-group mb-3">
@@ -1390,7 +1402,7 @@ export default function PlatformSettingsPage() {
             )}
 
             <button className="btn btn-primary w-100" onClick={handleSaveVerihubs} disabled={isSavingVerihubs}>
-              {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Verihubs &amp; Validasi'}
+              {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Gateway &amp; Validasi'}
             </button>
           </Card>
 
@@ -1414,7 +1426,8 @@ export default function PlatformSettingsPage() {
             </div>
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>SMTP Password</label>
-              <input type="password" placeholder="********" className="form-input" value={apiKeys.smtp_password} onChange={(e) => setApiKeys({...apiKeys, smtp_password: e.target.value})} />
+              <input type="password" placeholder="Kosong (tidak diubah)" className="form-input" value={apiKeys.smtp_password} onChange={(e) => setApiKeys({...apiKeys, smtp_password: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Password ini selalu dikosongkan pada tampilan demi alasan keamanan.</p>
             </div>
             <div className="form-group mb-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Sender Name &amp; Email (From)</label>

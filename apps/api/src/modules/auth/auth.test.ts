@@ -85,6 +85,12 @@ describe('Authentication Module Integration Tests', () => {
           role: 'bidder',
         });
 
+      // Mark user as ACTIVE so they cannot register again
+      await prisma.users.updateMany({
+        where: { email: activeEmail },
+        data: { status: UserStatus.ACTIVE },
+      });
+
       // Try registering again with the same email
       const res = await request(app)
         .post('/api/v1/auth/register')

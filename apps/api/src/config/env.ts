@@ -38,6 +38,7 @@ const envSchema = z.object({
   MIDTRANS_NOTIFICATION_URL: z.string().optional(),
   XENDIT_API_KEY: z.string().optional().default('dummy-xendit-api-key'),
   GOOGLE_CLIENT_ID: z.string().optional().transform(val => val ? val.replace(/^["']|["']$/g, '').trim() : val).default('YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'),
+  FONNTE_TOKEN: z.string().optional().default(''),
 });
 
 let envParsed;

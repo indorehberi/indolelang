@@ -11,6 +11,7 @@ const SENSITIVE_KEYS = [
   'smtp_password',
   'xendit_api_key',
   'verihubs_api_key',
+  'fonnte_token',
 ];
 
 export class SettingsService {
@@ -86,8 +87,8 @@ export class SettingsService {
 
     const isSensitive = SENSITIVE_KEYS.includes(key);
 
-    // If it's sensitive and the frontend passes the mask back, ignore the update
-    if (isSensitive && value === '********') {
+    // If it's sensitive and the frontend passes the mask back or empty string, ignore the update
+    if (isSensitive && (value === '********' || value === '')) {
       return this.getSettingByKey(key, tenantId);
     }
 

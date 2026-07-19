@@ -11,6 +11,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { hashPassword, comparePassword } from '../../lib/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../lib/jwt';
 import { sendEmail } from '../../lib/email';
+import { sendWhatsAppOtp } from '../../lib/whatsapp';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
 import crypto from 'crypto';
@@ -84,6 +85,30 @@ export class AuthService {
 					logger.error({ err }, 'Failed to record referral usage during registration');
 				});
 			}
+		}
+
+		// 6. Generate and send WhatsApp OTP if phone number is provided
+		if (user.phone) {
+			const isProd = env.NODE_ENV === 'production';
+			const sendRealOtp = process.env.SEND_REAL_OTP === 'true';
+			const otpCode = isProd || sendRealOtp
+				? crypto.randomInt(100000, 999999).toString()
+				: '123456';
+
+			if (redis.isOpen) {
+				await redis.set(`otp:${user.phone}`, JSON.stringify({
+					userId: user.id,
+					code: otpCode,
+					attempts: 0
+				}), { EX: 300 }); // 5 minutes TTL
+			} else {
+				logger.warn('Redis is closed. Registration succeeded but OTP code was not saved in Redis.');
+			}
+
+			// Fire-and-forget sending so it doesn't slow down the HTTP response
+			sendWhatsAppOtp(user.phone, otpCode).catch((err) => {
+				logger.error({ err, phone: user.phone }, 'Failed to send WhatsApp OTP during registration');
+			});
 		}
 
 		const kyc = await prisma.kyc_documents.findUnique({ where: { user_id: user.id } });
@@ -458,7 +483,8 @@ const user = await prisma.users.findFirst({
 	async forgotPassword(email: string): Promise<void> {
 		const user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
 		if (!user) {
-			throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Email anda belum terdaftar, gunakan email yang sudah didaftarkan');
+			// To prevent user enumeration, we resolve successfully without throwing
+			return;
 		}
 
 		const resetToken = crypto.randomBytes(32).toString('hex');
