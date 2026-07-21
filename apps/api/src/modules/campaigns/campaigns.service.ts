@@ -3,6 +3,7 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
+import { sendWhatsAppNotification } from '../../lib/whatsapp';
 
 export class CampaignsService {
   async listCampaigns(page: number, perPage: number) {
@@ -39,19 +40,19 @@ export class CampaignsService {
       }
     });
 
-    // 2. Fetch target users
-    const whereClause: any = { status: 'approved' };
+    // 2. Fetch target users (both active and inactive)
+    const whereClause: any = {};
     if (data.target_role !== 'all') {
       whereClause.role = data.target_role;
     }
 
     const targetUsers = await prisma.users.findMany({
       where: whereClause,
-      select: { id: true, email: true, full_name: true }
+      select: { id: true, email: true, phone: true, full_name: true }
     });
 
     if (targetUsers.length === 0) {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak ada pengguna aktif untuk role yang dipilih');
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak ada pengguna untuk role yang dipilih');
     }
 
     const notificationsToCreate = targetUsers.map(user => ({
@@ -65,18 +66,27 @@ export class CampaignsService {
       data: notificationsToCreate,
     });
 
-    // 3. Trigger email sending asynchronously
-    this.sendCampaignEmails(campaign.id, targetUsers, data.title, data.message);
+    // 3. Trigger email & WhatsApp sending asynchronously
+    this.sendCampaignBroadcasts(campaign.id, targetUsers, data.title, data.message);
 
     return campaign;
   }
 
-  private async sendCampaignEmails(campaignId: string, users: Array<{email: string, full_name: string}>, title: string, message: string) {
+  private async sendCampaignBroadcasts(
+    campaignId: string,
+    users: Array<{ email: string; phone: string | null; full_name: string }>,
+    title: string,
+    message: string
+  ) {
     let sentCount = 0;
     
     for (const user of users) {
+      let emailSuccess = false;
+      let waSuccess = false;
+
+      // Send Email
       try {
-        const success = await sendEmailSafe({
+        emailSuccess = await sendEmailSafe({
           to: user.email,
           subject: title,
           text: message,
@@ -90,9 +100,22 @@ export class CampaignsService {
             </div>
           `
         });
-        if (success) sentCount++;
       } catch (err) {
         logger.error({ err, email: user.email }, 'Failed to send campaign email');
+      }
+
+      // Send WhatsApp (only if phone is registered)
+      if (user.phone) {
+        try {
+          const waMessage = `*${title}*\n\nHalo ${user.full_name},\n\n${message}`;
+          waSuccess = await sendWhatsAppNotification(user.phone, waMessage);
+        } catch (err) {
+          logger.error({ err, phone: user.phone }, 'Failed to send campaign WhatsApp message');
+        }
+      }
+
+      if (emailSuccess || waSuccess) {
+        sentCount++;
       }
     }
 
