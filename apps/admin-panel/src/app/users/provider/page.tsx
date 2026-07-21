@@ -7,6 +7,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
+import { exportToExcel } from '../../../lib/excelExport';
 
 interface Provider {
   id: string; // providers table row id
@@ -242,6 +243,36 @@ export default function ProviderUsersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const dataToExport = providers.map((p, index) => ({
+                'No': index + 1,
+                'Nama Perusahaan': p.company_name || p.user?.full_name || '-',
+                'Nama Kontak': p.user?.full_name || '-',
+                'Email': p.user?.email || '-',
+                'No. Telepon': p.user?.phone || '-',
+                'NPWP': p.npwp || '-',
+                'Tipe Komisi': p.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Fixed Nominal (Rp)',
+                'Besar Komisi': p.provider_fee_amount ? Number(p.provider_fee_amount).toLocaleString('id-ID') : '0',
+                'PMK 41 Dibayarkan Provider': p.pmk41_paid_by_provider ? 'Ya' : 'Tidak',
+                'Status Provider': p.status === 'aktif' ? 'Aktif' : p.status === 'antri' ? 'Menunggu Verifikasi' : p.status === 'ditolak' ? 'Ditolak' : 'Nonaktif',
+                'Status KYC': p.kyc?.status || 'Belum Verifikasi',
+                'Tanggal Terdaftar': p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('id-ID') : '-'
+              }));
+              const ok = exportToExcel(dataToExport, 'Daftar_Provider_IndoLelang', 'Daftar Provider');
+              if (ok) {
+                showToast('success', 'Berhasil mendownload Excel Daftar Provider (.xlsx)');
+              } else {
+                showToast('error', 'Tidak ada data provider untuk di-export');
+              }
+            }}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </Button>
           <Button variant="primary" size="sm" onClick={() => router.push('/users/provider/new')}>
             + Tambah Provider
           </Button>

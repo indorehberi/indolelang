@@ -6,6 +6,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { apiFetch } from '../../lib/api';
 import { useToast } from '../../providers/ToastProvider';
+import { exportToExcel } from '../../lib/excelExport';
 
 interface Deposit {
   id: string;
@@ -476,7 +477,35 @@ export default function FinanceManager({
               <h1 className="page-title">Monitoring Deposit Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar transaksi Virtual Account (VA) untuk pembelian Nomor Induk Peserta Lelang (NIPL).</p>
             </div>
-            <div className="toolbar-right">
+            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={() => {
+                  const dataToExport = deposits.map((d, index) => ({
+                    'No': index + 1,
+                    'Waktu Transaksi': d.created_at ? new Date(d.created_at).toLocaleString('id-ID') : '-',
+                    'Nama Bidder': d.user?.full_name || '-',
+                    'Email': d.user?.email || '-',
+                    'No. HP': d.user?.phone || '-',
+                    'Bank VA': d.va_bank || d.user?.bank_name || '-',
+                    'No. NIPL / VA': d.va_number || '-',
+                    'Jumlah Jaminan (Rp)': d.amount ? Number(d.amount) : 0,
+                    'Metode Pembayaran': d.payment_method || 'Virtual Account',
+                    'Status Deposit': d.status === 'paid' ? 'Lunas' : d.status === 'pending' ? 'Pending' : d.status === 'pending_approval' ? 'Menunggu Approval' : d.status === 'pending_refund' ? 'Menunggu Refund' : d.status === 'refunded' ? 'Refunded' : d.status === 'expired' ? 'Expired' : d.status,
+                    'Waktu Dibayar': d.paid_at ? new Date(d.paid_at).toLocaleString('id-ID') : '-'
+                  }));
+                  const ok = exportToExcel(dataToExport, 'Monitoring_Deposit_NIPL_IndoLelang', 'Deposit NIPL');
+                  if (ok) {
+                    toast.success('Berhasil mendownload Excel Monitoring Deposit NIPL (.xlsx)');
+                  } else {
+                    toast.error('Tidak ada data deposit NIPL untuk di-export');
+                  }
+                }}
+                className="btn btn-outline btn-sm"
+                style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+                Export XLSX
+              </button>
               <div className="filter-group d-flex gap-1" style={{ flexWrap: 'wrap' }}>
                 <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
                 <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>

@@ -7,6 +7,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 import { apiFetch } from '../../../lib/api';
+import { exportToExcel } from '../../../lib/excelExport';
 
 interface Asset {
   id: string;
@@ -167,6 +168,36 @@ export default function AssetsApprovalPage() {
         <div className="toolbar-left">
           <h1 className="page-title">Daftar Approved Barang</h1>
           <p className="page-subtitle">Daftar aset barang yang telah disetujui oleh Admin dan siap dimasukkan ke dalam Lot lelang.</p>
+        </div>
+        <div className="toolbar-right">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const dataToExport = assets.map((a, index) => {
+                const p = providers.find(pr => pr.id === a.provider_id);
+                return {
+                  'No': index + 1,
+                  'Nama Barang Approved': a.title || '-',
+                  'Kategori': a.category || '-',
+                  'Mitra Provider': p ? (p.company_name || p.full_name) : (a.provider_id || '-'),
+                  'Harga Dasar (Rp)': a.base_price ? Number(a.base_price) : 0,
+                  'Status': 'APPROVED',
+                  'Tanggal Disetujui': a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-'
+                };
+              });
+              const ok = exportToExcel(dataToExport, 'Daftar_Barang_Approved_IndoLelang', 'Approved Barang');
+              if (ok) {
+                setToast({ message: 'Berhasil mendownload Excel Approved Barang (.xlsx)', variant: 'success' });
+              } else {
+                setToast({ message: 'Tidak ada data barang approved untuk di-export', variant: 'warning' });
+              }
+            }}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </Button>
         </div>
       </div>
 

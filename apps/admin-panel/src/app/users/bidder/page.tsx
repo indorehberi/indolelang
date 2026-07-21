@@ -8,6 +8,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
 
 interface Bidder {
   id: string; // bidders table row id
@@ -259,6 +260,39 @@ export default function BidderListPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const dataToExport = bidders.map((b, index) => ({
+                'No': index + 1,
+                'Nama Lengkap': b.user?.full_name || '-',
+                'Email': b.user?.email || '-',
+                'No. Telepon': b.user?.phone || '-',
+                'NIK / KTP': b.kyc?.nik || '-',
+                'Status Bidder': b.status === 'aktif' ? 'Aktif' : b.status === 'antri' ? 'Menunggu Verifikasi' : b.status === 'ditolak' ? 'Ditolak' : 'Nonaktif',
+                'Status KYC': b.kyc?.status || 'Belum Verifikasi',
+                'NIPL Mobil': b.is_unlimited_mobil ? 'Unlimited' : (b.nipl_mobil || 0),
+                'NIPL Motor': b.is_unlimited_motor ? 'Unlimited' : (b.nipl_motor || 0),
+                'Pekerjaan': b.occupation || '-',
+                'Alamat': b.address || '-',
+                'Bank': b.bank_name || '-',
+                'No. Rekening': b.bank_account_no || '-',
+                'Atas Nama Rekening': b.bank_account_name || '-',
+                'Tanggal Terdaftar': b.submitted_at ? new Date(b.submitted_at).toLocaleDateString('id-ID') : '-'
+              }));
+              const ok = exportToExcel(dataToExport, 'Daftar_Bidder_IndoLelang', 'Daftar Bidder');
+              if (ok) {
+                toast.success('Berhasil mendownload Excel Daftar Bidder (.xlsx)');
+              } else {
+                toast.error('Tidak ada data bidder untuk di-export');
+              }
+            }}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </Button>
           <Button variant="primary" size="sm" onClick={() => router.push('/users/bidder/new')}>
             + Tambah Bidder
           </Button>

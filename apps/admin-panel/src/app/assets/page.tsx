@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import { apiFetch } from '../../lib/api';
 import { AssetCategory } from '@indo-lelang/shared-types';
 import { useToast } from '../../providers/ToastProvider';
+import { exportToExcel } from '../../lib/excelExport';
 
 const CATEGORY_LABELS: Record<string, string> = {
   [AssetCategory.MOBIL]: '🚗 Mobil Penumpang',
@@ -528,7 +529,33 @@ export default function AssetsPage() {
           <h1 className="page-title">Katalog Barang</h1>
           <p className="page-subtitle">Daftar semua unit aset barang yang didaftarkan.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const dataToExport = assets.map((a, index) => ({
+                'No': index + 1,
+                'Nama Barang': a.title || '-',
+                'Kategori': CATEGORY_LABELS[a.category] || a.category,
+                'Mitra Provider': a.provider?.company_name || a.provider?.full_name || '-',
+                'Harga Dasar (Rp)': a.base_price ? Number(a.base_price) : 0,
+                'Status Barang': a.status === 'listed' ? 'Live/Listed' : a.status === 'approved' ? 'Approved' : a.status === 'inspected' ? 'Inspected' : a.status === 'sold' ? 'Terjual' : a.status === 'pending' ? 'Pending' : a.status,
+                'Dibuat Oleh Admin': a.created_by_admin ? 'Ya' : 'Tidak',
+                'Tanggal Input': a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-'
+              }));
+              const ok = exportToExcel(dataToExport, 'Katalog_Barang_IndoLelang', 'Katalog Barang');
+              if (ok) {
+                toast.success('Berhasil mendownload Excel Katalog Barang (.xlsx)');
+              } else {
+                toast.error('Tidak ada data barang untuk di-export');
+              }
+            }}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </Button>
           {['admin', 'superadmin', 'inspector'].includes(userRole) && (
             <Button variant="primary" size="sm" onClick={() => router.push('/assets/new')}>
               + Tambah Barang

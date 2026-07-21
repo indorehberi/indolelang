@@ -6,6 +6,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiUrl, apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
 
 export default function AuctionResultsPage() {
   const toast = useToast();
@@ -133,6 +134,37 @@ export default function AuctionResultsPage() {
         <div className="toolbar-left">
           <h1 className="page-title">Rekapitulasi Hasil Lelang</h1>
           <p className="page-subtitle">Daftar laporan hasil penutupan lot lelang, rincian unit terjual (sold) dan tidak laku (unsold).</p>
+        </div>
+        <div className="toolbar-right">
+          <button
+            onClick={() => {
+              const dataToExport = filteredLots.map((l, index) => ({
+                'No': index + 1,
+                'No. Lot': l.lot_number || '-',
+                'Nama Unit': l.asset?.title || '-',
+                'Kategori': l.asset?.category || '-',
+                'Mitra Provider': l.asset?.provider?.company_name || l.asset?.provider?.full_name || '-',
+                'Harga Dasar (Rp)': l.starting_price ? Number(l.starting_price) : 0,
+                'Harga Terbentuk (Hammer Price Rp)': l.status === 'sold' ? Number(l.hammer_price || l.current_price || 0) : 0,
+                'Status Hasil': l.status === 'sold' ? 'TERJUAL (Sold)' : 'TIDAK LAKU (Unsold)',
+                'Pemenang': l.winner?.full_name || '-',
+                'Email Pemenang': l.winner?.email || '-',
+                'No. HP Pemenang': l.winner?.phone || '-',
+                'Status Pelunasan': l.invoices && l.invoices.length > 0 ? (l.invoices[0].status === 'paid' ? 'Lunas' : 'Belum Lunas') : 'Belum Invoice'
+              }));
+              const ok = exportToExcel(dataToExport, 'Hasil_Sesi_Lelang_IndoLelang', 'Hasil Sesi');
+              if (ok) {
+                toast.success('Berhasil mendownload Excel Hasil Sesi (.xlsx)');
+              } else {
+                toast.error('Tidak ada data hasil sesi untuk di-export');
+              }
+            }}
+            className="btn btn-outline btn-sm"
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </button>
         </div>
       </div>
 
