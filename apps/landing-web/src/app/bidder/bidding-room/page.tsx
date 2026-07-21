@@ -598,6 +598,31 @@ export default function BidderBiddingRoom() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
+  // Thank You Modal state for Session End
+  interface ThankYouModalData {
+    session_title: string;
+  }
+  const [thankYouModal, setThankYouModal] = useState<ThankYouModalData | null>(null);
+  const [thankYouSecondsLeft, setThankYouSecondsLeft] = useState<number>(5);
+  const [hasSessionBidded, setHasSessionBidded] = useState<boolean>(false);
+  const [liveSessionName, setLiveSessionName] = useState<string>("");
+
+  useEffect(() => {
+    if (!thankYouModal) return;
+    setThankYouSecondsLeft(5);
+    const interval = setInterval(() => {
+      setThankYouSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setThankYouModal(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [thankYouModal]);
+
   const fetchActiveLots = async (isPolling = false) => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("accessToken");
@@ -638,6 +663,7 @@ export default function BidderBiddingRoom() {
       const sessionData = await resSession.json();
       if (resSession.ok && sessionData.success && sessionData.data?.length > 0) {
         setLiveSessionId(sessionData.data[0].id);
+        setLiveSessionName(sessionData.data[0].title || sessionData.data[0].name || "");
       } else {
         setLiveSessionId(null);
       }
@@ -662,6 +688,13 @@ export default function BidderBiddingRoom() {
   };
 
   const handleLotClosed = (data?: any, hasBidded: boolean = false) => {
+    if (hasBidded) {
+      setHasSessionBidded(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("has_bidded_in_session", "true");
+      }
+    }
+
     if (data) {
       const storedUser = localStorage.getItem("user");
       const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
@@ -678,6 +711,14 @@ export default function BidderBiddingRoom() {
         }, 10000);
       } else {
         setClosedResult(null);
+      }
+
+      // Tampilkan ucapan terima kasih jika ini lot terakhir dalam sesi dan bidder pernah melakukan bid
+      const biddedInSession = hasBidded || hasSessionBidded || (typeof window !== "undefined" && sessionStorage.getItem("has_bidded_in_session") === "true");
+      if (data.is_last_lot && biddedInSession) {
+        setThankYouModal({
+          session_title: data.session_title || liveSessionName || "Sesi Lelang Live",
+        });
       }
     }
     fetchActiveLots();
@@ -760,10 +801,20 @@ export default function BidderBiddingRoom() {
       }
     };
 
+    const handleSessionEnded = (data: any) => {
+      const biddedInSession = hasSessionBidded || (typeof window !== "undefined" && sessionStorage.getItem("has_bidded_in_session") === "true");
+      if (biddedInSession) {
+        setThankYouModal({
+          session_title: data?.session_title || liveSessionName || "Sesi Lelang Live",
+        });
+      }
+    };
+
     localSocket.on("connect", handleConnect);
     localSocket.on("disconnect", handleDisconnect);
     if (liveSessionId) {
       localSocket.on("lot:start", handleLotStart);
+      localSocket.on("session:ended", handleSessionEnded);
     }
 
     // Android tears down sockets aggressively once the PWA is backgrounded, and
@@ -934,6 +985,51 @@ export default function BidderBiddingRoom() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {thankYouModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl border-2 border-primary/20 relative overflow-hidden">
+            <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <span className="material-symbols-outlined text-4xl">celebration</span>
+            </div>
+
+            <h2 className="text-2xl font-black text-slate-800 mb-4">Lelang Telah Selesai 🎉</h2>
+
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 mb-6 text-left space-y-3 shadow-inner">
+              <p className="text-sm font-bold text-primary">
+                Terimakasih atas partisipasinya dalam Lelang {thankYouModal.session_title}.
+              </p>
+              <p className="text-sm text-slate-700">
+                Selamat kepada peserta yang berhasil memenangkan lelang.
+              </p>
+              <p className="text-sm text-slate-700">
+                Mohon maaf kepada peserta yang belum memenangkan lelang.
+              </p>
+              <p className="text-sm font-medium text-slate-800 pt-2 border-t border-slate-200">
+                Sampai bertemu kembali di lelang berikutnya.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-1000 linear"
+                  style={{ width: `${(thankYouSecondsLeft / 5) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-400">
+                Pesan tertutup otomatis dalam <strong className="text-slate-700">{thankYouSecondsLeft} detik</strong>
+              </p>
+              <button
+                onClick={() => setThankYouModal(null)}
+                className="w-full py-3 px-4 rounded-xl font-bold bg-slate-800 text-white hover:bg-slate-900 transition-colors text-sm"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

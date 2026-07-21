@@ -343,6 +343,11 @@ export async function closeActiveLot(lotId: string): Promise<any> {
     return settled;
   }
 
+  const remainingCount = await prisma.lots.count({
+    where: { session_id: settled.session_id, status: { in: ['pending', 'active'] } }
+  });
+  const isLastLot = remainingCount === 0;
+
   // Broadcast closed event to room (and session room, see startActiveLot comment)
   ioServer.to(`lot:${lotId}`).to(`session:${settled.session_id}`).emit('lot:closed', {
     lot_id: lotId,
@@ -354,6 +359,8 @@ export async function closeActiveLot(lotId: string): Promise<any> {
     winner_name: state?.highestBidderName || settled.winner_name || undefined,
     winner_nipl: state?.highestBidderNipl || settled.winner_nipl || undefined,
     asset_title: settled.asset?.title || undefined,
+    is_last_lot: isLastLot,
+    session_title: settled.session?.title || undefined,
   });
 
   if (settled.status === 'sold') {

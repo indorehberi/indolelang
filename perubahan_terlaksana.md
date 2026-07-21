@@ -324,6 +324,20 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     6. **Harga Terbentuk** (Rupiah / Hammer Price)
   * **Auto-Dismiss 5 Detik & Countdown Bar:** Popup dilengkapi dengan animasi progress bar dan penghitung mundur 5 detik yang otomatis menutup modal secara mulus tanpa mengganggu alur kontrol sesi lelang berikutnya. Admin juga dapat menutup popup secara manual sewaktu-waktu.
 
+### 24. Popup Modal Ucapan Terima Kasih Penutupan Sesi Lelang Live untuk Bidder Active (5 Detik Timer)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [socket.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/lib/socket.ts) (Event WebSocket `lot:closed` & `session:ended`)
+  * [bidding-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/bidding-room/page.tsx) (Ruang Lelang Live Bidder Web)
+* **Deskripsi Perubahan:**
+  * **Filter Peserta Aktif:** Popup modal ucapan terima kasih akhir sesi HANYA ditampilkan kepada peserta/bidder yang pernah melakukan minimal 1 kali bid selama sesi lelang berlangsung (`hasSessionBidded === true` / terdeteksi di memori/sessionStorage).
+  * **Pesan yang Ditampilkan:**
+    * *"Terimakasih atas partisipasinya dalam Lelang [Nama Sesi]."*
+    * *"Selamat kepada peserta yang berhasil memenangkan lelang."*
+    * *"Mohon maaf kepada peserta yang belum memenangkan lelang."*
+    * *"Sampai bertemu kembali di lelang berikutnya."*
+  * **Timer 5 Detik:** Popup otomatis muncul saat lot terakhir dalam sesi telah selesai / sesi dinyatakan berakhir (`session:ended` atau `is_last_lot === true`), dilengkapi animasi progress bar dan penghitung mundur 5 detik.
+
 
 
 
