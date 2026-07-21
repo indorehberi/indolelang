@@ -185,7 +185,7 @@ export default function AssetsPage() {
   const handleAddBrand = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Merek Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customBrands.includes(trimmed)) setCustomBrands(prev => [...prev, trimmed]);
       setFormData((prev: any) => ({ ...prev, brand: trimmed, model: '' }));
     }
@@ -194,7 +194,7 @@ export default function AssetsPage() {
   const handleAddModel = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Model Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customModels.includes(trimmed)) setCustomModels(prev => [...prev, trimmed]);
       setFormData((prev: any) => ({ ...prev, model: trimmed }));
     }
@@ -203,7 +203,7 @@ export default function AssetsPage() {
   const handleAddType = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Tipe Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
       setFormData((prev: any) => ({ ...prev, body_type: trimmed }));
     }
@@ -308,10 +308,10 @@ export default function AssetsPage() {
               </div>
               <select value={formData.brand} onChange={(e) => {
                 if (e.target.value === '__ADD_NEW__') handleAddBrand();
-                else setFormData({...formData, brand: e.target.value, model: ''});
+                else setFormData({...formData, brand: e.target.value.toUpperCase(), model: ''});
               }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">Pilih Merek...</option>
-                {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b}</option>)}
+                {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b.toUpperCase()}</option>)}
                 <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
               </select>
             </div>
@@ -323,11 +323,11 @@ export default function AssetsPage() {
               </div>
               <select value={formData.model} onChange={(e) => {
                 if (e.target.value === '__ADD_NEW__') handleAddModel();
-                else setFormData({...formData, model: e.target.value});
+                else setFormData({...formData, model: e.target.value.toUpperCase()});
               }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">Pilih Model...</option>
-                {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m}</option>)}
-                <option value="Lainnya">Lainnya</option>
+                {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+                <option value="LAINNYA">LAINNYA</option>
                 <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
               </select>
             </div>
@@ -341,10 +341,10 @@ export default function AssetsPage() {
               </div>
               <select value={formData.body_type} onChange={(e) => {
                 if (e.target.value === '__ADD_NEW__') handleAddType();
-                else setFormData({...formData, body_type: e.target.value});
+                else setFormData({...formData, body_type: e.target.value.toUpperCase()});
               }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">Pilih Tipe...</option>
-                {customTypes.map(b => <option key={b} value={b}>{b}</option>)}
+                {customTypes.map(b => <option key={b} value={b}>{b.toUpperCase()}</option>)}
                 <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
               </select>
             </div>

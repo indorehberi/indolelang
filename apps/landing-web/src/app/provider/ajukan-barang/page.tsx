@@ -130,7 +130,7 @@ function ProviderAjukanBarangContent() {
   const handleAddBrand = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Merek Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customBrands.includes(trimmed)) setCustomBrands(prev => [...prev, trimmed]);
       handleChange('brand', trimmed);
       handleChange('model', '');
@@ -140,7 +140,7 @@ function ProviderAjukanBarangContent() {
   const handleAddModel = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Model Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customModels.includes(trimmed)) setCustomModels(prev => [...prev, trimmed]);
       handleChange('model', trimmed);
     }
@@ -149,7 +149,7 @@ function ProviderAjukanBarangContent() {
   const handleAddType = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Tipe Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
       handleChange('body_type', trimmed);
     }
@@ -499,15 +499,15 @@ function ProviderAjukanBarangContent() {
                         if (e.target.value === '__ADD_NEW__') {
                           handleAddBrand();
                         } else {
-                          handleChange('brand', e.target.value);
+                          handleChange('brand', e.target.value.toUpperCase());
                           handleChange('model', '');
                         }
                       }} 
                       className="panel-form-select" 
                     >
                       <option value="" disabled>Pilih Merek...</option>
-                      {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b}</option>)}
-                      <option value="Lainnya">Lainnya...</option>
+                      {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b.toUpperCase()}</option>)}
+                      <option value="LAINNYA">LAINNYA...</option>
                       <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
                     </select>
                   </div>
@@ -523,14 +523,14 @@ function ProviderAjukanBarangContent() {
                         if (e.target.value === '__ADD_NEW__') {
                           handleAddModel();
                         } else {
-                          handleChange('model', e.target.value);
+                          handleChange('model', e.target.value.toUpperCase());
                         }
                       }} 
                       className="panel-form-select" 
                     >
                       <option value="">Pilih Model...</option>
-                      {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m}</option>)}
-                      <option value="Lainnya">Lainnya...</option>
+                      {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+                      <option value="LAINNYA">LAINNYA...</option>
                       <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
                     </select>
                   </div>
@@ -546,13 +546,13 @@ function ProviderAjukanBarangContent() {
                         if (e.target.value === '__ADD_NEW__') {
                           handleAddType();
                         } else {
-                          handleChange('body_type', e.target.value);
+                          handleChange('body_type', e.target.value.toUpperCase());
                         }
                       }} 
                       className="panel-form-select"
                     >
                       <option value="">Pilih Tipe...</option>
-                      {customTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                      {customTypes.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
                       <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
                     </select>
                   </div>

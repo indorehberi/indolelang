@@ -76,7 +76,7 @@ export default function NewAssetPage() {
   const handleAddBrand = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Merek Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customBrands.includes(trimmed)) {
         setCustomBrands(prev => [...prev, trimmed]);
       }
@@ -87,7 +87,7 @@ export default function NewAssetPage() {
   const handleAddModel = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Model Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customModels.includes(trimmed)) {
         setCustomModels(prev => [...prev, trimmed]);
       }
@@ -98,7 +98,7 @@ export default function NewAssetPage() {
   const handleAddType = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Tipe Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) {
         setCustomTypes(prev => [...prev, trimmed]);
       }
@@ -524,12 +524,12 @@ export default function NewAssetPage() {
                   if (e.target.value === '__ADD_NEW__') {
                     handleAddBrand();
                   } else {
-                    setFormData({ ...formData, brand: e.target.value, model: '' });
+                    setFormData({ ...formData, brand: e.target.value.toUpperCase(), model: '' });
                   }
                 }}
               >
                 <option value="">Pilih Merek...</option>
-                {customBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+                {customBrands.map((b) => <option key={b} value={b}>{b.toUpperCase()}</option>)}
                 <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
               </select>
             </div>
@@ -553,7 +553,7 @@ export default function NewAssetPage() {
                   if (e.target.value === '__ADD_NEW__') {
                     handleAddModel();
                   } else {
-                    setFormData({ ...formData, model: e.target.value });
+                    setFormData({ ...formData, model: e.target.value.toUpperCase() });
                   }
                 }}
               >
@@ -561,8 +561,8 @@ export default function NewAssetPage() {
                 {Array.from(new Set([
                   ...(formData.brand && CAR_MODELS_BY_BRAND[formData.brand] ? CAR_MODELS_BY_BRAND[formData.brand] : []),
                   ...customModels
-                ])).map((m) => <option key={m} value={m}>{m}</option>)}
-                <option value="Lainnya">Lainnya</option>
+                ])).map((m) => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+                <option value="LAINNYA">LAINNYA</option>
                 <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
               </select>
             </div>
@@ -586,12 +586,12 @@ export default function NewAssetPage() {
                   if (e.target.value === '__ADD_NEW__') {
                     handleAddType();
                   } else {
-                    setFormData({ ...formData, body_type: e.target.value });
+                    setFormData({ ...formData, body_type: e.target.value.toUpperCase() });
                   }
                 }}
               >
                 <option value="">Pilih Tipe...</option>
-                {customTypes.map((b) => <option key={b} value={b}>{b}</option>)}
+                {customTypes.map((b) => <option key={b} value={b}>{b.toUpperCase()}</option>)}
                 <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
               </select>
             </div>
