@@ -226,6 +226,19 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     1. **Harga Dasar:** Ditampilkan di baris atas overlay box dengan format font tebal berlatar bersih.
     2. **Penawaran Tinggi:** Ditampilkan di baris bawah overlay box dengan indikator merah, teks cetak tebal, serta efek **flashing lembut (*soft pulse animation*)** yang menarik perhatian tanpa menyilaukan mata pengguna.
 
+### 17. Penambahan Vertical Scroller pada Sidebar Desktop Panel Admin, Bidder, dan Provider
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Web Admin Panel (`apps/admin-panel/`):**
+    * [globals.css](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/globals.css) (Mengaktifkan kembali visual scroller dan styling custom pada `.sidebar .sidebar-nav`)
+    * [Sidebar.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/components/layout/Sidebar.tsx) (Menambahkan properti `flexShrink: 0` pada header dan footer logout agar area menu nav fleksibel untuk di-scroll)
+  * **Public & Bidder/Provider Web App (`apps/landing-web/`):**
+    * [globals.css](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/globals.css) (Menambahkan class utilitas `.sidebar-scroller` khusus mode desktop)
+    * [BidderLayout.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/BidderLayout.tsx) (Mengaplikasikan `.sidebar-scroller` dan `overflow-y-auto` pada kontainer navigasi sidebar desktop Bidder)
+    * [ProviderLayout.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/ProviderLayout.tsx) (Mengaplikasikan `.sidebar-scroller` dan `overflow-y-auto` pada kontainer navigasi sidebar desktop Provider)
+* **Deskripsi Perubahan:**
+  * **Kompatibilitas Layar Laptop Lama/Kecil:** Sidebar pada ketiga panel (Admin, Bidder, Provider) kini dilengkapi dengan **scroller vertikal (*overflow-y-auto*)** yang halus dan terlihat jelas (*custom styled thin scrollbar*). Pengguna laptop dengan resolusi vertikal rendah (seperti 768px) kini dapat menggeser/mengisi menu navigasi ke atas dan ke bawah tanpa terpotong.
+
 
 
 
