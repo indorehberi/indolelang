@@ -197,6 +197,21 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * **Penargetan:** Filter `status: 'approved'` dipertahankan agar broadcast hanya ditujukan ke bidder (atau role target terpilih) yang sudah aktif dan terverifikasi oleh platform.
   * **Saluran Pengiriman:** Broadcast dikirimkan ke dua saluran secara paralel: **Email (SMTP)** dan **WhatsApp (Fonnte API)**. Format pesan WhatsApp dikompilasi secara otomatis menyertakan Judul Broadcast dan nama lengkap penerima.
 
+### 15. Penambahan Field WhatsApp & Validasi Kecocokan Kontak di Halaman Lupa Password
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [auth.schema.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.schema.ts) (Menambahkan validasi Zod untuk properti `phone` di `forgotPasswordSchema`)
+    * [auth.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.controller.ts) (Mengambil `phone` dari payload body dan mengirimkannya ke auth service)
+    * [auth.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.service.ts) (Menambahkan validasi kecocokan nomor WhatsApp terdaftar menggunakan perbandingan data ter-normalisasi)
+    * [auth.test.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.test.ts) (Menyesuaikan test suite forgot-password payload dengan parameter nomor ponsel)
+  * **Public Web App (`apps/landing-web/src/`):**
+    * [lupa-password/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/lupa-password/page.tsx) (Menambahkan input field Nomor WhatsApp Terdaftar, state, logic validator input, serta update pesan notifikasi sukses)
+* **Deskripsi Perubahan:**
+  * **Keamanan Form:** Pengguna yang ingin mereset password kini wajib menginputkan **Email Terdaftar** dan **Nomor WhatsApp Terdaftar**.
+  * **Verifikasi Backend:** Di level backend, sistem akan mengecek kecocokan email dan nomor telepon. Untuk mencegah kebocoran informasi (*user enumeration*), jika terjadi ketidakcocokan data, API akan tetap mengembalikan respon sukses `200` namun tidak akan mengirimkan tautan reset.
+  * **Saluran Pengiriman:** Tautan reset dikirimkan secara paralel ke **Email (SMTP)** dan **WhatsApp (Fonnte API)** setelah nomor HP dinyatakan cocok secara normalisasi (menyamakan format kode negara `62`).
+
 
 
 
