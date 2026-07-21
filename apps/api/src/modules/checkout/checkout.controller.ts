@@ -75,8 +75,8 @@ export class CheckoutController {
   verifyOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orderId = req.params.id;
-      const { status } = req.body; // 'paid' or 'rejected'
-      const updatedOrder = await checkoutService.verifyOrder(orderId, status, req.user!.id);
+      const { status, approved_invoice_ids } = req.body; // 'paid' or 'rejected', and optional array of approved invoice IDs
+      const updatedOrder = await checkoutService.verifyOrder(orderId, status, req.user!.id, approved_invoice_ids);
       sendSuccess(res, updatedOrder, 'Status pesanan berhasil diperbarui');
     } catch (error) {
       next(error);

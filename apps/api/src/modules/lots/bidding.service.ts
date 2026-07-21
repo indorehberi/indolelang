@@ -316,7 +316,14 @@ export class BiddingService {
       const holidayDates = holidaySetting?.value ? holidaySetting.value.split(',') : [];
       
       // Calculate 3 working days due date
-      const dueDate = calculateWorkingDaysDueDate(new Date(), 3, holidayDates);
+      const rawDueDate = calculateWorkingDaysDueDate(new Date(), 3, holidayDates);
+      // Set to exactly 18:00:00 WIB (11:00:00 UTC)
+      const dueDate = new Date(Date.UTC(
+        rawDueDate.getUTCFullYear(),
+        rawDueDate.getUTCMonth(),
+        rawDueDate.getUTCDate(),
+        11, 0, 0, 0
+      ));
 
       // Perform updates inside database transaction
       const [updatedLot, invoice, winnerUser] = await prisma.$transaction([

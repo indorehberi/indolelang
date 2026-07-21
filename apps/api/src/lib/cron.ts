@@ -75,6 +75,7 @@ export function initCronJobs() {
     try {
       const now = new Date();
 
+      // 1. Find and expire unpaid invoices whose due_date is past (due_date is exactly 18:00 WIB of the expiration day)
       const expiredInvoices = await prisma.invoices.findMany({
         where: {
           status: 'unpaid',
@@ -92,8 +93,65 @@ export function initCronJobs() {
           data: { status: 'expired' }
         });
       }
+
+      // 2. Revert asset status back to APPROVED for expired invoices after 23:59 WIB (16:59:59 UTC) of the expiration day
+      const expiredInvoicesToRevert = await prisma.invoices.findMany({
+        where: {
+          status: 'expired',
+          lot: {
+            asset: {
+              status: 'sold'
+            }
+          }
+        },
+        include: {
+          lot: {
+            include: {
+              asset: true
+            }
+          }
+        }
+      });
+
+      const toRevert = expiredInvoicesToRevert.filter((inv) => {
+        const dueDate = new Date(inv.due_date);
+        // due_date is set to 11:00 UTC (18:00 WIB)
+        // 23:59 WIB of the same day is 16:59 UTC
+        const endOfDayUtc = new Date(Date.UTC(
+          dueDate.getUTCFullYear(),
+          dueDate.getUTCMonth(),
+          dueDate.getUTCDate(),
+          16, 59, 59, 999
+        ));
+        return now >= endOfDayUtc;
+      });
+
+      if (toRevert.length > 0) {
+        logger.info({ count: toRevert.length }, 'CRON: Reverting asset statuses back to APPROVED for expired invoices');
+        
+        const assetIds = toRevert.map((inv) => inv.lot.asset_id).filter(Boolean);
+        
+        await prisma.$transaction([
+          prisma.assets.updateMany({
+            where: {
+              id: { in: assetIds }
+            },
+            data: {
+              status: 'approved'
+            }
+          }),
+          ...toRevert.map((inv) => prisma.audit_logs.create({
+            data: {
+              action: 'ASSET_REVERTED_EXPIRED_INVOICE',
+              resource_type: 'assets',
+              resource_id: inv.lot.asset_id,
+              new_value: JSON.stringify({ invoice_id: inv.id, reason: 'unpaid invoice expired and past grace period' }),
+            }
+          }))
+        ]);
+      }
     } catch (err) {
-      logger.error({ err }, 'CRON: Error in invoice auto-expire job');
+      logger.error({ err }, 'CRON: Error in invoice auto-expire and revert job');
     }
   });
 

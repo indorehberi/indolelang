@@ -412,7 +412,7 @@ export class CheckoutService {
   /**
    * Verify order (Admin)
    */
-  async verifyOrder(orderId: string, status: 'paid' | 'rejected', adminId: string) {
+  async verifyOrder(orderId: string, status: 'paid' | 'rejected', adminId: string, approvedInvoiceIds?: string[]) {
     const order = await prisma.checkout_orders.findUnique({
       where: { id: orderId },
       include: { invoices: true }
@@ -422,8 +422,8 @@ export class CheckoutService {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Pesanan tidak ditemukan');
     }
 
-    if (order.status !== 'pending_approval') {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Pesanan ini tidak sedang menunggu verifikasi');
+    if (order.status !== 'pending_approval' && order.status !== 'unpaid') {
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Pesanan ini tidak valid untuk diverifikasi');
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -439,10 +439,24 @@ export class CheckoutService {
       // 2. Update invoices
       if (status === 'paid') {
         for (const inv of order.invoices) {
-          await tx.invoices.update({
-            where: { id: inv.id },
-            data: { status: 'paid' }
-          });
+          // If approvedInvoiceIds is undefined, we assume full approval (backward compatible)
+          const isApproved = !approvedInvoiceIds || approvedInvoiceIds.includes(inv.id);
+          
+          if (isApproved) {
+            await tx.invoices.update({
+              where: { id: inv.id },
+              data: { status: 'paid' }
+            });
+          } else {
+            // Detach rejected invoices so they become unpaid and outstanding again
+            await tx.invoices.update({
+              where: { id: inv.id },
+              data: { 
+                status: 'unpaid',
+                order_id: null 
+              }
+            });
+          }
         }
       }
 

@@ -21,13 +21,21 @@ const optionalUuid = () =>
 const optionalBranchId = () =>
   z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().optional());
 
+const optionalCategorySchema = () =>
+  z.preprocess((v) => {
+    if (typeof v === 'string') {
+      return v.trim().toLowerCase().replace(/\s+/g, '_');
+    }
+    return v;
+  }, z.nativeEnum(AssetCategory).optional());
+
 export const createAssetSchema = z.object({
   body: z.object({
     // Submission forms (provider "Ajukan Titip Jual", admin "Tambah Barang")
     // treat every field as optional — assets.service.ts's createAsset() fills
     // in sensible defaults for category/title/base_price when omitted, since
     // those columns are NOT NULL at the DB level.
-    category: z.nativeEnum(AssetCategory).optional(),
+    category: optionalCategorySchema(),
     title: z.string().optional(),
     description: z.string().optional(),
     base_price: z.any().optional().transform(v => (v === undefined ? undefined : Number(v))),
@@ -73,14 +81,7 @@ export const createAssetSchema = z.object({
 
 export const updateAssetSchema = z.object({
   body: z.object({
-    category: z
-      .enum([
-        AssetCategory.MOBIL,
-        AssetCategory.MOTOR,
-        AssetCategory.ALAT_BERAT,
-        AssetCategory.PROPERTI,
-      ])
-      .optional(),
+    category: optionalCategorySchema(),
     title: z.string().optional(),
     description: z.string().optional(),
     base_price: z.any().optional().transform(v => (v === undefined || v === '' ? undefined : Number(v))),
@@ -155,12 +156,7 @@ export const getAssetsQuerySchema = z.object({
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
     status: z.string().optional(),
     provider_id: optionalUuid(),
-    category: z.enum([
-      AssetCategory.MOBIL,
-      AssetCategory.MOTOR,
-      AssetCategory.ALAT_BERAT,
-      AssetCategory.PROPERTI,
-    ]).optional(),
+    category: optionalCategorySchema(),
     search: z.string().optional(),
     police_number: z.string().optional(),
     branch_id: optionalBranchId(),
@@ -181,7 +177,7 @@ export const inspectAssetSchema = z.object({
     grade_exterior: z.string().optional(),
     grade_engine: z.string().optional(),
     inspection_doc_url: z.string().optional(),
-    category: z.nativeEnum(AssetCategory).optional(),
+    category: optionalCategorySchema(),
     brand: z.string().optional(),
     model: z.string().optional(),
     color: z.string().optional(),

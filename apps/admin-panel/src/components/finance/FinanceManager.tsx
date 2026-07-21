@@ -107,7 +107,10 @@ export default function FinanceManager({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-
+  // Partial Verification Modal State
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [selectedOrderToVerify, setSelectedOrderToVerify] = useState<any>(null);
+  const [approvedInvoiceIds, setApprovedInvoiceIds] = useState<string[]>([]);
 
   const fetchDeposits = async () => {
     setLoading(true);
@@ -330,6 +333,56 @@ export default function FinanceManager({
       if (json.success) {
         toast.success('Status pelunasan berhasil diperbarui');
         fetchCheckoutOrders();
+      } else {
+        toast.error(json.error?.message || 'Gagal verifikasi pelunasan');
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan sistem');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const openVerificationModal = (order: any) => {
+    setSelectedOrderToVerify(order);
+    // By default, select all invoices in the order
+    setApprovedInvoiceIds(order.invoices.map((inv: any) => inv.id));
+    setVerificationModalOpen(true);
+  };
+
+  const closeVerificationModal = () => {
+    setVerificationModalOpen(false);
+    setSelectedOrderToVerify(null);
+    setApprovedInvoiceIds([]);
+  };
+
+  const submitPartialVerification = async (status: 'paid' | 'rejected') => {
+    if (!selectedOrderToVerify) return;
+    
+    if (status === 'paid' && approvedInvoiceIds.length === 0) {
+      toast.error('Pilih setidaknya satu tagihan untuk disetujui, atau tolak pesanan.');
+      return;
+    }
+
+    if (!window.confirm(`Apakah Anda yakin ingin ${status === 'paid' ? 'menyetujui' : 'menolak'} pelunasan ini?`)) {
+      return;
+    }
+    setProcessingId(selectedOrderToVerify.id);
+    try {
+      const payload: any = { status };
+      if (status === 'paid') {
+        payload.approved_invoice_ids = approvedInvoiceIds;
+      }
+      const res = await apiFetch(`/checkout/admin/orders/${selectedOrderToVerify.id}/verify`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        toast.success('Status pelunasan berhasil diperbarui');
+        fetchCheckoutOrders();
+        closeVerificationModal();
       } else {
         toast.error(json.error?.message || 'Gagal verifikasi pelunasan');
       }
@@ -781,23 +834,15 @@ export default function FinanceManager({
                           )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {order.status === 'pending_approval' && (
+                          {(order.status === 'pending_approval' || order.status === 'unpaid') && (
                             <div className="d-flex flex-column gap-1">
                               <button
-                                onClick={() => handleVerifyCheckout(order.id, 'paid')}
+                                onClick={() => openVerificationModal(order)}
                                 disabled={processingId === order.id}
-                                className="btn btn-xs btn-success"
+                                className="btn btn-xs btn-primary"
                                 style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
                               >
-                                ✓ Setujui (Paid)
-                              </button>
-                              <button
-                                onClick={() => handleVerifyCheckout(order.id, 'rejected')}
-                                disabled={processingId === order.id}
-                                className="btn btn-xs btn-danger"
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                              >
-                                ✕ Tolak
+                                {order.status === 'unpaid' ? 'Verifikasi (Sudah Bayar)' : 'Verifikasi Pembayaran'}
                               </button>
                             </div>
                           )}
@@ -983,6 +1028,119 @@ export default function FinanceManager({
             </div>
           </Card>
         </>
+      {verificationModalOpen && selectedOrderToVerify && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="modal-content" style={{ backgroundColor: '#fff', borderRadius: '8px', width: '90%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+              Verifikasi Pelunasan (Checkout Order)
+            </h3>
+            
+            <div style={{ marginBottom: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem' }}>
+              <div>
+                <strong>ID Pesanan:</strong> {selectedOrderToVerify.id.substring(0,8)}...<br/>
+                <strong>Bidder:</strong> {selectedOrderToVerify.bidder?.full_name}
+              </div>
+              <div>
+                <strong>Total Transfer Masuk:</strong> <span className="text-primary" style={{ fontWeight: 'bold' }}>{formatRupiah(Number(selectedOrderToVerify.final_amount))}</span><br/>
+                <strong>Total Potongan NIPL:</strong> <span className="text-danger">{formatRupiah(Number(selectedOrderToVerify.deposit_deduction))}</span>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '4px', marginBottom: '20px', fontSize: '0.85rem' }}>
+              <strong>Instruksi Verifikasi Parsial:</strong> Centang unit kendaraan yang pembayarannya telah Anda validasi masuk. Hapus centang pada unit yang uangnya tidak dibayarkan (wanprestasi). Unit dengan label NIPL menandakan unit tersebut mengonsumsi deposit NIPL (NIPL akan hangus jika wanprestasi).
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f1f3f5', borderBottom: '2px solid #dee2e6' }}>
+                  <th style={{ padding: '8px', textAlign: 'center', width: '50px' }}>Lunas</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Kendaraan / Lot</th>
+                  <th style={{ padding: '8px', textAlign: 'right' }}>Harga Terbentuk</th>
+                  <th style={{ padding: '8px', textAlign: 'center' }}>Alokasi NIPL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                   const niplMobil = 5000000;
+                   const niplMotor = 1000000;
+                   let remainingDeduction = Number(selectedOrderToVerify.deposit_deduction);
+
+                   return selectedOrderToVerify.invoices.map((inv: any) => {
+                     const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
+                     const requiredNIPL = isMotor ? niplMotor : niplMobil;
+                     
+                     let hasNIPL = false;
+                     if (remainingDeduction >= requiredNIPL) {
+                       hasNIPL = true;
+                       remainingDeduction -= requiredNIPL;
+                     }
+
+                     const isApproved = approvedInvoiceIds.includes(inv.id);
+
+                     return (
+                       <tr key={inv.id} style={{ borderBottom: '1px solid #eee', backgroundColor: isApproved ? 'transparent' : '#fff5f5' }}>
+                         <td style={{ padding: '8px', textAlign: 'center' }}>
+                           <input 
+                             type="checkbox" 
+                             checked={isApproved}
+                             onChange={(e) => {
+                               if (e.target.checked) {
+                                 setApprovedInvoiceIds([...approvedInvoiceIds, inv.id]);
+                               } else {
+                                 setApprovedInvoiceIds(approvedInvoiceIds.filter(id => id !== inv.id));
+                               }
+                             }}
+                             style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                           />
+                         </td>
+                         <td style={{ padding: '8px' }}>
+                           <div style={{ fontWeight: '500' }}>{inv.lot?.asset?.title || 'Unknown Asset'}</div>
+                           <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Lot #{inv.lot?.lot_number}</div>
+                         </td>
+                         <td style={{ padding: '8px', textAlign: 'right', fontWeight: '500' }}>
+                           {formatRupiah(Number(inv.total))}
+                         </td>
+                         <td style={{ padding: '8px', textAlign: 'center' }}>
+                           {hasNIPL ? (
+                             <Badge variant="success">Pakai NIPL ({isMotor ? '1 Jt' : '5 Jt'})</Badge>
+                           ) : (
+                             <Badge variant="default">Tanpa NIPL</Badge>
+                           )}
+                         </td>
+                       </tr>
+                     );
+                   });
+                })()}
+              </tbody>
+            </table>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee', paddingTop: '16px' }}>
+              <button 
+                className="btn btn-outline-danger" 
+                onClick={() => submitPartialVerification('rejected')}
+                disabled={processingId === selectedOrderToVerify.id}
+              >
+                ✕ Tolak Pesanan
+              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="btn btn-default" 
+                  onClick={closeVerificationModal}
+                  disabled={processingId === selectedOrderToVerify.id}
+                >
+                  Batal
+                </button>
+                <button 
+                  className="btn btn-success" 
+                  onClick={() => submitPartialVerification('paid')}
+                  disabled={processingId === selectedOrderToVerify.id}
+                >
+                  ✓ Konfirmasi Pembayaran
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );
