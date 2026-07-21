@@ -212,6 +212,20 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * **Verifikasi Backend:** Di level backend, sistem akan mengecek kecocokan email dan nomor telepon. Untuk mencegah kebocoran informasi (*user enumeration*), jika terjadi ketidakcocokan data, API akan tetap mengembalikan respon sukses `200` namun tidak akan mengirimkan tautan reset.
   * **Saluran Pengiriman:** Tautan reset dikirimkan secara paralel ke **Email (SMTP)** dan **WhatsApp (Fonnte API)** setelah nomor HP dinyatakan cocok secara normalisasi (menyamakan format kode negara `62`).
 
+### 16. Tampilan Foto Lot Lelang Live (Badge 'Lelang Sedang Berlangsung', Harga Dasar, dan Harga Penawaran Tinggi Flashing Lembut)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [public.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/public/public.service.ts) (Menghubungkan data live state `activeLots` ke kueri `getFeaturedLots` agar memuat properti `current_price` real-time)
+  * **Public Web App (`apps/landing-web/src/`):**
+    * [LotCard.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/lots/LotCard.tsx) (Memperbarui komponen kartu lot publik dengan Badge 'Lelang Sedang Berlangsung', overlay 'Harga Dasar', serta 'Penawaran Tinggi' dengan animasi *soft pulse / flashing lembut*)
+    * [page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/page.tsx) (Memperbarui pemetaan lot beranda dan tampilan overlay kartu lot live pada landing page)
+* **Deskripsi Perubahan:**
+  * **Badge Status Live:** Pada foto lot yang sedang dalam sesi lelang aktif (`isLive`), ditambahkan badge merah beranimasi pulsing `🔴 Lelang Sedang Berlangsung` di pojok kanan atas foto unit.
+  * **Informasi Harga Ganda pada Foto:** Di atas bagian foto bawah, layout overlay diperbarui untuk menyajikan dua tingkat harga sekaligus saat lelang aktif:
+    1. **Harga Dasar:** Ditampilkan di baris atas overlay box dengan format font tebal berlatar bersih.
+    2. **Penawaran Tinggi:** Ditampilkan di baris bawah overlay box dengan indikator merah, teks cetak tebal, serta efek **flashing lembut (*soft pulse animation*)** yang menarik perhatian tanpa menyilaukan mata pengguna.
+
 
 
 
