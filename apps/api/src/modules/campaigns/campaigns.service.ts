@@ -40,8 +40,8 @@ export class CampaignsService {
       }
     });
 
-    // 2. Fetch target users (both active and inactive)
-    const whereClause: any = {};
+    // 2. Fetch target users (only approved)
+    const whereClause: any = { status: 'approved' };
     if (data.target_role !== 'all') {
       whereClause.role = data.target_role;
     }
@@ -52,7 +52,7 @@ export class CampaignsService {
     });
 
     if (targetUsers.length === 0) {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak ada pengguna untuk role yang dipilih');
+      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tidak ada pengguna aktif untuk role yang dipilih');
     }
 
     const notificationsToCreate = targetUsers.map(user => ({
