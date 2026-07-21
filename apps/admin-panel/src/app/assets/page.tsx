@@ -174,8 +174,49 @@ export default function AssetsPage() {
   };
 
   const COLORS = ['Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
-  const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
+  const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
   const YEARS = Array.from({length: new Date().getFullYear() - 1899}, (_, i) => new Date().getFullYear() - i);
+
+  const [customBrands, setCustomBrands] = useState<string[]>([]);
+  const [customModels, setCustomModels] = useState<string[]>([]);
+  const [customTypes, setCustomTypes] = useState<string[]>(BODY_TYPES);
+  const [customColors, setCustomColors] = useState<string[]>(COLORS);
+
+  const handleAddBrand = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Merek Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customBrands.includes(trimmed)) setCustomBrands(prev => [...prev, trimmed]);
+      setFormData((prev: any) => ({ ...prev, brand: trimmed, model: '' }));
+    }
+  };
+
+  const handleAddModel = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Model Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customModels.includes(trimmed)) setCustomModels(prev => [...prev, trimmed]);
+      setFormData((prev: any) => ({ ...prev, model: trimmed }));
+    }
+  };
+
+  const handleAddType = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
+      setFormData((prev: any) => ({ ...prev, body_type: trimmed }));
+    }
+  };
+
+  const handleAddColor = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Warna Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customColors.includes(trimmed)) setCustomColors(prev => [...prev, trimmed]);
+      setFormData((prev: any) => ({ ...prev, color: trimmed }));
+    }
+  };
 
   const getAvailableBrands = () => {
     if (formData.category === 'motor') return MOTOR_BRANDS;
@@ -261,40 +302,65 @@ export default function AssetsPage() {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Merek</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Merek</label>
+                <button type="button" onClick={() => handleAddBrand()} style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>+ Tambahkan</button>
+              </div>
               <select value={formData.brand} onChange={(e) => {
-                setFormData({...formData, brand: e.target.value, model: ''});
+                if (e.target.value === '__ADD_NEW__') handleAddBrand();
+                else setFormData({...formData, brand: e.target.value, model: ''});
               }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">Pilih Merek...</option>
-                {getAvailableBrands().map(b => <option key={b} value={b}>{b}</option>)}
+                {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
               </select>
             </div>
-            {formData.brand && (
-              <div style={{ marginBottom: '0.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipe/Model</label>
-                <select value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-                  <option value="">Pilih Tipe...</option>
-                  {getAvailableModels().map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Model</label>
+                <button type="button" onClick={() => handleAddModel()} style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>+ Tambahkan</button>
               </div>
-            )}
+              <select value={formData.model} onChange={(e) => {
+                if (e.target.value === '__ADD_NEW__') handleAddModel();
+                else setFormData({...formData, model: e.target.value});
+              }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">Pilih Model...</option>
+                {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m}</option>)}
+                <option value="Lainnya">Lainnya</option>
+                <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
+              </select>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-            {isMobil && (
-              <div style={{ marginBottom: '0.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Jenis Body</label>
-                <select value={formData.body_type} onChange={(e) => setFormData({...formData, body_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-                  <option value="">Pilih Jenis...</option>
-                  {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-            )}
             <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Warna</label>
-              <select value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Tipe</label>
+                <button type="button" onClick={() => handleAddType()} style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>+ Tambahkan</button>
+              </div>
+              <select value={formData.body_type} onChange={(e) => {
+                if (e.target.value === '__ADD_NEW__') handleAddType();
+                else setFormData({...formData, body_type: e.target.value});
+              }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+                <option value="">Pilih Tipe...</option>
+                {customTypes.map(b => <option key={b} value={b}>{b}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Warna</label>
+                <button type="button" onClick={() => handleAddColor()} style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>+ Tambahkan</button>
+              </div>
+              <select value={formData.color} onChange={(e) => {
+                if (e.target.value === '__ADD_NEW__') handleAddColor();
+                else setFormData({...formData, color: e.target.value});
+              }} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">Pilih Warna...</option>
-                {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                {customColors.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Warna Baru...</option>
               </select>
             </div>
           </div>

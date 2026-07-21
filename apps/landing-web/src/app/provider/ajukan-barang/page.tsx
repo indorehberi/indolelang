@@ -122,6 +122,48 @@ function ProviderAjukanBarangContent() {
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
 
+  const [customBrands, setCustomBrands] = useState<string[]>([]);
+  const [customModels, setCustomModels] = useState<string[]>([]);
+  const [customTypes, setCustomTypes] = useState<string[]>(BODY_TYPES);
+  const [customColors, setCustomColors] = useState<string[]>(COLORS);
+
+  const handleAddBrand = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Merek Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customBrands.includes(trimmed)) setCustomBrands(prev => [...prev, trimmed]);
+      handleChange('brand', trimmed);
+      handleChange('model', '');
+    }
+  };
+
+  const handleAddModel = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Model Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customModels.includes(trimmed)) setCustomModels(prev => [...prev, trimmed]);
+      handleChange('model', trimmed);
+    }
+  };
+
+  const handleAddType = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
+      handleChange('body_type', trimmed);
+    }
+  };
+
+  const handleAddColor = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Warna Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customColors.includes(trimmed)) setCustomColors(prev => [...prev, trimmed]);
+      handleChange('color', trimmed);
+    }
+  };
+
   const [auctionType, setAuctionType] = useState("English Auction");
   const [enabledTypes, setEnabledTypes] = useState<string[]>(["English Auction", "Dutch Auction", "Sealed-Bid", "Timed Auction", "Buy Now + Auction", "Group/Bundle"]);
   const [enabledCategories, setEnabledCategories] = useState({ mobil: true, motor: true, properti: false, heavy: false });
@@ -445,43 +487,74 @@ function ProviderAjukanBarangContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Merek (Brand)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="panel-form-label mb-0">Merek (Brand)</label>
+                      <button type="button" onClick={() => handleAddBrand()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
+                    </div>
                     <select 
                       value={formData.brand} 
                       onChange={(e) => {
-                        handleChange('brand', e.target.value);
-                        handleChange('model', '');
+                        if (e.target.value === '__ADD_NEW__') {
+                          handleAddBrand();
+                        } else {
+                          handleChange('brand', e.target.value);
+                          handleChange('model', '');
+                        }
                       }} 
                       className="panel-form-select" 
                     >
                       <option value="" disabled>Pilih Merek...</option>
-                      {getAvailableBrands().map(b => <option key={b} value={b}>{b}</option>)}
+                      {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b}</option>)}
                       <option value="Lainnya">Lainnya...</option>
+                      <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
                     </select>
                   </div>
+
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Model / Tipe Unit</label>
-                    {formData.brand && formData.brand !== 'Lainnya' && getAvailableModels().length > 0 ? (
-                      <select 
-                        value={formData.model} 
-                        onChange={(e) => handleChange('model', e.target.value)} 
-                        className="panel-form-select" 
-                      >
-                        <option value="" disabled>Pilih Model...</option>
-                        {getAvailableModels().map(m => <option key={m} value={m}>{m}</option>)}
-                        <option value="Lainnya">Lainnya...</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formData.model}
-                        onChange={(e) => handleChange('model', e.target.value)}
-                        placeholder="Contoh: Avanza G 1.3 MT"
-                        className="panel-form-input"
-                      />
-                    )}
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="panel-form-label mb-0">Model</label>
+                      <button type="button" onClick={() => handleAddModel()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
+                    </div>
+                    <select 
+                      value={formData.model} 
+                      onChange={(e) => {
+                        if (e.target.value === '__ADD_NEW__') {
+                          handleAddModel();
+                        } else {
+                          handleChange('model', e.target.value);
+                        }
+                      }} 
+                      className="panel-form-select" 
+                    >
+                      <option value="">Pilih Model...</option>
+                      {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m}</option>)}
+                      <option value="Lainnya">Lainnya...</option>
+                      <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
+                    </select>
+                  </div>
+
+                  <div className="panel-form-group">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="panel-form-label mb-0">Tipe</label>
+                      <button type="button" onClick={() => handleAddType()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
+                    </div>
+                    <select 
+                      value={formData.body_type} 
+                      onChange={(e) => {
+                        if (e.target.value === '__ADD_NEW__') {
+                          handleAddType();
+                        } else {
+                          handleChange('body_type', e.target.value);
+                        }
+                      }} 
+                      className="panel-form-select"
+                    >
+                      <option value="">Pilih Tipe...</option>
+                      {customTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                      <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
+                    </select>
                   </div>
                 </div>
 
@@ -563,10 +636,21 @@ function ProviderAjukanBarangContent() {
                 <h3 className="font-semibold text-lg text-primary mb-3">2. Spesifikasi Unit</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Warna</label>
-                    <select value={formData.color} onChange={(e) => handleChange('color', e.target.value)} className="panel-form-select">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="panel-form-label mb-0">Warna</label>
+                      <button type="button" onClick={() => handleAddColor()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
+                    </div>
+                    <select 
+                      value={formData.color} 
+                      onChange={(e) => {
+                        if (e.target.value === '__ADD_NEW__') handleAddColor();
+                        else handleChange('color', e.target.value);
+                      }} 
+                      className="panel-form-select"
+                    >
                       <option value="">Pilih Warna...</option>
-                      {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                      {customColors.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__ADD_NEW__">+ Tambahkan Warna Baru...</option>
                     </select>
                   </div>
                   <div className="panel-form-group">
@@ -590,15 +674,6 @@ function ProviderAjukanBarangContent() {
                       <option value="N/A">N/A</option>
                     </select>
                   </div>
-                  {formData.category !== "motor" && (
-                    <div className="panel-form-group">
-                      <label className="panel-form-label">Tipe Bodi</label>
-                      <select value={formData.body_type} onChange={(e) => handleChange('body_type', e.target.value)} className="panel-form-select">
-                        <option value="">Pilih Tipe...</option>
-                        {BODY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-4">

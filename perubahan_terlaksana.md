@@ -283,6 +283,20 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     * **Bidder Aktif (Pengirim Bid):** Modal *"Maaf Anda Belum Memenangkan Lot Ini"* **HANYA** ditampilkan kepada bidder yang memang pernah mengajukan penawaran harga (*placed a bid*) pada lot tersebut tetapi kalah oleh harga penawaran bidder lain.
     * **Pemenang Lelang:** Bidder pemenang tetap menerima modal perayaan *"Selamat Anda Memenangkan Lot X!"* beserta tombol pembayaran pelunasan.
 
+### 21. Field Tipe & Fitur "+ Tambahkan Option" pada Dropdown Barang (Admin & Provider)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [assets/new/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/new/page.tsx) (Form Tambah Barang Baru Admin)
+  * [assets/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/page.tsx) (Form Modal Tambah & Kelola Barang Admin)
+  * [assets/[id]/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/[id]/page.tsx) (Form Detail & Edit Barang Admin)
+  * [ajukan-barang/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/ajukan-barang/page.tsx) (Form Ajukan Titip Jual Provider)
+* **Deskripsi Perubahan:**
+  * **Pemberian Nama Label "Model":** Mengubah label yang sebelumnya *"Model / Tipe"* atau *"Tipe/Model"* menjadi **"Model"**.
+  * **Penambahan Field "Tipe" (Dropdown List):** Menambahkan field isian baru **"Tipe"** (dropdown list) yang diletakkan tepat setelah field **"Model"** pada form Tambah Barang Admin & Form Titip Jual Provider (tersimpan pada kolom `body_type`).
+  * **Fitur "+ Tambahkan" pada Options Dropdown:**
+    * Menyediakan opsi `+ Tambahkan [Field] Baru...` di dalam menu dropdown dan tombol `+ Tambahkan` di samping label untuk field **Merek**, **Model**, **Tipe**, dan **Warna**.
+    * Admin maupun Provider dapat menambahkan pilihan kustom baru secara langsung tanpa perlu repot keluar dari form. Opsi baru otomatis terpilih dan tersimpan bersama formulir.
+
 
 
 

@@ -68,6 +68,55 @@ const Field = ({ label, required, error, children }: { label: string; required?:
 export default function NewAssetPage() {
   const router = useRouter();
   
+  const [customBrands, setCustomBrands] = useState<string[]>(BRAND_OPTIONS);
+  const [customModels, setCustomModels] = useState<string[]>([]);
+  const [customTypes, setCustomTypes] = useState<string[]>(BODY_OPTIONS);
+  const [customColors, setCustomColors] = useState<string[]>(COLOR_OPTIONS);
+
+  const handleAddBrand = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Merek Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customBrands.includes(trimmed)) {
+        setCustomBrands(prev => [...prev, trimmed]);
+      }
+      setFormData(prev => ({ ...prev, brand: trimmed, model: '' }));
+    }
+  };
+
+  const handleAddModel = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Model Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customModels.includes(trimmed)) {
+        setCustomModels(prev => [...prev, trimmed]);
+      }
+      setFormData(prev => ({ ...prev, model: trimmed }));
+    }
+  };
+
+  const handleAddType = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customTypes.includes(trimmed)) {
+        setCustomTypes(prev => [...prev, trimmed]);
+      }
+      setFormData(prev => ({ ...prev, body_type: trimmed }));
+    }
+  };
+
+  const handleAddColor = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Warna Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim();
+      if (!customColors.includes(trimmed)) {
+        setCustomColors(prev => [...prev, trimmed]);
+      }
+      setFormData(prev => ({ ...prev, color: trimmed }));
+    }
+  };
+  
   const [formData, setFormData] = useState({
     // Basic Info
     provider_id: '',
@@ -456,25 +505,125 @@ export default function NewAssetPage() {
         {/* Section 3: Data & Verifikasi Kendaraan */}
         <Card title="3. Spesifikasi Kendaraan">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <Field label="Merek">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })}>
-                <option value="">Pilih...</option>
-                {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Merek</label>
+                <button
+                  type="button"
+                  onClick={() => handleAddBrand()}
+                  style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  + Tambahkan
+                </button>
+              </div>
+              <select
+                className="form-select"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                value={formData.brand}
+                onChange={e => {
+                  if (e.target.value === '__ADD_NEW__') {
+                    handleAddBrand();
+                  } else {
+                    setFormData({ ...formData, brand: e.target.value, model: '' });
+                  }
+                }}
+              >
+                <option value="">Pilih Merek...</option>
+                {customBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
               </select>
-            </Field>
-            <Field label="Tipe / Model">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })}>
-                <option value="">Pilih...</option>
-                {(formData.brand && CAR_MODELS_BY_BRAND[formData.brand] ? CAR_MODELS_BY_BRAND[formData.brand] : []).map((m) => <option key={m} value={m}>{m}</option>)}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Model</label>
+                <button
+                  type="button"
+                  onClick={() => handleAddModel()}
+                  style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  + Tambahkan
+                </button>
+              </div>
+              <select
+                className="form-select"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                value={formData.model}
+                onChange={e => {
+                  if (e.target.value === '__ADD_NEW__') {
+                    handleAddModel();
+                  } else {
+                    setFormData({ ...formData, model: e.target.value });
+                  }
+                }}
+              >
+                <option value="">Pilih Model...</option>
+                {Array.from(new Set([
+                  ...(formData.brand && CAR_MODELS_BY_BRAND[formData.brand] ? CAR_MODELS_BY_BRAND[formData.brand] : []),
+                  ...customModels
+                ])).map((m) => <option key={m} value={m}>{m}</option>)}
                 <option value="Lainnya">Lainnya</option>
+                <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
               </select>
-            </Field>
-            <Field label="Warna">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })}>
-                <option value="">Pilih...</option>
-                {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Tipe</label>
+                <button
+                  type="button"
+                  onClick={() => handleAddType()}
+                  style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  + Tambahkan
+                </button>
+              </div>
+              <select
+                className="form-select"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                value={formData.body_type}
+                onChange={e => {
+                  if (e.target.value === '__ADD_NEW__') {
+                    handleAddType();
+                  } else {
+                    setFormData({ ...formData, body_type: e.target.value });
+                  }
+                }}
+              >
+                <option value="">Pilih Tipe...</option>
+                {customTypes.map((b) => <option key={b} value={b}>{b}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
               </select>
-            </Field>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Warna</label>
+                <button
+                  type="button"
+                  onClick={() => handleAddColor()}
+                  style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  + Tambahkan
+                </button>
+              </div>
+              <select
+                className="form-select"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                value={formData.color}
+                onChange={e => {
+                  if (e.target.value === '__ADD_NEW__') {
+                    handleAddColor();
+                  } else {
+                    setFormData({ ...formData, color: e.target.value });
+                  }
+                }}
+              >
+                <option value="">Pilih Warna...</option>
+                {customColors.map((c) => <option key={c} value={c}>{c}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Warna Baru...</option>
+              </select>
+            </div>
             
             <Field label="Bahan Bakar">
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.fuel_type} onChange={e => setFormData({ ...formData, fuel_type: e.target.value })}>
@@ -486,12 +635,6 @@ export default function NewAssetPage() {
               <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.transmission} onChange={e => setFormData({ ...formData, transmission: e.target.value })}>
                 <option value="">Pilih...</option>
                 {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </Field>
-            <Field label="Jenis Body">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.body_type} onChange={e => setFormData({ ...formData, body_type: e.target.value })}>
-                <option value="">Pilih...</option>
-                {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
             </Field>
 

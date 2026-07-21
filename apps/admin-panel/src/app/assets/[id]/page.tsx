@@ -616,12 +616,12 @@ export default function AssetDetailPage() {
           <Card title="Spesifikasi Kendaraan">
             {editMode ? (
               <>
-                <EditField label="Merek (Brand)" value={form.brand} onChange={(v) => { handleFormChange('brand', v); handleFormChange('model', ''); }} type="select" options={BRAND_OPTIONS} />
-                <EditField label="Model / Tipe" value={form.model} onChange={(v) => handleFormChange('model', v)} type="select" options={form.brand && CAR_MODELS_BY_BRAND[form.brand as string] ? [...CAR_MODELS_BY_BRAND[form.brand as string], 'Lainnya'] : ['Lainnya']} />
+                <EditField label="Merek" value={form.brand} onChange={(v) => { handleFormChange('brand', v); handleFormChange('model', ''); }} type="select" options={BRAND_OPTIONS} />
+                <EditField label="Model" value={form.model} onChange={(v) => handleFormChange('model', v)} type="select" options={form.brand && CAR_MODELS_BY_BRAND[form.brand as string] ? [...CAR_MODELS_BY_BRAND[form.brand as string], 'Lainnya'] : ['Lainnya']} />
+                <EditField label="Tipe" value={form.body_type} onChange={(v) => handleFormChange('body_type', v)} />
                 <EditField label="Warna" value={form.color} onChange={(v) => handleFormChange('color', v)} type="select" options={COLOR_OPTIONS} />
                 <EditField label="Jenis Bahan Bakar" value={form.fuel_type} onChange={(v) => handleFormChange('fuel_type', v)} type="select" options={['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV']} />
                 <EditField label="Transmisi" value={form.transmission} onChange={(v) => handleFormChange('transmission', v)} type="select" options={['N/A', 'Manual', 'Otomatis']} />
-                <EditField label="Tipe Bodi" value={form.body_type} onChange={(v) => handleFormChange('body_type', v)} />
                 <EditField label="Tahun" value={form.year} onChange={(v) => handleFormChange('year', v)} />
                 <EditField label="No Polisi" value={form.police_number} onChange={(v) => handleFormChange('police_number', v)} />
                 <EditField label="No BPKB" value={form.bpkb_number} onChange={(v) => handleFormChange('bpkb_number', v)} />
@@ -632,8 +632,9 @@ export default function AssetDetailPage() {
               </>
             ) : (
               <>
-                <InfoRow label="Merek (Brand)" value={asset.brand} />
-                <InfoRow label="Model / Tipe" value={asset.model} />
+                <InfoRow label="Merek" value={asset.brand} />
+                <InfoRow label="Model" value={asset.model} />
+                <InfoRow label="Tipe" value={asset.body_type} />
                 <InfoRow label="Warna" value={asset.color} />
                 <InfoRow label="Jenis Bahan Bakar" value={asset.fuel_type} />
                 <InfoRow label="Transmisi" value={asset.transmission} />
