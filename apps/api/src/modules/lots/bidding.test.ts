@@ -1,6 +1,22 @@
-import { biddingService } from './bidding.service';
+import { biddingService, calculateWorkingDaysDueDate } from './bidding.service';
 
 describe('Bidding Engine Logic Unit Tests', () => {
+  describe('calculateWorkingDaysDueDate', () => {
+    it('should correctly skip weekends', () => {
+      // Friday 2026-07-17. 3 working days: Mon 20, Tue 21, Wed 22.
+      const start = new Date('2026-07-17T12:00:00');
+      const due = calculateWorkingDaysDueDate(start, 3, []);
+      expect(due.toISOString().slice(0, 10)).toBe('2026-07-22');
+    });
+
+    it('should skip weekends and national holidays', () => {
+      // Friday 2026-07-17. Monday 2026-07-20 is holiday. 3 working days: Tue 21, Wed 22, Thu 23.
+      const start = new Date('2026-07-17T12:00:00');
+      const due = calculateWorkingDaysDueDate(start, 3, ['2026-07-20']);
+      expect(due.toISOString().slice(0, 10)).toBe('2026-07-23');
+    });
+  });
+
   describe('getMinIncrement', () => {
     it('should return 500,000 for current price < 10,000,000', () => {
       expect(biddingService.getMinIncrement(5_000_000)).toBe(500_000);

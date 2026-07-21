@@ -93,6 +93,8 @@ export class LotsService {
         bidder_count: live ? live.bidsCount : undefined,
         extension_count: live ? live.extensionCount : undefined,
         bidder_id: live ? (live.highestBidderMasked || '-') : undefined,
+        bidder_name: live ? (live.highestBidderName || '-') : undefined,
+        nipl_code: live ? (live.highestBidderNipl || '-') : undefined,
         asset: {
           id: l.asset.id,
           provider_id: l.asset.provider_id,
@@ -725,6 +727,29 @@ export class LotsService {
       daily: dailyCounts.map((bids, i) => ({ name: String(i + 1), bids })),
       monthly: monthlyCounts.map((bids, i) => ({ name: monthNames[i], bids })),
     };
+  }
+
+  async getLotBids(lotId: string): Promise<any[]> {
+    const bids = await prisma.bids.findMany({
+      where: { lot_id: lotId },
+      orderBy: { created_at: 'desc' },
+      include: {
+        bidder: {
+          select: {
+            full_name: true,
+          },
+        },
+      },
+    });
+
+    return bids.map((b) => ({
+      id: b.id,
+      bidder_id: `Peserta #${b.bidder_id.substring(0, 4).toUpperCase()}`,
+      bidder_name: b.bidder.full_name,
+      nipl_code: `NIPL-${b.bidder_id.substring(0, 8).toUpperCase()}`,
+      amount: Number(b.amount),
+      created_at: b.created_at,
+    }));
   }
 }
 

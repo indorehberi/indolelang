@@ -295,7 +295,7 @@ export default function BidderDashboard() {
         <div className="alert-box danger">
           <span className="material-symbols-outlined">error</span>
           <div>
-            <strong>⚠️ Profil Belum Lengkap:</strong> Anda harus melengkapi data profil (No. HP, Alamat, dan Rekening Bank) sebelum dapat melakukan verifikasi KYC.
+            <strong>⚠️ Profil Belum Lengkap:</strong> Anda harus melengkapi data profil (No. HP, Alamat, dan Rekening Bank) sebelum dapat melakukan verifikasi KTP.
             <Link href="/bidder/profile" className="ml-2 font-bold underline hover:text-red-950">Lengkapi Profil</Link>
           </div>
         </div>
@@ -303,8 +303,8 @@ export default function BidderDashboard() {
         <div className="alert-box danger">
           <span className="material-symbols-outlined">report</span>
           <div>
-            <strong>❌ Akun Bidder Belum Aktif:</strong> {rejectionReason ? `Pengajuan Anda ditolak admin: ${rejectionReason}. Harap lengkapi ulang profil & KYC Anda.` : 'Anda belum melengkapi pendaftaran Bidder atau KYC. Anda belum bisa ikut lelang.'}
-            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-red-950">Verifikasi KYC</Link>
+            <strong>❌ Akun Bidder Belum Aktif:</strong> {rejectionReason ? `Pengajuan Anda ditolak admin: ${rejectionReason}. Harap lengkapi ulang profil & verifikasi KTP Anda.` : 'Anda belum melengkapi pendaftaran Bidder atau verifikasi KTP. Anda belum bisa ikut lelang.'}
+            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-red-950">Verifikasi KTP</Link>
           </div>
         </div>
       ) : bidderStatus === "antri" ? (

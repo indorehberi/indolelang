@@ -37,7 +37,8 @@
   "author": "Indo-Lelang Team",
   "license": "UNLICENSED",
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "ssh2": "^1.17.0"
   },
   "dependencies": {
     "jspdf": "^4.2.1",

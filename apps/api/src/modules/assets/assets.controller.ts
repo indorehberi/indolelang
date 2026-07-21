@@ -3,6 +3,9 @@ import { AssetsService } from './assets.service';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
 import { Role } from '@indo-lelang/shared-types';
+import { prisma } from '../../config/database';
+import { AppError } from '../../lib/appError';
+import { ErrorCode } from '@indo-lelang/utils';
 
 const assetsService = new AssetsService();
 
@@ -61,6 +64,14 @@ export class AssetsController {
       const isAdmin = req.user!.role !== Role.PROVIDER;
       if (isAdmin && req.body.provider_id) {
         providerId = req.body.provider_id;
+      } else if (req.user!.role === Role.PROVIDER) {
+        // Enforce provider verification check before submitting consignment (titip jual)
+        const provider = await prisma.providers.findUnique({
+          where: { user_id: req.user!.id }
+        });
+        if (!provider || provider.status !== 'aktif') {
+          throw new AppError(403, ErrorCode.FORBIDDEN, 'Akun Anda belum aktif/terverifikasi. Anda tidak dapat mengajukan titip jual.');
+        }
       }
       req.body.created_by_admin = isAdmin;
       const asset = await assetsService.createAsset(req.body, providerId);

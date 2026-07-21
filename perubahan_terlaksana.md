@@ -1,0 +1,172 @@
+# 📋 Log Perubahan & Perbaikan Terlaksana — BIDKU
+
+Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara lokal di repositori dan siap di-deploy ke server production setelah seluruh proses pengerjaan selesai.
+
+## Alur Kerja Pengerjaan:
+`User Request ➡️ AI Eksekusi & Uji ➡️ AI Update Log ini ➡️ User Request Berikutnya ➡️ ... ➡️ Deploy ke Production`
+
+---
+
+## 🛠️ Daftar Perubahan & Perbaikan
+
+### 1. WhatsApp Reset Password & Penyelarasan Halaman Registrasi
+* **Status:**  Selesai & Teruji
+* **File yang Diubah:**
+  * [api/src/modules/auth/auth.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.service.ts)
+  * [landing-web/src/app/register/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/register/page.tsx)
+* **Deskripsi Perubahan:**
+  * Backend API mendeteksi nomor handphone terdaftar dan mengirimkan link reset password secara simultan ke email (SMTP) dan WhatsApp (Fonnte).
+  * Tagline pendaftaran diubah menjadi: *"Daftar akun dan dapatkan fitur lelang modern dari BIDKU"*.
+  * Menambahkan petunjuk di bawah kolom WA pendaftaran: *"Email dan No WA digunakan untuk reset Lupa Password."*
+  * Label kolom isian form pendaftaran disederhanakan menjadi: *Nama sesuai KTP*, *Email*, *No WA*, *Password*, dan *Konfirmasi Password*.
+
+### 2. Perbaikan Deep Link Reset Password di PWA (HP/Mobile)
+* **Status:**  Selesai & Teruji
+* **File yang Diubah:**
+  * [landing-web/src/components/pwa/PWASplashScreen.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/pwa/PWASplashScreen.tsx)
+  * [landing-web/src/app/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/page.tsx)
+* **Deskripsi Perubahan:**
+  * Memperbaiki *race condition* redirection splash screen PWA di HP. Redirect otomatis ke halaman login sekarang hanya dipicu jika pengguna berada di beranda root (`/`). Membuka link reset password (deep link) tidak lagi dialihkan ke login secara tidak sengaja.
+
+### 3. Keamanan Kuota NIPL & Kebocoran Transaksi Akun Baru
+* **Status:**  Selesai & Teruji
+* **File yang Diubah:**
+  * [api/src/modules/deposits/deposits.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/deposits/deposits.controller.ts)
+  * [api/src/modules/documents/documents.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/documents/documents.controller.ts)
+  * [api/src/modules/deposits/deposits.test.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/deposits/deposits.test.ts)
+  * [api/src/modules/documents/documents.test.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/documents/documents.test.ts)
+* **Deskripsi Perubahan:**
+  * Membatasi endpoint API `/deposits` dan `/invoices` agar memaksa pengguna non-staf (role `user` dan `bidder`) hanya bisa melihat transaksinya sendiri.
+  * Memperbaiki bug di mana akun baru yang baru didaftarkan (role `user`) secara tidak sengaja memperoleh daftar transaksi simulasi user lain sehingga memicu tampilan "NIPL Unlimited" palsu di PWA.
+  * Memperbaiki urutan pembersihan database di unit test modul deposit & dokumen agar tidak crash akibat constraint *foreign key*.
+
+### 4. Responsivitas & Penyelarasan Form Verifikasi KTP (Pengganti eKYC)
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * [landing-web/src/app/ekyc/upload/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/ekyc/upload/page.tsx)
+  * [landing-web/src/app/ekyc/status/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/ekyc/status/page.tsx)
+  * [landing-web/src/app/bidder/dashboard/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/dashboard/page.tsx)
+  * [landing-web/src/app/bidder/deposit/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/deposit/page.tsx)
+  * [landing-web/src/app/bidder/profile/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/profile/page.tsx)
+* **Deskripsi Perubahan:**
+  * Menyelaraskan seluruh isian form agar seragam di mode PWA (Mobile) dan Desktop. Seluruh kolom isian (NIK, Alamat Lengkap, Pekerjaan, Bank, No Rekening, Konfirmasi No Rekening, A/N Rekening, Unggah Foto KTP, dan Unggah/Ambil Foto Selfie via Kamera) dipertahankan sepenuhnya.
+  * Meningkatkan responsivitas tampilan form pada layar lebar (Desktop). Lebar container kartu form verifikasi ditingkatkan (`md:max-w-[720px]`). Kolom isian upload Foto KTP dan Foto Selfie kini disusun berdampingan secara horizontal (2 kolom) pada tampilan desktop, sehingga tidak memanjang ke bawah.
+  * Mengubah seluruh istilah "eKYC" atau "KYC" pada halaman verifikasi, status verifikasi, dashboard, info deposit, dan halaman profil menjadi **"Verifikasi KTP"** atau **"KTP"** agar konsisten di seluruh platform.
+
+### 5. Verifikasi Provider, Pembatasan Titip Jual, Snapshot Transaksi, & Checkbox Persetujuan Profil
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/prisma/schema.prisma](file:///c:/Users/han/Herd/indo-lelang/apps/api/prisma/schema.prisma) (Menambahkan model `transaction_profiles`)
+    * [api/prisma/migrations/20260720020000_add_transaction_profiles/migration.sql](file:///c:/Users/han/Herd/indo-lelang/apps/api/prisma/migrations/20260720020000_add_transaction_profiles/migration.sql) (Migrasi SQL untuk produksi)
+    * [api/src/modules/providers/providers.schema.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.schema.ts) (Menambahkan NIK dan merelaksasi NPWP/Nama Perusahaan)
+    * [api/src/modules/providers/providers.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.service.ts) (Menerima NIK & memproses data opsional)
+    * [api/src/modules/users/users.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/users/users.service.ts) (Mensinkronisasi update data user PIC ke tabel providers)
+    * [api/src/modules/assets/assets.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/assets/assets.controller.ts) (Menolak pengajuan titip jual / asset creation jika status provider !== `'aktif'`)
+    * [api/src/modules/lots/bidding.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/bidding.service.ts) (Menyimpan snapshot data bidder pemenang saat lot laku)
+    * [api/src/modules/payments/payments.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/payments/payments.service.ts) (Menyimpan snapshot data provider saat settlement dibuat, serta menyajikan snapshot data pada pencarian)
+    * [api/src/modules/documents/documents.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/documents/documents.service.ts) (Menerapkan snapshot data profil ke dokumen PDF Invoice, Surat Jalan, BAST, dan BAPL)
+  * **Frontend Web (`apps/landing-web`):**
+    * [landing-web/src/app/register/provider/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/register/provider/page.tsx) (Halaman verifikasi provider baru dengan form KTP + Selfie + Tipe Provider + NPWP Opsional + Kamera Selfie)
+    * [landing-web/src/app/provider/status/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/status/page.tsx) (Memperbaiki nama brand)
+    * [landing-web/src/app/provider/ajukan-barang/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/ajukan-barang/page.tsx) (Memeriksa verifikasi provider sebelum akses form titip jual)
+    * [landing-web/src/app/bidder/profile/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/profile/page.tsx) (Menambahkan checkbox persetujuan syarat update data profil)
+    * [landing-web/src/app/provider/profile/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/profile/page.tsx) (Menambahkan checkbox persetujuan syarat update data profil)
+* **Deskripsi Perubahan:**
+  * **Verifikasi & Proteksi Provider:** Provider kini memiliki sistem verifikasi KTP dan Selfie kamera yang identik dengan bidder, ditambah dengan dropdown Tipe Provider (perorangan, perusahaan swasta, perusahaan negara) dan input NPWP (opsional). Halaman "Ajukan Titip Jual" di frontend dan endpoint API asset creation diblokir serta dialihkan dengan status `403 Forbidden` jika akun provider belum terverifikasi/aktif.
+  * **Snapshot Transaksi (Immutable History):** Ditambahkan tabel database `transaction_profiles` yang otomatis mencatat snapshot identitas (nama, alamat, email, telepon, NIK, NPWP, bank, dll.) milik bidder (saat memenangkan lelang) dan provider (saat settlement dibuat). Dokumen PDF transaksi (Invoice, Surat Jalan, BAST, BAPL) yang diterbitkan setelah perubahan profil akan tetap menampilkan data snapshot pada waktu transaksi terjadi, menjamin data transaksi lama tidak berubah secara retroaktif.
+  * **Checkbox Persetujuan:** Menambahkan klausul persetujuan wajib di halaman edit profil bidder dan provider: *"Perubahan data profil berlaku untuk transaksi berikutnya. Transaksi yang telah terjadi sebelumnya tidak akan berubah."* yang wajib dicentang sebelum dapat menyimpan perubahan data profil.
+
+### 6. Waktu Pelunasan 3 Hari Kerja & Pengaturan Hari Libur Nasional
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/src/modules/lots/bidding.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/bidding.service.ts) (Menambahkan fungsi `calculateWorkingDaysDueDate` dan menghitung `due_date` invoice dinamis)
+    * [api/src/modules/lots/bidding.test.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/bidding.test.ts) (Menambahkan unit test untuk validasi kalkulasi hari kerja dan tanggal libur)
+  * **Frontend Admin Panel (`apps/admin-panel`):**
+    * [admin-panel/src/app/settings/platform/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/settings/platform/page.tsx) (Menambahkan kartu visual untuk "Hari Libur Nasional" dengan isian dinamis, tombol tambah/hapus baris tanggal, dan sinkronisasi API)
+* **Deskripsi Perubahan:**
+  * **Kalkulasi Hari Kerja:** Batas waktu pelunasan lelang (due date) kini dihitung sebagai 3 hari kerja sejak lot terjual. Hari Sabtu, Minggu, dan hari libur nasional tidak dihitung sebagai hari kerja.
+  * **Pengelolaan Hari Libur:** Menambahkan isian dinamis untuk Tanggal Hari Libur Nasional di menu Pengaturan Platform Admin Panel. Admin dapat dengan mudah menambah baris tanggal libur baru (*tambah tanggal*) dan menghapusnya (*hapus tanggal*) serta menyimpannya ke database platform settings.
+  * **Unit Test Lulus:** Unit test untuk `calculateWorkingDaysDueDate` dan test suite `bidding.test.ts` lulus 100% dengan validasi skenario pelompatan akhir pekan dan libur nasional.
+
+### 7. Integrasi Link Sosial Media Dinamis di Footer
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/src/modules/public/public.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/public/public.service.ts) (Mengizinkan kunci yang berawalan `socmed_` diakses secara publik)
+  * **Frontend Admin Panel (`apps/admin-panel`):**
+    * [admin-panel/src/app/settings/platform/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/settings/platform/page.tsx) (Menambahkan kartu visual "Link Sosial Media" berisi input teks untuk link Instagram, Facebook, TikTok, YouTube, dan Twitter)
+  * **Frontend Web (`apps/landing-web`):**
+    * [landing-web/src/components/layout/Footer.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/Footer.tsx) (Mengambil link sosial media secara dinamis dari API public settings dan merender icon interaktif yang responsif di footer)
+  * **Tampilan Kaki (Footer) Website:** Link sosial media yang aktif (tidak kosong) akan ditampilkan di kolom "Brand & Hubungi Kami" pada bagian bawah (footer) website dengan style modern dan efek hover warna ikon masing-masing platform.
+
+### 8. Penyaringan Pengguna Terhapus (Soft-Deleted) pada Daftar Bidder & Provider
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/src/modules/bidders/bidders.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/bidders/bidders.service.ts) (Menambahkan filter `deleted_at: null` pada query `getBidders`)
+    * [api/src/modules/providers/providers.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.service.ts) (Menambahkan filter `deleted_at: null` pada query `getProviders`)
+    * [api/src/modules/assets/assets.test.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/assets/assets.test.ts) (Penyelarasan user & status aktif provider pada pengujian integrasi aset)
+  * **Solusi Perbaikan:** Menambahkan filter relasional `user: { deleted_at: null }` pada query pencarian dan pagination bidder (`getBidders`) serta provider (`getProviders`). Pengguna yang sudah dihapus kini langsung bersih dan hilang dari daftar admin panel secara real-time.
+
+### 9. Penghapusan Card "Tindakan Mitra" di Beranda Provider
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Frontend Web (`apps/landing-web`):**
+    * [landing-web/src/app/provider/dashboard/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/dashboard/page.tsx) (Menghapus card "Tindakan Mitra" dan mengubah layout grid kolom samping menjadi satu kolom full-width)
+* **Deskripsi Perubahan:**
+  * **Penyederhanaan Dashboard:** Menghapus card "Tindakan Mitra" pada sisi kanan beranda provider.
+  * **Layout Responsif Baru:** Mengubah layout utama dari 2-kolom (`grid-2-1`) menjadi satu kolom full-width yang rapi. Card "Inventori Aset Terdaftar" dan "Grafik Penjualan Bulanan" kini melebar secara proporsional mengisi ruang dashboard secara efisien.
+
+### 10. Sinkronisasi & Filter Duplikasi Live Bids Log (Ruang Kontrol)
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/src/modules/lots/lots.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/lots.service.ts) (Menambahkan REST API method `getLotBids` untuk mengambil riwayat penawaran langsung dari database)
+    * [api/src/modules/lots/lots.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/lots.controller.ts) (Menambahkan handler endpoint `getLotBids`)
+    * [api/src/modules/lots/lots.routes.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/lots.routes.ts) (Mendaftarkan rute `GET /lots/:id/bids`)
+    * [api/src/lib/socket.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/lib/socket.ts) (Menambahkan data `created_at` timestamp dari database pada siaran WebSocket `bid:update`)
+  * **Frontend Admin Panel (`apps/admin-panel`):**
+    * [admin-panel/src/app/auction/control-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/control-room/page.tsx) (Mengambil riwayat penawaran dari database saat inisialisasi lot, menyaring tick countdown duplikat dari WebSocket agar tidak mengacaukan log, dan menggunakan `created_at` untuk formatting waktu bid)
+  * **Frontend Web (`apps/landing-web`):**
+    * [landing-web/src/app/bidder/bidding-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/bidding-room/page.tsx) (Melakukan inisialisasi riwayat penawaran dari database dan menyelaraskan penulisan waktu log menggunakan database timestamp `created_at`)
+* **Deskripsi Perubahan:**
+  * **Penyebab Masalah:** Backend memancarkan event `bid:update` setiap 1 detik sebagai tick countdown timer lelang. Sebelumnya di sisi Admin Panel, setiap kali event tersebut diterima, client langsung memasukkan data penawaran terbaru ke log tanpa memverifikasi apakah harga/penawarannya berbeda dari sebelumnya. Hal ini membuat log dipenuhi oleh data duplikat setiap detik, yang jika terjadi delay internet atau lag pada browser admin, akan membuat urutan penawaran terlihat berantakan dan tidak urut.
+  * **Solusi Perbaikan:** 
+    1. **Filter Duplikasi:** Menambahkan validasi di client-side agar log hanya bertambah jika harga bid penawaran yang diterima benar-benar berubah (harga naik).
+    2. **Waktu Akurat:** WebSocket kini menyertakan field `created_at` dari database saat ada bid baru, yang digunakan client untuk merender waktu penawaran secara presisi (mengurangi perbedaan waktu delay jaringan).
+    3. **Seeding Awal:** Saat lot pertama kali dibuka/diakses di ruang kontrol admin dan ruang lelang bidder, aplikasi akan menarik data riwayat bid dari API database (`/lots/:id/bids`) sehingga log tidak kosong saat page di-refresh.
+
+### 11. Penayangan Informasi NIPL dan Nama Bidder di Ruang Kontrol Admin
+* **Status:** Selesai & Teruji
+* **File yang Diubah:**
+  * **Backend API (`apps/api`):**
+    * [api/src/lib/socket.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/lib/socket.ts) (Mengambil `full_name` dari database dan menyertakan `bidder_name` serta `nipl_code` di setiap pancaran/siaran WebSocket `bid:update` baik pada bid baru maupun tick countdown)
+    * [api/src/modules/lots/lots.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/lots.service.ts) (Menyediakan relasi bidder `full_name` pada query `getLotBids` database untuk riwayat lelang awal, dan memetakan data `bidder_name` serta `nipl_code` pada mapping `getLots` untuk lot berstatus aktif)
+  * **Frontend Admin Panel (`apps/admin-panel`):**
+    * [admin-panel/src/app/auction/control-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/control-room/page.tsx) (Memperluas tipe `BidLog`, mendengarkan data `bidder_name` dan `nipl_code` dari WebSocket dan REST seed, serta merendernya pada Card Penawar Tertinggi dan daftar Live Penawaran/Bid Log)
+* **Deskripsi Perubahan:**
+  * **Informasi Penawar Lengkap:** Admin kini dapat memantau secara langsung nama asli Bidder (sesuai profil pendaftaran) beserta Nomor NIPL aktif mereka (berformat `NIPL-XXXXXXXX` berdasarkan ID User) di panel **Penawar Tertinggi** dan pada baris **Live Penawaran (Bids Log)**.
+  * **Keamanan Masking Bidder:** Masking `Peserta #XXXX` tetap dipertahankan dan ditampilkan sebagai detail pendukung untuk mencocokkan identitas dengan transparansi operasional admin.
+
+### 12. Pemulihan & Penyesuaian Hari Kerja Invoice Lelang 16 Juli 2026 (Production Fix)
+* **Status:** Selesai & Teruji (Dijalankan langsung di database Production)
+* **File yang Diubah:**
+  * **Scripts Deployment (`scripts/`):**
+    * [scripts/ssh-fix-invoices.js](file:///c:/Users/han/Herd/indo-lelang/scripts/ssh-fix-invoices.js) (Script pemulihan data produksi via SSH, dibersihkan otomatis setelah eksekusi sukses)
+* **Deskripsi Perubahan:**
+  * **Penyebab Masalah:** Lelang riil pada tanggal 16 Juli 2026 (Kamis) menghasilkan invoice pelunasan yang kedaluwarsa (expired) pada tanggal 19 Juli 2026 (Minggu) karena dibuat saat sistem pelunasan 3 hari kerja (mengecualikan Sabtu-Minggu) belum aktif di server produksi. Hal ini mengakibatkan tagihan menghilang dari keranjang bidder sebelum hari kerja ke-3 (Selasa, 21 Juli 2026).
+  * **Solusi Perbaikan:**
+    1. **Eksekusi Remote:** Kami menjalankan skrip database langsung di container `indolelang_api_prod` melalui koneksi SSH.
+    2. **Pemulihan Status:** Sebanyak **13 invoice** yang sempat kedaluwarsa atau menggantung berhasil dikembalikan statusnya ke `'unpaid'` (aktif/belum lunas).
+    3. **Perpanjangan Waktu Bayar:** Batas akhir pelunasan (`due_date`) diperpanjang hingga **21 Juli 2026 pukul 23:59:59 UTC**, menyesuaikan dengan batas 3 hari kerja riil terhitung sejak tanggal 16 Juli 2026.
+    4. **Keamanan Data:** Sebanyak 7 invoice yang sudah berstatus `'paid'` (lunas) dilewati secara aman tanpa mengalami modifikasi data.
+
+
+
+
+
+
+
+

@@ -15,6 +15,7 @@ export default function ProviderProfile() {
   const [bankOwner, setBankOwner] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [consentAgree, setConsentAgree] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -106,9 +107,23 @@ export default function ProviderProfile() {
                 required
               />
             </div>
+            
+            <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-on-surface-variant my-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/30">
+              <input
+                type="checkbox"
+                required
+                checked={consentAgree}
+                onChange={(e) => setConsentAgree(e.target.checked)}
+                className="w-4.5 h-4.5 accent-premium rounded border-outline-variant focus:ring-premium mt-0.5"
+              />
+              <span className="leading-tight select-none text-xs text-slate-600">
+                Perubahan data profil berlaku untuk transaksi berikutnya. Transaksi yang telah terjadi sebelumnya tidak akan berubah.
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !consentAgree}
               className="px-5 py-2.5 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl transition-all shadow-md shadow-secondary/20"
             >
               {isSaving ? "Menyimpan..." : "Simpan Perubahan"}

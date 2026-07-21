@@ -1,0 +1,28 @@
+Row 1: [Col 1]: USER BARU | [Col 2]: ➡️ | [Col 3]: Buat akun baru | [Col 4]: ➡️ | [Col 5]: Isi Form | [Col 6]: ➡️ | [Col 7]: Pilih Bidder atau provider | [Col 9]: User Login | [Col 10]: ➡️ | [Col 11]: masuk dashboard | [Col 12]: ➡️ | [Col 13]: User Lihat-lihat fitur | [Col 14]: ➡️ | [Col 15]: Menu Profil | [Col 16]: ➡️ | [Col 17]: lengkapi profil dan | [Col 18]: ➡️ | [Col 19]: Menu Ajukan Aset Baru | [Col 20]: ➡️ | [Col 21]: Admin Inspeksi | [Col 22]: ➡️ | [Col 23]: Admin Setujui Inspeksi | [Col 24]: ➡️ | [Col 25]: Admin Tambahkan ke Lot | [Col 26]: ➡️ | [Col 27]: Admin menjalankan Lelang | [Col 28]: ➡️ | [Col 29]: Unit Terjual | [Col 30]: ➡️ | [Col 31]: Unit Dilunasi | [Col 32]: Admin Mencairkan
+Row 2: [Col 5]: Halaman Registrasi | [Col 7]: User Pilih Provider | [Col 17]: verifikasi KTP Penanggung Jawab | [Col 19]: * Isi dan submit form | [Col 21]: @panel admin | [Col 23]: @panel admin | [Col 25]: @panel admin | [Col 27]: @panel admin | [Col 29]: @panel admin | [Col 31]: @panel admin | [Col 32]: @admin panel, menu pencairan
+Row 3: [Col 5]: * User name | [Col 17]: * ILS tentukan field isian form | [Col 19]: @panel provider | [Col 21]: List : Inspeksi Barang | [Col 23]: List : Inspeksi Barang | [Col 25]: List : Penyusunan Lot Lelang | [Col 29]: List : Rekapitulasi Hasil Lelang | [Col 31]: List : Rekapitulasi Hasil Lelang | [Col 32]: list : Pembayaran Unit (Transfer Provider)
+Row 4: [Col 5]: * password | [Col 17]: * Upload KTP dan dokumen perusahaan disini | [Col 19]: List : Daftar Inventori Barang | [Col 21]: hapus aksi view jika ada | [Col 23]: Aksi : inspeksi dan Setujui | [Col 29]: status : Terjual dan menunggu pembayaran | [Col 31]: status : Lunas | [Col 32]: Aksi : Cairkan
+Row 5: [Col 5]: * untuk lupa password | [Col 19]: Status : Menunggu Inspeksi | [Col 21]: Aksi : inspeksi dan beri catatan | [Col 23]: Status : Approved | [Col 29]: List : Pembayaran unit | [Col 31]: List : Pembayaran unit | [Col 32]: (setelah admin melakukan transfer ke provider)
+Row 6: [Col 5]: # OTP ke No Wa | [Col 21]: Setujui atau tolak | [Col 23]: * keluarkan unit dari list | [Col 29]: status : Menunggu pembayaran | [Col 31]: status : Lunas
+Row 7: [Col 5]: # OTP ke Email | [Col 19]: @panel admin | [Col 23]: List : Approved Barang
+Row 8: [Col 19]: List : Inspeksi Barang | [Col 23]: Status : Approved | [Col 29]: @panel provider | [Col 31]: @panel provider | [Col 32]: @panel provider
+Row 9: [Col 3]: Login dengan Gmail | [Col 4]: ➡️ | [Col 5]: ➡️ | [Col 6]: ➡️ | [Col 9]: ➡️ | [Col 10]: ➡️ | [Col 19]: Status : Menunggu Inspeksi | [Col 29]: List : daftar inventori aset | [Col 31]: List : daftar inventori aset | [Col 32]: List : daftar inventori aset
+Row 10: [Col 23]: @panel provider | [Col 29]: status : Terjual dan menunggu pembayaran | [Col 31]: status : Lunas | [Col 32]: status : Lunas
+Row 11: [Col 23]: list : daftar inventori aset | [Col 29]: list : settlement keuangan | [Col 31]: list : settlement keuangan | [Col 32]: list : settlement keuangan
+Row 12: [Col 23]: Status : Approved | [Col 29]: status : Menunggu pembayaran | [Col 31]: status : Lunas | [Col 32]: status : Lunas
+Row 13: [Col 31]: Aksi : Checklis, Cairkan | [Col 32]: Aksi : Dana diterima
+Row 14: [Col 29]: Unit Tidak Terjual
+Row 15: [Col 29]: @panel admin
+Row 16: [Col 23]: Admin Tolak Inspeksi | [Col 24]: ➡️ | [Col 29]: List : Rekapitulasi Hasil Lelang
+Row 17: [Col 23]: @panel admin | [Col 29]: Status : Tidak Terjual
+Row 18: [Col 23]: List : Inspeksi Barang
+Row 19: [Col 23]: Aksi : inspeksi dan tolak | [Col 29]: @panel provider
+Row 20: [Col 23]: Beri alasan penolakan | [Col 29]: List : daftar inventori aset
+Row 21: [Col 23]: * keluarkan unit dari list | [Col 29]: status : Tidak terjual
+Row 22: [Col 29]: Aksi : ajukan kembali dan edit data (termasuk harga)
+Row 23: [Col 23]: @panel provider
+Row 24: [Col 23]: list : daftar inventori aset
+Row 25: [Col 23]: Status : di tolak inspeksi
+Row 26: [Col 23]: Aksi : Ajukan Ulang dan Tarik Unit
+Row 27: [Col 23]: *jika ajukan ulang proses berulang
+Row 28: [Col 23]: *jika tarik unit proses berhenti

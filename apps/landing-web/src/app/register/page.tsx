@@ -96,7 +96,7 @@ export default function RegisterPage() {
             Buat Akun Baru
           </h2>
           <p className="text-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
-            Daftar akun dan dapatkan unit kendaraan terbaik dengan harga termurah di IndoLelang
+            Daftar akun dan dapatkan fitur lelang modern dari BIDKU
           </p>
         </div>
 
@@ -106,7 +106,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Nama Lengkap <span className="text-error">*</span>
+              Nama sesuai KTP <span className="text-error">*</span>
             </label>
             <input
               type="text"
@@ -123,7 +123,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Alamat Email <span className="text-error">*</span>
+              Email <span className="text-error">*</span>
             </label>
             <input
               type="email"
@@ -140,7 +140,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Nomor Handphone (WhatsApp) <span className="text-error">*</span>
+              No WA <span className="text-error">*</span>
             </label>
             <input
               type="text"
@@ -152,6 +152,9 @@ export default function RegisterPage() {
                 errors.phone ? "border-error focus:border-error" : "border-outline-variant/60 focus:border-premium"
               }`}
             />
+            <p className="text-[11px] text-on-surface-variant/80 mt-1 leading-normal">
+              Email dan No WA digunakan untuk reset Lupa Password.
+            </p>
             {errors.phone && <p className="text-error text-xs mt-1 font-semibold">{errors.phone}</p>}
           </div>
 
@@ -159,7 +162,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Kata Sandi <span className="text-error">*</span>
+              Password <span className="text-error">*</span>
             </label>
             <div className="relative">
               <input
@@ -187,7 +190,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Konfirmasi Kata Sandi <span className="text-error">*</span>
+              Konfirmasi Password <span className="text-error">*</span>
             </label>
             <div className="relative">
               <input

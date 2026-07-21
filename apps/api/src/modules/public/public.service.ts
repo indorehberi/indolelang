@@ -173,9 +173,10 @@ export class PublicService {
   async getPublicSettings() {
     const settings = await prisma.platform_settings.findMany({
       where: {
-        key: {
-          startsWith: 'feat_',
-        },
+        OR: [
+          { key: { startsWith: 'feat_' } },
+          { key: { startsWith: 'socmed_' } },
+        ],
       },
       select: {
         key: true,

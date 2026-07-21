@@ -130,6 +130,32 @@ function ProviderAjukanBarangContent() {
   const toast = useToast();
 
   useEffect(() => {
+    const checkProviderStatus = async () => {
+      try {
+        const res = await apiFetch("/providers/me");
+        if (res.ok) {
+          const data = (await res.json()).data;
+          if (data) {
+            if (data.status !== "aktif") {
+              toast.error("Akun Anda belum aktif/terverifikasi. Anda belum bisa mengajukan titip jual.");
+              router.push("/provider/status");
+            }
+          } else {
+            toast.error("Anda harus terdaftar sebagai provider terlebih dahulu.");
+            router.push("/pilih-peran");
+          }
+        } else {
+          toast.error("Gagal memeriksa status akun Anda.");
+          router.push("/login");
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa status provider", err);
+      }
+    };
+    checkProviderStatus();
+  }, [router, toast]);
+
+  useEffect(() => {
     const fetchBranches = async () => {
       try {
         const res = await fetchWithRetry(apiUrl("/branches?is_active=true"));
@@ -367,9 +393,9 @@ function ProviderAjukanBarangContent() {
   );
 
   return (
-    <ProviderLayout pageTitle={editId ? "Edit Titip Jual Barang" : "Ajukan Titip Jual Barang"}>
+    <ProviderLayout pageTitle={editId ? "Edit Titip Jual Unit" : "Ajukan Titip Jual Unit"}>
       <p className="page-subtitle">
-        {editId ? "Perbarui data pengajuan yang ditolak, lalu ajukan kembali dari halaman Daftar Barang" : "Ajukan barang atau kendaraan baru untuk masuk antrean kurasi lelang"}
+        {editId ? "Perbarui data pengajuan yang ditolak, lalu ajukan kembali dari halaman Daftar Unit" : "Ajukan Unit baru untuk masuk antrean kurasi lelang"}
       </p>
 
       <div className="grid-2-1">
@@ -378,13 +404,13 @@ function ProviderAjukanBarangContent() {
             <div className="alert-box success mb-4">
               <span className="material-symbols-outlined">check_circle</span>
               <div>
-                <strong>Pengajuan Berhasil Diajukan!</strong> Barang Anda telah terdaftar dan menunggu proses verifikasi dokumen &amp; fisik oleh tim kurator kami. Status approval dapat dipantau di halaman Inventori.
+                <strong>Pengajuan Berhasil Diajukan!</strong> Unit Anda telah terdaftar dan menunggu proses verifikasi dokumen &amp; fisik oleh tim kurator kami. Status approval dapat dipantau di halaman Inventori.
               </div>
             </div>
           )}
 
           <div className="card">
-            <div className="card-header border-b pb-4 mb-4">Form Pengisian Detail Barang</div>
+            <div className="card-header border-b pb-4 mb-4">Form Pengisian Detail Unit</div>
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {/* SECTION: DATA DASAR */}
@@ -392,7 +418,7 @@ function ProviderAjukanBarangContent() {
                 <h3 className="font-semibold text-lg text-primary mb-3">1. Data Dasar</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Kategori Barang</label>
+                    <label className="panel-form-label">Kategori Unit</label>
                     <select
                       value={formData.category}
                       onChange={(e) => {
@@ -436,7 +462,7 @@ function ProviderAjukanBarangContent() {
                     </select>
                   </div>
                   <div className="panel-form-group">
-                    <label className="panel-form-label">Model / Tipe Barang</label>
+                    <label className="panel-form-label">Model / Tipe Unit</label>
                     {formData.brand && formData.brand !== 'Lainnya' && getAvailableModels().length > 0 ? (
                       <select 
                         value={formData.model} 
@@ -522,7 +548,7 @@ function ProviderAjukanBarangContent() {
                 </div>
 
                 <div className="panel-form-group mt-4">
-                  <label className="panel-form-label">Lokasi Kendaraan saat ini</label>
+                  <label className="panel-form-label">Lokasi Unit saat ini</label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => handleChange('notes', e.target.value)}
@@ -534,7 +560,7 @@ function ProviderAjukanBarangContent() {
 
               {/* SECTION: SPESIFIKASI KENDARAAN */}
               <div className="pt-4 border-t">
-                <h3 className="font-semibold text-lg text-primary mb-3">2. Spesifikasi Kendaraan</h3>
+                <h3 className="font-semibold text-lg text-primary mb-3">2. Spesifikasi Unit</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="panel-form-group">
                     <label className="panel-form-label">Warna</label>

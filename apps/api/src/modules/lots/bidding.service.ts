@@ -19,7 +19,10 @@ export class BiddingService {
    * Get minimum increment based on current price range
    */
   getMinIncrement(currentPrice: number): number {
-    return 500_000;
+    if (currentPrice < 10_000_000) return 500_000;
+    if (currentPrice < 50_000_000) return 1_000_000;
+    if (currentPrice < 200_000_000) return 2_500_000;
+    return 5_000_000;
   }
 
   /**
@@ -283,6 +286,15 @@ export class BiddingService {
       // Total tagihan per invoice tidak ditambahkan kode unik (hanya pada total tagihan checkout_orders)
       const total = hammerPrice + adminFee + pmk41Amount;
 
+      // Get national holidays settings
+      const holidaySetting = await prisma.platform_settings.findFirst({
+        where: { key: 'national_holidays' }
+      });
+      const holidayDates = holidaySetting?.value ? holidaySetting.value.split(',') : [];
+      
+      // Calculate 3 working days due date
+      const dueDate = calculateWorkingDaysDueDate(new Date(), 3, holidayDates);
+
       // Perform updates inside database transaction
       const [updatedLot, invoice, winnerUser] = await prisma.$transaction([
         prisma.lots.update({
@@ -304,7 +316,7 @@ export class BiddingService {
             admin_fee: new Prisma.Decimal(adminFee),
             pmk41_amount: new Prisma.Decimal(pmk41Amount),
             total: new Prisma.Decimal(total),
-            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days payment window
+            due_date: dueDate,
             status: 'unpaid',
           },
         }),
@@ -338,6 +350,28 @@ export class BiddingService {
           },
         }),
       ]);
+
+      const bidderUser = await prisma.users.findUnique({
+        where: { id: winnerId },
+        include: { kyc_document: true }
+      });
+      if (bidderUser) {
+        await prisma.transaction_profiles.create({
+          data: {
+            transaction_id: invoice.id,
+            full_name: bidderUser.full_name,
+            address: bidderUser.address,
+            phone: bidderUser.phone,
+            email: bidderUser.email,
+            bank_name: bidderUser.bank_name,
+            bank_account_no: bidderUser.bank_account_no,
+            bank_account_name: bidderUser.bank_account_name,
+            nik: bidderUser.kyc_document?.nik || null,
+            company_name: bidderUser.company_name,
+            npwp: bidderUser.npwp,
+          }
+        });
+      }
 
       // Generate settlement record immediately (with 'unpaid' status) so it appears in the dashboard
       await paymentsService.createSettlementForInvoice(invoice.id);
@@ -428,3 +462,32 @@ export class BiddingService {
 }
 
 export const biddingService = new BiddingService();
+
+/**
+ * Calculates a date after N working days from a starting date.
+ * Working days exclude Saturdays (6), Sundays (0), and national holidays (YYYY-MM-DD).
+ */
+export function calculateWorkingDaysDueDate(startDate: Date, N: number, holidays: string[]): Date {
+  const resultDate = new Date(startDate);
+  let addedDays = 0;
+
+  // Normalize holidays list for quick lookup
+  const holidaySet = new Set(holidays.map(h => h.trim()));
+
+  while (addedDays < N) {
+    // Add one calendar day
+    resultDate.setDate(resultDate.getDate() + 1);
+
+    const dayOfWeek = resultDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const dateStr = resultDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isHoliday = holidaySet.has(dateStr);
+
+    if (!isWeekend && !isHoliday) {
+      addedDays++;
+    }
+  }
+
+  return resultDate;
+}

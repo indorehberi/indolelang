@@ -170,53 +170,32 @@ export default function ProviderDashboard() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid-2-1">
-        {/* Left Column */}
-        <div>
-          {/* Active Inventory Summary */}
-          <div className="card">
-            <div className="card-header">Inventori Aset Terdaftar</div>
-            <div className="space-y-3 text-xs">
-              {assets.length === 0 ? (
-                <div className="p-4 text-center text-slate-500">Belum ada aset didaftarkan</div>
-              ) : (
-                assets.slice(0, 5).map(asset => (
-                  <div key={asset.id} className="flex justify-between items-center p-3 bg-slate-50 border border-outline-variant/20 rounded-xl">
-                    <div>
-                      <div className="font-bold text-slate-800">{asset.title}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">Status: {asset.status.toUpperCase()}</div>
-                    </div>
-                    <div className="font-bold text-slate-900">Limit: {formatRupiah(asset.base_price)}</div>
+      <div className="grid grid-cols-1 gap-6">
+        {/* Active Inventory Summary */}
+        <div className="card">
+          <div className="card-header">Inventori Aset Terdaftar</div>
+          <div className="space-y-3 text-xs">
+            {assets.length === 0 ? (
+              <div className="p-4 text-center text-slate-500">Belum ada aset didaftarkan</div>
+            ) : (
+              assets.slice(0, 5).map(asset => (
+                <div key={asset.id} className="flex justify-between items-center p-3 bg-slate-50 border border-outline-variant/20 rounded-xl">
+                  <div>
+                    <div className="font-bold text-slate-800">{asset.title}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Status: {asset.status.toUpperCase()}</div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Monthly Sales Performance */}
-          <div className="card">
-            <div className="card-header">Grafik Penjualan Bulanan (Net Pendapatan)</div>
-            <div className="py-12 text-center text-slate-500 text-sm">
-              Belum ada data penjualan yang cukup untuk menampilkan grafik.
-            </div>
+                  <div className="font-bold text-slate-900">Limit: {formatRupiah(asset.base_price)}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Right Column */}
-        <div>
-          <div className="card">
-            <div className="card-header">Tindakan Mitra</div>
-            <div className="flex flex-col gap-2">
-              <Link href="/provider/ajukan-barang" className="panel-btn panel-btn-primary justify-center">
-                ➕ Titip Jual Aset Baru
-              </Link>
-              <Link href="/provider/daftar-barang" className="panel-btn panel-btn-outline justify-center">
-                📦 Monitor Inventori
-              </Link>
-              <Link href="/provider/settlement" className="panel-btn panel-btn-outline justify-center">
-                💰 Minta Pencairan Dana
-              </Link>
-            </div>
+        {/* Monthly Sales Performance */}
+        <div className="card">
+          <div className="card-header">Grafik Penjualan Bulanan (Net Pendapatan)</div>
+          <div className="py-12 text-center text-slate-500 text-sm">
+            Belum ada data penjualan yang cukup untuk menampilkan grafik.
           </div>
         </div>
       </div>

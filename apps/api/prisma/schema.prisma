@@ -506,3 +506,20 @@ model referral_usages {
   referral referrals @relation(fields: [referral_id], references: [id])
   referred users     @relation("ReferredUser", fields: [referred_id], references: [id])
 }
+
+model transaction_profiles {
+  id                String   @id @default(uuid())
+  transaction_id    String   @unique // can be invoice_id or settlement_id
+  full_name         String
+  address           String?
+  phone             String?
+  email             String?
+  bank_name         String?
+  bank_account_no   String?
+  bank_account_name String?
+  nik               String?
+  company_name      String?
+  npwp              String?
+  created_at        DateTime @default(now())
+}
+

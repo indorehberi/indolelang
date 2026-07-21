@@ -156,31 +156,27 @@ export class UsersService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Pengguna tidak ditemukan');
     }
 
-    // If user requests to register as provider, set status to pending and DO NOT change role yet
+    // If user requests to register as provider or is already a provider, keep providers table in sync
     let providerStatus = user.provider_status;
-    if (data.role === 'provider') {
-      // Validate mandatory fields for Provider
-      const missingFields = [];
-      if (!data.company_name && !user.company_name) missingFields.push('Nama Perusahaan');
-      if (!data.npwp && !user.npwp) missingFields.push('NPWP');
-      if (!data.pks_number && !user.pks_number) missingFields.push('No PKS');
-      if (!data.provider_type && !user.provider_type) missingFields.push('Jenis Provider');
-      if (!data.address && !user.address) missingFields.push('Alamat');
-      if (!data.npwp_url && !user.npwp_url) missingFields.push('Upload NPWP');
-      
-      if (missingFields.length > 0) {
-        throw new AppError(400, ErrorCode.BAD_REQUEST, `Kelengkapan data Provider belum diisi: ${missingFields.join(', ')}`);
+    if (data.role === 'provider' || user.role === 'provider') {
+      if (data.role === 'provider' && user.role !== 'provider') {
+        // Validate mandatory fields for Provider registration (relaxed NPWP/company name)
+        const missingFields = [];
+        if (!data.address && !user.address) missingFields.push('Alamat');
+        
+        if (missingFields.length > 0) {
+          throw new AppError(400, ErrorCode.BAD_REQUEST, `Kelengkapan data Provider belum diisi: ${missingFields.join(', ')}`);
+        }
+
+        providerStatus = 'pending';
       }
 
-      providerStatus = 'pending';
-
-      // Keep the relational `providers` application row in sync with the
-      // legacy flat-field profile update (until the unified form ships).
+      // Keep the relational `providers` application row in sync
       await prisma.providers.upsert({
         where: { user_id: id },
         create: {
           user_id: id,
-          status: 'antri',
+          status: providerStatus === 'pending' ? 'antri' : 'aktif',
           company_name: data.company_name ?? user.company_name ?? undefined,
           npwp: data.npwp ?? user.npwp ?? undefined,
           npwp_url: data.npwp_url ?? user.npwp_url ?? undefined,
@@ -192,20 +188,16 @@ export class UsersService {
           bank_account_name: data.bank_account_name ?? user.bank_account_name ?? undefined,
         },
         update: {
-          status: 'antri',
-          company_name: data.company_name ?? user.company_name ?? undefined,
-          npwp: data.npwp ?? user.npwp ?? undefined,
-          npwp_url: data.npwp_url ?? user.npwp_url ?? undefined,
-          pks_number: data.pks_number ?? user.pks_number ?? undefined,
-          provider_type: data.provider_type ?? user.provider_type ?? undefined,
-          address: data.address ?? user.address ?? undefined,
-          bank_name: data.bank_name ?? user.bank_name ?? undefined,
-          bank_account_no: data.bank_account_no ?? user.bank_account_no ?? undefined,
-          bank_account_name: data.bank_account_name ?? user.bank_account_name ?? undefined,
-          rejection_reason: null,
-          reviewed_by: null,
-          reviewed_at: null,
-          submitted_at: new Date(),
+          status: data.role === 'provider' && user.role !== 'provider' ? 'antri' : undefined,
+          company_name: data.company_name ?? undefined,
+          npwp: data.npwp ?? undefined,
+          npwp_url: data.npwp_url ?? undefined,
+          pks_number: data.pks_number ?? undefined,
+          provider_type: data.provider_type ?? undefined,
+          address: data.address ?? undefined,
+          bank_name: data.bank_name ?? undefined,
+          bank_account_no: data.bank_account_no ?? undefined,
+          bank_account_name: data.bank_account_name ?? undefined,
         },
       });
     }

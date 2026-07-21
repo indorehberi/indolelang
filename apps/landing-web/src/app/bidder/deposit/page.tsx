@@ -490,9 +490,9 @@ export default function BidderDeposit() {
         <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-4 border border-error/25">
           <span className="material-symbols-outlined text-3xl font-bold">assignment_late</span>
         </div>
-        <h3 className="text-body-lg font-bold text-center text-on-surface mb-2">Verifikasi eKYC Dibutuhkan</h3>
+        <h3 className="text-body-lg font-bold text-center text-on-surface mb-2">Verifikasi KTP Dibutuhkan</h3>
         <p className="text-body-sm text-center text-on-surface-variant mb-6 leading-relaxed">
-          Anda belum verifikasi KTP, silakan ikuti prosedur verifikasi KYC untuk dapat membeli NIPL dan mengikuti lelang.
+          Anda belum verifikasi KTP, silakan ikuti prosedur verifikasi KTP untuk dapat membeli NIPL dan mengikuti lelang.
         </p>
         <div className="flex gap-3">
           <button

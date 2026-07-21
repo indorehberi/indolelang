@@ -37,10 +37,12 @@ export default function BidderProfile() {
   const [loading, setLoading] = useState(true);
 
   const [isEditingEnabled, setIsEditingEnabled] = useState(false);
+  const [consentAgree, setConsentAgree] = useState(false);
   const isVerified = ekycStatus === "approved" || ekycStatus === "verified";
 
   const handleCancelEdit = () => {
     setIsEditingEnabled(false);
+    setConsentAgree(false);
     loadProfileData();
   };
 
@@ -71,6 +73,8 @@ export default function BidderProfile() {
           setBankInquiryMode(user.bank_inquiry_mode);
         }
       }
+
+      setConsentAgree(false);
 
       // 2. Fetch KYC Document Status
       const resKyc = await apiFetch("/kyc/status");
@@ -228,7 +232,7 @@ export default function BidderProfile() {
 
   if (loading) {
     return (
-      <BidderLayout pageTitle="Profil & eKYC">
+      <BidderLayout pageTitle="Profil & Verifikasi KTP">
         <PageSkeleton />
       </BidderLayout>
     );
@@ -268,7 +272,7 @@ export default function BidderProfile() {
                   onChange={(e) => setNik(e.target.value)}
                   disabled={isVerified && !isEditingEnabled}
                   className={`panel-form-input ${isVerified && !isEditingEnabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
-                  placeholder="Disubmit melalui halaman eKYC"
+                  placeholder="Disubmit melalui halaman verifikasi KTP"
                 />
               </div>
               <div className="panel-form-group">
@@ -458,6 +462,21 @@ export default function BidderProfile() {
               </div>
 
               <div className="pt-2">
+                {(!isVerified || isEditingEnabled) && (
+                  <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-on-surface-variant my-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/30">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={consentAgree}
+                      onChange={(e) => setConsentAgree(e.target.checked)}
+                      className="w-4.5 h-4.5 accent-premium rounded border-outline-variant focus:ring-premium mt-0.5"
+                    />
+                    <span className="leading-tight select-none text-xs text-slate-600">
+                      Perubahan data profil berlaku untuk transaksi berikutnya. Transaksi yang telah terjadi sebelumnya tidak akan berubah.
+                    </span>
+                  </label>
+                )}
+
                 {isVerified ? (
                   !isEditingEnabled ? (
                     <button
@@ -472,7 +491,7 @@ export default function BidderProfile() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         type="submit"
-                        disabled={isSaving}
+                        disabled={isSaving || !consentAgree}
                         className="flex-1 px-6 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                       >
                         {isSaving ? (
@@ -501,7 +520,7 @@ export default function BidderProfile() {
                 ) : (
                   <button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={isSaving || !consentAgree}
                     className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md"
                   >
                     {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
@@ -514,7 +533,7 @@ export default function BidderProfile() {
 
         {/* KYC Status Card */}
         <div className="card">
-          <div className="card-header">Status Verifikasi eKYC</div>
+          <div className="card-header">Status Verifikasi KTP</div>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               {ekycStatus === "approved" || ekycStatus === "verified" ? (
@@ -565,7 +584,7 @@ export default function BidderProfile() {
                 {ekycStatus === "approved" || ekycStatus === "verified"
                   ? "Akun Anda telah terverifikasi. Anda berhak mengikuti seluruh sesi lelang aktif di IndoLelang."
                   : ekycStatus === "pending"
-                  ? "Penyedia eKYC kami sedang memvalidasi kesesuaian data KTP Anda dengan instansi kependudukan."
+                  ? "Tim kami sedang memvalidasi kesesuaian data KTP Anda dengan instansi kependudukan."
                   : ekycStatus === "rejected"
                   ? "Dokumen Anda tidak sesuai. Harap ajukan ulang dokumen identitas baru Anda."
                   : "Anda wajib mengunggah KTP dan Swafoto untuk dapat mengikuti transaksi lelang di platform IndoLelang."}
@@ -597,7 +616,7 @@ export default function BidderProfile() {
                   href="/ekyc/upload"
                   className="mt-3 w-full py-2.5 bg-premium text-on-premium font-bold text-body-sm rounded-xl text-center block shadow hover:bg-premium/95 active:scale-98 transition-all"
                 >
-                  🚀 Mulai Verifikasi eKYC
+                  🚀 Mulai Verifikasi KTP
                 </Link>
               )}
 
@@ -606,7 +625,7 @@ export default function BidderProfile() {
                   href="/ekyc/upload"
                   className="mt-3 w-full py-2.5 bg-error text-white font-bold text-body-sm rounded-xl text-center block shadow hover:bg-error/95 active:scale-98 transition-all"
                 >
-                  🔄 Ajukan Ulang eKYC
+                  🔄 Ajukan Ulang Verifikasi KTP
                 </Link>
               )}
             </div>

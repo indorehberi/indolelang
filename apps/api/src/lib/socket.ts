@@ -12,6 +12,8 @@ export interface ActiveLotState {
   currentPrice: number;
   highestBidderId?: string;
   highestBidderMasked?: string;
+  highestBidderName?: string;
+  highestBidderNipl?: string;
   bidsCount: number;
   timeRemaining: number;
   extensionCount: number;
@@ -73,6 +75,8 @@ export function initSocket(server: HttpServer): SocketIoServer {
           lot_id: state.lotId,
           current_price: state.currentPrice,
           bidder_id: state.highestBidderMasked || '-',
+          bidder_name: state.highestBidderName || '-',
+          nipl_code: state.highestBidderNipl || '-',
           bidder_count: state.bidsCount,
           time_remaining: state.timeRemaining,
           extension_count: state.extensionCount,
@@ -150,10 +154,19 @@ export function initSocket(server: HttpServer): SocketIoServer {
           secondDurationSecs
         );
 
+        const dbUser = await prisma.users.findUnique({
+          where: { id: user.id },
+          select: { full_name: true },
+        });
+        const bidderName = dbUser?.full_name || 'Anonymous';
+        const niplCode = `NIPL-${user.id.substring(0, 8).toUpperCase()}`;
+
         // Update lot in-memory state
         state.currentPrice = data.amount;
         state.highestBidderId = user.id;
         state.highestBidderMasked = maskUserId(user.id);
+        state.highestBidderName = bidderName;
+        state.highestBidderNipl = niplCode;
         state.bidsCount += 1;
 
         if (snipeCheck.extended) {
@@ -166,10 +179,13 @@ export function initSocket(server: HttpServer): SocketIoServer {
           lot_id: state.lotId,
           current_price: state.currentPrice,
           bidder_id: state.highestBidderMasked,
+          bidder_name: bidderName,
+          nipl_code: niplCode,
           bidder_count: state.bidsCount,
           time_remaining: state.timeRemaining,
           extension_count: state.extensionCount,
           extended: snipeCheck.extended,
+          created_at: bid.created_at.toISOString(),
         });
 
         // Log admin/system audit trail if needed
@@ -249,6 +265,8 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
           lot_id: state.lotId,
           current_price: state.currentPrice,
           bidder_id: state.highestBidderMasked || '-',
+          bidder_name: state.highestBidderName || '-',
+          nipl_code: state.highestBidderNipl || '-',
           bidder_count: state.bidsCount,
           time_remaining: 0,
           extension_count: state.extensionCount,
@@ -260,6 +278,8 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
         lot_id: state.lotId,
         current_price: state.currentPrice,
         bidder_id: state.highestBidderMasked || '-',
+        bidder_name: state.highestBidderName || '-',
+        nipl_code: state.highestBidderNipl || '-',
         bidder_count: state.bidsCount,
         time_remaining: state.timeRemaining,
         extension_count: state.extensionCount,

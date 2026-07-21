@@ -189,12 +189,12 @@ export default function ProviderDaftarBarang() {
   };
 
   return (
-    <ProviderLayout pageTitle="Daftar Inventori Barang">
+    <ProviderLayout pageTitle="Daftar Inventori Unit">
       <p className="page-subtitle">Kelola dan pantau status seluruh unit lelang Anda</p>
 
       <div className="card">
         <div className="card-header" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
-          <span>Tabel Inventori Unit Barang</span>
+          <span>Tabel Inventori Unit</span>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
             <input
               type="text"
@@ -218,9 +218,13 @@ export default function ProviderDaftarBarang() {
               className="panel-form-select"
               style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}
             >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
+              <option value="">Semua Status</option>
+              <option value="pending">Menunggu Kurasi</option>
+              <option value="inspected">Sudah Diinspeksi</option>
+              <option value="approved">Disetujui (Approved)</option>
+              <option value="listed">Sedang Dilelang (Listed)</option>
+              <option value="sold">Terjual (Sold)</option>
+              <option value="rejected">Ditolak</option>
             </select>
             <select
               value={poolFilter}
@@ -255,8 +259,8 @@ export default function ProviderDaftarBarang() {
             <table className="dashboard-table">
             <thead>
               <tr>
-                <th>ID Barang</th>
-                <th>Nama Unit Barang</th>
+                <th>ID Unit</th>
+                <th>Nama Unit</th>
                 <th>Kategori</th>
                 <th>No. Polisi</th>
                 <th>Cabang</th>
@@ -269,11 +273,11 @@ export default function ProviderDaftarBarang() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Memuat data Barang...</td>
+                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Memuat data Unit...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Belum ada Barang terdaftar.</td>
+                  <td colSpan={9} className="text-center py-8 text-slate-500 font-medium">Belum ada Unit terdaftar.</td>
                 </tr>
               ) : assets.map((asset) => (
                 <tr key={asset.id}>

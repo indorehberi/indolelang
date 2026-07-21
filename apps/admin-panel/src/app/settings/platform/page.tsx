@@ -98,6 +98,18 @@ export default function PlatformSettingsPage() {
   const [isSavingVerihubs, setIsSavingVerihubs] = useState(false);
   const [isSavingSMTP, setIsSavingSMTP] = useState(false);
 
+  // National Holidays Settings
+  const [holidays, setHolidays] = useState<string[]>([]);
+  const [isSavingHolidays, setIsSavingHolidays] = useState(false);
+
+  // Social Media Settings
+  const [socmedInstagram, setSocmedInstagram] = useState('');
+  const [socmedFacebook, setSocmedFacebook] = useState('');
+  const [socmedTiktok, setSocmedTiktok] = useState('');
+  const [socmedYoutube, setSocmedYoutube] = useState('');
+  const [socmedTwitter, setSocmedTwitter] = useState('');
+  const [isSavingSocmed, setIsSavingSocmed] = useState(false);
+
   // Sold Lots Visibility configuration popup states
   const [isSoldLotsModalOpen, setIsSoldLotsModalOpen] = useState(false);
   const [soldLots, setSoldLots] = useState<any[]>([]);
@@ -284,6 +296,18 @@ export default function PlatformSettingsPage() {
               setPejabatLelang(item.value);
             } else if (item.key === 'bid_increment_1') {
               setBidIncrement1(item.value);
+            } else if (item.key === 'national_holidays') {
+              setHolidays(item.value ? item.value.split(',') : []);
+            } else if (item.key === 'socmed_instagram') {
+              setSocmedInstagram(item.value);
+            } else if (item.key === 'socmed_facebook') {
+              setSocmedFacebook(item.value);
+            } else if (item.key === 'socmed_tiktok') {
+              setSocmedTiktok(item.value);
+            } else if (item.key === 'socmed_youtube') {
+              setSocmedYoutube(item.value);
+            } else if (item.key === 'socmed_twitter') {
+              setSocmedTwitter(item.value);
             } else if (item.key === 'smtp_password' || item.key === 'fonnte_token') {
               (newApiKeys as any)[item.key] = '';
             } else if (item.key in newApiKeys) {
@@ -809,6 +833,51 @@ export default function PlatformSettingsPage() {
     }
   };
 
+  const handleSaveHolidays = async () => {
+    setIsSavingHolidays(true);
+    try {
+      const cleanHolidays = holidays.filter(h => h.trim() !== '');
+      const updates = [
+        { key: 'national_holidays', value: cleanHolidays.join(',') }
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Daftar hari libur nasional berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan hari libur nasional.');
+    } finally {
+      setIsSavingHolidays(false);
+    }
+  };
+
+  const handleSaveSocmed = async () => {
+    setIsSavingSocmed(true);
+    try {
+      const updates = [
+        { key: 'socmed_instagram', value: socmedInstagram },
+        { key: 'socmed_facebook', value: socmedFacebook },
+        { key: 'socmed_tiktok', value: socmedTiktok },
+        { key: 'socmed_youtube', value: socmedYoutube },
+        { key: 'socmed_twitter', value: socmedTwitter },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Link sosial media berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan link sosial media.');
+    } finally {
+      setIsSavingSocmed(false);
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengaturan" breadcrumbCurrent="Pengaturan Platform">
       <div className="toolbar">
@@ -1171,6 +1240,104 @@ export default function PlatformSettingsPage() {
             
             <button className="btn btn-primary w-100" onClick={handleSaveAdminFeeSettings} disabled={isSavingAdminFee}>
               {isSavingAdminFee ? 'Menyimpan...' : 'Simpan Tiered Admin Fee'}
+            </button>
+          </Card>
+
+          <Card className="mt-4">
+            <h2 className="card-title">Hari Libur Nasional</h2>
+            <p className="text-xs text-muted mt-1 mb-3">
+              Tanggal libur nasional yang digunakan untuk menghitung batas waktu pelunasan lelang (3 hari kerja). Batas waktu pelunasan akan melompati hari Sabtu, Minggu, dan tanggal-tanggal yang terdaftar di bawah ini.
+            </p>
+
+            <div className="space-y-2 mb-4">
+              {holidays.map((holiday, index) => (
+                <div key={index} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={holiday}
+                    onChange={(e) => {
+                      const newHolidays = [...holidays];
+                      newHolidays[index] = e.target.value;
+                      setHolidays(newHolidays);
+                    }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHolidays = holidays.filter((_, i) => i !== index);
+                      setHolidays(newHolidays);
+                    }}
+                    className="btn btn-sm btn-danger"
+                    style={{ padding: '0.5rem 0.75rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ))}
+              {holidays.length === 0 && (
+                <p className="text-xs text-muted italic">Belum ada hari libur nasional yang ditambahkan.</p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHolidays([...holidays, ''])}
+                className="btn btn-outline-primary btn-sm w-100"
+                style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}
+              >
+                + Tambah Tanggal
+              </button>
+            </div>
+
+            <button
+              className="btn btn-primary w-100 mt-2"
+              onClick={handleSaveHolidays}
+              disabled={isSavingHolidays}
+            >
+              {isSavingHolidays ? 'Menyimpan...' : 'Simpan Hari Libur'}
+            </button>
+          </Card>
+
+          <Card className="mt-4">
+            <h2 className="card-title">Link Sosial Media</h2>
+            <p className="text-xs text-muted mt-1 mb-3">
+              Konfigurasi link sosial media PT INDO LELANG SEJAHTERA yang ditampilkan di bagian kaki (footer) website.
+            </p>
+
+            <div className="form-group mt-3">
+              <label className="form-label">Instagram Link</label>
+              <input type="text" className="form-input" value={socmedInstagram} onChange={(e) => setSocmedInstagram(e.target.value)} placeholder="Contoh: https://instagram.com/bidku.id" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Facebook Link</label>
+              <input type="text" className="form-input" value={socmedFacebook} onChange={(e) => setSocmedFacebook(e.target.value)} placeholder="Contoh: https://facebook.com/bidku.id" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">TikTok Link</label>
+              <input type="text" className="form-input" value={socmedTiktok} onChange={(e) => setSocmedTiktok(e.target.value)} placeholder="Contoh: https://tiktok.com/@bidku.id" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">YouTube Link</label>
+              <input type="text" className="form-input" value={socmedYoutube} onChange={(e) => setSocmedYoutube(e.target.value)} placeholder="Contoh: https://youtube.com/c/bidku" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Twitter / X Link</label>
+              <input type="text" className="form-input" value={socmedTwitter} onChange={(e) => setSocmedTwitter(e.target.value)} placeholder="Contoh: https://twitter.com/bidku" />
+            </div>
+
+            <button
+              className="btn btn-primary w-100 mt-2"
+              onClick={handleSaveSocmed}
+              disabled={isSavingSocmed}
+            >
+              {isSavingSocmed ? 'Menyimpan...' : 'Simpan Link Sosial Media'}
             </button>
           </Card>
         </div>

@@ -41,6 +41,18 @@ describe('Assets Module Integration Tests', () => {
     });
     providerId = provider.id;
 
+    await prisma.providers.upsert({
+      where: { user_id: providerId },
+      update: { status: 'aktif' },
+      create: {
+        user_id: providerId,
+        status: 'aktif',
+        company_name: 'Test Company Asset',
+        npwp: '12.345.678.9-012.000',
+        address: 'Test Address Asset',
+      },
+    });
+
     const adminLogin = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: 'test-admin-asset@indo-lelang.com', password: 'Admin123!' });
@@ -126,6 +138,18 @@ describe('Assets Module Integration Tests', () => {
   describe('PUT /api/v1/admin/assets/:id/approve', () => {
     it('should approve asset (admin only)', async () => {
       if (!assetId) return;
+
+      // Mark the asset as inspected so that it passes the validation check
+      await prisma.assets.update({
+        where: { id: assetId },
+        data: {
+          status: 'inspected',
+          grade: 'B',
+          inspection_date: new Date(),
+          inspector_id: 'some-inspector-id',
+          inspection_pic_name: 'Test Inspector'
+        }
+      });
 
       const res = await request(app)
         .put(`/api/v1/admin/assets/${assetId}/approve`)

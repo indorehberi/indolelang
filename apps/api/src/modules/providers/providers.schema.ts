@@ -2,15 +2,16 @@ import { z } from 'zod';
 
 export const applyProviderSchema = z.object({
   body: z.object({
-    company_name: z.string().min(1, 'Nama perusahaan wajib diisi'),
-    npwp: z.string().min(1, 'NPWP wajib diisi'),
-    npwp_url: z.string().min(1, 'Upload NPWP wajib diisi'),
+    company_name: z.string().optional(),
+    npwp: z.string().optional(),
+    npwp_url: z.string().optional(),
     pks_number: z.string().optional(),
-    provider_type: z.enum(['Perusahaan Swasta', 'BUMN', 'Perorangan']),
+    provider_type: z.enum(['Perusahaan Swasta', 'BUMN', 'Perorangan', 'perusahaan swasta', 'perusahaan negara', 'perorangan']),
     address: z.string().min(1, 'Alamat wajib diisi'),
     bank_name: z.string().optional(),
     bank_account_no: z.string().optional(),
     bank_account_name: z.string().optional(),
+    nik: z.string().optional(),
     ktp_url: z.string().optional(),
     selfie_url: z.string().optional(),
   }),

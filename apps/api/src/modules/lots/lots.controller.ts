@@ -194,6 +194,19 @@ export class LotsController {
       next(error);
     }
   }
+
+  /**
+   * GET /lots/:id/bids — Get bids list for a lot
+   */
+  async getLotBids(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const bids = await lotsService.getLotBids(id);
+      sendSuccess(res, bids, 'Daftar bid lelang berhasil dimuat');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default LotsController;

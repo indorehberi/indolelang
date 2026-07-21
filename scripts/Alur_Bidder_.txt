@@ -1,0 +1,36 @@
+Row 2: [Col 1]: USER BARU | [Col 2]: ➡️ | [Col 3]: Buat akun baru | [Col 4]: ➡️ | [Col 5]: Isi Form | [Col 6]: ➡️ | [Col 7]: Pilih Bidder atau provider | [Col 9]: User Login | [Col 10]: ➡️ | [Col 11]: masuk dashboard | [Col 12]: ➡️ | [Col 13]: User Lihat-lihat fitur | [Col 14]: ➡️ | [Col 15]: Menu Profil | [Col 16]: ➡️ | [Col 17]: lengkapi profil | [Col 18]: ➡️ | [Col 19]: Menu Beli NIPL | [Col 20]: ➡️ | [Col 21]: Pilih paket | [Col 22]: ➡️ | [Col 23]: Ajukan deposit | [Col 24]: ➡️ | [Col 25]: Transfer, Upload bukti transfer & | [Col 26]: ➡️ | [Col 27]: Admin setujui | [Col 28]: ➡️ | [Col 29]: Ikut Lelang | [Col 30]: ➡️ | [Col 31]: Menang | [Col 32]: ➡️ | [Col 33]: Bayar pelunasan Unit | [Col 34]: ➡️ | [Col 35]: Admin setujui | [Col 36]: ➡️ | [Col 37]: Admin Upload BAPL | [Col 38]: ➡️ | [Col 39]: User download BAPL | [Col 40]: ➡️ | [Col 41]: User Ambil Unit
+Row 3: [Col 5]: Halaman Registrasi | [Col 7]: User Pilih Bidder | [Col 17]: dan verifikasi KTP | [Col 23]: @panel bidder | [Col 25]: Saya sudah bayar | [Col 27]: @panel admin, menu deposit | [Col 31]: @panel bidder | [Col 33]: @panel bidder, menu keranjang tagihan | [Col 35]: @panel admin, menu keuangan | [Col 37]: @panel admin, menu keuangan | [Col 39]: @panel bidder, menu keranjang tagihan | [Col 41]: @panel bidder, menu keranjang tagihan
+Row 4: [Col 5]: * User name | [Col 17]: * ILS tentukan field isian form | [Col 23]: List : Riwayat Deposit dan Refund | [Col 25]: @panel bidder | [Col 27]: List : monitoring deposit | [Col 31]: List : Unit yang dimenangkan | [Col 33]: List : (bikin baru) daftar Unit Menang | [Col 35]: List : Pelunasan | [Col 37]: List : Pelunasan | [Col 39]: List : Daftar Unit Menang | [Col 41]: List : Daftar Unit Menang
+Row 5: [Col 5]: * password | [Col 17]: * Upload KTP disini | [Col 23]: status : Menunggu pembayaran | [Col 25]: List : Riwayat Deposit dan Refund | [Col 27]: Aksi : setujui | [Col 31]: * unit bertambah | [Col 33]: status : menunggu pembayaran | [Col 35]: aksi : setujui | [Col 37]: aksi : upload BAPL | [Col 39]: status : Download BAPL | [Col 41]: status : Unit siap diambil
+Row 6: [Col 5]: * untuk lupa password | [Col 25]: status : Menunggu verifikasi | [Col 27]: status : Lunas | [Col 31]: status : tunggu pembayaran | [Col 33]: User checklist yang mau di bayar | [Col 35]: status : proses BAPL | [Col 37]: status : BAPL terupload | [Col 39]: Aksi : Download BAPL | [Col 41]: Aksi : ambil Unit
+Row 7: [Col 5]: # OTP ke No Wa | [Col 23]: @panel admin | [Col 33]: * diatas list disediakan tombol bayar
+Row 8: [Col 5]: # OTP ke Email | [Col 23]: List : keuangan/Deposit NIPL | [Col 25]: @panel admin | [Col 27]: @panel bidder | [Col 31]: @panel bidder, menu beranda | [Col 33]: User klik tombol bayar | [Col 35]: @panel bidder, menu keranjang tagihan | [Col 37]: @panel bidder, menu keranjang tagihan | [Col 39]: @panel admin, menu keuangan | [Col 41]: @panel admin, menu keuangan
+Row 9: [Col 23]: status : Menunggu pembayaran | [Col 25]: List : keuangan/Deposit NIPL | [Col 27]: List : Riwayat Deposit dan Refund | [Col 31]: * Jumlah NIPL berkurang | [Col 33]: di arahkan ke halaman checkout | [Col 35]: List : Daftar Unit Menang | [Col 37]: List : Daftar Unit Menang | [Col 39]: List : Pelunasan | [Col 41]: List : Pelunasan
+Row 10: [Col 3]: Login dengan Gmail | [Col 4]: ➡️ | [Col 5]: ➡️ | [Col 6]: ➡️ | [Col 25]: status : Setujui pembayaran | [Col 27]: status : …..... | [Col 33]: User melihat total tagihan | [Col 35]: status : Proses BAPL | [Col 37]: status : Download BAPL | [Col 39]: status : Unit siap diambil | [Col 41]: status : Unit sudah diambil
+Row 11: [Col 25]: * admin bisa view bukti transfer | [Col 31]: @panel bidder, menu keranjang tagihan | [Col 33]: - tagihan unit x | [Col 39]: Aksi : Berikan Unit
+Row 12: [Col 27]: Menu beranda, statistik | [Col 31]: List : (bikin baru) daftar Unit Menang | [Col 33]: - tagihan unit x+1
+Row 13: [Col 27]: * Jumlah NIPL bertambah | [Col 31]: status : menunggu pembayaran | [Col 33]: - tagihan berikutnya jika ada | [Col 41]: User Request Kirim Unit | [Col 42]: ➡️ | [Col 43]: User Batalkan Request Pengiriman
+Row 14: [Col 27]: * Muncul Tombol Refund | [Col 33]: - total tagihan | [Col 41]: @panel bidder, menu keranjang tagihan | [Col 43]: @panel bidder, menu keranjang tagihan
+Row 15: [Col 31]: @panel admin, menu keuangan | [Col 33]: - tombol bayar | [Col 41]: List : Daftar Unit Menang | [Col 43]: List : Daftar Unit Menang
+Row 16: [Col 27]: @panel admin | [Col 31]: List : Pelunasan | [Col 33]: - instruksi pembayaran | [Col 41]: status : Unit siap diambil | [Col 43]: Status : Menunggu pembayaran
+Row 17: [Col 27]: List : daftar bidder, Kolom : NIPL Aktif | [Col 31]: status : Menunggu Pembayaran | [Col 33]: - upload | [Col 41]: Aksi : Request kirim unit | [Col 43]: Aksi : Batalkan request
+Row 18: [Col 27]: * Jumlah NIPL bertambah | [Col 33]: - tombol saya sudah bayar | [Col 41]: Status : Request Kirim Unit
+Row 19: [Col 33]: status : menunggu verifikasi | [Col 43]: @panel admin, menu keuangan
+Row 20: [Col 41]: @panel admin, menu keuangan | [Col 43]: List : Pelunasan
+Row 21: [Col 33]: @panel admin, menu keuangan | [Col 41]: List : Pelunasan | [Col 43]: status : Unit siap diambil
+Row 22: [Col 33]: List : Pelunasan | [Col 41]: status : Request Pengiriman Unit | [Col 43]: Aksi : Berikan Unit
+Row 23: [Col 33]: status : Menunggu verifikasi | [Col 41]: Aksi : Kirim Tagihan
+Row 24: [Col 33]: aksi : view bukti transfer, setujui | [Col 41]: Status : Menunggu pembayaran biaya kirim | [Col 43]: User Transfer tagihan | [Col 44]: ➡️ | [Col 45]: Admin Kirim Unit | [Col 46]: ➡️ | [Col 47]: User Terima Unit
+Row 25: [Col 43]: @panel bidder, menu keranjang tagihan | [Col 45]: @panel bidder, menu keranjang tagihan | [Col 47]: @panel admin, menu keuangan
+Row 26: [Col 43]: List : Daftar Unit Menang | [Col 45]: List : Daftar Unit Menang | [Col 47]: List : Pelunasan
+Row 27: [Col 43]: Status : Menunggu pembayaran | [Col 45]: Status : Menunggu Pengiriman | [Col 47]: Status : Unit Terkirim
+Row 28: [Col 43]: Aksi : Bayar | [Col 47]: Aksi : Unit diterima (info dari expedisi, unit terkirim)
+Row 29: [Col 43]: (arahkan ke halaman checkout, upload bukti transfer) | [Col 47]: Status : Unit diterima
+Row 30: [Col 43]: Status : Menunggu persetujuan kirim
+Row 31: [Col 47]: @panel bidder, menu keranjang tagihan
+Row 32: [Col 43]: @panel admin, menu keuangan | [Col 47]: List : Daftar Unit Menang
+Row 33: [Col 43]: List : Pelunasan | [Col 47]: Status : Unit diterima
+Row 34: [Col 43]: Status : Menunggu persetujuan kirim, view bukti transfer
+Row 35: [Col 43]: Aksi : Kirim Unit
+Row 36: [Col 43]: Status : Unit terkirim
+Row 48: [Col 9]: Kendaraan

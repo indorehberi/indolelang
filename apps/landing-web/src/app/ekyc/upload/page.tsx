@@ -333,7 +333,7 @@ export default function EkycUploadPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#F9F8F3] hero-gradient">
-      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-2xl w-full max-w-[480px]">
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-2xl w-full max-w-[480px] md:max-w-[720px]">
         {/* Title */}
         <div className="text-center mb-6">
           <Link href="/" className="inline-block mb-2">
@@ -345,12 +345,12 @@ export default function EkycUploadPage() {
             />
           </Link>
           <h2 className="text-heading-md font-bold text-on-surface font-serif mt-2">
-            Pengajuan Menjadi Bidder
+            Verifikasi KTP
           </h2>
         </div>
 
         <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-6">
-          Lengkapi data profil dan verifikasi identitas Anda dalam satu pengajuan. Tim Admin akan meninjau data Anda.
+          Lengkapi data profil dan verifikasi identitas Anda dengan mengunggah KTP dan Selfie. Tim Admin akan meninjau data Anda.
         </p>
 
         {/* Hidden inputs */}
@@ -475,110 +475,113 @@ export default function EkycUploadPage() {
             />
           </div>
 
-          {/* Upload e-KTP */}
-          <div>
-            <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Foto e-KTP Depan <span className="text-error">*</span>
-            </label>
-            <div
-              onClick={() => !uploadingKtp && ktpInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all ${
-                ktpUrl
-                  ? "border-success bg-success/5"
-                  : "border-outline-variant hover:border-premium hover:bg-surface/50"
-              }`}
-            >
-              {uploadingKtp ? (
-                <div className="space-y-2 py-2 flex flex-col items-center justify-center">
-                  <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="block text-body-sm font-medium text-slate-500">Mengunggah file...</span>
-                </div>
-              ) : ktpUrl ? (
-                <div className="space-y-1.5 text-success">
-                  <span className="material-symbols-outlined text-3xl">task_alt</span>
-                  <span className="block font-bold text-body-sm">KTP Berhasil Dipilih</span>
-                  <span className="block text-outline text-[10px] text-badge-text truncate max-w-xs mx-auto">
-                    {ktpFile?.name || "KTP Uploaded"}
-                  </span>
-                </div>
-              ) : (
-                <div className="space-y-1.5 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-3xl">photo_camera</span>
-                  <span className="block font-bold text-body-sm">Ambil / Seret Foto KTP di sini</span>
-                  <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 5MB</span>
-                </div>
-              )}
+          {/* Upload e-KTP & Selfie side-by-side on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Upload e-KTP */}
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                Foto e-KTP Depan <span className="text-error">*</span>
+              </label>
+              <div
+                onClick={() => !uploadingKtp && ktpInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all ${
+                  ktpUrl
+                    ? "border-success bg-success/5"
+                    : "border-outline-variant hover:border-premium hover:bg-surface/50"
+                }`}
+              >
+                {uploadingKtp ? (
+                  <div className="space-y-2 py-2 flex flex-col items-center justify-center">
+                    <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="block text-body-sm font-medium text-slate-500">Mengunggah file...</span>
+                  </div>
+                ) : ktpUrl ? (
+                  <div className="space-y-1.5 text-success">
+                    <span className="material-symbols-outlined text-3xl">task_alt</span>
+                    <span className="block font-bold text-body-sm">KTP Berhasil Dipilih</span>
+                    <span className="block text-outline text-[10px] text-badge-text truncate max-w-xs mx-auto">
+                      {ktpFile?.name || "KTP Uploaded"}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-3xl">photo_camera</span>
+                    <span className="block font-bold text-body-sm">Ambil / Seret Foto KTP di sini</span>
+                    <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 5MB</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Capture Selfie with Webcam */}
-          <div>
-            <label className="text-body-sm font-bold text-on-surface block mb-1.5">
-              Ambil Foto Selfie <span className="text-error">*</span>
-            </label>
-            <div
-              className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all ${
-                selfieUrl
-                  ? "border-success bg-success/5"
-                  : "border-outline-variant hover:bg-surface/50"
-              }`}
-            >
-              {uploadingSelfie ? (
-                <div className="space-y-2 py-2 flex flex-col items-center justify-center">
-                  <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="block text-body-sm font-medium text-slate-500">Mengunggah file...</span>
-                </div>
-              ) : selfieUrl ? (
-                <div className="space-y-2 text-success">
-                  <span className="material-symbols-outlined text-3xl">task_alt</span>
-                  <span className="block font-bold text-body-sm">Selfie Berhasil Disimpan</span>
-                  <span className="block text-outline text-[10px] text-badge-text truncate max-w-xs mx-auto">
-                    {selfieFile?.name || "selfie_captured.jpg"}
-                  </span>
-                  <div className="flex gap-2 justify-center pt-2">
-                    <button
-                      type="button"
-                      onClick={startCamera}
-                      className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-lg transition-all"
-                    >
-                      Ambil Ulang (Kamera)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => selfieInputRef.current?.click()}
-                      className="px-3 py-1.5 border border-outline-variant text-slate-600 hover:bg-slate-50 text-[10px] font-bold rounded-lg transition-all"
-                    >
-                      Ganti Berkas (File)
-                    </button>
+            {/* Capture Selfie with Webcam */}
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                Ambil Foto Selfie <span className="text-error">*</span>
+              </label>
+              <div
+                className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all ${
+                  selfieUrl
+                    ? "border-success bg-success/5"
+                    : "border-outline-variant hover:bg-surface/50"
+                }`}
+              >
+                {uploadingSelfie ? (
+                  <div className="space-y-2 py-2 flex flex-col items-center justify-center">
+                    <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="block text-body-sm font-medium text-slate-500">Mengunggah file...</span>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="space-y-1 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-3xl">face</span>
-                    <span className="block font-bold text-body-sm">Pilih Metode Pengambilan Foto Selfie</span>
-                    <span className="block text-outline text-[10px] text-badge-text">Wajah harus terlihat jelas</span>
+                ) : selfieUrl ? (
+                  <div className="space-y-2 text-success">
+                    <span className="material-symbols-outlined text-3xl">task_alt</span>
+                    <span className="block font-bold text-body-sm">Selfie Berhasil Disimpan</span>
+                    <span className="block text-outline text-[10px] text-badge-text truncate max-w-xs mx-auto">
+                      {selfieFile?.name || "selfie_captured.jpg"}
+                    </span>
+                    <div className="flex gap-2 justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Ambil Ulang (Kamera)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => selfieInputRef.current?.click()}
+                        className="px-3 py-1.5 border border-outline-variant text-slate-600 hover:bg-slate-50 text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Ganti Berkas (File)
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      type="button"
-                      onClick={startCamera}
-                      className="px-4 py-2.5 bg-primary text-white hover:bg-primary/95 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-sm">photo_camera</span>
-                      Buka Kamera
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => selfieInputRef.current?.click()}
-                      className="px-4 py-2.5 border border-outline-variant/60 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-sm">upload_file</span>
-                      Unggah File
-                    </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-3xl">face</span>
+                      <span className="block font-bold text-body-sm">Pilih Metode Pengambilan Foto Selfie</span>
+                      <span className="block text-outline text-[10px] text-badge-text">Wajah harus terlihat jelas</span>
+                    </div>
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="px-4 py-2.5 bg-primary text-white hover:bg-primary/95 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">photo_camera</span>
+                        Buka Kamera
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => selfieInputRef.current?.click()}
+                        className="px-4 py-2.5 border border-outline-variant/60 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">upload_file</span>
+                        Unggah File
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -592,7 +595,7 @@ export default function EkycUploadPage() {
               className="w-4.5 h-4.5 accent-premium rounded border-outline-variant focus:ring-premium mt-0.5"
             />
             <span className="leading-tight select-none">
-              Saya menyatakan bahwa data yang saya berikan adalah benar dan menyetujui pemrosesan identitas (e-KYC) sesuai dengan <Link href="https://bidku.co.id/syarat" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Syarat & Ketentuan</Link> serta <Link href="https://bidku.co.id/kebijakan" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Kebijakan Privasi</Link> IndoLelang.
+              Saya menyatakan bahwa data yang saya berikan adalah benar dan menyetujui pemrosesan identitas (KTP) sesuai dengan <Link href="https://bidku.co.id/syarat" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Syarat & Ketentuan</Link> serta <Link href="https://bidku.co.id/kebijakan" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline font-semibold">Kebijakan Privasi</Link> BIDKU.
             </span>
           </label>
 
@@ -605,10 +608,10 @@ export default function EkycUploadPage() {
             {isSubmitting ? (
               <>
                 <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Mengirim Pengajuan...
+                Mengirim Verifikasi...
               </>
             ) : (
-              "Kirim Pengajuan Bidder"
+              "Kirim Verifikasi KTP"
             )}
           </button>
         </form>

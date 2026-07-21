@@ -18,15 +18,16 @@ export class ProvidersService {
   async apply(
     userId: string,
     data: {
-      company_name: string;
-      npwp: string;
-      npwp_url: string;
+      company_name?: string;
+      npwp?: string;
+      npwp_url?: string;
       pks_number?: string;
       provider_type: string;
       address: string;
       bank_name?: string;
       bank_account_no?: string;
       bank_account_name?: string;
+      nik?: string;
       ktp_url?: string;
       selfie_url?: string;
     }
@@ -42,9 +43,9 @@ export class ProvidersService {
       create: {
         user_id: userId,
         status: ApplicationStatus.ANTRI,
-        company_name: data.company_name,
-        npwp: data.npwp,
-        npwp_url: data.npwp_url,
+        company_name: data.company_name ?? null,
+        npwp: data.npwp ?? null,
+        npwp_url: data.npwp_url ?? null,
         pks_number: data.pks_number,
         provider_type: data.provider_type,
         address: data.address,
@@ -54,9 +55,9 @@ export class ProvidersService {
       },
       update: {
         status: ApplicationStatus.ANTRI,
-        company_name: data.company_name,
-        npwp: data.npwp,
-        npwp_url: data.npwp_url,
+        company_name: data.company_name ?? null,
+        npwp: data.npwp ?? null,
+        npwp_url: data.npwp_url ?? null,
         pks_number: data.pks_number,
         provider_type: data.provider_type,
         address: data.address,
@@ -70,8 +71,9 @@ export class ProvidersService {
       },
     });
 
-    if (data.ktp_url || data.selfie_url) {
+    if (data.nik || data.ktp_url || data.selfie_url) {
       await kycService.uploadDocuments(userId, {
+        nik: data.nik,
         ktp_url: data.ktp_url,
         selfie_url: data.selfie_url,
       });
@@ -87,8 +89,8 @@ export class ProvidersService {
         bank_name: data.bank_name,
         bank_account_no: data.bank_account_no,
         bank_account_name: data.bank_account_name,
-        company_name: data.company_name,
-        npwp: data.npwp,
+        company_name: data.company_name ?? null,
+        npwp: data.npwp ?? null,
       },
     });
 
@@ -113,14 +115,27 @@ export class ProvidersService {
     status?: string,
     search?: string
   ): Promise<{ providers: ProviderDTO[]; meta: PaginationMeta }> {
-    const where: any = {};
+    const where: any = {
+      user: {
+        deleted_at: null,
+      },
+    };
     if (status) where.status = status;
     if (search) {
-      where.OR = [
-        { company_name: { contains: search, mode: 'insensitive' } },
-        { npwp: { contains: search } },
-        { user: { full_name: { contains: search, mode: 'insensitive' } } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
+      where.AND = [
+        {
+          user: {
+            deleted_at: null,
+          },
+        },
+        {
+          OR: [
+            { company_name: { contains: search, mode: 'insensitive' } },
+            { npwp: { contains: search } },
+            { user: { full_name: { contains: search, mode: 'insensitive' } } },
+            { user: { email: { contains: search, mode: 'insensitive' } } },
+          ],
+        },
       ];
     }
 

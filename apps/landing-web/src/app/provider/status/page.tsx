@@ -90,7 +90,7 @@ export default function ProviderStatusPage() {
               ? "Selamat! Akun Provider Anda sudah aktif. Anda kini dapat mengajukan barang titip jual."
               : isRejected
               ? `Pengajuan Anda ditolak. Alasan: ${rejectionReason || "Dokumen tidak lengkap"}. Silakan ajukan kembali dengan data yang benar.`
-              : "Tim Admin IndoLelang sedang meninjau data perusahaan dan dokumen identitas Anda."}
+              : "Tim Admin BIDKU sedang meninjau data perusahaan dan dokumen identitas Anda."}
           </p>
         </div>
 

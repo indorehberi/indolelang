@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
@@ -69,6 +69,8 @@ function getAssetImages(asset: any): string[] {
 interface BidLog {
   id: string;
   bidder_id: string;
+  bidder_name?: string;
+  nipl_code?: string;
   amount: number;
   time: string;
 }
@@ -216,6 +218,8 @@ export default function ControlRoomPage() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [highestBidder, setHighestBidder] = useState<string>('-');
+  const [highestBidderName, setHighestBidderName] = useState<string>('-');
+  const [highestBidderNipl, setHighestBidderNipl] = useState<string>('-');
   const [bidsCount, setBidsCount] = useState<number>(0);
   const [extensionCount, setExtensionCount] = useState<number>(0);
   const [isExtended, setIsExtended] = useState<boolean>(false);
@@ -230,6 +234,30 @@ export default function ControlRoomPage() {
   // reading `lots` directly inside them would see a stale value if fetchLots()
   // updates state afterwards. A ref's `.current` is always up to date.
   const lotsRef = useRef<Lot[]>([]);
+  
+  const fetchBidLogs = useCallback(async (lotId: string) => {
+    try {
+      const response = await apiFetch(`/lots/${lotId}/bids`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const formatted = data.data.map((bid: any) => ({
+          id: bid.id,
+          bidder_id: bid.bidder_id,
+          bidder_name: bid.bidder_name,
+          nipl_code: bid.nipl_code,
+          amount: bid.amount,
+          time: new Date(bid.created_at).toLocaleTimeString('id-ID'),
+        }));
+        setBidLogs(formatted);
+      } else {
+        setBidLogs([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bid logs:', err);
+      setBidLogs([]);
+    }
+  }, []);
+
   useEffect(() => {
     lotsRef.current = lots;
   }, [lots]);
@@ -314,8 +342,11 @@ export default function ControlRoomPage() {
             setBidsCount(active.bidder_count ?? 0);
             setExtensionCount(active.extension_count ?? 0);
             setHighestBidder(active.bidder_id ?? '-');
+            setHighestBidderName((active as any).bidder_name ?? '-');
+            setHighestBidderNipl((active as any).nipl_code ?? '-');
             setIsExtended((active.extension_count ?? 0) > 0);
             watchLotSocket(active.id);
+            fetchBidLogs(active.id);
           } else {
             setActiveLot(null);
           }
@@ -398,6 +429,8 @@ export default function ControlRoomPage() {
         setTimeRemaining(data.duration || 30);
         setBidsCount(0);
         setHighestBidder('-');
+        setHighestBidderName('-');
+        setHighestBidderNipl('-');
         setExtensionCount(0);
         setIsExtended(false);
         setBidLogs([]);
@@ -406,6 +439,8 @@ export default function ControlRoomPage() {
       socket.on('bid:update', (data: any) => {
         setCurrentPrice(data.current_price);
         setHighestBidder(data.bidder_id);
+        setHighestBidderName(data.bidder_name || '-');
+        setHighestBidderNipl(data.nipl_code || '-');
         setBidsCount(data.bidder_count);
         setTimeRemaining(data.time_remaining);
         setExtensionCount(data.extension_count);
@@ -415,17 +450,26 @@ export default function ControlRoomPage() {
           setToast({ message: `Waktu penawaran diperpanjang! (Anti-Sniping)`, variant: 'success' });
         }
 
-        // Add to logs if price changed and not empty bidder
+        // Add to logs only if it's a new bid (amount is higher or log is empty)
         if (data.bidder_id && data.bidder_id !== '-') {
-          setBidLogs((prev) => [
-            {
-              id: String(Date.now()),
-              bidder_id: data.bidder_id,
-              amount: data.current_price,
-              time: new Date().toLocaleTimeString('id-ID'),
-            },
-            ...prev,
-          ]);
+          setBidLogs((prev) => {
+            if (prev.length > 0 && prev[0].amount === data.current_price) {
+              return prev; // Do not add duplicate tick log entries
+            }
+            return [
+              {
+                id: String(Date.now()),
+                bidder_id: data.bidder_id,
+                bidder_name: data.bidder_name,
+                nipl_code: data.nipl_code,
+                amount: data.current_price,
+                time: data.created_at
+                  ? new Date(data.created_at).toLocaleTimeString('id-ID')
+                  : new Date().toLocaleTimeString('id-ID'),
+              },
+              ...prev,
+            ];
+          });
         }
       });
 
@@ -845,8 +889,17 @@ export default function ControlRoomPage() {
                   </div>
                   <div className="kpi-card" style={{ padding: '1rem', border: '1px solid var(--wf-border)' }}>
                     <div className="kpi-label">Penawar Tertinggi</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{highestBidder}</div>
-                    <span className="text-muted" style={{ fontSize: '0.8rem' }}>Total: {bidsCount} Bid</span>
+                    {highestBidder === '-' ? (
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>-</div>
+                    ) : (
+                      <div>
+                        <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>{highestBidderName}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--wf-text-light)', marginTop: '2px', wordBreak: 'break-all' }}>
+                          {highestBidder} · <code style={{ background: '#f1f5f9', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold' }}>{highestBidderNipl}</code>
+                        </div>
+                      </div>
+                    )}
+                    <span className="text-muted" style={{ fontSize: '0.8rem', display: 'block', marginTop: '4px' }}>Total: {bidsCount} Bid</span>
                   </div>
                 </div>
 
@@ -996,8 +1049,15 @@ export default function ControlRoomPage() {
                   }}
                 >
                   <div>
-                    <strong>{log.bidder_id}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--wf-text-light)' }}>{log.time}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.9rem' }}>{log.bidder_name || 'Anonymous'}</strong>
+                      <span className="text-muted" style={{ fontSize: '0.75rem' }}>({log.bidder_id})</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--wf-text-light)', marginTop: '2px', flexWrap: 'wrap' }}>
+                      <code style={{ background: '#e2e8f0', padding: '1px 4px', borderRadius: '3px', fontWeight: '600' }}>{log.nipl_code || '-'}</code>
+                      <span>·</span>
+                      <span>{log.time}</span>
+                    </div>
                   </div>
                   <strong style={{ color: 'var(--wf-success)' }}>{formatRupiah(log.amount)}</strong>
                 </div>

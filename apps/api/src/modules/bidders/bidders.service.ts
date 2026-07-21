@@ -148,10 +148,15 @@ export class BiddersService {
     status?: string,
     search?: string
   ): Promise<{ bidders: BidderDTO[]; meta: PaginationMeta }> {
-    const where: any = {};
+    const where: any = {
+      user: {
+        deleted_at: null,
+      },
+    };
     if (status) where.status = status;
     if (search) {
       where.user = {
+        deleted_at: null,
         OR: [
           { full_name: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },

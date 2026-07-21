@@ -66,7 +66,7 @@ function EkycStatusContent() {
       <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient">
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-premium mb-4"></div>
-          <p className="text-body-md text-on-surface-variant font-medium">Memuat status eKYC...</p>
+          <p className="text-body-md text-on-surface-variant font-medium">Memuat status verifikasi...</p>
         </div>
       </div>
     );
@@ -100,7 +100,7 @@ function EkycStatusContent() {
             />
           </Link>
           <h2 className="text-heading-md font-bold text-on-surface font-serif mt-2">
-            Status eKYC &amp; Identitas
+            Status Verifikasi KTP
           </h2>
         </div>
 
@@ -133,10 +133,10 @@ function EkycStatusContent() {
             </h3>
             <p className="text-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
               {isVerified
-                ? "Selamat! Tim Admin Indo-Lelang telah memverifikasi dokumen eKYC Anda. Akun Anda kini aktif."
+                ? "Selamat! Tim Admin BIDKU telah memverifikasi dokumen KTP Anda. Akun Anda kini aktif."
                 : isRejected
                 ? `Pengajuan Anda ditolak. Alasan: ${rejectionReason || "Dokumen tidak sesuai"}. Silakan ajukan kembali dengan data yang benar.`
-                : "Dokumen identitas Anda sedang diverifikasi secara manual oleh Tim Admin Indo-Lelang. Estimasi verifikasi selesai dalam 5-10 menit."}
+                : "Dokumen identitas Anda sedang diverifikasi secara manual oleh Tim Admin BIDKU. Estimasi verifikasi selesai dalam 5-10 menit."}
             </p>
           </div>
 
@@ -164,7 +164,7 @@ function EkycStatusContent() {
               href="/ekyc/upload"
               className="w-full py-4 bg-error text-white rounded-xl text-body-md font-bold hover:bg-error/90 transition-all text-center block"
             >
-              Unggah Ulang Dokumen eKYC
+              Unggah Ulang Dokumen KTP
             </Link>
           ) : (
             <button
@@ -193,7 +193,7 @@ export default function EkycStatusPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#F9F8F3] hero-gradient text-premium text-heading-md font-bold font-serif">
-        Memuat status eKYC...
+        Memuat status verifikasi...
       </div>
     }>
       <EkycStatusContent />

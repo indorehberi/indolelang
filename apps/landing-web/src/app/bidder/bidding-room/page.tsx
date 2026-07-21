@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
@@ -127,6 +127,33 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     fetchNipl();
   }, [lot.asset?.category, token]);
 
+  const fetchBidLogs = useCallback(async () => {
+    try {
+      const response = await apiFetch(`/lots/${lot.id}/bids`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const storedUser = localStorage.getItem("user");
+        const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
+        const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
+
+        const formatted = data.data.map((bid: any) => ({
+          id: bid.id,
+          bidder: bid.bidder_id,
+          amount: bid.amount,
+          time: new Date(bid.created_at).toLocaleTimeString('id-ID'),
+          isMe: !!bid.bidder_id && bid.bidder_id === myMaskedId,
+        }));
+        setBidLogs(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bid logs:', err);
+    }
+  }, [lot.id]);
+
+  useEffect(() => {
+    fetchBidLogs();
+  }, [fetchBidLogs]);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -151,7 +178,9 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
           id: Math.random().toString(),
           bidder: data.bidder_id,
           amount: data.current_price,
-          time: new Date().toLocaleTimeString("id-ID"),
+          time: data.created_at
+            ? new Date(data.created_at).toLocaleTimeString("id-ID")
+            : new Date().toLocaleTimeString("id-ID"),
           isMe: isMe,
         };
 

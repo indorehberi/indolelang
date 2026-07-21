@@ -91,6 +91,32 @@ export class DocumentsService {
     return `${typePrefix}-${branchPrefix}-${yyyymmdd}-${seq}`;
   }
 
+  async applyTransactionProfileSnapshot(invoice: any): Promise<void> {
+    if (!invoice || !invoice.id) return;
+    const txProfile = await prisma.transaction_profiles.findUnique({
+      where: { transaction_id: invoice.id }
+    });
+    if (txProfile) {
+      invoice.bidder = {
+        ...invoice.bidder,
+        full_name: txProfile.full_name,
+        email: txProfile.email ?? invoice.bidder.email,
+        phone: txProfile.phone ?? invoice.bidder.phone,
+        address: txProfile.address ?? invoice.bidder.address,
+        bank_name: txProfile.bank_name ?? invoice.bidder.bank_name,
+        bank_account_no: txProfile.bank_account_no ?? invoice.bidder.bank_account_no,
+        bank_account_name: txProfile.bank_account_name ?? invoice.bidder.bank_account_name,
+        npwp: txProfile.npwp ?? invoice.bidder.npwp,
+        kyc_document: invoice.bidder?.kyc_document ? {
+          ...invoice.bidder.kyc_document,
+          nik: txProfile.nik ?? invoice.bidder.kyc_document.nik
+        } : (txProfile.nik ? {
+          nik: txProfile.nik
+        } : null)
+      } as any;
+    }
+  }
+
   /**
    * Generate Invoice PDF
    */
@@ -129,6 +155,8 @@ export class DocumentsService {
     if (!invoice) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Invoice tidak ditemukan');
     }
+
+    await this.applyTransactionProfileSnapshot(invoice);
 
     const docNumber = await this.generateDocNumber(invoiceId, 'invoice');
     const qrHash = crypto
@@ -295,6 +323,8 @@ export class DocumentsService {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Surat Jalan hanya bisa diterbitkan setelah Invoice lunas dibayar.');
     }
 
+    await this.applyTransactionProfileSnapshot(invoice);
+
     const docNumber = await this.generateDocNumber(invoiceId, 'surat_jalan');
     const qrHash = crypto
       .createHash('sha256')
@@ -443,6 +473,8 @@ export class DocumentsService {
     if (invoice.status !== 'paid') {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'BAST hanya bisa diterbitkan setelah unit lunas dibayar.');
     }
+
+    await this.applyTransactionProfileSnapshot(invoice);
 
     const docNumber = await this.generateDocNumber(invoiceId, 'bast');
     const qrHash = crypto
@@ -717,6 +749,8 @@ export class DocumentsService {
     if (invoice.status !== 'paid') {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'BAPL hanya bisa diterbitkan setelah invoice lunas dibayar.');
     }
+
+    await this.applyTransactionProfileSnapshot(invoice);
 
     // Generate Sequence Number
     const year = new Date().getFullYear();

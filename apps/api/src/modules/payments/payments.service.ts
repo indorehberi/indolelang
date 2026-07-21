@@ -112,6 +112,32 @@ export class PaymentsService {
       },
     });
 
+    // Create a transaction profile snapshot for the provider
+    const providerUser = await prisma.users.findUnique({
+      where: { id: provider.id },
+      include: { kyc_document: true }
+    });
+    const providerDetails = await prisma.providers.findUnique({
+      where: { user_id: provider.id }
+    });
+    if (providerUser) {
+      await prisma.transaction_profiles.create({
+        data: {
+          transaction_id: settlement.id,
+          full_name: providerUser.full_name,
+          address: providerDetails?.address || provider.address || providerUser.address,
+          phone: providerUser.phone,
+          email: providerUser.email,
+          bank_name: providerDetails?.bank_name || provider.bank_name || providerUser.bank_name,
+          bank_account_no: providerDetails?.bank_account_no || provider.bank_account_no || providerUser.bank_account_no,
+          bank_account_name: providerDetails?.bank_account_name || provider.bank_account_name || providerUser.bank_account_name,
+          nik: providerUser.kyc_document?.nik || null,
+          company_name: providerDetails?.company_name || provider.company_name || providerUser.company_name,
+          npwp: providerDetails?.npwp || provider.npwp || providerUser.npwp,
+        }
+      });
+    }
+
     return settlement;
   }
 
@@ -168,25 +194,38 @@ export class PaymentsService {
       }),
     ]);
 
+    const recordIds = records.map(r => r.id);
+    const txProfiles = await prisma.transaction_profiles.findMany({
+      where: { transaction_id: { in: recordIds } }
+    });
+    const txProfilesMap = new Map(txProfiles.map(p => [p.transaction_id, p]));
+
     return {
-      settlements: records.map((r) => ({
-        id: r.id,
-        lot_id: r.lot_id,
-        provider_id: r.provider_id,
-        gross_amount: Number(r.gross_amount),
-        commission_deducted: Number(r.commission_deducted),
-        net_amount: Number(r.net_amount),
-        fee_dpp: Number(r.fee_dpp || 0),
-        fee_dpp_lain: Number(r.fee_dpp_lain || 0),
-        fee_ppn: Number(r.fee_ppn || 0),
-        fee_pph23: Number(r.fee_pph23 || 0),
-        pmk41_amount: Number(r.pmk41_amount || 0),
-        status: r.status,
-        transferred_at: r.transferred_at ? r.transferred_at.toISOString() : undefined,
-        created_at: r.created_at.toISOString(),
-        provider: r.provider,
-        lot: r.lot,
-      })),
+      settlements: records.map((r) => {
+        const txProfile = txProfilesMap.get(r.id);
+        return {
+          id: r.id,
+          lot_id: r.lot_id,
+          provider_id: r.provider_id,
+          gross_amount: Number(r.gross_amount),
+          commission_deducted: Number(r.commission_deducted),
+          net_amount: Number(r.net_amount),
+          fee_dpp: Number(r.fee_dpp || 0),
+          fee_dpp_lain: Number(r.fee_dpp_lain || 0),
+          fee_ppn: Number(r.fee_ppn || 0),
+          fee_pph23: Number(r.fee_pph23 || 0),
+          pmk41_amount: Number(r.pmk41_amount || 0),
+          status: r.status,
+          transferred_at: r.transferred_at ? r.transferred_at.toISOString() : undefined,
+          created_at: r.created_at.toISOString(),
+          provider: {
+            ...r.provider,
+            full_name: txProfile?.full_name ?? r.provider.full_name,
+            company_name: txProfile?.company_name ?? r.provider.company_name,
+          },
+          lot: r.lot,
+        };
+      }),
       meta: {
         page,
         per_page: perPage,

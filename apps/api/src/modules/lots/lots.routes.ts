@@ -19,6 +19,7 @@ router.get('/lots', validate(getLotsQuerySchema), controller.getLots);
 router.get('/lots/history/me', authenticate, controller.getMyHistory);
 router.get('/lots/history/stats', authenticate, controller.getMyActivityStats);
 router.get('/lots/:id', controller.getLotById);
+router.get('/lots/:id/bids', controller.getLotBids);
 router.post('/lots/:id/view', controller.incrementView);
 router.post('/lots/:id/like', controller.toggleLike);
 
