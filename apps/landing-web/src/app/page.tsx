@@ -90,6 +90,7 @@ function LotCard({
 
   const lokasiUnit = lot.notes || 'N/A';
   const deadlineDate = formatDeadlineDate(lot.scheduledAt);
+  const isLive = lot.isLive || lot.status === "Live";
 
   return (
     <div className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group">
@@ -105,27 +106,54 @@ function LotCard({
             src={lot.image}
           />
           {lot.isCancelled && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40 z-10">
               <span className="material-symbols-outlined text-white" style={{ fontSize: 40 }}>cancel</span>
               <p className="text-xl font-black text-white tracking-widest mt-1 drop-shadow">DIBATALKAN</p>
             </div>
           )}
         </div>
         {/* No lot — pojok kiri atas */}
-        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-20">
           Lot {lot.lot_number || "-"}
         </div>
-        {/* Harga dasar box — menutup ~50% bawah foto */}
-        {!lot.isCancelled && (
-          <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
-            <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">Harga Dasar</p>
-            <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+
+        {/* Badge — Lelang Sedang Berlangsung (Pojok Kanan Atas Foto) */}
+        {isLive && !lot.isCancelled && (
+          <div className="absolute top-2 right-2 bg-red-600/95 backdrop-blur-md text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full z-20 flex items-center gap-1.5 shadow-lg border border-red-300/40 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            <span>Lelang Sedang Berlangsung</span>
           </div>
+        )}
+
+        {/* Harga overlay box — menutup ~50% bawah foto */}
+        {!lot.isCancelled && (
+          isLive ? (
+            <div className="absolute bottom-0 left-2 right-2 translate-y-1/3 z-20 bg-white/95 backdrop-blur-md rounded-xl shadow-xl px-3 py-2 border border-red-200 text-center">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Harga Dasar</span>
+                <span className="text-xs font-extrabold text-slate-700">{formatRupiah(lot.hargaDasar)}</span>
+              </div>
+              <div className="bg-red-50/90 border border-red-200/80 rounded-lg py-1 px-2.5 flex items-center justify-between gap-2 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]">
+                <span className="text-[10px] text-red-600 font-extrabold uppercase tracking-wide flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
+                  Penawaran Tinggi
+                </span>
+                <span className="text-sm font-black text-red-600 tracking-tight">
+                  {formatRupiah(lot.hargaPenawaranTinggi || lot.hargaDasar)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
+              <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">Harga Dasar</p>
+              <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+            </div>
+          )
         )}
       </div>
 
       {/* ── BODY ─────────────────────────────────── */}
-      <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : 'pt-10'}`}>
+      <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : isLive ? 'pt-12' : 'pt-10'}`}>
         {/* Nama unit */}
         <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
           {lot.isCancelled ? lot.title : <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>}
@@ -271,32 +299,39 @@ export default function Home() {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
         const image = getImageUrl(getAssetImages(dbLot.asset)[0]);
-        const isLive = dbLot.status.toLowerCase() === "active";
-        const isCancelled = dbLot.status.toLowerCase() === "cancelled";
+        const statusStr = dbLot.status?.toLowerCase();
+        const isLive = statusStr === "active" || statusStr === "live" || dbLot.session?.status?.toLowerCase() === "live";
+        const isCancelled = statusStr === "cancelled";
+        const hargaDasar = Number(dbLot.starting_price || 0);
+        const hargaPenawaranTinggi = dbLot.current_price
+          ? Number(dbLot.current_price)
+          : (dbLot.highest_bid ? Number(dbLot.highest_bid) : hargaDasar);
 
         return {
           id: dbLot.id,
           lot_number: dbLot.lot_number || 0,
-          title: dbLot.asset.title,
-          grade: dbLot.asset.grade_engine || dbLot.asset.grade || undefined,
-          grade_engine: dbLot.asset.grade_engine || undefined,
-          grade_exterior: dbLot.asset.grade_exterior || undefined,
-          grade_interior: dbLot.asset.grade_interior || undefined,
-          transmission: dbLot.asset.transmission || undefined,
-          odometer: dbLot.asset.odometer || undefined,
-          police_number: dbLot.asset.police_number || undefined,
-          fuel_type: dbLot.asset.fuel_type || undefined,
-          year: dbLot.asset.year || undefined,
-          stnk_date: dbLot.asset.stnk_date || undefined,
-          notes: dbLot.asset.notes || undefined,
+          title: dbLot.asset?.title || "Unit",
+          grade: dbLot.asset?.grade_engine || dbLot.asset?.grade || undefined,
+          grade_engine: dbLot.asset?.grade_engine || undefined,
+          grade_exterior: dbLot.asset?.grade_exterior || undefined,
+          grade_interior: dbLot.asset?.grade_interior || undefined,
+          transmission: dbLot.asset?.transmission || undefined,
+          odometer: dbLot.asset?.odometer || undefined,
+          police_number: dbLot.asset?.police_number || undefined,
+          fuel_type: dbLot.asset?.fuel_type || undefined,
+          year: dbLot.asset?.year || undefined,
+          stnk_date: dbLot.asset?.stnk_date || undefined,
+          notes: dbLot.asset?.notes || undefined,
           scheduledAt: dbLot.session?.scheduled_at || undefined,
           deposit: "Rp 5.000.000",
           location: dbLot.session?.branch?.city || "Jakarta",
           cabang: dbLot.session?.branch?.name || "",
-          kategori: dbLot.asset.category || "",
-          merk: dbLot.asset.brand || "",
-          hargaDasar: Number(dbLot.starting_price),
+          kategori: dbLot.asset?.category || "",
+          merk: dbLot.asset?.brand || "",
+          hargaDasar,
+          hargaPenawaranTinggi,
           status: isLive ? "Live" : "Akan Datang",
+          isLive,
           isCancelled,
           timerKey: dbLot.id,
           timerLabel: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",

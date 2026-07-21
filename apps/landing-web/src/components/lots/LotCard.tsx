@@ -46,8 +46,10 @@ export interface LotCardData {
   image: string;
   title: string;
   isCancelled: boolean;
+  isLive?: boolean;
   lot_number: number;
   hargaDasar: number;
+  hargaPenawaranTinggi?: number;
   priceLabel?: string;
   view_count: number;
   like_count: number;
@@ -71,7 +73,7 @@ export function mapLotToCard(dbLot: any): LotCardData {
   const status = dbLot.status?.toLowerCase();
   const isCancelled = status === "cancelled";
   const isSold = status === "sold";
-  const isLiveRaw = status === "active";
+  const isLiveRaw = status === "active" || status === "live" || dbLot.session?.status?.toLowerCase() === "live";
   let isLive = isLiveRaw && !isCancelled;
   let timerText = "Akan Datang";
 
@@ -101,15 +103,23 @@ export function mapLotToCard(dbLot: any): LotCardData {
     timerText = isLive ? "Berakhir Hari Ini" : "Akan Datang";
   }
 
+  const hargaDasar = isSold
+    ? Number(dbLot.hammer_price || dbLot.starting_price || 0)
+    : Number(dbLot.starting_price || 0);
+
+  const hargaPenawaranTinggi = dbLot.current_price
+    ? Number(dbLot.current_price)
+    : (dbLot.highest_bid ? Number(dbLot.highest_bid) : hargaDasar);
+
   return {
     id: dbLot.id,
     image,
     title: dbLot.asset?.title || `${dbLot.asset?.brand || ""} ${dbLot.asset?.model || ""}`.trim() || "Unit",
     isCancelled,
+    isLive,
     lot_number: dbLot.lot_number || 0,
-    hargaDasar: isSold
-      ? Number(dbLot.hammer_price || dbLot.starting_price)
-      : Number(dbLot.starting_price),
+    hargaDasar,
+    hargaPenawaranTinggi,
     priceLabel: isSold ? "Harga Terbentuk" : "Harga Dasar",
     view_count: dbLot.view_count || 0,
     like_count: dbLot.like_count || 0,
@@ -134,6 +144,8 @@ export function mapLotToCard(dbLot: any): LotCardData {
 /* -------------------------------------------------------------------------- */
 
 export default function LotCard({ lot }: { lot: LotCardData }) {
+  const isLive = lot.isLive || lot.action === "Bid" || lot.timer?.includes("Hari ini");
+
   return (
     <article className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group">
       {/* ── FOTO ─────────────────────────────────── */}
@@ -148,27 +160,55 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
             src={lot.image}
           />
           {lot.isCancelled && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40 z-10">
               <span className="material-symbols-outlined text-white" style={{ fontSize: 40 }}>cancel</span>
               <p className="text-xl font-black text-white tracking-widest mt-1 drop-shadow">DIBATALKAN</p>
             </div>
           )}
         </div>
+
         {/* No lot — pojok kiri atas */}
-        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-20">
           Lot {lot.lot_number || "-"}
         </div>
-        {/* Harga box — menutup ~50% bawah foto */}
-        {!lot.isCancelled && (
-          <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
-            <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{lot.priceLabel ?? "Harga Dasar"}</p>
-            <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+
+        {/* Badge — Lelang Sedang Berlangsung (Pojok Kanan Atas Foto) */}
+        {isLive && !lot.isCancelled && (
+          <div className="absolute top-2 right-2 bg-red-600/95 backdrop-blur-md text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full z-20 flex items-center gap-1.5 shadow-lg border border-red-300/40 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            <span>Lelang Sedang Berlangsung</span>
           </div>
+        )}
+
+        {/* Harga box overlay — menutup ~50% bawah foto */}
+        {!lot.isCancelled && (
+          isLive ? (
+            <div className="absolute bottom-0 left-2 right-2 translate-y-1/3 z-20 bg-white/95 backdrop-blur-md rounded-xl shadow-xl px-3 py-2 border border-red-200 text-center">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Harga Dasar</span>
+                <span className="text-xs font-extrabold text-slate-700">{formatRupiah(lot.hargaDasar)}</span>
+              </div>
+              <div className="bg-red-50/90 border border-red-200/80 rounded-lg py-1 px-2.5 flex items-center justify-between gap-2 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]">
+                <span className="text-[10px] text-red-600 font-extrabold uppercase tracking-wide flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
+                  Penawaran Tinggi
+                </span>
+                <span className="text-sm font-black text-red-600 tracking-tight">
+                  {formatRupiah(lot.hargaPenawaranTinggi || lot.hargaDasar)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
+              <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{lot.priceLabel ?? "Harga Dasar"}</p>
+              <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+            </div>
+          )
         )}
       </div>
 
       {/* ── BODY ─────────────────────────────────── */}
-      <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? "pt-4" : "pt-10"}`}>
+      <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? "pt-4" : isLive ? "pt-12" : "pt-10"}`}>
         {/* Nama unit */}
         <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
           {lot.isCancelled ? lot.title : <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>}

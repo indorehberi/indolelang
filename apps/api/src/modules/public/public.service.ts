@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { AssetCategory } from '@indo-lelang/shared-types';
 import { getLotEngagementMetrics } from '../lots/engagementStore';
+import { activeLots } from '../../lib/socket';
 
 export class PublicService {
   /**
@@ -89,8 +90,10 @@ export class PublicService {
 
     return lots.map((lot: any) => {
       const engagement = getLotEngagementMetrics(lot.id);
+      const live = (lot.status === 'active' || lot.status === 'ACTIVE') ? activeLots.get(lot.id) : undefined;
       return {
         ...lot,
+        current_price: live ? live.currentPrice : (lot.starting_price ? Number(lot.starting_price) : undefined),
         view_count: engagement.view_count,
         like_count: engagement.like_count,
       };
