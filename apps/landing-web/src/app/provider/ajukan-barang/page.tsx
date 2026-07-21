@@ -79,6 +79,7 @@ function ProviderAjukanBarangContent() {
     // Spesifikasi Kendaraan
     brand: "",
     model: "",
+    type: "",
     color: "",
     fuel_type: "Bensin",
     transmission: "Otomatis",
@@ -124,6 +125,7 @@ function ProviderAjukanBarangContent() {
 
   const [customBrands, setCustomBrands] = useState<string[]>([]);
   const [customModels, setCustomModels] = useState<string[]>([]);
+  const [customTypesVariant, setCustomTypesVariant] = useState<string[]>([]);
   const [customTypes, setCustomTypes] = useState<string[]>(BODY_TYPES);
   const [customColors, setCustomColors] = useState<string[]>(COLORS);
 
@@ -143,6 +145,15 @@ function ProviderAjukanBarangContent() {
       const trimmed = val.trim().toUpperCase();
       if (!customModels.includes(trimmed)) setCustomModels(prev => [...prev, trimmed]);
       handleChange('model', trimmed);
+    }
+  };
+
+  const handleAddTypeVariant = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim().toUpperCase();
+      if (!customTypesVariant.includes(trimmed)) setCustomTypesVariant(prev => [...prev, trimmed]);
+      handleChange('type', trimmed);
     }
   };
 
@@ -231,6 +242,7 @@ function ProviderAjukanBarangContent() {
             notes: a.notes || "",
             brand: a.brand || "",
             model: a.model || "",
+            type: a.type || "",
             color: a.color || "",
             fuel_type: a.fuel_type || "Bensin",
             transmission: a.transmission || "Otomatis",
@@ -387,6 +399,7 @@ function ProviderAjukanBarangContent() {
         ...formData,
         title: `${formData.brand} ${formData.model} ${formData.year}`,
         description: formData.description,
+        type: formData.type || undefined,
         // Cabang is optional now — send undefined rather than "" when left
         // unselected, since the backend's uuid validation rejects an empty
         // string as an invalid uuid (it only treats undefined as "not set").
@@ -538,6 +551,30 @@ function ProviderAjukanBarangContent() {
                   <div className="panel-form-group">
                     <div className="flex justify-between items-center mb-1">
                       <label className="panel-form-label mb-0">Tipe</label>
+                      <button type="button" onClick={() => handleAddTypeVariant()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
+                    </div>
+                    <select 
+                      value={formData.type} 
+                      onChange={(e) => {
+                        if (e.target.value === '__ADD_NEW__') {
+                          handleAddTypeVariant();
+                        } else {
+                          handleChange('type', e.target.value.toUpperCase());
+                        }
+                      }} 
+                      className="panel-form-select" 
+                    >
+                      <option value="">Pilih Tipe...</option>
+                      {customTypesVariant.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                      <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="panel-form-group">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="panel-form-label mb-0">Bentuk Bodi</label>
                       <button type="button" onClick={() => handleAddType()} className="text-xs text-primary font-bold hover:underline">+ Tambahkan</button>
                     </div>
                     <select 

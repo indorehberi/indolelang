@@ -587,9 +587,6 @@ export default function AssetsPage() {
 
   return (
     <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Barang">
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
-        <input type="text" placeholder="Cari No. Polisi..." value={searchPolice} onChange={e => setSearchPolice(e.target.value)} className="panel-form-input" style={{ width: '200px' }} />
-      </div>
       <div className="toolbar">
         <div className="toolbar-left">
           <h1 className="page-title">Katalog Barang</h1>
@@ -642,6 +639,18 @@ export default function AssetsPage() {
               placeholder="Masukkan kata kunci..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari No. Polisi</label>
+            <input
+              type="text"
+              className="search-box w-100"
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              placeholder="Misal: B 1234 ABC"
+              value={searchPolice}
+              onChange={(e) => setSearchPolice(e.target.value)}
             />
           </div>
 

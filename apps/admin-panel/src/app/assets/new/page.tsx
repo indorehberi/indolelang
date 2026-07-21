@@ -70,6 +70,7 @@ export default function NewAssetPage() {
   
   const [customBrands, setCustomBrands] = useState<string[]>(BRAND_OPTIONS);
   const [customModels, setCustomModels] = useState<string[]>([]);
+  const [customTypesVariant, setCustomTypesVariant] = useState<string[]>([]);
   const [customTypes, setCustomTypes] = useState<string[]>(BODY_OPTIONS);
   const [customColors, setCustomColors] = useState<string[]>(COLOR_OPTIONS);
 
@@ -92,6 +93,17 @@ export default function NewAssetPage() {
         setCustomModels(prev => [...prev, trimmed]);
       }
       setFormData(prev => ({ ...prev, model: trimmed }));
+    }
+  };
+
+  const handleAddTypeVariant = (presetVal?: string) => {
+    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    if (val && val.trim()) {
+      const trimmed = val.trim().toUpperCase();
+      if (!customTypesVariant.includes(trimmed)) {
+        setCustomTypesVariant(prev => [...prev, trimmed]);
+      }
+      setFormData(prev => ({ ...prev, type: trimmed }));
     }
   };
 
@@ -136,6 +148,7 @@ export default function NewAssetPage() {
     // Specs
     brand: '',
     model: '',
+    type: '',
     color: '',
     fuel_type: 'Bensin',
     transmission: 'Otomatis',
@@ -308,6 +321,7 @@ export default function NewAssetPage() {
         // Specs
         brand: formData.brand,
         model: formData.model,
+        type: formData.type,
         color: formData.color,
         fuel_type: formData.fuel_type,
         transmission: formData.transmission,
@@ -570,6 +584,35 @@ export default function NewAssetPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                 <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Tipe</label>
+                <button
+                  type="button"
+                  onClick={() => handleAddTypeVariant()}
+                  style={{ background: 'none', border: 'none', color: 'var(--wf-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  + Tambahkan
+                </button>
+              </div>
+              <select
+                className="form-select"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                value={(formData as any).type}
+                onChange={e => {
+                  if (e.target.value === '__ADD_NEW__') {
+                    handleAddTypeVariant();
+                  } else {
+                    setFormData({ ...formData, type: e.target.value.toUpperCase() } as any);
+                  }
+                }}
+              >
+                <option value="">Pilih Tipe...</option>
+                {customTypesVariant.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
+              </select>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem' }}>Bentuk Bodi</label>
                 <button
                   type="button"
                   onClick={() => handleAddType()}

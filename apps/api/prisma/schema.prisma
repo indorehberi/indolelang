@@ -212,6 +212,7 @@ model assets {
   inspection_doc_url  String?
   brand               String?
   model               String?
+  type                String?
   color               String?
   fuel_type           String?
   transmission        String?

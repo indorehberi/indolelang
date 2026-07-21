@@ -55,9 +55,15 @@ export class AssetsService {
       where.police_number = { contains: policeNumber, mode: 'insensitive' };
     }
     if (dateFrom || dateTo) {
+      const gte = dateFrom ? new Date(dateFrom) : undefined;
+      let lte = undefined;
+      if (dateTo) {
+        lte = new Date(dateTo);
+        lte.setUTCHours(23, 59, 59, 999);
+      }
       where.created_at = {
-        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-        ...(dateTo ? { lte: new Date(dateTo) } : {}),
+        ...(gte ? { gte } : {}),
+        ...(lte ? { lte } : {}),
       };
     }
     if (search) {
@@ -142,6 +148,7 @@ export class AssetsService {
 
         brand: data.brand ? String(data.brand).trim().toUpperCase() : null,
         model: data.model ? String(data.model).trim().toUpperCase() : null,
+        type: data.type ? String(data.type).trim().toUpperCase() : null,
         color: data.color || null,
         fuel_type: data.fuel_type || null,
         transmission: data.transmission || null,
@@ -231,6 +238,7 @@ export class AssetsService {
         category: data.category,
         brand: data.brand ? String(data.brand).trim().toUpperCase() : null,
         model: data.model ? String(data.model).trim().toUpperCase() : null,
+        type: data.type ? String(data.type).trim().toUpperCase() : null,
         color: data.color,
         fuel_type: data.fuel_type,
         transmission: data.transmission,
@@ -274,6 +282,7 @@ export class AssetsService {
         
         brand: data.brand !== undefined ? (data.brand ? String(data.brand).trim().toUpperCase() : null) : undefined,
         model: data.model !== undefined ? (data.model ? String(data.model).trim().toUpperCase() : null) : undefined,
+        type: data.type !== undefined ? (data.type ? String(data.type).trim().toUpperCase() : null) : undefined,
         color: data.color ?? undefined,
         fuel_type: data.fuel_type ?? undefined,
         transmission: data.transmission ?? undefined,

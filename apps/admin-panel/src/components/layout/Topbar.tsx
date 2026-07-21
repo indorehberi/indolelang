@@ -88,7 +88,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     const query = searchQuery.trim();
     if (!query) return;
 
-    router.push(`/assets?search=${encodeURIComponent(query)}`);
+    router.push(`/search?q=${encodeURIComponent(query)}`);
   };
 
   const handleLogout = () => {

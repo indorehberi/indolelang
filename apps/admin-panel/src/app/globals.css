@@ -89,15 +89,15 @@ a:hover { text-decoration: underline; }
   flex: 1;
   padding: 0.5rem 0;
   overflow-y: auto;
+  min-height: 0; /* Add min-height: 0 to allow flexbox shrinking & scrolling */
   scrollbar-width: thin;
-  scrollbar-color: #334155 #0f172a;
+  scrollbar-color: #475569 transparent;
 }
 .sidebar .sidebar-nav::-webkit-scrollbar {
   width: 6px;
-  display: block;
 }
 .sidebar .sidebar-nav::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 .sidebar .sidebar-nav::-webkit-scrollbar-thumb {
   background: #334155;
