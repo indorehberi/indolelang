@@ -834,7 +834,7 @@ export default function FinanceManager({
                           )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {(order.status === 'pending_approval' || order.status === 'unpaid') && (
+                          {(order.status?.toLowerCase() === 'pending_approval' || order.status?.toLowerCase() === 'unpaid') && (
                             <div className="d-flex flex-column gap-1">
                               <button
                                 onClick={() => openVerificationModal(order)}
@@ -842,7 +842,7 @@ export default function FinanceManager({
                                 className="btn btn-xs btn-primary"
                                 style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
                               >
-                                {order.status === 'unpaid' ? 'Verifikasi (Sudah Bayar)' : 'Verifikasi Pembayaran'}
+                                {order.status?.toLowerCase() === 'unpaid' ? 'Verifikasi (Sudah Bayar)' : 'Verifikasi Pembayaran'}
                               </button>
                             </div>
                           )}
@@ -1028,6 +1028,7 @@ export default function FinanceManager({
             </div>
           </Card>
         </>
+      )}
       {verificationModalOpen && selectedOrderToVerify && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="modal-content" style={{ backgroundColor: '#fff', borderRadius: '8px', width: '90%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
