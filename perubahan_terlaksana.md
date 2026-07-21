@@ -308,6 +308,22 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * **Sanitasi Server-Side (API):** Seluruh input `brand`, `model`, dan `body_type` (Tipe) secara otomatis diubah menjadi `UPPERCASE` saat pembuatan aset (`createAsset`), inspeksi (`submitInspection`), dan pembaruan (`updateAsset`).
   * **Formatting Client-Side (Frontend):** Pada form Admin dan Provider, pilihan dropdown serta opsi custom yang diinputkan langsung dikonversi menjadi huruf kapital (Contoh: `TOYOTA`, `AVANZA G 1.3 MT`, `SUV SPORT`) untuk konsistensi data di seluruh platform.
 
+### 23. Popup Modal Pengumuman Pemenang Lot di Ruang Kontrol Lelang Admin (5 Detik Timer)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [socket.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/lib/socket.ts) (WebSocket Event Payload `lot:closed`)
+  * [bidding.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/bidding.service.ts) (Settlement Service)
+  * [control-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/control-room/page.tsx) (Ruang Kontrol Lelang Live Admin)
+* **Deskripsi Perubahan:**
+  * **Rincian Data Pemenang:** Saat lot selesai dan dimenangkan oleh bidder (*Ketok Palu* / status `sold`), layar admin menampilkan popup modal interaktif berisi rincian:
+    1. Header: **`Lot [no lot] ini dimenangkan oleh:`**
+    2. **Nama Mobil / Unit**
+    3. **Nama Bidder Pemenang**
+    4. **No NIPL Bidder**
+    5. **Harga Dasar** (Rupiah)
+    6. **Harga Terbentuk** (Rupiah / Hammer Price)
+  * **Auto-Dismiss 5 Detik & Countdown Bar:** Popup dilengkapi dengan animasi progress bar dan penghitung mundur 5 detik yang otomatis menutup modal secara mulus tanpa mengganggu alur kontrol sesi lelang berikutnya. Admin juga dapat menutup popup secara manual sewaktu-waktu.
+
 
 
 

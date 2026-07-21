@@ -455,7 +455,12 @@ export class BiddingService {
         });
       }
 
-      return updatedLot;
+      return {
+        ...updatedLot,
+        winner_name: winnerUser?.full_name || winnerUser?.email || null,
+        winner_nipl: `NIPL-${winnerId.substring(0, 8).toUpperCase()}`,
+        start_price: lot.starting_price ? Number(lot.starting_price) : (lot.asset?.base_price ? Number(lot.asset.base_price) : 0),
+      };
     } else {
       // 2. Settle lot as UNSOLD
       const [updatedLot] = await prisma.$transaction([

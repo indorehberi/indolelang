@@ -346,9 +346,14 @@ export async function closeActiveLot(lotId: string): Promise<any> {
   // Broadcast closed event to room (and session room, see startActiveLot comment)
   ioServer.to(`lot:${lotId}`).to(`session:${settled.session_id}`).emit('lot:closed', {
     lot_id: lotId,
+    lot_number: settled.lot_number,
     result: settled.status,
     final_price: settled.hammer_price ? Number(settled.hammer_price) : undefined,
+    start_price: settled.start_price ? Number(settled.start_price) : (settled.asset?.base_price ? Number(settled.asset.base_price) : undefined),
     winner_id: settled.winner_id ? maskUserId(settled.winner_id) : undefined,
+    winner_name: state?.highestBidderName || settled.winner_name || undefined,
+    winner_nipl: state?.highestBidderNipl || settled.winner_nipl || undefined,
+    asset_title: settled.asset?.title || undefined,
   });
 
   if (settled.status === 'sold') {

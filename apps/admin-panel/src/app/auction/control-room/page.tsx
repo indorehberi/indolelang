@@ -234,6 +234,34 @@ export default function ControlRoomPage() {
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
+  interface WinnerModalData {
+    lot_number: number | string;
+    asset_title: string;
+    winner_name: string;
+    winner_nipl: string;
+    base_price: number;
+    final_price: number;
+  }
+
+  const [winnerModalData, setWinnerModalData] = useState<WinnerModalData | null>(null);
+  const [popupSecondsLeft, setPopupSecondsLeft] = useState<number>(5);
+
+  useEffect(() => {
+    if (!winnerModalData) return;
+    setPopupSecondsLeft(5);
+    const interval = setInterval(() => {
+      setPopupSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setWinnerModalData(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [winnerModalData]);
+
   const socketRef = useRef<Socket | null>(null);
   // Mirrors `lots` for use inside socket callbacks registered by the effect below.
   // Those callbacks close over `lots` from whatever render was active when the
@@ -494,6 +522,18 @@ export default function ControlRoomPage() {
           variant: data.result === 'sold' ? 'success' : 'danger',
         });
 
+        if (data.result === 'sold') {
+          const currentActive = lotsRef.current.find((l) => l.id === data.lot_id);
+          setWinnerModalData({
+            lot_number: data.lot_number || currentActive?.lot_number || '-',
+            asset_title: data.asset_title || currentActive?.asset?.title || 'Unit Lelang',
+            winner_name: data.winner_name || highestBidderName || 'Bidder',
+            winner_nipl: data.winner_nipl || highestBidderNipl || 'NIPL-',
+            base_price: data.start_price || Number(currentActive?.starting_price || currentActive?.asset?.base_price || 0),
+            final_price: data.final_price || currentPrice || 0,
+          });
+        }
+
         // Update in lots list
         setLots((prevLots) =>
           prevLots.map((l) =>
@@ -596,6 +636,18 @@ export default function ControlRoomPage() {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || 'Gagal menutup lot');
+      }
+      if (data.success && data.data && data.data.status === 'sold') {
+        const d = data.data;
+        const currentActive = lotsRef.current.find((l) => l.id === lotId);
+        setWinnerModalData({
+          lot_number: d.lot_number || currentActive?.lot_number || '-',
+          asset_title: d.asset?.title || currentActive?.asset?.title || 'Unit Lelang',
+          winner_name: d.winner_name || highestBidderName || 'Bidder',
+          winner_nipl: d.winner_nipl || highestBidderNipl || 'NIPL-',
+          base_price: d.start_price || Number(currentActive?.starting_price || currentActive?.asset?.base_price || 0),
+          final_price: Number(d.hammer_price || currentPrice || 0),
+        });
       }
       if (socketRef.current?.disconnected) {
         setRefreshTrigger((prev) => prev + 1);
@@ -1245,6 +1297,148 @@ export default function ControlRoomPage() {
             </div>
           )}
         </Card>
+      )}
+
+      {winnerModalData && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#1e293b',
+              color: '#ffffff',
+              borderRadius: '16px',
+              padding: '2rem',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 30px rgba(34, 197, 94, 0.25)',
+              border: '2px solid #22c55e',
+              position: 'relative',
+              animation: 'fadeIn 0.2s ease-out',
+            }}
+          >
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '3rem', lineHeight: '1', marginBottom: '0.5rem' }}>🏆</div>
+              <h2 style={{ color: '#4ade80', fontSize: '1.35rem', fontWeight: 800, margin: 0, letterSpacing: '0.5px' }}>
+                LOT #{winnerModalData.lot_number} DIMENANGKAN!
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.35rem' }}>
+                Lot #{winnerModalData.lot_number} ini dimenangkan oleh:
+              </p>
+            </div>
+
+            {/* Details List */}
+            <div
+              style={{
+                backgroundColor: '#0f172a',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                border: '1px solid #334155',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>🚗 Nama Mobil / Unit:</span>
+                <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.95rem', textAlign: 'right' }}>
+                  {winnerModalData.asset_title}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>👤 Nama Bidder:</span>
+                <span style={{ fontWeight: 700, color: '#60a5fa', fontSize: '0.95rem', textAlign: 'right' }}>
+                  {winnerModalData.winner_name}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>🎟️ No NIPL:</span>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                  }}
+                >
+                  {winnerModalData.winner_nipl}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>💰 Harga Dasar:</span>
+                <span style={{ fontWeight: 600, color: '#cbd5e1', fontSize: '0.9rem' }}>
+                  {formatRupiah(winnerModalData.base_price)}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: '0.6rem',
+                  borderTop: '1px dashed #334155',
+                }}
+              >
+                <span style={{ color: '#4ade80', fontWeight: 700, fontSize: '0.95rem' }}>🔨 Harga Terbentuk:</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#4ade80' }}>
+                  {formatRupiah(winnerModalData.final_price)}
+                </span>
+              </div>
+            </div>
+
+            {/* Countdown timer & Close button */}
+            <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+              <div style={{ height: '6px', backgroundColor: '#334155', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    backgroundColor: '#22c55e',
+                    width: `${(popupSecondsLeft / 5) * 100}%`,
+                    transition: 'width 1s linear',
+                  }}
+                />
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+                Popup tertutup otomatis dalam <strong style={{ color: '#ffffff' }}>{popupSecondsLeft} detik</strong>
+              </p>
+              <button
+                type="button"
+                onClick={() => setWinnerModalData(null)}
+                style={{
+                  backgroundColor: '#334155',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '0.5rem 1.5rem',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                Tutup (Esc)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx global>{`
