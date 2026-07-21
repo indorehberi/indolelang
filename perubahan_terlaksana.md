@@ -239,6 +239,27 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
 * **Deskripsi Perubahan:**
   * **Kompatibilitas Layar Laptop Lama/Kecil:** Sidebar pada ketiga panel (Admin, Bidder, Provider) kini dilengkapi dengan **scroller vertikal (*overflow-y-auto*)** yang halus dan terlihat jelas (*custom styled thin scrollbar*). Pengguna laptop dengan resolusi vertikal rendah (seperti 768px) kini dapat menggeser/mengisi menu navigasi ke atas dan ke bawah tanpa terpotong.
 
+### 18. Integrasi Fitur Export Excel (.xlsx) di Admin Panel
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah & Dibuat:**
+  * **Modul Export Utility:**
+    * [excelExport.ts](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/lib/excelExport.ts) (Helper pembentuk sheet dan otomatisasi penyesuaian lebar kolom `.xlsx`)
+  * **Halaman Web Admin Panel (`apps/admin-panel/`):**
+    * [users/bidder/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/bidder/page.tsx) (Tombol Export XLSX Daftar Bidder)
+    * [users/provider/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/provider/page.tsx) (Tombol Export XLSX Daftar Mitra Provider)
+    * [assets/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/page.tsx) (Tombol Export XLSX Katalog Barang)
+    * [assets/approval/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/approval/page.tsx) (Tombol Export XLSX Daftar Approved Barang)
+    * [auction/results/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/results/page.tsx) (Tombol Export XLSX Rekapitulasi Hasil Sesi Lelang)
+    * [FinanceManager.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/components/finance/FinanceManager.tsx) (Tombol Export XLSX Monitoring Deposit NIPL)
+* **Deskripsi Perubahan:**
+  * **Pilihan Export:** Tombol hijau khas Excel `Export XLSX` ditambahkan di header toolbar pada 6 menu berikut:
+    1. **Daftar Bidder:** Ekspor rincian identitas bidder, email, telepon, NIK KTP, NIPL, bank, dan status verifikasi.
+    2. **Daftar Provider:** Ekspor nama perusahaan, NPWP, skema fee komisi, penanggung jawab, dan data kontak.
+    3. **Daftar Barang (Katalog):** Ekspor katalog unit, harga dasar, kategori, status barang, dan pembuat.
+    4. **Daftar Approved:** Ekspor rincian unit yang telah lolos inspeksi/persetujuan admin dan siap dimasukkan ke lot.
+    5. **Hasil Sesi:** Ekspor rekapitulasi penutupan lelang (unit terjual / unsold, hammer price, pemenang, dan status invoice).
+    6. **Monitoring Deposit Jaminan NIPL:** Ekspor log transaksi Virtual Account deposit NIPL, nominal jaminan, waktu bayar, dan status refund/lunas.
+
 
 
 
