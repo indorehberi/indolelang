@@ -48,6 +48,14 @@ export default function SessionsPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Exclusive sessions registrant states
+  const [showRegistrantsModal, setShowRegistrantsModal] = useState(false);
+  const [registrants, setRegistrants] = useState<any[]>([]);
+  const [loadingRegistrants, setLoadingRegistrants] = useState(false);
+  const [selectedExclusiveSession, setSelectedExclusiveSession] = useState<Session | null>(null);
+  const [rejectingRegId, setRejectingRegId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
@@ -69,7 +77,62 @@ export default function SessionsPage() {
     fetchBranches();
   }, []);
 
+  const fetchRegistrants = async (sessionId: string) => {
+    setLoadingRegistrants(true);
+    try {
+      const res = await apiFetch(`/admin/sessions/${sessionId}/exclusive/registrants`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRegistrants(data.data);
+      } else {
+        setRegistrants([]);
+      }
+    } catch (err) {
+      setRegistrants([]);
+    } finally {
+      setLoadingRegistrants(false);
+    }
+  };
 
+  const handleApproveRegistrant = async (regId: string) => {
+    if (!selectedExclusiveSession) return;
+    try {
+      const res = await apiFetch(`/admin/sessions/${selectedExclusiveSession.id}/exclusive/registrants/${regId}/approve`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('success', 'Pendaftar berhasil disetujui');
+        fetchRegistrants(selectedExclusiveSession.id);
+      } else {
+        showToast('error', data.error?.message || 'Gagal menyetujui pendaftar');
+      }
+    } catch (err) {
+      showToast('error', 'Terjadi kesalahan sistem');
+    }
+  };
+
+  const handleRejectRegistrant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedExclusiveSession || !rejectingRegId || !rejectionReason.trim()) return;
+    try {
+      const res = await apiFetch(`/admin/sessions/${selectedExclusiveSession.id}/exclusive/registrants/${rejectingRegId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: rejectionReason })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('success', 'Pendaftar berhasil ditolak');
+        setRejectingRegId(null);
+        setRejectionReason('');
+        fetchRegistrants(selectedExclusiveSession.id);
+      } else {
+        showToast('error', data.error?.message || 'Gagal menolak pendaftar');
+      }
+    } catch (err) {
+      showToast('error', 'Terjadi kesalahan sistem');
+    }
+  };
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -259,7 +322,12 @@ export default function SessionsPage() {
                   <tr key={session.id}>
                     <td>
                       <div>
-                        <strong>{session.title}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <strong>{session.title}</strong>
+                          {(session as any).is_exclusive && (
+                            <Badge variant="danger">Exclusive</Badge>
+                          )}
+                        </div>
                         {session.description && (
                           <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
                             {session.description}
@@ -310,6 +378,19 @@ export default function SessionsPage() {
                             <Button variant="outline" size="sm">Manage Lots</Button>
                           </Link>
                         )}
+                        {(session as any).is_exclusive && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedExclusiveSession(session);
+                              setShowRegistrantsModal(true);
+                              fetchRegistrants(session.id);
+                            }}
+                          >
+                            Pendaftar
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => handleOpenEdit(session)}>
                           Edit
                         </Button>
@@ -325,6 +406,131 @@ export default function SessionsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Exclusive Session Registrants Modal */}
+      {showRegistrantsModal && selectedExclusiveSession && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '850px', width: '90%' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Pendaftar Lelang Eksklusif: {selectedExclusiveSession.title}</h3>
+              <button className="modal-close" onClick={() => {
+                setShowRegistrantsModal(false);
+                setRejectingRegId(null);
+                setRejectionReason('');
+              }}>
+                &times;
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {loadingRegistrants ? (
+                <div className="text-center py-4">Memuat data pendaftar...</div>
+              ) : registrants.length === 0 ? (
+                <div className="text-center py-4 text-muted">Belum ada bidder yang mendaftar untuk sesi ini.</div>
+              ) : (
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Bidder</th>
+                        <th>NIK</th>
+                        <th>Dokumen Pernyataan</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrants.map((reg) => (
+                        <tr key={reg.id}>
+                          <td>
+                            <div>
+                              <strong>{reg.bidder?.full_name}</strong>
+                              <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                ✉️ {reg.bidder?.email} | 📞 {reg.bidder?.phone || '-'}
+                              </div>
+                            </div>
+                          </td>
+                          <td>{reg.bidder?.kyc_document?.id_card_number || '-'}</td>
+                          <td>
+                            <a
+                              href={reg.document_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--wf-primary)', textDecoration: 'underline', fontWeight: 600 }}
+                            >
+                              Buka Dokumen
+                            </a>
+                          </td>
+                          <td>
+                            {reg.status === 'approved' && <Badge variant="success">Approved</Badge>}
+                            {reg.status === 'rejected' && (
+                              <div>
+                                <Badge variant="danger">Rejected</Badge>
+                                {reg.rejection_reason && (
+                                  <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
+                                    Alasan: {reg.rejection_reason}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {reg.status === 'pending' && <Badge variant="warning">Pending Review</Badge>}
+                          </td>
+                          <td>
+                            {reg.status === 'pending' && (
+                              <div className="d-flex gap-1">
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleApproveRegistrant(reg.id)}
+                                  style={{ background: '#22c55e', borderColor: '#22c55e' }}
+                                >
+                                  Setujui
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => {
+                                    setRejectingRegId(reg.id);
+                                    setRejectionReason('');
+                                  }}
+                                >
+                                  Tolak
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {rejectingRegId && (
+                <div style={{ marginTop: '1.5rem', background: '#fff5f5', padding: '1rem', borderRadius: 'var(--radius)', border: '1px solid #feb2b2' }}>
+                  <form onSubmit={handleRejectRegistrant}>
+                    <h5 style={{ fontWeight: 'bold', color: '#c53030', marginBottom: '0.5rem' }}>Alasan Penolakan Pendaftaran</h5>
+                    <div className="form-group mb-2" style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Contoh: Dokumen tidak bertanda tangan atau NIK tidak sesuai"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        required
+                        style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                      />
+                    </div>
+                    <div className="d-flex gap-2">
+                      <Button type="submit" variant="danger" size="sm">Konfirmasi Tolak</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setRejectingRegId(null)}>Batal</Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {showEditModal && (

@@ -9,6 +9,9 @@ export const createSessionSchema = z.object({
     scheduled_at: z.string().refine((val) => !isNaN(Date.parse(val)), {
       message: 'Format tanggal jadwal tidak valid (ISO Datetime)',
     }),
+    is_exclusive: z.boolean().optional(),
+    exclusive_provider_id: z.string().uuid('ID Provider tidak valid').nullable().optional(),
+    registration_lead_hours: z.number().int().min(0, 'Jam batas pendaftaran tidak boleh negatif').nullable().optional(),
   }),
 });
 
@@ -33,6 +36,9 @@ export const updateSessionSchema = z.object({
         errorMap: () => ({ message: 'Status sesi tidak valid' }),
       })
       .optional(),
+    is_exclusive: z.boolean().optional(),
+    exclusive_provider_id: z.string().uuid('ID Provider tidak valid').nullable().optional(),
+    registration_lead_hours: z.number().int().min(0, 'Jam batas pendaftaran tidak boleh negatif').nullable().optional(),
   }),
 });
 

@@ -64,14 +64,37 @@ export class BiddingService {
    * Validate incoming bid submission
    */
   async validateBid(bid: BidSubmission, currentPrice: number, currentHighestBidderId?: string): Promise<void> {
-    // 1. Fetch lot to get unit_type
+    // 1. Fetch lot to get unit_type and session
     const lot = await prisma.lots.findUnique({
       where: { id: bid.lotId },
-      include: { asset: true },
+      include: { 
+        asset: true,
+        session: true
+      },
     });
 
     if (!lot || !lot.asset) {
       throw new AppError(404, ErrorCode.NOT_FOUND, 'Lot atau aset tidak ditemukan');
+    }
+
+    // 1.5. Validate exclusive session registration
+    if (lot.session?.is_exclusive) {
+      const reg = await prisma.exclusive_session_registrations.findUnique({
+        where: {
+          session_id_bidder_id: {
+            session_id: lot.session_id,
+            bidder_id: bid.userId
+          }
+        }
+      });
+
+      if (!reg || reg.status !== 'approved') {
+        throw new AppError(
+          403,
+          ErrorCode.FORBIDDEN,
+          'Anda tidak terdaftar atau belum disetujui oleh Admin untuk mengikuti lelang eksklusif ini.'
+        );
+      }
     }
 
     const unitType = lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil';

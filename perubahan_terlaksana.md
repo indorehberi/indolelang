@@ -163,6 +163,32 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     3. **Perpanjangan Waktu Bayar:** Batas akhir pelunasan (`due_date`) diperpanjang hingga **21 Juli 2026 pukul 23:59:59 UTC**, menyesuaikan dengan batas 3 hari kerja riil terhitung sejak tanggal 16 Juli 2026.
     4. **Keamanan Data:** Sebanyak 7 invoice yang sudah berstatus `'paid'` (lunas) dilewati secara aman tanpa mengalami modifikasi data.
 
+### 13. Implementasi Fitur Lelang Exclusive & Alur Persetujuan Dokumen Pernyataan Bermaterai
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Database Schema (`apps/api/prisma/`):**
+    * [schema.prisma](file:///c:/Users/han/Herd/indo-lelang/apps/api/prisma/schema.prisma) (Menambahkan kolom `is_exclusive`, `exclusive_provider_id`, `registration_lead_hours` pada tabel `auction_sessions`, serta membuat model `exclusive_session_registrations` dengan status `pending`/`approved`/`rejected`)
+    * [migrations/20260721090000_add_exclusive_sessions/migration.sql](file:///c:/Users/han/Herd/indo-lelang/apps/api/prisma/migrations/20260721090000_add_exclusive_sessions/migration.sql) (File migrasi Prisma baru untuk meng-alter database)
+  * **Shared DTO (`packages/shared-types/`):**
+    * [dto.ts](file:///c:/Users/han/Herd/indo-lelang/packages/shared-types/src/dto.ts) (Menambahkan properti eksklusif ke dalam `AuctionSessionDTO`)
+  * **Backend API (`apps/api/src/`):**
+    * [sessions.schema.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/sessions/sessions.schema.ts) (Validasi Zod untuk parameter lelang eksklusif)
+    * [sessions.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/sessions/sessions.service.ts) (Service query database untuk pendaftaran lelang, detail pendaftar, batas lead hours, dan approval/rejection)
+    * [exclusive.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/sessions/exclusive.controller.ts) (Generator Surat Pernyataan format PDF Puppeteer, input upload berkas, status, dan peninjauan berkas pendaftar)
+    * [sessions.routes.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/sessions/sessions.routes.ts) (Rute endpoints baru untuk pendaftaran eksklusif dan review admin)
+    * [bidding.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/lots/bidding.service.ts) (Validasi bid: hanya mengizinkan bidder dengan status registrasi `'approved'` pada lelang eksklusif)
+  * **Admin Panel (`apps/admin-panel/src/`):**
+    * [new/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/sessions/new/page.tsx) (Input checkbox Lelang Exclusive, dropdown provider aktif, dan lead hours di Langkah 1 wizard)
+    * [page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/sessions/page.tsx) (Badge 'Exclusive' pada tabel sesi, tombol review 'Pendaftar', dan dialog modal persetujuan/penolakan berkas)
+  * **Bidder Layout (`apps/landing-web/src/`):**
+    * [BidderLayout.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/BidderLayout.tsx) (Deteksi otomatis sesi eksklusif aktif untuk user berstatus eKYC approved, popup pendaftaran, unduh berkas dinamis, dan upload PDF)
+* **Deskripsi Perubahan:**
+  * **Admin Wizard:** Admin dapat mencentang "Lelang Exclusive" saat membuat sesi baru, memilih provider dari daftar yang aktif, dan menentukan tenggat registrasi (`N` jam sebelum lelang dimulai).
+  * **Alur Bidder:** Bidder yang terverifikasi (eKYC approved) akan melihat dialog popup ajakan lelang eksklusif. Bidder dapat mengunduh berkas pernyataan (terisi otomatis menggunakan NIK, Nama, HP, Alamat, dan Provider), membubuhi tanda tangan basah/meterai, lalu mengunggahnya kembali. Status pendaftaran bidder akan berada di status `pending` untuk ditinjau admin.
+  * **Persetujuan Admin:** Di daftar sesi, admin dapat mengklik tombol "Pendaftar" pada sesi eksklusif untuk menyetujui (`approve`) atau menolak (`reject` dengan menyertakan alasan penolakan).
+  * **Proteksi Bidding:** Hanya bidder yang pendaftarannya berstatus `'approved'` yang diizinkan sistem backend untuk mengajukan bid pada lot-lot di sesi lelang eksklusif tersebut.
+
+
 
 
 

@@ -19,6 +19,7 @@ export default function NewSessionPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
   
   // Form fields
   const [title, setTitle] = useState('');
@@ -27,11 +28,15 @@ export default function NewSessionPage() {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   
+  const [isExclusive, setIsExclusive] = useState(false);
+  const [exclusiveProviderId, setExclusiveProviderId] = useState('');
+  const [registrationLeadHours, setRegistrationLeadHours] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' | 'warning' } | null>(null);
 
 
-  // Fetch branches
+  // Fetch branches and providers
   useEffect(() => {
     const fetchBranches = async () => {
       try {
@@ -53,7 +58,21 @@ export default function NewSessionPage() {
         setBranches([]);
       }
     };
+
+    const fetchProviders = async () => {
+      try {
+        const response = await apiFetch('/admin/providers?status=aktif&per_page=100');
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setProviders(data.data);
+        }
+      } catch (err) {
+        console.error('Gagal memuat provider', err);
+      }
+    };
+
     fetchBranches();
+    fetchProviders();
   }, []);
 
   const handleNext = () => {
@@ -64,6 +83,14 @@ export default function NewSessionPage() {
       }
       if (!branchId && branches.length > 0) {
         setToast({ message: 'Cabang wajib dipilih', variant: 'warning' });
+        return;
+      }
+      if (isExclusive && !exclusiveProviderId) {
+        setToast({ message: 'Provider wajib dipilih untuk lelang eksklusif', variant: 'warning' });
+        return;
+      }
+      if (isExclusive && (!registrationLeadHours || parseInt(registrationLeadHours) < 0)) {
+        setToast({ message: 'Batas pendaftaran (jam) wajib diisi dengan benar', variant: 'warning' });
         return;
       }
     } else if (step === 2) {
@@ -100,6 +127,9 @@ export default function NewSessionPage() {
           title,
           description: description || undefined,
           scheduled_at,
+          is_exclusive: isExclusive,
+          exclusive_provider_id: isExclusive ? exclusiveProviderId : null,
+          registration_lead_hours: isExclusive && registrationLeadHours ? Number(registrationLeadHours) : null,
         }),
       });
 
@@ -295,6 +325,64 @@ export default function NewSessionPage() {
                   />
                 </div>
 
+                <div className="mb-3" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                  <input
+                    type="checkbox"
+                    id="isExclusive"
+                    checked={isExclusive}
+                    onChange={(e) => setIsExclusive(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="isExclusive" style={{ fontWeight: 'bold', cursor: 'pointer' }}>
+                    Lelang Exclusive
+                  </label>
+                </div>
+
+                {isExclusive && (
+                  <div style={{ background: 'var(--wf-bg)', padding: '1rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', marginBottom: '1.5rem' }}>
+                    <div className="mb-2">
+                      <label className="form-label" style={{ fontWeight: 'bold' }}>
+                        Provider Exclusive <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        style={{
+                          width: '100%',
+                          height: '40px',
+                          padding: '0 0.5rem',
+                          borderRadius: 'var(--radius)',
+                          border: '1px solid var(--wf-border)',
+                          background: 'white',
+                        }}
+                        value={exclusiveProviderId}
+                        onChange={(e) => setExclusiveProviderId(e.target.value)}
+                        required
+                      >
+                        <option value="">-- Pilih Provider --</option>
+                        {providers.map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            {p.company_name || p.user?.full_name || 'Tanpa Nama'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="mb-2">
+                      <label className="form-label" style={{ fontWeight: 'bold' }}>
+                        Batas Waktu Pendaftaran (Jam Sebelum Lelang Dimulai) <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Contoh: 3"
+                        value={registrationLeadHours}
+                        onChange={(e) => setRegistrationLeadHours(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="d-flex justify-end mt-3">
                   <Button type="button" variant="primary" onClick={handleNext}>
                     Lanjut &raquo;
@@ -366,7 +454,7 @@ export default function NewSessionPage() {
                         <td style={{ padding: '0.75rem 0', fontWeight: '600', color: 'var(--wf-text-light)' }}>Deskripsi</td>
                         <td style={{ padding: '0.75rem 0' }}>{description || '-'}</td>
                       </tr>
-                      <tr>
+                      <tr style={{ borderBottom: '1px solid var(--wf-border)' }}>
                         <td style={{ padding: '0.75rem 0', fontWeight: '600', color: 'var(--wf-text-light)' }}>Jadwal Sesi</td>
                         <td style={{ padding: '0.75rem 0', fontWeight: 'bold', color: 'var(--wf-primary)' }}>
                           {scheduledDate ? new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString('id-ID', {
@@ -378,6 +466,25 @@ export default function NewSessionPage() {
                           }) : '-'} WIB
                         </td>
                       </tr>
+                      {isExclusive && (
+                        <>
+                          <tr style={{ borderBottom: '1px solid var(--wf-border)' }}>
+                            <td style={{ padding: '0.75rem 0', fontWeight: '600', color: 'var(--wf-text-light)' }}>Lelang Exclusive</td>
+                            <td style={{ padding: '0.75rem 0', fontWeight: 'bold', color: 'var(--wf-danger)' }}>Ya (Eksklusif)</td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid var(--wf-border)' }}>
+                            <td style={{ padding: '0.75rem 0', fontWeight: '600', color: 'var(--wf-text-light)' }}>Provider Eksklusif</td>
+                            <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>
+                              {providers.find((p: any) => p.id === exclusiveProviderId)?.company_name || 
+                               providers.find((p: any) => p.id === exclusiveProviderId)?.user?.full_name || '-'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style={{ padding: '0.75rem 0', fontWeight: '600', color: 'var(--wf-text-light)' }}>Batas Pendaftaran</td>
+                            <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{registrationLeadHours} Jam sebelum lelang</td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>

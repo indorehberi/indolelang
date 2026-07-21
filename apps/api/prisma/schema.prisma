@@ -53,6 +53,7 @@ model users {
   testimonials     testimonials[]
   checkout_orders  checkout_orders[]
   nipl_allocations nipl_allocations[]
+  exclusive_session_registrations exclusive_session_registrations[]
   my_referral      referrals?         @relation("Referrer")
   referred_by      referral_usages?   @relation("ReferredUser")
 }
@@ -118,6 +119,7 @@ model providers {
   updated_at             DateTime  @updatedAt
 
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  auction_sessions auction_sessions[]
 }
 
 model branches {
@@ -136,20 +138,42 @@ model branches {
 }
 
 model auction_sessions {
-  id           String   @id @default(uuid())
-  branch_id    String
-  title        String
-  description  String?
-  scheduled_at DateTime
-  status       String   @default("draft")
-  operator_id  String?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id                      String    @id @default(uuid())
+  branch_id               String
+  title                   String
+  description             String?
+  scheduled_at            DateTime
+  status                  String    @default("draft")
+  operator_id             String?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+  is_exclusive            Boolean   @default(false)
+  exclusive_provider_id   String?
+  registration_lead_hours Int?
 
   branch           branches           @relation(fields: [branch_id], references: [id])
   lots             lots[]
   deposits         deposits[]
   nipl_allocations nipl_allocations[]
+  
+  exclusive_provider            providers?                        @relation(fields: [exclusive_provider_id], references: [id])
+  exclusive_session_registrations exclusive_session_registrations[]
+}
+
+model exclusive_session_registrations {
+  id                String    @id @default(uuid())
+  session_id        String
+  bidder_id         String
+  document_url      String
+  status            String    @default("pending") // pending | approved | rejected
+  rejection_reason  String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  session auction_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  bidder  users            @relation(fields: [bidder_id], references: [id], onDelete: Cascade)
+
+  @@unique([session_id, bidder_id])
 }
 
 model nipl_allocations {

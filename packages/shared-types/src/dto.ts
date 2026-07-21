@@ -226,6 +226,16 @@ export interface AuctionSessionDTO {
   status: string;
   operator_id?: string;
   branch?: BranchDTO;
+  is_exclusive?: boolean;
+  exclusive_provider_id?: string | null;
+  registration_lead_hours?: number | null;
+  exclusive_provider?: {
+    id: string;
+    company_name: string | null;
+    user?: {
+      full_name: string;
+    } | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }
