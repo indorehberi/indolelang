@@ -272,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className="sidebar" aria-label="Navigasi admin">
-      <Link href="/dashboard" className="sidebar-logo" aria-label="Buka dashboard admin">
+      <Link href="/dashboard" className="sidebar-logo" aria-label="Buka dashboard admin" style={{ flexShrink: 0 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-bidku.png?v=2"
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="sidebar-logo-image"
         />
       </Link>
-      <div className="sidebar-role">{role} Panel</div>
+      <div className="sidebar-role" style={{ flexShrink: 0 }}>{role} Panel</div>
 
       <nav className="sidebar-nav">
         {sections.map((section) => (

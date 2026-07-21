@@ -61,9 +61,9 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
     <div className="min-h-screen bg-surface flex flex-col font-sans">
       <SessionTimeout />
       {/* ====== DESKTOP SIDEBAR ====== */}
-      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl">
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl overflow-hidden">
         {/* Brand Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start">
+        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start flex-shrink-0">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -75,12 +75,12 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
         </div>
 
         {/* User Role Tag */}
-        <div className="px-6 py-2 bg-slate-950 border-b border-slate-800 text-[10px] tracking-wider text-secondary uppercase font-bold">
+        <div className="px-6 py-2 bg-slate-950 border-b border-slate-800 text-[10px] tracking-wider text-secondary uppercase font-bold flex-shrink-0">
           Portal Mitra Provider
         </div>
 
         {/* Menu Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto sidebar-scroller">
           {menuItems.map((item) => (
             <Link
               key={item.name}
@@ -98,7 +98,7 @@ export default function ProviderLayout({ children, pageTitle }: ProviderLayoutPr
         </nav>
 
         {/* Footer Sidebar */}
-        <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
+        <div className="p-4 border-t border-slate-800 flex flex-col gap-2 flex-shrink-0">
           <Link
             href="/"
             className="flex items-center gap-2 px-4 py-2 text-xs text-slate-400 hover:text-white transition-colors"

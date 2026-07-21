@@ -742,4 +742,25 @@ html.pwa-splash-active body > *:not(#pwa-splash-overlay) {
   scrollbar-width: none;
 }
 
+/* Sidebar Desktop Scroller for Old Laptops & Low Heights */
+.sidebar-scroller {
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #0f172a;
+}
+.sidebar-scroller::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+.sidebar-scroller::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.sidebar-scroller::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+.sidebar-scroller::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 

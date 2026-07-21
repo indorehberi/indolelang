@@ -252,9 +252,9 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
       )}
 
       {/* ====== DESKTOP SIDEBAR ====== */}
-      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl">
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed top-0 bottom-0 left-0 z-30 shadow-xl overflow-hidden">
         {/* Brand Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start">
+        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-start flex-shrink-0">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -266,14 +266,16 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
         </div>
 
         {/* User Role Tag */}
-        <div className="px-6 py-2 bg-slate-950 border-b border-slate-800 text-[10px] tracking-wider text-secondary uppercase font-bold">
+        <div className="px-6 py-2 bg-slate-950 border-b border-slate-800 text-[10px] tracking-wider text-secondary uppercase font-bold flex-shrink-0">
           Panel Area Bidder
         </div>
 
         {/* Menu Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1">{navLinks()}</nav>
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto sidebar-scroller">{navLinks()}</nav>
 
-        {sidebarFooter()}
+        <div className="flex-shrink-0">
+          {sidebarFooter()}
+        </div>
       </aside>
 
       {/* ====== MOBILE BROWSER: bidder menu trigger ====== */}
