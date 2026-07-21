@@ -212,6 +212,13 @@ export default function ControlRoomPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [sessionStartTrigger, setSessionStartTrigger] = useState<'admin' | 'system'>('admin');
+  const [nextLotAdvanceMode, setNextLotAdvanceMode] = useState<'admin' | 'auto'>('admin');
+
+  const nextPendingLot = React.useMemo(() => {
+    return lots
+      .filter((l) => l.status === 'pending')
+      .sort((a, b) => (a.lot_number || 0) - (b.lot_number || 0))[0] || null;
+  }, [lots]);
   
   // Real-time Active Lot State
   const [activeLot, setActiveLot] = useState<Lot | null>(null);
@@ -269,15 +276,23 @@ export default function ControlRoomPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [resSessions, resSettings] = await Promise.all([
+        const [resSessions, resSettings, resNextLotTrigger] = await Promise.all([
           apiFetch('/sessions?per_page=50'),
-          apiFetch('/admin/settings/auction_session_start_trigger')
+          apiFetch('/admin/settings/auction_session_start_trigger'),
+          apiFetch('/admin/settings/auction_next_lot_trigger')
         ]);
 
         if (resSettings.ok) {
           const settingsData = await resSettings.json();
           if (settingsData.success && settingsData.data) {
             setSessionStartTrigger(settingsData.data.value as 'admin' | 'system');
+          }
+        }
+
+        if (resNextLotTrigger.ok) {
+          const nextLotData = await resNextLotTrigger.json();
+          if (nextLotData.success && nextLotData.data) {
+            setNextLotAdvanceMode(nextLotData.data.value as 'admin' | 'auto');
           }
         }
 
@@ -613,6 +628,41 @@ export default function ControlRoomPage() {
     }
   };
 
+  const handleNextLotInSequence = async () => {
+    if (!nextPendingLot) {
+      setToast({ message: 'Tidak ada lot pending berikutnya dalam antrean sesi ini.', variant: 'danger' });
+      return;
+    }
+
+    if (activeLot) {
+      if (!confirm(`Ketok Palu lot #${activeLot.lot_number} dan langsung lanjutkan ke Lot #${nextPendingLot.lot_number}?`)) {
+        return;
+      }
+      setProcessingId(activeLot.id);
+      try {
+        await handleCloseLot(activeLot.id);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        await handleActivateLot(nextPendingLot.id);
+      } catch (err: any) {
+        setToast({ message: err.message || 'Gagal beralih ke lot berikutnya', variant: 'danger' });
+      }
+    } else {
+      await handleActivateLot(nextPendingLot.id);
+    }
+  };
+
+  const handleModeChange = async (mode: 'admin' | 'auto') => {
+    setNextLotAdvanceMode(mode);
+    try {
+      await apiFetch('/admin/settings/auction_next_lot_trigger', {
+        method: 'PUT',
+        body: JSON.stringify({ value: mode }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleEndSession = async () => {
     if (!confirm('Apakah Anda yakin ingin menghentikan sesi lelang ini? Semua lot pending akan dibatalkan.')) return;
     setProcessingId(selectedSessionId);
@@ -805,6 +855,65 @@ export default function ControlRoomPage() {
 
       {activeTab === 'live' ? (
         <>
+          {/* BAR KONTROL MODE LOT BERIKUTNYA & TOMBOL NEXT LOT */}
+          <div style={{
+            padding: '1rem 1.25rem',
+            background: '#f8fafc',
+            border: '1px solid var(--wf-border)',
+            borderRadius: 'var(--radius)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--wf-text)' }}>
+                ⚙️ Lot Berikutnya Dilanjutkan Oleh:
+              </span>
+              <select
+                value={nextLotAdvanceMode}
+                onChange={(e) => handleModeChange(e.target.value as 'admin' | 'auto')}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="admin">👤 Admin (Manual)</option>
+                <option value="auto">🤖 Otomatis (System)</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {nextLotAdvanceMode === 'admin' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!nextPendingLot || processingId === (nextPendingLot?.id || '') || sessionDetails?.status !== 'live'}
+                  onClick={handleNextLotInSequence}
+                  style={{
+                    backgroundColor: '#2563eb',
+                    borderColor: '#2563eb',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    padding: '0.5rem 1.1rem'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>skip_next</span>
+                  {nextPendingLot ? `Next Lot (Mulai Lot #${nextPendingLot.lot_number})` : 'Next Lot (Tidak Ada Lot Pending)'}
+                </Button>
+              )}
+            </div>
+          </div>
+
           <AuctionRoomSimulation />
           <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         {/* LEFT COLUMN: ACTIVE BIDDING & QUEUE */}
@@ -912,13 +1021,24 @@ export default function ControlRoomPage() {
                       </Button>
                     )}
                   </div>
-                  <div className="d-flex gap-1">
+                  <div className="d-flex gap-1" style={{ alignItems: 'center' }}>
                     <Button variant="outline" onClick={() => handleCancelLot(activeLot.id)} disabled={processingId === activeLot.id} style={{ borderColor: 'var(--wf-danger)', color: 'var(--wf-danger)' }}>
                       ❌ Batalkan Lot
                     </Button>
                     <Button variant="danger" onClick={() => handleCloseLot(activeLot.id)} disabled={processingId === activeLot.id}>
                       🔨 Ketok Palu (Close Lot)
                     </Button>
+                    {nextPendingLot && (
+                      <Button
+                        variant="primary"
+                        onClick={handleNextLotInSequence}
+                        disabled={processingId === activeLot.id || processingId === nextPendingLot.id}
+                        style={{ backgroundColor: '#2563eb', borderColor: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>skip_next</span>
+                        Ketok Palu & Next Lot (#{nextPendingLot.lot_number})
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -926,7 +1046,23 @@ export default function ControlRoomPage() {
               <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--wf-text-light)' }}>
                 <span style={{ fontSize: '3rem' }}>💤</span>
                 <h3 className="mt-2">Tidak Ada Lot Aktif</h3>
-                <p style={{ fontSize: '0.9rem' }}>Pilih lot pending di bawah ini dan klik "Aktifkan Lot" untuk memulai bidding.</p>
+                <p style={{ fontSize: '0.9rem' }} className="mb-2">
+                  {nextPendingLot
+                    ? `Lot berikutnya dalam urutan antrean adalah Lot #${nextPendingLot.lot_number} (${nextPendingLot.asset.title})`
+                    : 'Semua lot dalam sesi ini telah selesai.'}
+                </p>
+                {nextPendingLot && sessionDetails?.status === 'live' && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={handleNextLotInSequence}
+                    disabled={processingId === nextPendingLot.id}
+                    style={{ backgroundColor: '#2563eb', borderColor: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '0.5rem' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>play_arrow</span>
+                    Mulai Next Lot (#{nextPendingLot.lot_number})
+                  </Button>
+                )}
               </div>
             )}
           </Card>

@@ -260,6 +260,19 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     5. **Hasil Sesi:** Ekspor rekapitulasi penutupan lelang (unit terjual / unsold, hammer price, pemenang, dan status invoice).
     6. **Monitoring Deposit Jaminan NIPL:** Ekspor log transaksi Virtual Account deposit NIPL, nominal jaminan, waktu bayar, dan status refund/lunas.
 
+### 19. Tambah Kontrol & Tombol Next Lot di Ruang Kontrol Lelang Admin
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [control-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/control-room/page.tsx) (Halaman Ruang Kontrol Lelang Live Web Admin)
+* **Deskripsi Perubahan:**
+  * **Setting Option:** Ditambahkan pemilih mode `⚙️ Lot Berikutnya Dilanjutkan Oleh:` dengan pilihan:
+    * `👤 Admin (Manual)` (Default)
+    * `🤖 Otomatis (System)`
+  * **Tombol Next Lot (Sesuai Urutan No. Lot):**
+    * Pada mode **Admin (Manual)**, admin mendapatkan tombol khusus **`Next Lot (Mulai Lot #X)`** yang secara otomatis mendeteksi unit pending selanjutnya dalam urutan `lot_number`.
+    * **Integrasi Bidding Workspace:** Ditambahkan tombol **`Ketok Palu & Next Lot (#X)`** di workspace lot aktif untuk mempermudah admin menyelesaikan lot saat ini dan langsung mengaktifkan lot berikutnya tanpa berpindah-pindah menu.
+    * **Empty State Handling:** Jika tidak ada lot aktif, ditampilkan tombol besar **`Mulai Next Lot (#X)`** yang langsung menunjuk ke lot pending selanjutnya.
+
 
 
 
