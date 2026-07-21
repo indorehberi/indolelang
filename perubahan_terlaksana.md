@@ -188,6 +188,16 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * **Persetujuan Admin:** Di daftar sesi, admin dapat mengklik tombol "Pendaftar" pada sesi eksklusif untuk menyetujui (`approve`) atau menolak (`reject` dengan menyertakan alasan penolakan).
   * **Proteksi Bidding:** Hanya bidder yang pendaftarannya berstatus `'approved'` yang diizinkan sistem backend untuk mengajukan bid pada lot-lot di sesi lelang eksklusif tersebut.
 
+### 14. Integrasi WhatsApp Broadcast & Penargetan Seluruh Bidder (Aktif & Inaktif) di Menu Campaign
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [campaigns.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/campaigns/campaigns.service.ts) (Mengintegrasikan pengiriman via WhatsApp Fonnte, serta menghapus filter status agar broadcast terkirim ke seluruh user sesuai role terpilih baik aktif maupun pending/inaktif)
+* **Deskripsi Perubahan:**
+  * **Penargetan:** Filter `status: 'approved'` dihapus dari pencarian user target. Broadcast sekarang ditujukan ke seluruh bidder (dan role target lainnya) baik yang sudah diverifikasi maupun yang masih berstatus pending/baru didaftarkan.
+  * **Saluran Pengiriman:** Broadcast dikirimkan ke dua saluran secara paralel: **Email (SMTP)** dan **WhatsApp (Fonnte API)**. Format WhatsApp dikompilasi secara otomatis menyertakan Judul Broadcast dan nama lengkap penerima.
+
+
 
 
 
