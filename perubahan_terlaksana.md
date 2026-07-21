@@ -273,6 +273,16 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     * **Integrasi Bidding Workspace:** Ditambahkan tombol **`Ketok Palu & Next Lot (#X)`** di workspace lot aktif untuk mempermudah admin menyelesaikan lot saat ini dan langsung mengaktifkan lot berikutnya tanpa berpindah-pindah menu.
     * **Empty State Handling:** Jika tidak ada lot aktif, ditampilkan tombol besar **`Mulai Next Lot (#X)`** yang langsung menunjuk ke lot pending selanjutnya.
 
+### 20. Filter Popup Modul Hasil Lelang di Bidding Room (Bidder Web)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [bidding-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/bidding-room/page.tsx) (Ruang Lelang Live Bidder Public/Landing Web)
+* **Deskripsi Perubahan:**
+  * **Selective Popup Notification:**
+    * **Penonton / Passive Visitor:** Bidder yang hanya menonton lelang live dan **TIDAK** pernah mengirimkan bid pada lot tersebut **TIDAK LAGI** menerima popup modal *"Maaf Anda Belum Memenangkan Lot Ini"*. Tampilan ruang lelang langsung beralih ke lot berikutnya secara tenang.
+    * **Bidder Aktif (Pengirim Bid):** Modal *"Maaf Anda Belum Memenangkan Lot Ini"* **HANYA** ditampilkan kepada bidder yang memang pernah mengajukan penawaran harga (*placed a bid*) pada lot tersebut tetapi kalah oleh harga penawaran bidder lain.
+    * **Pemenang Lelang:** Bidder pemenang tetap menerima modal perayaan *"Selamat Anda Memenangkan Lot X!"* beserta tombol pembayaran pelunasan.
+
 
 
 

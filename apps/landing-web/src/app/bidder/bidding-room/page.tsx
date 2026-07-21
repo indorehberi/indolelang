@@ -55,7 +55,7 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
   bidIncrement: number;
   socket: Socket | null;
   isConnected: boolean;
-  onLotClosed: (data?: any) => void;
+  onLotClosed: (data?: any, hasBidded?: boolean) => void;
   isSingleLot: boolean;
 }) {
   const toast = useToast();
@@ -63,6 +63,7 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [hasNipl, setHasNipl] = useState<boolean>(true);
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
+  const [hasUserBidded, setHasUserBidded] = useState(false);
   const [bidCooldown, setBidCooldown] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isBidEnabled, setIsBidEnabled] = useState<boolean>(false);
@@ -143,6 +144,9 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
           time: new Date(bid.created_at).toLocaleTimeString('id-ID'),
           isMe: !!bid.bidder_id && bid.bidder_id === myMaskedId,
         }));
+        if (formatted.some((bid: any) => bid.isMe)) {
+          setHasUserBidded(true);
+        }
         setBidLogs(formatted);
       }
     } catch (err) {
@@ -172,7 +176,10 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
         const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
         const isMe = !!data.bidder_id && data.bidder_id === myMaskedId;
 
-        if (isMe && "vibrate" in navigator) navigator.vibrate([20, 40, 20]);
+        if (isMe) {
+          setHasUserBidded(true);
+          if ("vibrate" in navigator) navigator.vibrate([20, 40, 20]);
+        }
 
         const newLog: BidLog = {
           id: Math.random().toString(),
@@ -210,7 +217,7 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     const handleLotClosed = (data: any) => {
       if (data.lot_id === lot.id) {
         setStartCountdown(null);
-        onLotClosed(data);
+        onLotClosed(data, hasUserBidded || bidLogs.some((b) => b.isMe));
       }
     };
 
@@ -274,6 +281,7 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     // While disconnected the price on screen is whatever arrived last, so a bid
     // built on top of it would be based on a stale number.
     if (!socket || !isConnected || bidCooldown) return;
+    setHasUserBidded(true);
     if ("vibrate" in navigator) navigator.vibrate(15);
     setBidCooldown(true);
     setTimeout(() => setBidCooldown(false), 1200);
@@ -653,18 +661,24 @@ export default function BidderBiddingRoom() {
     }
   };
 
-  const handleLotClosed = (data?: any) => {
+  const handleLotClosed = (data?: any, hasBidded: boolean = false) => {
     if (data) {
       const storedUser = localStorage.getItem("user");
       const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
       const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
       const isWinner = data.result === "sold" && data.winner_id === myMaskedId;
-      setClosedResult({ ...data, isWinner });
-      
-      // Clear the modal after 10 seconds (or when next lot starts)
-      setTimeout(() => {
+
+      // Hanya tampilkan popup hasil jika bidder memenangkan lot ATAU pernah melakukan bid pada lot tersebut
+      if (isWinner || hasBidded) {
+        setClosedResult({ ...data, isWinner });
+        
+        // Clear the modal after 10 seconds (or when next lot starts)
+        setTimeout(() => {
+          setClosedResult(null);
+        }, 10000);
+      } else {
         setClosedResult(null);
-      }, 10000);
+      }
     }
     fetchActiveLots();
   };
