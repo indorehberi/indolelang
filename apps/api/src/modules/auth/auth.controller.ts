@@ -78,9 +78,9 @@ export class AuthController {
 	 */
 	async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			const { email } = req.body;
-			await authService.forgotPassword(email);
-			sendSuccess(res, null, 'Link reset password telah dikirim ke email Anda jika terdaftar');
+			const { email, phone } = req.body;
+			await authService.forgotPassword(email, phone);
+			sendSuccess(res, null, 'Link reset password telah dikirim ke email dan no WhatsApp Anda jika terdaftar');
 		} catch (error) {
 			next(error);
 		}

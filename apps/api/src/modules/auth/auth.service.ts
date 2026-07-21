@@ -477,13 +477,23 @@ const user = await prisma.users.findFirst({
 		}
 	}
 
-	/**
-	 * Handle forgot password request, sending email reset link
-	 */
-	async forgotPassword(email: string): Promise<void> {
+	async forgotPassword(email: string, phone: string): Promise<void> {
 		const user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
 		if (!user) {
 			// To prevent user enumeration, we resolve successfully without throwing
+			return;
+		}
+
+		const normalizePhone = (num: string) => {
+			let clean = num.replace(/[^0-9]/g, '');
+			if (clean.startsWith('0')) {
+				clean = '62' + clean.slice(1);
+			}
+			return clean;
+		};
+
+		if (!user.phone || normalizePhone(user.phone) !== normalizePhone(phone)) {
+			// Mismatch, resolve without sending or throwing error (prevents enumeration)
 			return;
 		}
 

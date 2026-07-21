@@ -8,16 +8,17 @@ import { useToast } from "@/providers/ToastProvider";
 export default function LupaPasswordPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (email && phone) {
       try {
         const response = await fetchWithRetry(apiUrl("/auth/forgot-password"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, phone }),
         });
         if (response.ok) {
           setSubmitted(true);
@@ -57,7 +58,7 @@ export default function LupaPasswordPage() {
             <div>
               <h3 className="text-heading-md font-bold text-on-surface font-serif">Link Reset Terkirim</h3>
               <p className="text-body-sm text-on-surface-variant leading-relaxed mt-2">
-                Kami telah mengirimkan tautan pemulihan sandi ke email <strong>{email}</strong>. Harap periksa kotak masuk dan folder spam Anda.
+                Kami telah mengirimkan tautan pemulihan sandi ke email <strong>{email}</strong> dan nomor WhatsApp <strong>{phone}</strong> Anda. Harap periksa kotak masuk email dan pesan WhatsApp Anda.
               </p>
             </div>
             <Link
@@ -70,7 +71,7 @@ export default function LupaPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-2">
-              Masukkan email terdaftar Anda. Kami akan mengirimkan tautan verifikasi pemulihan password.
+              Masukkan email dan nomor WhatsApp terdaftar Anda. Kami akan mengirimkan tautan verifikasi pemulihan password ke kedua kontak tersebut.
             </p>
 
             <div>
@@ -83,6 +84,20 @@ export default function LupaPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Masukkan email"
+                className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
+              />
+            </div>
+
+            <div>
+              <label className="text-body-sm font-bold text-on-surface block mb-1.5">
+                No. WhatsApp Terdaftar <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Contoh: 08123456789"
                 className="w-full px-4 py-3 bg-surface border border-outline-variant/60 rounded-xl text-body-md text-on-surface placeholder-outline focus:border-premium focus:ring-2 focus:ring-premium/20 focus:outline-none transition-all shadow-inner"
               />
             </div>

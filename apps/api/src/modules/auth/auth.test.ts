@@ -244,6 +244,7 @@ describe('Authentication Module Integration Tests', () => {
         .post('/api/v1/auth/forgot-password')
         .send({
           email: testEmail,
+          phone: testPhone,
         });
 
       expect(res.status).toBe(200);
@@ -255,6 +256,7 @@ describe('Authentication Module Integration Tests', () => {
         .post('/api/v1/auth/forgot-password')
         .send({
           email: 'nonexistent_forgot@example.com',
+          phone: testPhone,
         });
 
       expect(res.status).toBe(200);

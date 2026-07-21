@@ -56,6 +56,7 @@ export const loginSchema = z.object({
 export const forgotPasswordSchema = z.object({
 	body: z.object({
 		email: z.string().email('Email tidak valid'),
+		phone: z.string().min(8, 'Nomor WhatsApp minimal 8 karakter'),
 	}),
 });
 
