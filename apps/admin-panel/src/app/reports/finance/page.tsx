@@ -6,6 +6,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
 
 export default function FinanceReportPage() {
   const toast = useToast();
@@ -49,13 +50,14 @@ export default function FinanceReportPage() {
   const filtered = items.filter((item) => {
     const unitTitle = item.lot?.asset?.title || '';
     const policeNum = item.lot?.asset?.police_number || '';
+    const sessionTitle = item.lot?.session?.title || '';
     const feeAdmin = getBidderAdminFee(item.gross_amount);
     const feeLelang = item.commission_deducted;
     const ppnStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
     const pphStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
     const pgExpense = item.status === 'processed' ? 3200 : 0; // gateway settlement payout fee
 
-    if (searchUnit && !unitTitle.toLowerCase().includes(searchUnit.toLowerCase()) && !policeNum.toLowerCase().includes(searchUnit.toLowerCase())) return false;
+    if (searchUnit && !unitTitle.toLowerCase().includes(searchUnit.toLowerCase()) && !policeNum.toLowerCase().includes(searchUnit.toLowerCase()) && !sessionTitle.toLowerCase().includes(searchUnit.toLowerCase())) return false;
     if (feeAdminFilter && feeAdmin < Number(feeAdminFilter)) return false;
     if (feeLelangFilter && feeLelang < Number(feeLelangFilter)) return false;
     if (ppnStatusFilter && ppnStatus !== ppnStatusFilter) return false;
@@ -74,6 +76,48 @@ export default function FinanceReportPage() {
       maximumFractionDigits: 0,
     }).format(v);
 
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error('Tidak ada data keuangan untuk diexport');
+      return;
+    }
+
+    const dataToExport = filtered.map((item) => {
+      const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
+      const ppn = item.fee_ppn || 0;
+      const pph23 = item.fee_pph23 || 0;
+      const pmk41 = item.pmk41_amount || 0;
+      const pgExpense = item.status === 'processed' ? 3200 : 0;
+      const feeAdmin = getBidderAdminFee(item.gross_amount);
+
+      return {
+        'No. Lot': item.lot?.lot_number ? `#${item.lot.lot_number}` : '-',
+        'Nama Sesi Lelang': item.lot?.session?.title || '-',
+        'Tanggal Sesi': item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
+        'No. Polisi': item.lot?.asset?.police_number || '-',
+        'Unit Aset': item.lot?.asset?.title ? `${item.lot.asset.title} (${item.lot.asset.year || '-'})` : '-',
+        'Harga Terbentuk (GMV)': item.gross_amount || 0,
+        'Pemasukan Fee Admin': feeAdmin,
+        'Pemasukan Fee Lelang': item.commission_deducted || 0,
+        'DPP': dpp,
+        'PPN': ppn,
+        'Status PPN': item.status === 'processed' ? 'Lunas' : 'Pending',
+        'PPH 23 (2%)': pph23,
+        'Status PPH 23': item.status === 'processed' ? 'Lunas' : 'Pending',
+        'PPN Pemenang (PMK 41)': pmk41,
+        'Pengeluaran PG': pgExpense,
+        'Nominal Settlement': item.net_amount || 0,
+      };
+    });
+
+    const success = exportToExcel(dataToExport, 'Laporan_Keuangan_IndoLelang', 'Laporan Keuangan');
+    if (success) {
+      toast.success('Laporan Keuangan berhasil diexport ke Excel');
+    } else {
+      toast.error('Gagal meng-export data');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Laporan" breadcrumbCurrent="Laporan Keuangan">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -82,7 +126,7 @@ export default function FinanceReportPage() {
           <p className="page-subtitle">Rekapitulasi komisi, PPN Pemenang (PMK 41), PPh 23, dan nominal pencairan hasil lelang real-time.</p>
         </div>
         <button
-          onClick={() => toast.success('Export laporan keuangan berhasil didownload (.xlsx)')}
+          onClick={handleExport}
           className="btn btn-primary btn-sm"
         >
           📥 Export Excel
@@ -93,11 +137,11 @@ export default function FinanceReportPage() {
       <Card className="mb-2">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div>
-            <label className="form-label font-semibold text-xs text-slate-500">Cari Unit / No. Polisi</label>
+            <label className="form-label font-semibold text-xs text-slate-500">Cari Unit / Sesi / No. Polisi</label>
             <input
               type="text"
               className="search-box"
-              placeholder="Masukkan unit..."
+              placeholder="Masukkan unit/sesi..."
               value={searchUnit}
               onChange={(e) => setSearchUnit(e.target.value)}
               style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
@@ -174,10 +218,12 @@ export default function FinanceReportPage() {
 
       <Card>
         <div className="table-wrapper" style={{ overflowX: 'auto' }}>
-          <table className="text-xs" style={{ width: '100%', minWidth: '1500px' }}>
+          <table className="text-xs" style={{ width: '100%', minWidth: '1650px' }}>
             <thead>
               <tr>
                 <th>Lot</th>
+                <th>Nama Sesi Lelang</th>
+                <th>Tanggal Sesi</th>
                 <th>No. Polisi</th>
                 <th>Unit Aset</th>
                 <th>Harga Terbentuk (GMV)</th>
@@ -196,11 +242,11 @@ export default function FinanceReportPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={14} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={16} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={16} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -214,7 +260,9 @@ export default function FinanceReportPage() {
                   return (
                     <tr key={item.id}>
                       <td><strong>#{item.lot?.lot_number || '-'}</strong></td>
-                      <td>{item.lot?.asset?.police_number || '-'}</td>
+                      <td><strong>{item.lot?.session?.title || '-'}</strong></td>
+                      <td>{item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
+                      <td><span className="badge-ui secondary" style={{ fontWeight: 600 }}>{item.lot?.asset?.police_number || '-'}</span></td>
                       <td><strong>{item.lot?.asset?.title || '-'}</strong> ({item.lot?.asset?.year || '-'})</td>
                       <td style={{ fontWeight: '600' }}>{formatPrice(item.gross_amount)}</td>
                       <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(feeAdmin)}</td>

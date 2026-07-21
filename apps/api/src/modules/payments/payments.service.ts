@@ -179,13 +179,19 @@ export class PaymentsService {
             include: {
               asset: {
                 select: {
+                  id: true,
                   title: true,
                   category: true,
+                  police_number: true,
+                  year: true,
                 },
               },
               session: {
                 select: {
+                  id: true,
                   title: true,
+                  scheduled_at: true,
+                  created_at: true,
                 },
               },
             },

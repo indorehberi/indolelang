@@ -338,6 +338,16 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     * *"Sampai bertemu kembali di lelang berikutnya."*
   * **Timer 5 Detik:** Popup otomatis muncul saat lot terakhir dalam sesi telah selesai / sesi dinyatakan berakhir (`session:ended` atau `is_last_lot === true`), dilengkapi animasi progress bar dan penghitung mundur 5 detik.
 
+### 25. Perbaikan Kolom No. Polisi, Penambahan Sesi Lelang, dan Export XLSX Laporan Keuangan Panel Admin
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [payments.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/payments/payments.service.ts) (Backend API Payments & Settlements Service)
+  * [reports/finance/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/reports/finance/page.tsx) (Laporan Keuangan Admin Panel)
+* **Deskripsi Perubahan:**
+  * **Penyajian Data No. Polisi:** Memperbaiki API backend untuk menyertakan `police_number` dan `year` dari tabel `assets`, sehingga kolom No. Polisi pada tabel Laporan Keuangan kini terisi dengan benar (contoh: `B 1234 ABC`).
+  * **Penambahan Kolom Sesi Lelang:** Menambahkan kolom **Nama Sesi Lelang** (`session.title`) dan **Tanggal Sesi** (`session.scheduled_at`) untuk mempermudah audit rekapitulasi per sesi.
+  * **Fitur Export XLSX:** Mengintegrasikan tombol **`📥 Export Excel`** yang mengunduh seluruh data Laporan Keuangan (lengkap dengan No. Lot, Nama Sesi, Tanggal Sesi, No. Polisi, Unit, GMV, Fee Admin, Fee Lelang, DPP, PPN, PPh 23, PMK 41, Pengeluaran PG, dan Net Settlement) ke format file `.xlsx`.
+
 
 
 
