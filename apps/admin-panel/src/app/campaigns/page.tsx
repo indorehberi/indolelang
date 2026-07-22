@@ -29,6 +29,8 @@ export default function CampaignsPage() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [targetRole, setTargetRole] = useState('all');
+  const [sendEmail, setSendEmail] = useState(true);
+  const [sendWa, setSendWa] = useState(true);
 
   const fetchCampaigns = async () => {
     setLoading(true);
@@ -61,6 +63,8 @@ export default function CampaignsPage() {
           title,
           message,
           target_role: targetRole,
+          send_email: sendEmail,
+          send_wa: sendWa,
         }),
       });
 
@@ -70,6 +74,8 @@ export default function CampaignsPage() {
         setTitle('');
         setMessage('');
         setTargetRole('all');
+        setSendEmail(true);
+        setSendWa(true);
         fetchCampaigns();
       } else {
         setErrorMsg(data.error?.message || 'Terjadi kesalahan');
@@ -181,11 +187,38 @@ export default function CampaignsPage() {
             </select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Metode Pengiriman</label>
+            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                />
+                Email
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                <input
+                  type="checkbox"
+                  checked={sendWa}
+                  onChange={(e) => setSendWa(e.target.checked)}
+                />
+                WhatsApp (WA)
+              </label>
+            </div>
+            {!sendEmail && !sendWa && (
+              <p style={{ color: 'red', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                Pilih minimal satu metode pengiriman (Email atau WA).
+              </p>
+            )}
+          </div>
+
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
             <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
               Batal
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting || (!sendEmail && !sendWa)}>
               {isSubmitting ? 'Mengirim...' : 'Kirim Sekarang'}
             </button>
           </div>

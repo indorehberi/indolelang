@@ -29,7 +29,7 @@ export class CampaignsService {
     };
   }
 
-  async createCampaign(data: { title: string; message: string; target_role: string }) {
+  async createCampaign(data: { title: string; message: string; target_role: string; send_email?: boolean; send_wa?: boolean }) {
     // 1. Create campaign in draft mode first
     const campaign = await prisma.campaigns.create({
       data: {
@@ -66,8 +66,11 @@ export class CampaignsService {
       data: notificationsToCreate,
     });
 
-    // 3. Trigger email & WhatsApp sending asynchronously
-    this.sendCampaignBroadcasts(campaign.id, targetUsers, data.title, data.message);
+    // 3. Trigger email & WhatsApp sending asynchronously (respecting parameters)
+    const sendEmail = data.send_email !== false;
+    const sendWa = data.send_wa !== false;
+    
+    this.sendCampaignBroadcasts(campaign.id, targetUsers, data.title, data.message, sendEmail, sendWa);
 
     return campaign;
   }
@@ -76,7 +79,9 @@ export class CampaignsService {
     campaignId: string,
     users: Array<{ email: string; phone: string | null; full_name: string }>,
     title: string,
-    message: string
+    message: string,
+    sendEmail: boolean,
+    sendWa: boolean
   ) {
     let sentCount = 0;
     
@@ -85,27 +90,29 @@ export class CampaignsService {
       let waSuccess = false;
 
       // Send Email
-      try {
-        emailSuccess = await sendEmailSafe({
-          to: user.email,
-          subject: title,
-          text: message,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>${title}</h2>
-              <p>Halo <strong>${user.full_name}</strong>,</p>
-              <div style="white-space: pre-wrap; margin: 20px 0; line-height: 1.6;">${message}</div>
-              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="color: #888; font-size: 0.8em;">Email ini dikirimkan melalui sistem Broadcast Indo-Lelang.</p>
-            </div>
-          `
-        });
-      } catch (err) {
-        logger.error({ err, email: user.email }, 'Failed to send campaign email');
+      if (sendEmail) {
+        try {
+          emailSuccess = await sendEmailSafe({
+            to: user.email,
+            subject: title,
+            text: message,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2>${title}</h2>
+                <p>Halo <strong>${user.full_name}</strong>,</p>
+                <div style="white-space: pre-wrap; margin: 20px 0; line-height: 1.6;">${message}</div>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="color: #888; font-size: 0.8em;">Email ini dikirimkan melalui sistem Broadcast Indo-Lelang.</p>
+              </div>
+            `
+          });
+        } catch (err) {
+          logger.error({ err, email: user.email }, 'Failed to send campaign email');
+        }
       }
 
       // Send WhatsApp (only if phone is registered)
-      if (user.phone) {
+      if (sendWa && user.phone) {
         try {
           const waMessage = `*${title}*\n\nHalo ${user.full_name},\n\n${message}`;
           waSuccess = await sendWhatsAppNotification(user.phone, waMessage);
@@ -114,7 +121,7 @@ export class CampaignsService {
         }
       }
 
-      if (emailSuccess || waSuccess) {
+      if ((sendEmail && emailSuccess) || (sendWa && waSuccess) || (!sendEmail && !sendWa)) {
         sentCount++;
       }
     }
