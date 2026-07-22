@@ -148,6 +148,30 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
     }
   };
 
+  const handleDownloadDocument = async () => {
+    if (exclusiveSessions.length === 0) return;
+    const session = exclusiveSessions[currentSessionIndex];
+    
+    try {
+      const res = await apiFetch(`/sessions/${session.id}/exclusive/document`);
+      if (!res.ok) throw new Error("Gagal mengunduh dokumen");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `surat-pernyataan-${session.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Gagal mendownload surat pernyataan", err);
+      setToastMessage({ text: 'Gagal mendownload surat pernyataan', success: false });
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+
   useEffect(() => {
     setIsPWA(
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -468,19 +492,18 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
 
                   {/* Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <a
-                      href={apiUrl(`/sessions/${exclusiveSessions[currentSessionIndex].id}/exclusive/document`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={handleDownloadDocument}
                       style={{
-                        padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1',
+                        width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1',
                         background: '#f8fafc', color: '#334155', fontWeight: 'bold', textAlign: 'center',
-                        textDecoration: 'none', fontSize: '0.875rem', cursor: 'pointer', display: 'flex',
-                        alignItems: 'center', justifyCenter: 'center', gap: '0.5rem'
+                        fontSize: '0.875rem', cursor: 'pointer', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                       }}
                     >
                       📄 Download Surat Pernyataan
-                    </a>
+                    </button>
 
                     <div>
                       <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
