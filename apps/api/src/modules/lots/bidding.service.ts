@@ -19,10 +19,7 @@ export class BiddingService {
    * Get minimum increment based on current price range
    */
   getMinIncrement(currentPrice: number): number {
-    if (currentPrice < 10_000_000) return 500_000;
-    if (currentPrice < 50_000_000) return 1_000_000;
-    if (currentPrice < 200_000_000) return 2_500_000;
-    return 5_000_000;
+    return 500_000;
   }
 
   /**
