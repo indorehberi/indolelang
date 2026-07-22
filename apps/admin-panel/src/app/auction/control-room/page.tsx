@@ -234,6 +234,10 @@ export default function ControlRoomPage() {
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
 
+  const [cancelledLotOverlay, setCancelledLotOverlay] = useState<{ lot_number: number; title: string } | null>(null);
+  const [cancelCountdown, setCancelCountdown] = useState(5);
+  const cancelTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   interface WinnerModalData {
     lot_number: number | string;
     asset_title: string;
@@ -553,9 +557,32 @@ export default function ControlRoomPage() {
       });
 
       socket.on('lot:cancelled', (data: any) => {
+        const cancelledLot = lotsRef.current.find((l) => l.id === data.lot_id) || activeLot;
+        
         setLots((prevLots) =>
-          prevLots.map((l) => (l.id === data.lot_id ? { ...l, status: 'pending' } : l))
+          prevLots.map((l) => (l.id === data.lot_id ? { ...l, status: 'cancelled' } : l))
         );
+        
+        if (cancelledLot) {
+          setCancelledLotOverlay({
+            lot_number: cancelledLot.lot_number,
+            title: cancelledLot.asset.title,
+          });
+          setCancelCountdown(5);
+          
+          if (cancelTimerRef.current) clearInterval(cancelTimerRef.current);
+          
+          let count = 5;
+          cancelTimerRef.current = setInterval(() => {
+            count--;
+            setCancelCountdown(count);
+            if (count <= 0) {
+              if (cancelTimerRef.current) clearInterval(cancelTimerRef.current);
+              setCancelledLotOverlay(null);
+            }
+          }, 1000);
+        }
+
         setActiveLot((prev) => (prev?.id === data.lot_id ? null : prev));
         setBidLogs([]);
       });
@@ -587,6 +614,9 @@ export default function ControlRoomPage() {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
+      }
+      if (cancelTimerRef.current) {
+        clearInterval(cancelTimerRef.current);
       }
     };
   }, [selectedSessionId]);
@@ -973,7 +1003,30 @@ export default function ControlRoomPage() {
           
           {/* ACTIVE LOT WORKSPACE */}
           <Card title="Lot Aktif (Bidding Workspace)">
-            {activeLot ? (
+            {cancelledLotOverlay ? (
+              <div
+                style={{
+                  padding: '3rem 0',
+                  textAlign: 'center',
+                  background: '#fee2e2',
+                  borderRadius: 'var(--radius)',
+                  border: '2px solid #fca5a5',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>❌</div>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: '#991b1b', margin: '0.2rem 0' }}>
+                  LOT DIBATALKAN
+                </h2>
+                <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#7f1d1d', margin: '0.5rem 0' }}>
+                  Lot #{cancelledLotOverlay.lot_number} &bull; {cancelledLotOverlay.title}
+                </p>
+                <p style={{ fontSize: '0.9rem', color: '#b91c1c' }} className="mb-2">
+                  Lanjut ke lot berikutnya dalam <strong>{cancelCountdown}</strong> detik
+                </p>
+              </div>
+            ) : activeLot ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {/* Timer and Main Stats */}
                 <div

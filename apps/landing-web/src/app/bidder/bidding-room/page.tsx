@@ -801,6 +801,29 @@ export default function BidderBiddingRoom() {
       }
     };
 
+    const handleParentLotCancelled = (data: any) => {
+      const cancelledLot = activeLots.find((l) => l.id === data.lot_id);
+      if (cancelledLot) {
+        setFrozenLot({
+          lot_data: cancelledLot,
+        });
+        setFrozenCountdown(5);
+        
+        if (frozenTimerRef.current) clearInterval(frozenTimerRef.current);
+        
+        let counter = 5;
+        frozenTimerRef.current = setInterval(() => {
+          counter--;
+          setFrozenCountdown(counter);
+          if (counter <= 0) {
+            if (frozenTimerRef.current) clearInterval(frozenTimerRef.current);
+            setFrozenLot(null);
+            fetchActiveLots();
+          }
+        }, 1000);
+      }
+    };
+
     const handleSessionEnded = (data: any) => {
       const biddedInSession = hasSessionBidded || (typeof window !== "undefined" && sessionStorage.getItem("has_bidded_in_session") === "true");
       if (biddedInSession) {
@@ -814,6 +837,7 @@ export default function BidderBiddingRoom() {
     localSocket.on("disconnect", handleDisconnect);
     if (liveSessionId) {
       localSocket.on("lot:start", handleLotStart);
+      localSocket.on("lot:cancelled", handleParentLotCancelled);
       localSocket.on("session:ended", handleSessionEnded);
     }
 
@@ -840,6 +864,8 @@ export default function BidderBiddingRoom() {
       localSocket.off("connect", handleConnect);
       localSocket.off("disconnect", handleDisconnect);
       localSocket.off("lot:start", handleLotStart);
+      localSocket.off("lot:cancelled", handleParentLotCancelled);
+      localSocket.off("session:ended", handleSessionEnded);
       localSocket.disconnect();
       socketRef.current = null;
       setSocket(null);
