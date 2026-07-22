@@ -199,13 +199,9 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     };
 
     const handleBidError = (data: any) => {
-      // Note: bid:error is broadcasted to the specific socket that sent it?
-      // Or if broadcasted room-wide, we might need a way to filter, but let's assume it has lot_id
       if (data.lot_id && data.lot_id !== lot.id) return; 
-      if (data.lot_id === lot.id) {
-        setErrorMessage(data.message);
-        toast.error(data.message);
-      }
+      setErrorMessage(data.message);
+      toast.error(data.message);
     };
 
     const handleLotSync = (data: any) => {
@@ -740,8 +736,8 @@ export default function BidderBiddingRoom() {
     // connection attempt, so a reconnect after a long background never
     // handshakes with an access token that expired in the meantime.
     const localSocket: Socket = io(wsBaseUrl(), {
-      auth: async (cb: (data: object) => void) => {
-        const token = (await refreshAccessToken()) || localStorage.getItem("accessToken") || "";
+      auth: (cb: (data: object) => void) => {
+        const token = localStorage.getItem("accessToken") || "";
         cb({ token });
       },
       transports: ["websocket"],
