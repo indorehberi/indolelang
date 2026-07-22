@@ -9,7 +9,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { allBidderNavItems } from "./bidderNavItems";
 import InstallPrompt from "../pwa/InstallPrompt";
-import { clearAuthAndRedirect, apiUrl, apiFetch } from "../../lib/api";
+import { clearAuthAndRedirect, apiUrl, apiFetch, getAuthToken } from "../../lib/api";
 
 interface BidderLayoutProps {
   children: React.ReactNode;
@@ -49,7 +49,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
   useEffect(() => {
     const checkExclusiveSessions = async () => {
       if (typeof window === "undefined") return;
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) return;
 
       try {
@@ -119,7 +119,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
     setSubmittingReg(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append("file", selectedFile);
 
