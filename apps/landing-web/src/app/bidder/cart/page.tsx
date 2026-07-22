@@ -247,25 +247,35 @@ function CartGroupCard({
       }
     });
 
-    // Count user's total available active deposits
-    let availableMotorDeposit = 0;
-    let availableMobilDeposit = 0;
-    activeDeposits.forEach((dep) => {
-      if (dep.unit_type === "motor") {
-        availableMotorDeposit += Number(dep.amount);
-      } else {
-        availableMobilDeposit += Number(dep.amount);
+    const requiredMotorValue = selectedMotorCount * settingsMotorNipl;
+    const requiredMobilValue = selectedMobilCount * settingsMobilNipl;
+
+    let totalDeduction = 0;
+
+    const consume = (deposits: any[], requiredValue: number) => {
+      let remainingRequired = requiredValue;
+      for (const d of deposits) {
+        if (remainingRequired <= 0) break;
+
+        const depositAmount = Number(d.amount);
+        const uniqueCodeVal = Number(d.unique_code || 0);
+        const baseDepositAmount = depositAmount - uniqueCodeVal;
+
+        if (baseDepositAmount <= remainingRequired) {
+          totalDeduction += depositAmount;
+          remainingRequired -= baseDepositAmount;
+        } else {
+          const consumedWithUniqueCode = remainingRequired + uniqueCodeVal;
+          totalDeduction += consumedWithUniqueCode;
+          remainingRequired = 0;
+        }
       }
-    });
+    };
 
-    // Max deduction based on won vehicles in this checkout
-    const maxMotorDeduction = selectedMotorCount * settingsMotorNipl;
-    const maxMobilDeduction = selectedMobilCount * settingsMobilNipl;
+    consume(activeDeposits.filter(d => d.unit_type === "motor"), requiredMotorValue);
+    consume(activeDeposits.filter(d => d.unit_type === "mobil"), requiredMobilValue);
 
-    const motorDeduction = Math.min(availableMotorDeposit, maxMotorDeduction);
-    const mobilDeduction = Math.min(availableMobilDeposit, maxMobilDeduction);
-
-    return motorDeduction + mobilDeduction;
+    return totalDeduction;
   };
 
   const subtotal = calculateSubtotal();
@@ -413,8 +423,19 @@ function CartGroupCard({
                 {group.invoices.map((inv) => (
                   <label
                     key={inv.id}
-                    className={`flex items-start p-4 border rounded-xl transition-all border-primary bg-primary/5`}
+                    className={`flex items-start p-4 border rounded-xl transition-all cursor-pointer gap-3 ${
+                      selectedInvoiceIds.includes(inv.id)
+                        ? "border-primary bg-primary/5"
+                        : "border-slate-200 hover:border-slate-300 bg-surface"
+                    }`}
                   >
+                    <input
+                      type="checkbox"
+                      checked={selectedInvoiceIds.includes(inv.id)}
+                      onChange={() => toggleInvoice(inv.id)}
+                      disabled={!!existingOrder}
+                      className="mt-1 accent-primary h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                    />
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">No Lot: {inv.lot?.lot_number || "-"}</span>

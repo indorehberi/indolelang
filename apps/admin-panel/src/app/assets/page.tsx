@@ -541,7 +541,18 @@ export default function AssetsPage() {
       if (payload.cylinder) payload.cylinder = Number(payload.cylinder);
       if (payload.odometer) payload.odometer = Number(payload.odometer);
 
-      Object.keys(payload).forEach(k => { if(payload[k] === '') delete payload[k] });
+      // Clean up payload to avoid sending null/empty/objects/arrays to prevent Zod validation errors
+      Object.keys(payload).forEach((k) => {
+        if (
+          payload[k] === undefined ||
+          payload[k] === null ||
+          payload[k] === '' ||
+          Array.isArray(payload[k]) ||
+          (payload[k] !== null && typeof payload[k] === 'object')
+        ) {
+          delete payload[k];
+        }
+      });
 
       const response = await apiFetch(`/assets/${selectedAsset.id}`, {
         method: 'PUT',
