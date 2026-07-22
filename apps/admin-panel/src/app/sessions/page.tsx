@@ -26,6 +26,9 @@ interface Session {
     city: string;
   };
   created_at: string;
+  is_exclusive?: boolean;
+  exclusive_provider_id?: string | null;
+  registration_lead_hours?: number | null;
 }
 
 export default function SessionsPage() {
@@ -44,8 +47,12 @@ export default function SessionsPage() {
     scheduledDate: '',
     scheduledTime: '',
     status: 'draft',
+    is_exclusive: false,
+    exclusive_provider_id: '',
+    registration_lead_hours: '',
   });
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Exclusive sessions registrant states
@@ -74,7 +81,19 @@ export default function SessionsPage() {
         console.error(err);
       }
     };
+    const fetchProviders = async () => {
+      try {
+        const response = await apiFetch('/admin/providers?status=aktif&per_page=100');
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setProviders(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchBranches();
+    fetchProviders();
   }, []);
 
   const fetchRegistrants = async (sessionId: string) => {
@@ -169,6 +188,9 @@ export default function SessionsPage() {
       scheduledDate: dateObj.toISOString().split('T')[0],
       scheduledTime: dateObj.toTimeString().split(' ')[0].substring(0, 5), // HH:mm
       status: session.status,
+      is_exclusive: session.is_exclusive ?? false,
+      exclusive_provider_id: session.exclusive_provider_id || '',
+      registration_lead_hours: session.registration_lead_hours !== null && session.registration_lead_hours !== undefined ? String(session.registration_lead_hours) : '',
     });
     setShowEditModal(true);
   };
@@ -186,6 +208,9 @@ export default function SessionsPage() {
           branch_id: editFormData.branch_id,
           scheduled_at,
           status: editFormData.status,
+          is_exclusive: editFormData.is_exclusive,
+          exclusive_provider_id: editFormData.is_exclusive ? (editFormData.exclusive_provider_id || null) : null,
+          registration_lead_hours: editFormData.is_exclusive && editFormData.registration_lead_hours ? Number(editFormData.registration_lead_hours) : null,
         }),
       });
       const data = await response.json();
@@ -598,6 +623,50 @@ export default function SessionsPage() {
                     />
                   </div>
                 </div>
+
+                <div className="form-group mb-3">
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                    <input
+                      type="checkbox"
+                      checked={editFormData.is_exclusive}
+                      onChange={(e) => setEditFormData({ ...editFormData, is_exclusive: e.target.checked })}
+                    />
+                    Lelang Eksklusif?
+                  </label>
+                </div>
+
+                {editFormData.is_exclusive && (
+                  <>
+                    <div className="form-group mb-3">
+                      <label className="form-label">Provider Eksklusif</label>
+                      <select
+                        className="form-select"
+                        required={editFormData.is_exclusive}
+                        value={editFormData.exclusive_provider_id}
+                        onChange={(e) => setEditFormData({ ...editFormData, exclusive_provider_id: e.target.value })}
+                      >
+                        <option value="">-- Pilih Provider --</option>
+                        {providers.map(p => (
+                          <option key={p.id} value={p.id}>{p.company_name || p.user?.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group mb-3">
+                      <label className="form-label">Batas Pendaftaran Sebelum Lelang (Jam)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-input"
+                        required={editFormData.is_exclusive}
+                        placeholder="Contoh: 24 (artinya tutup 24 jam sebelum lelang)"
+                        value={editFormData.registration_lead_hours}
+                        onChange={(e) => setEditFormData({ ...editFormData, registration_lead_hours: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="form-group mb-4">
                   <label className="form-label">Status Sesi</label>
                   <select
