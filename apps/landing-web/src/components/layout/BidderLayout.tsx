@@ -463,9 +463,9 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
                   ) : (
                     <>
                       {regStatus === 'rejected' && (
-                        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #fca5a5', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                          <strong>❌ Pendaftaran sebelumnya ditolak:</strong>
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem' }}>{rejectionReason || 'Berkas tidak sesuai kriteria'}</p>
+                        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #fca5a5', fontSize: '0.875rem', marginBottom: '1rem', lineHeight: 1.5 }}>
+                          <strong>❌ Pendaftaran Anda ditolak karena:</strong>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', fontWeight: 'bold' }}>{rejectionReason || 'Berkas tidak memenuhi syarat.'}</p>
                         </div>
                       )}
                       <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '1.5rem', lineHeight: 1.5 }}>
@@ -479,7 +479,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                         }}
                       >
-                        Ikuti Lelang Eksklusif
+                        {regStatus === 'rejected' ? 'Ajukan Kembali' : 'Ikuti Lelang Eksklusif'}
                       </button>
                     </>
                   )}
