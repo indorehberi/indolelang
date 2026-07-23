@@ -135,7 +135,7 @@ export function clearAuthAndRedirect(reason?: string): void {
   localStorage.removeItem('user');
   localStorage.removeItem('refreshToken');
   notify(reason || 'Sesi Anda telah berakhir. Silakan login kembali.', 'error');
-  window.location.href = '/login';
+  window.location.href = '/admin/login';
 }
 
 /**

@@ -44,12 +44,14 @@ export class CheckoutService {
       .sort((a, b) => (a.session_date < b.session_date ? 1 : -1))
       .map((g) => ({ ...g, subtotal: Number(g.subtotal) }));
 
-    // Grouping active NIPL
+    // Grouping active NIPL — oldest first, matching the consumption order
+    // processCheckout actually uses so this preview lines up with reality.
     const activeDeposits = await prisma.deposits.findMany({
       where: {
         user_id: userId,
         status: 'paid',
-      }
+      },
+      orderBy: { created_at: 'asc' },
     });
 
     let totalDepositValue = new Prisma.Decimal(0);
@@ -75,7 +77,8 @@ export class CheckoutService {
           include: {
             lot: {
               include: { asset: true }
-            }
+            },
+            nipl_codes: true
           }
         }
       },
@@ -90,6 +93,7 @@ export class CheckoutService {
         amount: Number(d.amount),
         unit_type: d.unit_type,
         package_type: d.package_type,
+        unique_code: d.unique_code || 0,
         created_at: d.created_at
       })),
       total_deposit_value: Number(totalDepositValue),
@@ -119,7 +123,8 @@ export class CheckoutService {
               include: {
                 asset: true
               }
-            }
+            },
+            nipl_codes: true
           }
         }
       },
@@ -145,6 +150,110 @@ export class CheckoutService {
     });
 
     return invoices;
+  }
+
+  /**
+   * Greedily draw `niplValue` worth of guarantee per invoice (oldest invoice
+   * first) from an ordered (oldest-first) deposits queue shared across all of
+   * them. A deposit's unique_code is spent in full the moment the deposit is
+   * first touched — whether that consumption drains it completely or only
+   * partially — matching how the money side has always worked; only the
+   * trailing, not-fully-drained deposit (if any) survives as a fresh,
+   * code-free remainder once every invoice's requirement has been filled.
+   * This makes the total deduction identical to the old aggregate algorithm
+   * while additionally attributing an exact amount to each invoice.
+   */
+  private allocateNiplDeductions(
+    invoiceIdsOrdered: string[],
+    depositsForType: Array<{
+      id: string;
+      amount: Prisma.Decimal;
+      unique_code: number | null;
+      user_id: string;
+      session_id: string | null;
+      is_manual: boolean | null;
+      unit_type: string | null;
+      va_number: string | null;
+      va_bank: string | null;
+      payment_method: string | null;
+    }>,
+    niplValue: number
+  ) {
+    const queue = depositsForType.map((d) => {
+      const code = new Prisma.Decimal(Number(d.unique_code || 0));
+      const base = new Prisma.Decimal(d.amount).minus(code);
+      return { ...d, remainingBase: base, originalBase: base, code };
+    });
+
+    const perInvoiceDeduction = new Map<string, Prisma.Decimal>();
+    const consumedDepositIds: string[] = [];
+    let totalDeduction = new Prisma.Decimal(0);
+
+    for (const invoiceId of invoiceIdsOrdered) {
+      let need = new Prisma.Decimal(niplValue);
+      let deduction = new Prisma.Decimal(0);
+
+      while (need.greaterThan(0) && queue.length > 0) {
+        const d = queue[0];
+        if (d.remainingBase.lessThanOrEqualTo(need)) {
+          deduction = deduction.add(d.remainingBase);
+          need = need.minus(d.remainingBase);
+          d.remainingBase = new Prisma.Decimal(0);
+          if (d.code.greaterThan(0)) {
+            deduction = deduction.add(d.code);
+            d.code = new Prisma.Decimal(0);
+          }
+          consumedDepositIds.push(d.id);
+          queue.shift();
+        } else {
+          deduction = deduction.add(need);
+          if (d.code.greaterThan(0)) {
+            deduction = deduction.add(d.code);
+            d.code = new Prisma.Decimal(0);
+          }
+          d.remainingBase = d.remainingBase.minus(need);
+          need = new Prisma.Decimal(0);
+        }
+      }
+
+      perInvoiceDeduction.set(invoiceId, deduction);
+      totalDeduction = totalDeduction.add(deduction);
+    }
+
+    // Close out a trailing partially-drained deposit: mark it consumed and
+    // spawn a fresh, code-free remainder for whatever base value is left.
+    const remainderDepositsToCreate: any[] = [];
+    const codeUpdates: Array<{ oldDepositId: string; newDepositId: string }> = [];
+    if (queue.length > 0) {
+      const d = queue[0];
+      if (d.remainingBase.lessThan(d.originalBase)) {
+        consumedDepositIds.push(d.id);
+        if (d.remainingBase.greaterThan(0)) {
+          const newId = crypto.randomUUID();
+          remainderDepositsToCreate.push({
+            id: newId,
+            user_id: d.user_id,
+            session_id: d.session_id,
+            amount: d.remainingBase,
+            gateway_fee: 0,
+            transfer_fee: 0,
+            refund_fee: 0,
+            unique_code: 0,
+            is_manual: d.is_manual,
+            unit_type: d.unit_type,
+            package_type: Math.round(Number(d.remainingBase) / niplValue).toString(),
+            va_number: d.va_number,
+            va_bank: d.va_bank,
+            payment_method: d.payment_method,
+            status: 'paid',
+            paid_at: new Date(),
+          });
+          codeUpdates.push({ oldDepositId: d.id, newDepositId: newId });
+        }
+      }
+    }
+
+    return { perInvoiceDeduction, totalDeduction, consumedDepositIds, remainderDepositsToCreate, codeUpdates };
   }
 
   /**
@@ -182,7 +291,11 @@ export class CheckoutService {
        totalInvoices = totalInvoices.add(inv.total);
     });
 
-    // 2. Consume active deposits (NIPL Deductions)
+    // Oldest-won-unit-first so allocation is deterministic and matches the
+    // order the bidder's cart preview used.
+    const invoicesOrdered = [...invoices].sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+
+    // 2. Consume active deposits (NIPL Deductions), attributed per unit
     const activeDeposits = await prisma.deposits.findMany({
       where: { user_id: userId, status: 'paid' },
       orderBy: { created_at: 'asc' }
@@ -194,72 +307,43 @@ export class CheckoutService {
     const niplMobil = Number(settingsData.find(s => s.key === 'nipl_deposit_amount')?.value) || 5000000;
     const niplMotor = Number(settingsData.find(s => s.key === 'nipl_motor_deposit_amount')?.value) || 1000000;
 
-    let requiredMotorValue = 0;
-    let requiredMobilValue = 0;
+    const motorInvoiceIds = invoicesOrdered.filter(inv => inv.lot.asset.category.toLowerCase().includes('motor')).map(inv => inv.id);
+    const mobilInvoiceIds = invoicesOrdered.filter(inv => !inv.lot.asset.category.toLowerCase().includes('motor')).map(inv => inv.id);
 
-    invoices.forEach(inv => {
-      const isMotor = inv.lot.asset.category.toLowerCase().includes('motor');
-      if (isMotor) {
-        requiredMotorValue += niplMotor;
-      } else {
-        requiredMobilValue += niplMobil;
-      }
-    });
+    const motorAllocation = this.allocateNiplDeductions(motorInvoiceIds, activeDeposits.filter(d => d.unit_type === 'motor'), niplMotor);
+    const mobilAllocation = this.allocateNiplDeductions(mobilInvoiceIds, activeDeposits.filter(d => d.unit_type === 'mobil'), niplMobil);
 
-    let depositDeduction = new Prisma.Decimal(0);
-    const consumedDepositIds: string[] = [];
-    const remainderDepositsToCreate: any[] = [];
+    const perInvoiceDeduction = new Map<string, Prisma.Decimal>([...motorAllocation.perInvoiceDeduction, ...mobilAllocation.perInvoiceDeduction]);
+    const depositDeduction = motorAllocation.totalDeduction.add(mobilAllocation.totalDeduction);
+    const consumedDepositIds = [...motorAllocation.consumedDepositIds, ...mobilAllocation.consumedDepositIds];
+    const remainderDepositsToCreate = [...motorAllocation.remainderDepositsToCreate, ...mobilAllocation.remainderDepositsToCreate];
+    const codeUpdates = [...motorAllocation.codeUpdates, ...mobilAllocation.codeUpdates];
 
-    // Helper to consume deposits by unit type
-    const consumeDeposits = (deposits: any[], requiredValue: number) => {
-      let remainingRequired = new Prisma.Decimal(requiredValue);
-      
-      for (const d of deposits) {
-        if (remainingRequired.lessThanOrEqualTo(0)) break;
-        
-        const depositAmount = new Prisma.Decimal(d.amount);
-        const uniqueCodeVal = new Prisma.Decimal(Number(d.unique_code || 0));
-        
-        // Base amount of the deposit without unique code
-        const baseDepositAmount = depositAmount.minus(uniqueCodeVal);
-        
-        if (baseDepositAmount.lessThanOrEqualTo(remainingRequired)) {
-          depositDeduction = depositDeduction.add(depositAmount);
-          remainingRequired = remainingRequired.minus(baseDepositAmount);
-          consumedDepositIds.push(d.id);
-        } else {
-          // Consume remainingRequired base amount plus the unique code of this deposit
-          const consumedWithUniqueCode = remainingRequired.add(uniqueCodeVal);
-          depositDeduction = depositDeduction.add(consumedWithUniqueCode);
-          
-          const remainderAmount = depositAmount.minus(consumedWithUniqueCode);
-          remainingRequired = new Prisma.Decimal(0);
-          consumedDepositIds.push(d.id);
-          
-          remainderDepositsToCreate.push({
-            id: crypto.randomUUID(),
-            user_id: d.user_id,
-            session_id: d.session_id,
-            amount: remainderAmount,
-            gateway_fee: 0,
-            transfer_fee: 0,
-            refund_fee: 0,
-            unique_code: 0, // Remainder has no unique code
-            is_manual: d.is_manual,
-            unit_type: d.unit_type,
-            package_type: '1', // Remaining NIPL becomes standard (satuan) as per user rules
-            va_number: d.va_number,
-            va_bank: d.va_bank,
-            payment_method: d.payment_method,
-            status: 'paid',
-            paid_at: new Date()
-          });
-        }
-      }
-    };
-
-    consumeDeposits(activeDeposits.filter(d => d.unit_type === 'motor'), requiredMotorValue);
-    consumeDeposits(activeDeposits.filter(d => d.unit_type === 'mobil'), requiredMobilValue);
+    // 3. Assign one traceable NIPL code per unit that actually drew a
+    // deduction, oldest active code first — decoupled from the money-side
+    // remainder splitting above so it stays correct even if a legacy deposit
+    // (purchased before codes existed) has no linked codes to give out.
+    const codeInvoiceIds = invoicesOrdered.filter(inv => (perInvoiceDeduction.get(inv.id) || new Prisma.Decimal(0)).greaterThan(0)).map(inv => ({
+      id: inv.id,
+      unitType: inv.lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil',
+    }));
+    const availableCodes = codeInvoiceIds.length > 0
+      ? await prisma.nipl_codes.findMany({
+          where: {
+            status: 'active',
+            unit_type: { in: [...new Set(codeInvoiceIds.map(c => c.unitType))] },
+            deposit: { user_id: userId, status: 'paid' },
+          },
+          orderBy: { created_at: 'asc' },
+        })
+      : [];
+    const codeAssignments: Array<{ invoiceId: string; codeId: string }> = [];
+    for (const inv of codeInvoiceIds) {
+      const idx = availableCodes.findIndex(c => c.unit_type === inv.unitType);
+      if (idx === -1) continue;
+      const [code] = availableCodes.splice(idx, 1);
+      codeAssignments.push({ invoiceId: inv.id, codeId: code.id });
+    }
 
     let finalAmount = totalInvoices.minus(depositDeduction);
     if (finalAmount.lessThan(0)) {
@@ -304,14 +388,19 @@ export class CheckoutService {
           }
        });
 
-       // 2. Update invoices
-       await tx.invoices.updateMany({
-         where: { id: { in: invoiceIds } },
-         data: {
-            order_id: orderId,
-            status: Number(grandTotal) === 0 ? 'paid' : 'pending_checkout'
-         }
-       });
+       // 2. Update invoices — each unit's own nipl_deduction is persisted here
+       // rather than only recording the aggregate on the order.
+       const invoiceStatus = Number(grandTotal) === 0 ? 'paid' : 'pending_checkout';
+       await Promise.all(invoiceIds.map((id) =>
+         tx.invoices.update({
+           where: { id },
+           data: {
+             order_id: orderId,
+             status: invoiceStatus,
+             nipl_deduction: perInvoiceDeduction.get(id) || new Prisma.Decimal(0),
+           },
+         })
+       ));
 
        // 3. Mark deposits as consumed and create remainders
        if (consumedDepositIds.length > 0) {
@@ -325,6 +414,26 @@ export class CheckoutService {
           await tx.deposits.createMany({
              data: remainderDepositsToCreate
           });
+       }
+
+       if (codeUpdates.length > 0) {
+         await Promise.all(codeUpdates.map(upd =>
+           tx.nipl_codes.updateMany({
+             where: { deposit_id: upd.oldDepositId, status: 'active' },
+             data: { deposit_id: upd.newDepositId }
+           })
+         ));
+       }
+
+       // 4. Link the NIPL code that funded each unit's deduction so it stays
+       // visible/traceable on that invoice going forward.
+       if (codeAssignments.length > 0) {
+         await Promise.all(codeAssignments.map((a) =>
+           tx.nipl_codes.update({
+             where: { id: a.codeId },
+             data: { status: 'used', invoice_id: a.invoiceId },
+           })
+         ));
        }
 
        return order;
@@ -400,7 +509,8 @@ export class CheckoutService {
           include: {
             lot: {
               include: { asset: true }
-            }
+            },
+            nipl_codes: true
           }
         }
       },

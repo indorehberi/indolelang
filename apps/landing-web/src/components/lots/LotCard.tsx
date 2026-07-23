@@ -145,6 +145,7 @@ export function mapLotToCard(dbLot: any): LotCardData {
 
 export default function LotCard({ lot }: { lot: LotCardData }) {
   const isLive = lot.isLive || lot.action === "Bid" || lot.timer?.includes("Hari ini");
+  const actionText = lot.action || (lot.isCancelled ? "Dibatalkan" : isLive ? "Bid" : "Lihat Detail");
 
   return (
     <article className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group">
@@ -294,18 +295,18 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         <div className="mt-auto pt-3 border-t border-outline-variant/10 flex justify-center w-full">
           {lot.isCancelled ? (
             <span className="w-full text-center py-2 rounded-xl text-body-sm font-bold bg-slate-200 text-slate-400 cursor-not-allowed">
-              {lot.action}
+              {actionText}
             </span>
           ) : (
             <Link
               href={`/katalog/${lot.id}`}
               className={`w-full text-center py-2 rounded-xl text-body-sm font-bold btn-press transition-colors ${
-                lot.action === "Bid"
+                actionText === "Bid"
                   ? "bg-error text-white hover:bg-error/90"
                   : "bg-premium text-on-premium hover:bg-premium/85"
               }`}
             >
-              {lot.action}
+              {actionText}
             </Link>
           )}
         </div>

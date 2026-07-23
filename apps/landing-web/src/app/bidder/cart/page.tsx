@@ -32,6 +32,74 @@ const formatSessionDate = (isoDate: string) => {
   });
 };
 
+/**
+ * Preview how much NIPL guarantee each individual unit's bill will have
+ * deducted, mirroring the backend's per-unit allocation (checkout.service.ts
+ * allocateNiplDeductions) so what the bidder sees here before checking out
+ * matches what actually gets persisted per invoice afterwards. A deposit's
+ * unique_code is spent in full the moment it's first touched — whether that
+ * drains it completely or only partially — so only the oldest units drawing
+ * from a given deposit "carry" its code in this preview; the total across all
+ * units is unaffected either way.
+ */
+function allocateNiplPreview(
+  invoices: any[],
+  activeDeposits: any[],
+  niplSettings: { mobil: number; motor: number }
+): Map<string, number> {
+  const isMotor = (inv: any) => !!inv.lot?.asset?.category?.toLowerCase().includes("motor");
+  const sorted = [...invoices].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  const allocateForType = (invs: any[], deposits: any[], niplValue: number) => {
+    const queue = deposits.map((d) => {
+      const code = Number(d.unique_code || 0);
+      return { remainingBase: Number(d.amount) - code, code };
+    });
+    const perInvoice = new Map<string, number>();
+    for (const inv of invs) {
+      let need = niplValue;
+      let deduction = 0;
+      while (need > 0 && queue.length > 0) {
+        const d = queue[0];
+        if (d.remainingBase <= need) {
+          deduction += d.remainingBase;
+          need -= d.remainingBase;
+          if (d.code > 0) {
+            deduction += d.code;
+            d.code = 0;
+          }
+          queue.shift();
+        } else {
+          deduction += need;
+          if (d.code > 0) {
+            deduction += d.code;
+            d.code = 0;
+          }
+          d.remainingBase -= need;
+          need = 0;
+        }
+      }
+      perInvoice.set(inv.id, deduction);
+    }
+    return perInvoice;
+  };
+
+  const motorMap = allocateForType(
+    sorted.filter(isMotor),
+    activeDeposits.filter((d) => d.unit_type === "motor"),
+    niplSettings.motor
+  );
+  const mobilMap = allocateForType(
+    sorted.filter((inv) => !isMotor(inv)),
+    activeDeposits.filter((d) => d.unit_type === "mobil"),
+    niplSettings.mobil
+  );
+
+  return new Map<string, number>([...motorMap, ...mobilMap]);
+}
+
 export default function BidderCart() {
   const router = useRouter();
 
@@ -222,64 +290,21 @@ function CartGroupCard({
     return sum;
   };
 
-  const calculateDepositDeduction = () => {
-    if (existingOrder) {
-      return existingOrder.deposit_deduction || 0;
-    }
-
-    // NIPL amounts — from Pengaturan Platform (Deposit Jaminan NIPL), not
-    // hardcoded, so this preview matches what processCheckout actually
-    // charges server-side using the same settings.
-    const settingsMotorNipl = niplSettings.motor;
-    const settingsMobilNipl = niplSettings.mobil;
-
-    // Selected invoices counts
-    let selectedMotorCount = 0;
-    let selectedMobilCount = 0;
-    group.invoices.forEach((inv) => {
-      if (selectedInvoiceIds.includes(inv.id)) {
-        const isMotor = inv.lot?.asset?.category?.toLowerCase().includes("motor");
-        if (isMotor) {
-          selectedMotorCount++;
-        } else {
-          selectedMobilCount++;
-        }
-      }
-    });
-
-    const requiredMotorValue = selectedMotorCount * settingsMotorNipl;
-    const requiredMobilValue = selectedMobilCount * settingsMobilNipl;
-
-    let totalDeduction = 0;
-
-    const consume = (deposits: any[], requiredValue: number) => {
-      let remainingRequired = requiredValue;
-      for (const d of deposits) {
-        if (remainingRequired <= 0) break;
-
-        const depositAmount = Number(d.amount);
-        const uniqueCodeVal = Number(d.unique_code || 0);
-        const baseDepositAmount = depositAmount - uniqueCodeVal;
-
-        if (baseDepositAmount <= remainingRequired) {
-          totalDeduction += depositAmount;
-          remainingRequired -= baseDepositAmount;
-        } else {
-          const consumedWithUniqueCode = remainingRequired + uniqueCodeVal;
-          totalDeduction += consumedWithUniqueCode;
-          remainingRequired = 0;
-        }
-      }
-    };
-
-    consume(activeDeposits.filter(d => d.unit_type === "motor"), requiredMotorValue);
-    consume(activeDeposits.filter(d => d.unit_type === "mobil"), requiredMobilValue);
-
-    return totalDeduction;
-  };
+  // Per-unit NIPL deduction: once an order exists, each invoice's own
+  // nipl_deduction (persisted at checkout) is the source of truth; before
+  // that, this previews the same allocation the backend will actually apply.
+  const niplPerInvoice: Map<string, number> = existingOrder
+    ? new Map(group.invoices.map((inv: any) => [inv.id, Number(inv.nipl_deduction || 0)]))
+    : allocateNiplPreview(
+        group.invoices.filter((inv) => selectedInvoiceIds.includes(inv.id)),
+        activeDeposits,
+        niplSettings
+      );
 
   const subtotal = calculateSubtotal();
-  const depositDeduction = calculateDepositDeduction();
+  const depositDeduction = existingOrder
+    ? existingOrder.deposit_deduction || 0
+    : Array.from(niplPerInvoice.values()).reduce((sum, v) => sum + v, 0);
   const finalAmount = Math.max(0, subtotal - depositDeduction);
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -463,9 +488,21 @@ function CartGroupCard({
                           <span>Pajak (PPN & PMK-41)</span>
                           <span className="font-medium text-slate-700">{formatRupiah(Number(inv.tax) + Number(inv.pmk41_amount))}</span>
                         </div>
-                        <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold">
+                        <div className="flex justify-between border-t border-slate-200 mt-1 pt-1">
                           <span>Total Tagihan</span>
-                          <span className="text-sm text-primary">{formatRupiah(Number(inv.total))}</span>
+                          <span className="font-medium text-slate-700">{formatRupiah(Number(inv.total))}</span>
+                        </div>
+                        {selectedInvoiceIds.includes(inv.id) && (niplPerInvoice.get(inv.id) || 0) > 0 && (
+                          <div className="flex justify-between text-success">
+                            <span>Potongan Jaminan NIPL</span>
+                            <span className="font-medium">- {formatRupiah(niplPerInvoice.get(inv.id) || 0)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold">
+                          <span>Sisa Tagihan Unit</span>
+                          <span className="text-sm text-primary">
+                            {formatRupiah(Math.max(0, Number(inv.total) - (selectedInvoiceIds.includes(inv.id) ? niplPerInvoice.get(inv.id) || 0 : 0)))}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -493,28 +530,21 @@ function CartGroupCard({
             <div className="border-b border-dashed border-outline-variant/50 pb-3 mb-3">
               {group.invoices.map(inv => selectedInvoiceIds.includes(inv.id) && (
                 <div key={`sum-${inv.id}`} className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-500 truncate pr-2 flex-1">{inv.lot?.asset?.title || `Lot ${inv.lot?.lot_number}`}</span>
-                  <span className="font-medium text-slate-800">{formatRupiah(Number(inv.total))}</span>
+                  <span className="text-slate-500 truncate pr-2 flex-1">
+                    {inv.lot?.asset?.title || `Lot ${inv.lot?.lot_number}`}
+                    {inv.nipl_codes?.[0]?.code && (
+                      <span className="block text-[10px] text-slate-400">Kode NIPL: {inv.nipl_codes[0].code}</span>
+                    )}
+                  </span>
+                  <span className="font-medium text-slate-800">
+                    {formatRupiah(Math.max(0, Number(inv.total) - (niplPerInvoice.get(inv.id) || 0)))}
+                  </span>
                 </div>
               ))}
             </div>
 
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Potongan Deposit NIPL</span>
-              <span className="font-bold text-success">
-                - {formatRupiah(depositDeduction)} {hasUnlimited && "(Unlimited)"}
-              </span>
-            </div>
-
-            {orderResult && orderResult.unique_code > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Angka Unik</span>
-                <span className="font-bold text-primary">{orderResult.unique_code}</span>
-              </div>
-            )}
-
             <div className="border-t border-dashed border-outline-variant/50 pt-4 flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-800">Total Tagihan Sisa</span>
+              <span className="text-sm font-bold text-slate-800">Total Tagihan</span>
               <span className="text-2xl font-black text-primary">{formatRupiah(orderResult ? Number(orderResult.final_amount) : finalAmount)}</span>
             </div>
           </div>

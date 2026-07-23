@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
+import crypto from 'crypto';
 import { BidderDTO, PaginationMeta, ApplicationStatus, KycStatus } from '@indo-lelang/shared-types';
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
@@ -104,26 +105,20 @@ export class BiddersService {
       select: { package_type: true, unit_type: true },
     });
 
-    let niplCount = 0;
-    let niplMobil = 0;
-    let niplMotor = 0;
-    let unlimitedMobil = false;
-    let unlimitedMotor = false;
+    const unlimitedMobil = deposits.some(d => d.package_type === 'unlimited' && d.unit_type === 'mobil');
+    const unlimitedMotor = deposits.some(d => d.package_type === 'unlimited' && d.unit_type === 'motor');
 
-    for (const d of deposits) {
-      let count = 0;
-      if (d.package_type === 'unlimited') {
-        count = 999;
-        if (d.unit_type === 'mobil') unlimitedMobil = true;
-        else if (d.unit_type === 'motor') unlimitedMotor = true;
-      } else {
-        const parsed = parseInt(d.package_type || '0', 10);
-        count = Number.isNaN(parsed) ? 0 : parsed;
-      }
-      niplCount += count;
-      if (d.unit_type === 'mobil') niplMobil += count;
-      else if (d.unit_type === 'motor') niplMotor += count;
-    }
+    const activeCodes = await prisma.nipl_codes.findMany({
+      where: {
+        status: 'active',
+        deposit: { user_id: userId, status: 'paid' }
+      },
+      select: { unit_type: true }
+    });
+
+    const niplMobil = activeCodes.filter(c => c.unit_type === 'mobil').length;
+    const niplMotor = activeCodes.filter(c => c.unit_type === 'motor').length;
+    const niplCount = activeCodes.length;
 
     return { niplCount, niplMobil, niplMotor, unlimitedMobil, unlimitedMotor };
   }
@@ -320,26 +315,21 @@ export class BiddersService {
     const userId = bidder.user_id;
 
     // Get current counts for audit log
-    const currentDeposits = await prisma.deposits.findMany({
-      where: { user_id: userId, status: 'paid' },
-      select: { id: true, package_type: true, unit_type: true },
+    const oldMobil = await prisma.nipl_codes.count({
+      where: {
+        status: 'active',
+        unit_type: 'mobil',
+        deposit: { user_id: userId, status: 'paid' }
+      }
     });
 
-    const oldMobil = currentDeposits
-      .filter(d => d.unit_type === 'mobil')
-      .reduce((sum, d) => {
-        if (d.package_type === 'unlimited') return sum + 999;
-        const n = parseInt(d.package_type || '0', 10);
-        return sum + (Number.isNaN(n) ? 0 : n);
-      }, 0);
-
-    const oldMotor = currentDeposits
-      .filter(d => d.unit_type === 'motor')
-      .reduce((sum, d) => {
-        if (d.package_type === 'unlimited') return sum + 999;
-        const n = parseInt(d.package_type || '0', 10);
-        return sum + (Number.isNaN(n) ? 0 : n);
-      }, 0);
+    const oldMotor = await prisma.nipl_codes.count({
+      where: {
+        status: 'active',
+        unit_type: 'motor',
+        deposit: { user_id: userId, status: 'paid' }
+      }
+    });
 
     // Expire all existing paid deposits for this user
     await prisma.deposits.updateMany({
@@ -347,52 +337,66 @@ export class BiddersService {
       data: { status: 'expired' },
     });
 
-    const newDeposits: any[] = [];
+    // Also expire their active NIPL codes
+    await prisma.nipl_codes.updateMany({
+      where: {
+        status: 'active',
+        deposit: { user_id: userId }
+      },
+      data: { status: 'expired' }
+    });
+
+    const createdDeposits: any[] = [];
 
     // Create new adjustment deposit for mobil if count > 0
     if (mobilCount > 0) {
-      newDeposits.push(
-        prisma.deposits.create({
-          data: {
-            user_id: userId,
-            session_id: null,
-            amount: 0,
-            unit_type: 'mobil',
-            package_type: String(mobilCount),
-            va_number: null,
-            va_bank: null,
-            payment_method: 'admin_adjustment',
-            status: 'paid',
-            is_manual: true,
-            paid_at: new Date(),
-          },
-        })
-      );
+      const dep = await prisma.deposits.create({
+        data: {
+          user_id: userId,
+          session_id: null,
+          amount: 0,
+          unit_type: 'mobil',
+          package_type: String(mobilCount),
+          va_number: null,
+          va_bank: null,
+          payment_method: 'admin_adjustment',
+          status: 'paid',
+          is_manual: true,
+          paid_at: new Date(),
+        },
+      });
+      createdDeposits.push(dep);
     }
 
     // Create new adjustment deposit for motor if count > 0
     if (motorCount > 0) {
-      newDeposits.push(
-        prisma.deposits.create({
-          data: {
-            user_id: userId,
-            session_id: null,
-            amount: 0,
-            unit_type: 'motor',
-            package_type: String(motorCount),
-            va_number: null,
-            va_bank: null,
-            payment_method: 'admin_adjustment',
-            status: 'paid',
-            is_manual: true,
-            paid_at: new Date(),
-          },
-        })
-      );
+      const dep = await prisma.deposits.create({
+        data: {
+          user_id: userId,
+          session_id: null,
+          amount: 0,
+          unit_type: 'motor',
+          package_type: String(motorCount),
+          va_number: null,
+          va_bank: null,
+          payment_method: 'admin_adjustment',
+          status: 'paid',
+          is_manual: true,
+          paid_at: new Date(),
+        },
+      });
+      createdDeposits.push(dep);
     }
 
-    if (newDeposits.length > 0) {
-      await Promise.all(newDeposits);
+    // Create nipl_codes for each newly created deposit
+    for (const dep of createdDeposits) {
+      const count = dep.package_type === 'unlimited' ? 5 : parseInt(dep.package_type || '1', 10);
+      for (let i = 0; i < count; i++) {
+        const code = `NIPL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        await prisma.nipl_codes.create({
+          data: { deposit_id: dep.id, code, unit_type: dep.unit_type! },
+        });
+      }
     }
 
     return { mobil: mobilCount, motor: motorCount };

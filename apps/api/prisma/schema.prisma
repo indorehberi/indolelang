@@ -324,6 +324,26 @@ model deposits {
 
   user    users             @relation(fields: [user_id], references: [id])
   session auction_sessions? @relation(fields: [session_id], references: [id])
+  nipl_codes nipl_codes[]
+}
+
+// One row per NIPL "unit slot" a deposit was purchased for (a package_type of
+// '3' creates 3 rows). Each carries its own unique code so a multi-unit
+// package doesn't need to share one blended code across the units it covers —
+// checkout consumes exactly one active row per settled unit and links it via
+// invoice_id, giving every won unit's NIPL deduction a traceable code.
+model nipl_codes {
+  id         String    @id @default(uuid())
+  deposit_id String
+  code       String    @unique
+  unit_type  String
+  status     String    @default("active")
+  invoice_id String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  deposit deposits  @relation(fields: [deposit_id], references: [id], onDelete: Cascade)
+  invoice invoices? @relation(fields: [invoice_id], references: [id])
 }
 
 model invoices {
@@ -344,10 +364,17 @@ model invoices {
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
 
+  // This unit's own share of the NIPL guarantee deduction, attributed at
+  // checkout time (see checkout.service.ts processCheckout) so each unit's
+  // bill permanently records how much of its own NIPL was already deducted —
+  // instead of only a lump-sum deduction on the aggregate checkout_orders row.
+  nipl_deduction Decimal @default(0)
+
   lot       lots             @relation(fields: [lot_id], references: [id])
   bidder    users            @relation(fields: [bidder_id], references: [id])
   order     checkout_orders? @relation(fields: [order_id], references: [id])
   documents documents[]
+  nipl_codes nipl_codes[]
 }
 
 model checkout_orders {

@@ -9,6 +9,7 @@ import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions,
 import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import { useToast } from "@/providers/ToastProvider";
+import LotCard from "@/components/lots/LotCard";
 
 function AnimatedCounter({
   target,
@@ -56,204 +57,7 @@ function AnimatedCounter({
   );
 }
 
-function addBusinessDays(startDate: Date, days: number): Date {
-  const d = new Date(startDate);
-  let count = 0;
-  while (count < days) {
-    d.setDate(d.getDate() + 1);
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) count++;
-  }
-  d.setHours(18, 0, 0, 0);
-  return d;
-}
 
-function formatDeadlineDate(scheduledAt: string | undefined): string {
-  if (!scheduledAt) return 'N/A';
-  const sesi = new Date(scheduledAt);
-  const deadline = addBusinessDays(sesi, 3);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(deadline.getDate())}/${pad(deadline.getMonth() + 1)}/${deadline.getFullYear()} 18:00 WIB`;
-}
-
-function LotCard({
-  lot,
-}: {
-  lot: any;
-}) {
-  const formatRupiah = (v: number) =>
-    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
-  const formatStnk = (iso: string | undefined) => {
-    if (!iso) return "-";
-    return new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
-  };
-
-  const lokasiUnit = lot.notes || 'N/A';
-  const deadlineDate = formatDeadlineDate(lot.scheduledAt);
-  const isLive = lot.isLive || lot.status === "Live";
-
-  return (
-    <div className="auction-card bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col h-full group">
-      {/* ── FOTO ─────────────────────────────────── */}
-      <div className="relative">
-        <div className="aspect-[4/3] overflow-hidden bg-surface-container-low relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className={`w-full h-full object-cover transition-transform duration-500 ${
-              lot.isCancelled ? "blur-sm scale-105 grayscale" : "group-hover:scale-105"
-            }`}
-            alt={lot.title}
-            src={lot.image}
-          />
-          {lot.isCancelled && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40 z-10">
-              <span className="material-symbols-outlined text-white" style={{ fontSize: 40 }}>cancel</span>
-              <p className="text-xl font-black text-white tracking-widest mt-1 drop-shadow">DIBATALKAN</p>
-            </div>
-          )}
-        </div>
-        {/* No lot — pojok kiri atas */}
-        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded z-20">
-          Lot {lot.lot_number || "-"}
-        </div>
-
-        {/* Badge — Lelang Sedang Berlangsung (Pojok Kanan Atas Foto) */}
-        {isLive && !lot.isCancelled && (
-          <div className="absolute top-2 right-2 bg-red-600/95 backdrop-blur-md text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full z-20 flex items-center gap-1.5 shadow-lg border border-red-300/40 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span>Lelang Sedang Berlangsung</span>
-          </div>
-        )}
-
-        {/* Harga overlay box — menutup ~50% bawah foto */}
-        {!lot.isCancelled && (
-          isLive ? (
-            <div className="absolute bottom-0 left-2 right-2 translate-y-1/3 z-20 bg-white/95 backdrop-blur-md rounded-xl shadow-xl px-3 py-2 border border-red-200 text-center">
-              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Harga Dasar</span>
-                <span className="text-xs font-extrabold text-slate-700">{formatRupiah(lot.hargaDasar)}</span>
-              </div>
-              <div className="bg-red-50/90 border border-red-200/80 rounded-lg py-1 px-2.5 flex items-center justify-between gap-2 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]">
-                <span className="text-[10px] text-red-600 font-extrabold uppercase tracking-wide flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
-                  Penawaran Tinggi
-                </span>
-                <span className="text-sm font-black text-red-600 tracking-tight">
-                  {formatRupiah(lot.hargaPenawaranTinggi || lot.hargaDasar)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
-              <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">Harga Dasar</p>
-              <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
-            </div>
-          )
-        )}
-      </div>
-
-      {/* ── BODY ─────────────────────────────────── */}
-      <div className={`flex flex-col flex-1 px-4 pb-4 text-center ${lot.isCancelled ? 'pt-4' : isLive ? 'pt-12' : 'pt-10'}`}>
-        {/* Nama unit */}
-        <h4 className="font-bold text-body-md text-on-surface group-hover:text-premium transition-colors line-clamp-2 mb-1">
-          {lot.isCancelled ? lot.title : <Link href={`/katalog/${lot.id}`}>{lot.title}</Link>}
-        </h4>
-
-        {/* Views & likes */}
-        <div className="flex items-center justify-center gap-3 text-[11px] text-outline mb-2">
-          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">visibility</span> 0</span>
-          <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">favorite</span> 0</span>
-        </div>
-
-        {/* Lokasi Unit */}
-        <p className="text-body-sm text-outline flex items-center justify-center gap-1.5 mb-1">
-          <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-          <span>{lokasiUnit}</span>
-        </p>
-
-        {/* Batas pelunasan */}
-        <p className="text-[11px] text-warning font-semibold mb-0.5 flex items-center justify-center gap-1">
-          <span className="material-symbols-outlined text-sm">schedule</span>
-          Batas Pelunasan : 5 HK
-        </p>
-        <p className="text-[10px] text-on-surface-variant mb-3">{deadlineDate}</p>
-
-        {/* Tabel Info Kendaraan */}
-        <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
-          <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
-            Info Kendaraan
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
-            {[
-              { icon: "calendar_today", val: lot.year || "-" },
-              { icon: "settings", val: lot.transmission || "-" },
-              { icon: "speed", val: lot.odometer ? `${Number(lot.odometer).toLocaleString("id-ID")} km` : "-" },
-            ].map((c, i) => (
-              <div key={i} className="px-2 py-2 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-outline-variant/10 border-t border-outline-variant/10">
-            {[
-              { icon: "confirmation_number", val: lot.police_number || "-" },
-              { icon: "local_gas_station", val: lot.fuel_type || "-" },
-              { icon: "article", val: formatStnk(lot.stnk_date) },
-            ].map((c, i) => (
-              <div key={i} className="px-2 py-2 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 14 }}>{c.icon}</span>
-                <p className="text-[10px] font-semibold text-on-surface mt-0.5 truncate">{c.val}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Grade Kendaraan */}
-        {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
-          <div className="border border-outline-variant/10 rounded-xl overflow-hidden mb-3 bg-surface/60">
-            <div className="bg-surface-container-lowest/80 px-3 py-1.5 text-[10px] font-bold text-on-surface uppercase tracking-wide border-b border-outline-variant/10">
-              Grade Kendaraan
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-outline-variant/10">
-              {[
-                { grade: lot.grade_engine, label: "Mesin" },
-                { grade: lot.grade_exterior, label: "Eksterior" },
-                { grade: lot.grade_interior, label: "Interior" },
-              ].map((g, i) => (
-                <div key={i} className="px-2 py-2 text-center">
-                  <p className={`text-lg font-black leading-none ${
-                    g.grade === 'A' ? 'text-green-600' :
-                    g.grade === 'B' ? 'text-blue-600' :
-                    g.grade === 'C' ? 'text-amber-600' :
-                    g.grade === 'N/A' ? 'text-slate-400' : 'text-red-600'
-                  }`}>{g.grade || "-"}</p>
-                  <p className="text-[9px] text-on-surface-variant mt-0.5">{g.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* CTA */}
-        <div className="mt-auto">
-          {lot.isCancelled ? (
-            <span className="w-full px-4 py-2.5 rounded-xl font-bold text-body-sm bg-slate-200 text-slate-400 text-center block cursor-not-allowed">
-              Dibatalkan
-            </span>
-          ) : (
-            <Link
-              href={`/katalog/${lot.id}`}
-              className="w-full px-4 py-2.5 rounded-xl font-bold text-body-sm btn-press transition-all bg-premium text-on-premium shadow-sm hover:bg-premium/85 text-center block"
-            >
-              Lihat Detail
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const initialLots: any[] = [];
 
@@ -299,46 +103,93 @@ export default function Home() {
     if (dbFeaturedLots && dbFeaturedLots.length > 0) {
       const mapped = dbFeaturedLots.map((dbLot: any) => {
         const image = getImageUrl(getAssetImages(dbLot.asset)[0]);
-        const statusStr = dbLot.status?.toLowerCase();
-        const isLive = statusStr === "active" || statusStr === "live" || dbLot.session?.status?.toLowerCase() === "live";
-        const isCancelled = statusStr === "cancelled";
+        const isLiveRaw = dbLot.status?.toLowerCase() === "active" || dbLot.status?.toLowerCase() === "live" || dbLot.session?.status?.toLowerCase() === "live";
+        let isCancelled = dbLot.status?.toLowerCase() === "cancelled";
+        let isLive = isLiveRaw && !isCancelled;
+        let timerText = "Akan Datang";
+        
+        if (isCancelled) {
+          timerText = "Dibatalkan";
+        } else if (dbLot.session) {
+          const now = new Date();
+          const start = new Date(dbLot.session.start_time || dbLot.session.scheduled_at);
+          const end = new Date(dbLot.session.end_time || new Date(start.getTime() + 2 * 60 * 60 * 1000));
+
+          if (now >= start && now <= end) {
+            isLive = true;
+            const endTimeString = end.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            timerText = `Hari ini, ${endTimeString} WIB`;
+          } else if (now < start) {
+            isLive = false;
+            const dateString = start.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+            const timeString = start.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            timerText = `${dateString}, ${timeString} WIB`;
+          } else {
+            isLive = false;
+            timerText = "Selesai";
+          }
+        } else {
+          timerText = isLive ? "Berakhir Hari Ini" : "Akan Datang";
+        }
+
         const hargaDasar = Number(dbLot.starting_price || 0);
         const hargaPenawaranTinggi = dbLot.current_price
           ? Number(dbLot.current_price)
           : (dbLot.highest_bid ? Number(dbLot.highest_bid) : hargaDasar);
 
+        const specParts = [];
+        if (dbLot.asset.year) specParts.push(dbLot.asset.year);
+        if (dbLot.asset.transmission) specParts.push(dbLot.asset.transmission);
+        if (dbLot.asset.police_number) specParts.push(dbLot.asset.police_number);
+        const specString = specParts.join(" | ") || "Spesifikasi tidak tersedia";
+
         return {
           id: dbLot.id,
-          lot_number: dbLot.lot_number || 0,
-          title: dbLot.asset?.title || "Unit",
-          grade: dbLot.asset?.grade_engine || dbLot.asset?.grade || undefined,
-          grade_engine: dbLot.asset?.grade_engine || undefined,
-          grade_exterior: dbLot.asset?.grade_exterior || undefined,
-          grade_interior: dbLot.asset?.grade_interior || undefined,
-          transmission: dbLot.asset?.transmission || undefined,
-          odometer: dbLot.asset?.odometer || undefined,
-          police_number: dbLot.asset?.police_number || undefined,
-          fuel_type: dbLot.asset?.fuel_type || undefined,
-          year: dbLot.asset?.year || undefined,
-          stnk_date: dbLot.asset?.stnk_date || undefined,
-          notes: dbLot.asset?.notes || undefined,
-          scheduledAt: dbLot.session?.scheduled_at || undefined,
+          image,
+          alt: dbLot.asset.title,
+          badge: isCancelled ? "DIBATALKAN" : (isLive ? "LIVE" : "OPEN"),
+          badgeStyle: isCancelled ? "bg-slate-500 text-white" : (isLive ? "bg-error text-white" : "bg-primary text-on-primary"),
+          isCancelled,
+          isLive,
+          grade: dbLot.asset.grade_engine || dbLot.asset.grade_interior || (dbLot.asset.condition === "BARU" ? "A" : "B"),
+          grade_engine: dbLot.asset.grade_engine || undefined,
+          grade_exterior: dbLot.asset.grade_exterior || undefined,
+          grade_interior: dbLot.asset.grade_interior || undefined,
+          transmission: dbLot.asset.transmission || undefined,
+          odometer: dbLot.asset.odometer || undefined,
+          police_number: dbLot.asset.police_number || undefined,
+          fuel_type: dbLot.asset.fuel_type || undefined,
+          year: dbLot.asset.year || undefined,
+          stnk_date: dbLot.asset.stnk_date || undefined,
+          stnk_tax_date: dbLot.asset.stnk_tax_date || undefined,
+          location: dbLot.asset.notes || dbLot.session?.branch?.city || "Jakarta",
+          title: dbLot.asset.title,
+          specString,
+          hargaAwal: `Rp ${hargaDasar.toLocaleString("id-ID")}`,
+          hargaDasar,
+          hargaValue: hargaDasar,
+          hargaPenawaranTinggi,
           deposit: "Rp 5.000.000",
-          location: dbLot.session?.branch?.city || "Jakarta",
+          timer: timerText,
+          timerLabel: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
+          action: isCancelled ? "Dibatalkan" : (isLive ? "Bid" : "Lihat Detail"),
+          category: dbLot.asset?.category?.toUpperCase() === "MOBIL" ? "Mobil" : (dbLot.asset?.category?.toUpperCase() === "MOTOR" ? "Motor" : (dbLot.asset?.category?.toUpperCase() === "PROPERTI" ? "Properti" : "Alat Berat")),
+          jenisLelang: "English Auction",
+          sessionId: dbLot.session_id,
+          sessionTitle: dbLot.session?.title || undefined,
+          lot_number: dbLot.lot_number || 0,
+          tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
+          notes: dbLot.asset.notes || undefined,
+          scheduledAt: dbLot.session?.scheduled_at || undefined,
+          view_count: dbLot.view_count || 0,
+          like_count: dbLot.like_count || 0,
+
+          // Extra fields needed for home page filters:
           cabang: dbLot.session?.branch?.name || "",
           kategori: dbLot.asset?.category || "",
           merk: dbLot.asset?.brand || "",
-          hargaDasar,
-          hargaPenawaranTinggi,
-          status: isLive ? "Live" : "Akan Datang",
-          isLive,
-          isCancelled,
-          timerKey: dbLot.id,
-          timerLabel: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
-          participants: 0,
-          image,
-          jenisLelang: "English Auction",
           featured: true,
+          status: isLive ? "Live" : "Akan Datang",
         };
       }).sort((a: any, b: any) => (a.lot_number || 0) - (b.lot_number || 0));
       setLotsList(mapped);
@@ -445,13 +296,19 @@ export default function Home() {
             id: item.id || `stored-${index}`,
             title: item.name,
             grade: "A",
+            grade_engine: "A",
+            grade_exterior: "A",
+            grade_interior: "A",
             location: "Jakarta Barat",
             hargaDasar: item.limitPrice,
             status: "Live",
+            isLive: true,
+            action: "Bid",
+            timer: "Hari ini, 18:00 WIB",
             timerKey: `stored-${index}`,
             participants: 12,
             image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcS6tHKZpYYGzVd6NalL2sAwQ1i-oYWHGMg49cGf4YAschTELEp7pAOrezDdK7olQ3ndB21B1myenWUoLPNrW75NL_EfzKrRBazlhfxoTA0PSVXEjPFdDGaDNqxHZH3tptfatQgF6mTOgwwPZIcqeUSg_bnrWYV8RJ-Slr6Z2ltr1p5HPZjgZq16T_SVGJiQS2g7kuBo3hMXsW6tXG2JrTCu7N6moS_dGbowWE0j21z4vHv3DsDFv7XME5r0MDFozTzH0n9ug2sHhp",
-            jenisLelang: item.jenisLelang || "Lelang Terbuka",
+            jenisLelang: item.jenisLelang || "English Auction",
             featured: false,
           }));
           setLotsList([...initialLots, ...parsed].sort((a: any, b: any) => (a.lot_number || 0) - (b.lot_number || 0)));

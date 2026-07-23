@@ -254,12 +254,19 @@ export class BiddingService {
       
       if (adminFeeTiersRaw) {
         try {
-          const tiers = JSON.parse(adminFeeTiersRaw);
+          const parsed = JSON.parse(adminFeeTiersRaw);
+          const tiers = Array.isArray(parsed)
+            ? parsed.sort((a: any, b: any) => {
+                const maxA = a.max_price === null || a.max_price === undefined || a.max_price === "" ? Infinity : Number(a.max_price);
+                const maxB = b.max_price === null || b.max_price === undefined || b.max_price === "" ? Infinity : Number(b.max_price);
+                return maxA - maxB;
+              })
+            : [];
           // Cari tier yang sesuai dengan hammer price
-          // Tiers diasumsikan sudah di-sort dari terkecil ke terbesar berdasarkan max_price
           let found = false;
           for (const tier of tiers) {
-            if (tier.max_price === null || hammerPrice <= tier.max_price) {
+            const maxPrice = tier.max_price === null || tier.max_price === undefined || tier.max_price === "" ? null : Number(tier.max_price);
+            if (maxPrice === null || hammerPrice <= maxPrice) {
               if (tier.fee_type === 'percentage') {
                 adminFee = Math.round((hammerPrice * Number(tier.fee)) / 100);
               } else {
@@ -279,19 +286,11 @@ export class BiddingService {
             }
           }
         } catch (e) {
-          console.error("Gagal parse admin_fee_tiers, fallback ke default", e);
-          // Fallback
-          if (hammerPrice <= 200000000) adminFee = 3500000;
-          else if (hammerPrice <= 400000000) adminFee = 4000000;
-          else if (hammerPrice <= 600000000) adminFee = 4500000;
-          else adminFee = 6000000;
+          console.error("Gagal parse admin_fee_tiers", e);
+          adminFee = 0;
         }
       } else {
-        // Fallback default
-        if (hammerPrice <= 200000000) adminFee = 3500000;
-        else if (hammerPrice <= 400000000) adminFee = 4000000;
-        else if (hammerPrice <= 600000000) adminFee = 4500000;
-        else adminFee = 6000000;
+        adminFee = 0;
       }
 
       // PMK 41 fee (dari pengaturan) if not paid by provider

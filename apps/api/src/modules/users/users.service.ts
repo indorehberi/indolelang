@@ -77,7 +77,7 @@ export class UsersService {
         const deps = user.deposits || [];
         return deps.reduce((sum: number, d: any) => {
           if (!d) return sum;
-          if (d.package_type === 'unlimited') return sum + 999;
+          if (d.package_type === 'unlimited') return sum + 5;
           const n = parseInt(d.package_type || '0', 10);
           return sum + (Number.isNaN(n) ? 0 : n);
         }, 0);

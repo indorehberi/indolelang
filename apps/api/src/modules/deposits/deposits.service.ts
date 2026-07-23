@@ -218,6 +218,14 @@ export class DepositsService {
       },
     });
 
+    // 6b. Mint one traceable code per unit slot this deposit covers (numNipls
+    // computed above), so a multi-unit package doesn't have to share one
+    // blended code across every unit it later pays for — checkout consumes
+    // exactly one active row per settled unit and links it to that invoice.
+    for (let i = 0; i < numNipls; i++) {
+      await this.createNiplCode(deposit.id, unit_type);
+    }
+
     // 7. Send notification email with manual transfer instructions
     const formattedAmount = new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -281,6 +289,26 @@ export class DepositsService {
       paid_at: deposit.paid_at ? deposit.paid_at.toISOString() : undefined,
       created_at: deposit.created_at.toISOString(),
     };
+  }
+
+  /**
+   * Mint one active, globally-unique NIPL code for a deposit's unit slot.
+   * Retries on the rare unique-constraint collision instead of trusting
+   * randomness alone.
+   */
+  private async createNiplCode(depositId: string, unitType: string): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = `NIPL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+      try {
+        await prisma.nipl_codes.create({
+          data: { deposit_id: depositId, code, unit_type: unitType },
+        });
+        return;
+      } catch (err: any) {
+        if (err?.code !== 'P2002') throw err;
+      }
+    }
+    throw new AppError(500, ErrorCode.INTERNAL_SERVER_ERROR, 'Gagal membuat kode unik NIPL setelah beberapa percobaan');
   }
 
   /**
@@ -409,6 +437,12 @@ export class DepositsService {
       data: {
         status: 'refunded',
       },
+    });
+
+    // Mark associated active NIPL codes as refunded
+    await prisma.nipl_codes.updateMany({
+      where: { deposit_id: depositId, status: 'active' },
+      data: { status: 'refunded' },
     });
 
     const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(deposit.amount));
