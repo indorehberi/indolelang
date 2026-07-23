@@ -270,11 +270,58 @@ function CartGroupCard({
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(
     existingOrder ? group.invoices.map((i: any) => i.id) : group.invoices.map((i: any) => i.id)
   );
+  const [useNiplInvoiceIds, setUseNiplInvoiceIds] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>("bca");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState<any>(existingOrder || null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const isMotorInvoice = (id: string) => {
+    const inv = group.invoices.find((i) => i.id === id);
+    return !!inv?.lot?.asset?.category?.toLowerCase().includes("motor");
+  };
+
+  const activeMobilDeposits = activeDeposits.filter((d) => d.unit_type === "mobil");
+  const activeMotorDeposits = activeDeposits.filter((d) => d.unit_type === "motor");
+
+  const totalMobilNipl = activeMobilDeposits.reduce((sum, d) => {
+    if (d.package_type === "unlimited") return sum + 5;
+    return sum + (parseInt(d.package_type || "1", 10) || 1);
+  }, 0);
+
+  const totalMotorNipl = activeMotorDeposits.reduce((sum, d) => {
+    if (d.package_type === "unlimited") return sum + 5;
+    return sum + (parseInt(d.package_type || "1", 10) || 1);
+  }, 0);
+
+  // Auto-default NIPL selections when selected checkout invoices change
+  useEffect(() => {
+    if (existingOrder) return;
+    let mobilAllocated = 0;
+    let motorAllocated = 0;
+    const initialNiplIds: string[] = [];
+
+    const sortedSelected = group.invoices
+      .filter((inv) => selectedInvoiceIds.includes(inv.id))
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    for (const inv of sortedSelected) {
+      const isMotor = !!inv.lot?.asset?.category?.toLowerCase().includes("motor");
+      if (isMotor) {
+        if (motorAllocated < totalMotorNipl) {
+          initialNiplIds.push(inv.id);
+          motorAllocated++;
+        }
+      } else {
+        if (mobilAllocated < totalMobilNipl) {
+          initialNiplIds.push(inv.id);
+          mobilAllocated++;
+        }
+      }
+    }
+    setUseNiplInvoiceIds(initialNiplIds);
+  }, [selectedInvoiceIds, activeDeposits, existingOrder]);
 
   const toggleInvoice = (id: string) => {
     setSelectedInvoiceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -296,7 +343,7 @@ function CartGroupCard({
   const niplPerInvoice: Map<string, number> = existingOrder
     ? new Map(group.invoices.map((inv: any) => [inv.id, Number(inv.nipl_deduction || 0)]))
     : allocateNiplPreview(
-        group.invoices.filter((inv) => selectedInvoiceIds.includes(inv.id)),
+        group.invoices.filter((inv) => useNiplInvoiceIds.includes(inv.id)),
         activeDeposits,
         niplSettings
       );
@@ -322,6 +369,7 @@ function CartGroupCard({
         body: JSON.stringify({
           invoice_ids: selectedInvoiceIds,
           bank: paymentMethod,
+          use_nipl_invoice_ids: useNiplInvoiceIds,
         }),
       });
 
@@ -443,7 +491,19 @@ function CartGroupCard({
         ) : (
           <>
             <div className="card mb-6">
-              <div className="card-header">Unit yang Dimenangkan</div>
+              <div className="card-header flex justify-between items-center">
+                <span>Unit yang Dimenangkan</span>
+                {!existingOrder && (totalMobilNipl > 0 || totalMotorNipl > 0) && (
+                  <div className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg flex gap-4">
+                    {totalMobilNipl > 0 && (
+                      <span>NIPL Mobil: {useNiplInvoiceIds.filter(id => !isMotorInvoice(id)).length}/{totalMobilNipl}</span>
+                    )}
+                    {totalMotorNipl > 0 && (
+                      <span>NIPL Motor: {useNiplInvoiceIds.filter(id => isMotorInvoice(id)).length}/{totalMotorNipl}</span>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
                 {group.invoices.map((inv) => (
                   <label
@@ -496,6 +556,34 @@ function CartGroupCard({
                           <div className="flex justify-between text-success">
                             <span>Potongan Jaminan NIPL</span>
                             <span className="font-medium">- {formatRupiah(niplPerInvoice.get(inv.id) || 0)}</span>
+                          </div>
+                        )}
+                        {selectedInvoiceIds.includes(inv.id) && !existingOrder && (
+                          <div 
+                            className="mt-2.5 pt-2.5 border-t border-slate-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={useNiplInvoiceIds.includes(inv.id)}
+                                disabled={
+                                  !useNiplInvoiceIds.includes(inv.id) &&
+                                  (!!inv.lot?.asset?.category?.toLowerCase().includes("motor")
+                                    ? useNiplInvoiceIds.filter(id => isMotorInvoice(id)).length >= totalMotorNipl
+                                    : useNiplInvoiceIds.filter(id => !isMotorInvoice(id)).length >= totalMobilNipl)
+                                }
+                                onChange={() => {
+                                  setUseNiplInvoiceIds(prev =>
+                                    prev.includes(inv.id) ? prev.filter(id => id !== inv.id) : [...prev, inv.id]
+                                  );
+                                }}
+                                className="accent-primary h-3.5 w-3.5 rounded border-slate-300 text-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide">
+                                Gunakan NIPL ({!!inv.lot?.asset?.category?.toLowerCase().includes("motor") ? "Motor" : "Mobil"})
+                              </span>
+                            </label>
                           </div>
                         )}
                         <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold">

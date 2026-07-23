@@ -37,9 +37,9 @@ export class CheckoutController {
   async processCheckout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { invoice_ids, bank } = req.body;
+      const { invoice_ids, bank, use_nipl_invoice_ids } = req.body;
       
-      const order = await checkoutService.processCheckout(userId, invoice_ids, bank || 'bca');
+      const order = await checkoutService.processCheckout(userId, invoice_ids, bank || 'bca', use_nipl_invoice_ids);
       sendSuccess(res, order, 'Checkout berhasil diproses', undefined, 201);
     } catch (error) {
       next(error);

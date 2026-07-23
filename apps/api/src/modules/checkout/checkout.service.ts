@@ -259,7 +259,7 @@ export class CheckoutService {
   /**
    * Process checkout
    */
-  async processCheckout(userId: string, invoiceIds: string[], bank: string) {
+  async processCheckout(userId: string, invoiceIds: string[], bank: string, useNiplInvoiceIds?: string[]) {
     if (!invoiceIds || invoiceIds.length === 0) {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Pilih setidaknya satu tagihan untuk di-checkout');
     }
@@ -310,8 +310,12 @@ export class CheckoutService {
     const motorInvoiceIds = invoicesOrdered.filter(inv => inv.lot.asset.category.toLowerCase().includes('motor')).map(inv => inv.id);
     const mobilInvoiceIds = invoicesOrdered.filter(inv => !inv.lot.asset.category.toLowerCase().includes('motor')).map(inv => inv.id);
 
-    const motorAllocation = this.allocateNiplDeductions(motorInvoiceIds, activeDeposits.filter(d => d.unit_type === 'motor'), niplMotor);
-    const mobilAllocation = this.allocateNiplDeductions(mobilInvoiceIds, activeDeposits.filter(d => d.unit_type === 'mobil'), niplMobil);
+    const useNiplSet = new Set(useNiplInvoiceIds || invoiceIds);
+    const motorInvoiceIdsWithNipl = motorInvoiceIds.filter(id => useNiplSet.has(id));
+    const mobilInvoiceIdsWithNipl = mobilInvoiceIds.filter(id => useNiplSet.has(id));
+
+    const motorAllocation = this.allocateNiplDeductions(motorInvoiceIdsWithNipl, activeDeposits.filter(d => d.unit_type === 'motor'), niplMotor);
+    const mobilAllocation = this.allocateNiplDeductions(mobilInvoiceIdsWithNipl, activeDeposits.filter(d => d.unit_type === 'mobil'), niplMobil);
 
     const perInvoiceDeduction = new Map<string, Prisma.Decimal>([...motorAllocation.perInvoiceDeduction, ...mobilAllocation.perInvoiceDeduction]);
     const depositDeduction = motorAllocation.totalDeduction.add(mobilAllocation.totalDeduction);
