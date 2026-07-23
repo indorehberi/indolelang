@@ -7,7 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BidderBottomNav from "@/components/layout/BidderBottomNav";
 import { useBidderSession } from "@/hooks/useBidderSession";
-import { useFeaturedLots } from "@/hooks/usePublicData";
+import { useFeaturedLots, usePublicSessions } from "@/hooks/usePublicData";
 import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
 import LotCard from "@/components/lots/LotCard";
 
@@ -59,6 +59,7 @@ function KatalogContent() {
   const initialCategory = searchParams ? (searchParams.get("category") === "MOBIL" ? "Mobil" : "Semua Lot") : "Semua Lot";
 
   const { data: dbFeaturedLots = [] } = useFeaturedLots();
+  const { data: dbSessions = [] } = usePublicSessions();
 
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
@@ -277,16 +278,35 @@ function KatalogContent() {
   const paginatedLots = filteredLots.slice((validCurrentPage - 1) * itemsPerPage, validCurrentPage * itemsPerPage);
 
   const totalLots = lotsList.length;
-  const totalSesi = Array.from(new Set(lotsList.map((l) => l.sessionId))).length;
+  const totalSesi = dbSessions.length > 0 ? dbSessions.length : Array.from(new Set(lotsList.map((l) => l.sessionId))).length;
   const totalKota = Array.from(new Set(lotsList.map((l) => l.location))).length;
-  const upcomingLot = lotsList.find((l) => l.badge === "LIVE" && l.timer && l.timer.includes(":"));
-  const futureLot = lotsList.find((l) => l.badge === "OPEN" && l.timer && l.timer.includes(":"));
+
+  const liveSession = dbSessions.find(
+    (s: any) => s.status?.toLowerCase() === "live"
+  );
   
   let sesiTerdekatText = "Belum Ada Jadwal";
-  if (upcomingLot) {
-    sesiTerdekatText = upcomingLot.timer;
-  } else if (futureLot) {
-    sesiTerdekatText = futureLot.timer;
+  let isSesiLive = false;
+  
+  if (liveSession) {
+    sesiTerdekatText = "Live Lelang Sekarang";
+    isSesiLive = true;
+  } else if (dbSessions.length > 0) {
+    const nextSession = dbSessions[0];
+    if (nextSession && nextSession.scheduled_at) {
+      const start = new Date(nextSession.scheduled_at);
+      const dateString = start.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+      const timeString = start.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      sesiTerdekatText = `${dateString}, ${timeString} WIB`;
+    }
+  } else {
+    const upcomingLot = lotsList.find((l) => l.badge === "LIVE" && l.timer && l.timer.includes(":"));
+    const futureLot = lotsList.find((l) => l.badge === "OPEN" && l.timer && l.timer.includes(":"));
+    if (upcomingLot) {
+      sesiTerdekatText = upcomingLot.timer;
+    } else if (futureLot) {
+      sesiTerdekatText = futureLot.timer;
+    }
   }
 
   return (
@@ -376,12 +396,20 @@ function KatalogContent() {
                   <div className="col-span-3 bg-white/90 rounded-2xl p-4 border border-white shadow-sm flex items-center justify-between gap-4 hover:shadow-md transition-shadow">
                     <div>
                       <p className="text-body-sm text-outline">Sesi terdekat</p>
-                      <p className="text-heading-md font-bold text-on-surface mt-1">
-                        {sesiTerdekatText}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {isSesiLive && (
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-error"></span>
+                          </span>
+                        )}
+                        <p className={`text-heading-md font-bold ${isSesiLive ? "text-error" : "text-on-surface"}`}>
+                          {sesiTerdekatText}
+                        </p>
+                      </div>
                     </div>
-                    <span className="material-symbols-outlined text-primary text-3xl">
-                      event_available
+                    <span className={`material-symbols-outlined ${isSesiLive ? "text-error animate-pulse" : "text-primary"} text-3xl`}>
+                      {isSesiLive ? "live_tv" : "event_available"}
                     </span>
                   </div>
                 </div>
