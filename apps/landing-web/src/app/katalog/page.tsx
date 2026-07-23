@@ -279,7 +279,9 @@ function KatalogContent() {
 
   const totalLots = lotsList.length;
   const totalSesi = dbSessions.length > 0 ? dbSessions.length : Array.from(new Set(lotsList.map((l) => l.sessionId))).length;
-  const totalKota = Array.from(new Set(lotsList.map((l) => l.location))).length;
+  const totalKota = dbSessions.length > 0
+    ? Array.from(new Set(dbSessions.map((s: any) => s.branch_id || s.branch?.id).filter(Boolean))).length
+    : Array.from(new Set(lotsList.map((l) => l.sessionId))).length;
 
   const liveSession = dbSessions.find(
     (s: any) => s.status?.toLowerCase() === "live"
@@ -391,7 +393,7 @@ function KatalogContent() {
                   </div>
                   <div className="bg-white/90 rounded-2xl p-4 border border-white shadow-sm hover:shadow-md transition-shadow">
                     <p className="text-heading-xl font-extrabold text-on-surface">{totalKota}</p>
-                    <p className="text-body-sm text-on-surface-variant mt-1">Kota</p>
+                    <p className="text-body-sm text-on-surface-variant mt-1">Cabang</p>
                   </div>
                   <div className="col-span-3 bg-white/90 rounded-2xl p-4 border border-white shadow-sm flex items-center justify-between gap-4 hover:shadow-md transition-shadow">
                     <div>

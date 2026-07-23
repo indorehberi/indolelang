@@ -477,7 +477,7 @@ const user = await prisma.users.findFirst({
 		}
 	}
 
-	async forgotPassword(email: string, phone: string): Promise<void> {
+	async forgotPassword(email: string, phone: string, sendTo?: string): Promise<void> {
 		const user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
 		if (!user) {
 			// To prevent user enumeration, we resolve successfully without throwing
@@ -514,10 +514,12 @@ const user = await prisma.users.findFirst({
 		const html = `<p>Halo,</p><p>Anda menerima email ini karena Anda meminta reset password akun Indo-Lelang.</p><p>Silakan klik tombol di bawah ini untuk mengatur ulang kata sandi Anda:</p><p><a href="${resetUrl}" style="padding: 10px 20px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a></p><p>Tautan ini akan kedaluwarsa dalam 1 jam.</p>`;
 
 		try {
-			await sendEmail({ to: email, subject, text, html });
+			if (!sendTo || sendTo === 'email') {
+				await sendEmail({ to: email, subject, text, html });
+			}
 
 			// Send WhatsApp reset link if user has a registered phone
-			if (user.phone) {
+			if (user.phone && (!sendTo || sendTo === 'whatsapp')) {
 				const waMessage = `[Indo-Lelang] Halo, Anda menerima pesan ini karena meminta reset password untuk akun Anda.\n\nSilakan klik tautan berikut untuk mengatur ulang kata sandi Anda:\n${resetUrl}\n\nTautan ini berlaku selama 1 jam. Jika Anda tidak meminta ini, silakan abaikan pesan ini.`;
 				sendWhatsAppNotification(user.phone, waMessage).catch((err) => {
 					logger.error({ err, phone: user.phone }, 'Failed to send password reset WhatsApp notification');

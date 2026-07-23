@@ -9,6 +9,7 @@ export default function LupaPasswordPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [sendTo, setSendTo] = useState<"email" | "whatsapp">("email");
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,7 +19,7 @@ export default function LupaPasswordPage() {
         const response = await fetchWithRetry(apiUrl("/auth/forgot-password"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, phone }),
+          body: JSON.stringify({ email, phone, send_to: sendTo }),
         });
         if (response.ok) {
           setSubmitted(true);
@@ -58,7 +59,15 @@ export default function LupaPasswordPage() {
             <div>
               <h3 className="text-heading-md font-bold text-on-surface font-serif">Link Reset Terkirim</h3>
               <p className="text-body-sm text-on-surface-variant leading-relaxed mt-2">
-                Kami telah mengirimkan tautan pemulihan sandi ke email <strong>{email}</strong> dan nomor WhatsApp <strong>{phone}</strong> Anda. Harap periksa kotak masuk email dan pesan WhatsApp Anda.
+                {sendTo === "email" ? (
+                  <>
+                    Kami telah mengirimkan tautan pemulihan sandi ke email <strong>{email}</strong> Anda. Harap periksa kotak masuk email Anda.
+                  </>
+                ) : (
+                  <>
+                    Kami telah mengirimkan tautan pemulihan sandi ke nomor WhatsApp <strong>{phone}</strong> Anda. Harap periksa pesan WhatsApp Anda.
+                  </>
+                )}
               </p>
             </div>
             <Link
@@ -70,9 +79,31 @@ export default function LupaPasswordPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-2">
-              Masukkan email dan nomor WhatsApp terdaftar Anda. Kami akan mengirimkan tautan verifikasi pemulihan password ke kedua kontak tersebut.
+            <p className="text-body-sm text-on-surface-variant leading-relaxed text-center mb-4">
+              Pilih salah satu, link reset password akan dikirimkan kemana.
             </p>
+
+            <div className="flex gap-4 justify-center mb-6">
+              <label className="flex items-center gap-2 cursor-pointer bg-surface border border-outline-variant/60 px-4 py-3 rounded-xl hover:border-premium/65 transition-all w-1/2 justify-center">
+                <input
+                  type="checkbox"
+                  checked={sendTo === "email"}
+                  onChange={() => setSendTo("email")}
+                  className="rounded text-premium focus:ring-premium accent-premium w-4 h-4"
+                />
+                <span className="text-body-sm font-bold text-on-surface">Email</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer bg-surface border border-outline-variant/60 px-4 py-3 rounded-xl hover:border-premium/65 transition-all w-1/2 justify-center">
+                <input
+                  type="checkbox"
+                  checked={sendTo === "whatsapp"}
+                  onChange={() => setSendTo("whatsapp")}
+                  className="rounded text-premium focus:ring-premium accent-premium w-4 h-4"
+                />
+                <span className="text-body-sm font-bold text-on-surface">No. WA</span>
+              </label>
+            </div>
 
             <div>
               <label className="text-body-sm font-bold text-on-surface block mb-1.5">

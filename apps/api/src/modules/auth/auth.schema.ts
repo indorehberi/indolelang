@@ -57,6 +57,7 @@ export const forgotPasswordSchema = z.object({
 	body: z.object({
 		email: z.string().email('Email tidak valid'),
 		phone: z.string().min(8, 'Nomor WhatsApp minimal 8 karakter'),
+		send_to: z.enum(['email', 'whatsapp']).optional(),
 	}),
 });
 
