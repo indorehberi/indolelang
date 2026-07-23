@@ -5,7 +5,7 @@ import { logAdminAction } from '../../lib/auditLog';
 import { sendEmail } from '../../lib/email';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
-import { sendWhatsAppNotification } from '../../lib/whatsapp';
+import { sendWhatsAppTest } from '../../lib/whatsapp';
 import { env } from '../../config/env';
 
 const settingsService = new SettingsService();
@@ -126,25 +126,23 @@ export class SettingsController {
       const sendRealOtp = process.env.SEND_REAL_OTP === 'true';
       const isMock = !token || (isDevMode && !sendRealOtp);
 
-      const success = await sendWhatsAppNotification(
+      const result = await sendWhatsAppTest(
         to,
         `[Test] Halo! Ini adalah pesan WhatsApp pengujian dari sistem Indo-Lelang. Jika Anda menerima pesan ini, konfigurasi Fonnte WhatsApp Gateway Anda sudah benar.`
       );
 
-      if (success) {
+      if (result.success) {
         logAdminAction(req, 'TEST_WHATSAPP_SENT', 'platform_settings', 'fonnte', null, { to, isMock });
         sendSuccess(
           res,
           { to, isMock },
-          isMock
-            ? `Pesan uji berhasil disimulasikan (Mock Mode - Dev) ke ${to}`
-            : `Pesan uji berhasil dikirim ke ${to}`
+          result.message
         );
       } else {
         throw new AppError(
           500,
           ErrorCode.INTERNAL_SERVER_ERROR,
-          'Gagal mengirim WhatsApp uji via Fonnte. Periksa token API Fonnte Anda di log server.'
+          result.message
         );
       }
     } catch (error: any) {

@@ -87,3 +87,66 @@ export async function sendWhatsAppOtp(phone: string, otpCode: string): Promise<b
 export async function sendWhatsAppNotification(phone: string, message: string): Promise<boolean> {
   return sendWhatsApp(phone, message);
 }
+
+/**
+ * Test send WhatsApp message and return detailed result/error message
+ */
+export async function sendWhatsAppTest(phone: string, message: string): Promise<{ success: boolean; message: string }> {
+  const formattedPhone = formatPhoneNumber(phone);
+  const token = (await settingsService.getDecryptedSetting('fonnte_token')) || env.FONNTE_TOKEN;
+  const isDevMode = env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
+  const sendRealOtp = process.env.SEND_REAL_OTP === 'true';
+
+  const isMock = !token || (isDevMode && !sendRealOtp);
+
+  if (isMock) {
+    logger.info(
+      { phone: formattedPhone, message, mock: true },
+      `[WhatsApp OTP Mock] Pesan simulasi terkirim ke nomor ${formattedPhone}: "${message}"`
+    );
+    return {
+      success: true,
+      message: `[Simulasi Mock] Pesan berhasil disimulasikan ke nomor ${formattedPhone} (karena Token kosong atau aplikasi berjalan dalam mode local dev).`
+    };
+  }
+
+  try {
+    const response = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token!,
+      },
+      body: JSON.stringify({
+        target: formattedPhone,
+        message: message,
+      }),
+    });
+
+    const data = (await response.json().catch(() => null)) as any;
+
+    if (response.ok && data?.status === true) {
+      logger.info({ phone: formattedPhone }, 'WhatsApp message sent successfully via Fonnte');
+      return {
+        success: true,
+        message: `Pesan berhasil dikirim via Fonnte ke nomor ${formattedPhone}.`
+      };
+    } else {
+      const errorDetail = data?.reason || data?.message || JSON.stringify(data) || `HTTP ${response.status}`;
+      logger.error(
+        { phone: formattedPhone, status: response.status, response: data },
+        `Fonnte API failed to send WhatsApp message: ${errorDetail}`
+      );
+      return {
+        success: false,
+        message: `Fonnte API gagal mengirim pesan. Detail dari Fonnte: "${errorDetail}".`
+      };
+    }
+  } catch (error: any) {
+    logger.error({ error, phone: formattedPhone }, 'Network error calling Fonnte API');
+    return {
+      success: false,
+      message: `Kesalahan jaringan: ${error?.message || 'Gagal menghubungi server Fonnte'}`
+    };
+  }
+}
