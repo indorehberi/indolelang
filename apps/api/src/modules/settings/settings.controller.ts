@@ -5,6 +5,8 @@ import { logAdminAction } from '../../lib/auditLog';
 import { sendEmail } from '../../lib/email';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
+import { sendWhatsAppNotification } from '../../lib/whatsapp';
+import { env } from '../../config/env';
 
 const settingsService = new SettingsService();
 
@@ -106,6 +108,47 @@ export class SettingsController {
         ErrorCode.INTERNAL_SERVER_ERROR,
         `Gagal mengirim email uji: ${error?.message || 'Unknown error'}. Periksa konfigurasi SMTP Anda.`
       ));
+    }
+  }
+
+  /**
+   * Send a test WhatsApp message using the current Fonnte configuration
+   */
+  async testWhatsApp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { to } = req.body;
+      if (!to) {
+        throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Nomor WhatsApp tujuan harus diisi');
+      }
+
+      const token = (await settingsService.getDecryptedSetting('fonnte_token')) || env.FONNTE_TOKEN;
+      const isDevMode = env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
+      const sendRealOtp = process.env.SEND_REAL_OTP === 'true';
+      const isMock = !token || (isDevMode && !sendRealOtp);
+
+      const success = await sendWhatsAppNotification(
+        to,
+        `[Test] Halo! Ini adalah pesan WhatsApp pengujian dari sistem Indo-Lelang. Jika Anda menerima pesan ini, konfigurasi Fonnte WhatsApp Gateway Anda sudah benar.`
+      );
+
+      if (success) {
+        logAdminAction(req, 'TEST_WHATSAPP_SENT', 'platform_settings', 'fonnte', null, { to, isMock });
+        sendSuccess(
+          res,
+          { to, isMock },
+          isMock
+            ? `Pesan uji berhasil disimulasikan (Mock Mode - Dev) ke ${to}`
+            : `Pesan uji berhasil dikirim ke ${to}`
+        );
+      } else {
+        throw new AppError(
+          500,
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          'Gagal mengirim WhatsApp uji via Fonnte. Periksa token API Fonnte Anda di log server.'
+        );
+      }
+    } catch (error: any) {
+      next(error);
     }
   }
 }

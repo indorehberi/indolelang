@@ -95,7 +95,11 @@ export default function PlatformSettingsPage() {
   const [isSavingManualTransfer, setIsSavingManualTransfer] = useState(false);
   const [isSavingFeeTimeout, setIsSavingFeeTimeout] = useState(false);
   const [isSavingS3, setIsSavingS3] = useState(false);
+  const [isSavingBank, setIsSavingBank] = useState(false);
   const [isSavingVerihubs, setIsSavingVerihubs] = useState(false);
+  const [isSavingFonnte, setIsSavingFonnte] = useState(false);
+  const [isTestingWhatsApp, setIsTestingWhatsApp] = useState(false);
+  const [testWhatsappPhone, setTestWhatsappPhone] = useState('');
   const [isSavingSMTP, setIsSavingSMTP] = useState(false);
 
   // National Holidays Settings
@@ -784,27 +788,92 @@ export default function PlatformSettingsPage() {
     }
   };
 
+  const handleSaveBank = async () => {
+    setIsSavingBank(true);
+    try {
+      const updates = [
+        { key: 'bank_inquiry_mode', value: apiKeys.bank_inquiry_mode },
+        { key: 'xendit_api_key', value: apiKeys.xendit_api_key },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Validasi Rekening berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi Validasi Rekening.');
+    } finally {
+      setIsSavingBank(false);
+    }
+  };
+
   const handleSaveVerihubs = async () => {
     setIsSavingVerihubs(true);
     try {
       const updates = [
         { key: 'verihubs_api_key', value: apiKeys.verihubs_api_key },
-        { key: 'bank_inquiry_mode', value: apiKeys.bank_inquiry_mode },
-        { key: 'xendit_api_key', value: apiKeys.xendit_api_key },
+      ];
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Verihubs berhasil disimpan!');
+      } else {
+        toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan konfigurasi Verihubs.');
+    } finally {
+      setIsSavingVerihubs(false);
+    }
+  };
+
+  const handleSaveFonnte = async () => {
+    setIsSavingFonnte(true);
+    try {
+      const updates = [
         { key: 'fonnte_token', value: apiKeys.fonnte_token },
       ];
       const { ok, failedKeys } = await saveSettings(updates);
       await fetchSettings();
       setApiKeys((prev) => ({ ...prev, fonnte_token: '' }));
       if (ok) {
-        toast.success('Pengaturan WhatsApp & Validasi berhasil disimpan!');
+        toast.success('Pengaturan Fonnte WhatsApp berhasil disimpan!');
       } else {
         toast.error(`Gagal menyimpan: ${failedKeys.join(', ')}`);
       }
     } catch (e) {
-      toast.error('Gagal menyimpan konfigurasi WhatsApp.');
+      toast.error('Gagal menyimpan konfigurasi Fonnte.');
     } finally {
-      setIsSavingVerihubs(false);
+      setIsSavingFonnte(false);
+    }
+  };
+
+  const handleTestWhatsApp = async () => {
+    if (!testWhatsappPhone) {
+      toast.warning('Masukkan nomor WhatsApp tujuan terlebih dahulu.');
+      return;
+    }
+    setIsTestingWhatsApp(true);
+    try {
+      const response = await apiFetch('/admin/settings/test-whatsapp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ to: testWhatsappPhone }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success(data.message || `WhatsApp uji berhasil dikirim ke ${testWhatsappPhone}`);
+      } else {
+        toast.error(data.error?.message || 'Gagal mengirim WhatsApp uji.');
+      }
+    } catch (e) {
+      toast.error('Koneksi gagal saat mengirim WhatsApp uji.');
+    } finally {
+      setIsTestingWhatsApp(false);
     }
   };
 
@@ -1538,9 +1607,9 @@ export default function PlatformSettingsPage() {
             </button>
           </Card>
 
-          {/* Card 5: WhatsApp Gateway & Validasi Rekening Bank */}
+          {/* Card 5a: Validasi Rekening Bank */}
           <Card>
-            <h3 className="text-md fw-bold mb-3">WhatsApp Gateway &amp; Validasi Rekening Bank</h3>
+            <h3 className="text-md fw-bold mb-3">Validasi Rekening Bank</h3>
             <div className="form-group mb-2" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
               <label className="form-label fw-bold">Mode Validasi Rekening Bidder</label>
               <select className="form-input" value={apiKeys.bank_inquiry_mode || 'manual'} onChange={(e) => setApiKeys({...apiKeys, bank_inquiry_mode: e.target.value})}>
@@ -1550,17 +1619,6 @@ export default function PlatformSettingsPage() {
               <p className="text-xs text-muted mt-1">Jika Manual, Bidder diminta mengetik nama rekeningnya sendiri tanpa kena biaya validasi.</p>
             </div>
             
-            <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Verihubs API Key (eKYC)</label>
-              <input type="password" placeholder="********" className="form-input" value={apiKeys.verihubs_api_key} onChange={(e) => setApiKeys({...apiKeys, verihubs_api_key: e.target.value})} />
-            </div>
-
-            <div className="form-group mb-2">
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>Fonnte API Token (WhatsApp OTP &amp; Notification)</label>
-              <input type="password" placeholder="Kosong (tidak diubah)" className="form-input" value={apiKeys.fonnte_token} onChange={(e) => setApiKeys({...apiKeys, fonnte_token: e.target.value})} />
-              <p className="text-xs text-muted mt-1">Token ini selalu dikosongkan pada tampilan demi alasan keamanan.</p>
-            </div>
-            
             {apiKeys.bank_inquiry_mode === 'auto' && (
               <div className="form-group mb-3">
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>Xendit API Key (Disbursement &amp; Validasi Bank)</label>
@@ -1568,9 +1626,57 @@ export default function PlatformSettingsPage() {
               </div>
             )}
 
-            <button className="btn btn-primary w-100" onClick={handleSaveVerihubs} disabled={isSavingVerihubs}>
-              {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Gateway &amp; Validasi'}
+            <button className="btn btn-primary w-100" onClick={handleSaveBank} disabled={isSavingBank}>
+              {isSavingBank ? 'Menyimpan...' : 'Simpan Validasi Rekening'}
             </button>
+          </Card>
+
+          {/* Card 5b: Verihubs API Key (eKYC) */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Verihubs eKYC</h3>
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Verihubs API Key (eKYC)</label>
+              <input type="password" placeholder="********" className="form-input" value={apiKeys.verihubs_api_key} onChange={(e) => setApiKeys({...apiKeys, verihubs_api_key: e.target.value})} />
+            </div>
+
+            <button className="btn btn-primary w-100" onClick={handleSaveVerihubs} disabled={isSavingVerihubs}>
+              {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Verihubs'}
+            </button>
+          </Card>
+
+          {/* Card 5c: Fonnte WhatsApp Gateway */}
+          <Card>
+            <h3 className="text-md fw-bold mb-3">Fonnte WhatsApp Gateway</h3>
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>Fonnte API Token (WhatsApp OTP &amp; Notification)</label>
+              <input type="password" placeholder="Kosong (tidak diubah)" className="form-input" value={apiKeys.fonnte_token} onChange={(e) => setApiKeys({...apiKeys, fonnte_token: e.target.value})} />
+              <p className="text-xs text-muted mt-1">Token ini selalu dikosongkan pada tampilan demi alasan keamanan.</p>
+            </div>
+
+            <button className="btn btn-primary w-100 mb-3" onClick={handleSaveFonnte} disabled={isSavingFonnte}>
+              {isSavingFonnte ? 'Menyimpan...' : 'Simpan Fonnte'}
+            </button>
+
+            <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: 'var(--border)' }}>
+              <h4 className="text-sm fw-bold mb-2 text-slate-800">Uji WhatsApp Gateway</h4>
+              <div className="form-group mb-2">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>Nomor WhatsApp Tujuan</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: 628123456789" 
+                  className="form-input" 
+                  value={testWhatsappPhone} 
+                  onChange={(e) => setTestWhatsappPhone(e.target.value)} 
+                />
+              </div>
+              <button 
+                className="btn btn-secondary w-100" 
+                onClick={handleTestWhatsApp} 
+                disabled={isTestingWhatsApp}
+              >
+                {isTestingWhatsApp ? 'Mengirim...' : 'Tes Kirim WhatsApp'}
+              </button>
+            </div>
           </Card>
 
           {/* Card 6: SMTP (Email) */}

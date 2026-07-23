@@ -44,4 +44,11 @@ router.post(
   controller.testEmail
 );
 
+router.post(
+  '/admin/settings/test-whatsapp',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.testWhatsApp
+);
+
 export default router;
