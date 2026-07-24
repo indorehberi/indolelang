@@ -55,8 +55,14 @@ export const loginSchema = z.object({
  */
 export const forgotPasswordSchema = z.object({
 	body: z.object({
-		email: z.string().email('Email tidak valid').optional(),
-		phone: z.string().min(8, 'Nomor WhatsApp minimal 8 karakter').optional(),
+		email: z.preprocess(
+			(val) => (val === '' ? undefined : val),
+			z.string().email('Email tidak valid').optional(),
+		),
+		phone: z.preprocess(
+			(val) => (val === '' ? undefined : val),
+			z.string().min(8, 'Nomor WhatsApp minimal 8 karakter').optional(),
+		),
 		send_to: z.enum(['email', 'whatsapp']).default('email'),
 	}).refine(
 		(data) => {
@@ -72,6 +78,7 @@ export const forgotPasswordSchema = z.object({
 		}),
 	),
 });
+
 
 /**
  * Reset password schema

@@ -8,22 +8,35 @@ async function main() {
   console.log('🌱 Starting database seeding (Production/Clean Mode)...');
 
   // 1. Clear existing tables in correct dependency order
-  await prisma.bids.deleteMany({});
-  await prisma.deposits.deleteMany({});
-  await prisma.invoices.deleteMany({});
-  await prisma.settlements.deleteMany({});
   await prisma.documents.deleteMany({});
-  await prisma.notifications.deleteMany({});
-  await prisma.audit_logs.deleteMany({});
+  await prisma.nipl_codes.deleteMany({});
+  await prisma.invoices.deleteMany({});
+  await prisma.checkout_orders.deleteMany({});
+  await prisma.referral_usages.deleteMany({});
+  await prisma.referrals.deleteMany({});
+  await prisma.settlements.deleteMany({});
+  await prisma.bids.deleteMany({});
   await prisma.lots.deleteMany({});
+  await prisma.exclusive_session_registrations.deleteMany({});
+  await prisma.nipl_allocations.deleteMany({});
   await prisma.assets.deleteMany({});
   await prisma.auction_sessions.deleteMany({});
+  await prisma.branches.deleteMany({});
   await prisma.kyc_documents.deleteMany({});
+  await prisma.bidders.deleteMany({});
+  await prisma.providers.deleteMany({});
   await prisma.blog_posts.deleteMany({});
   await prisma.testimonials.deleteMany({});
+  await prisma.audit_logs.deleteMany({});
+  await prisma.deposits.deleteMany({});
+  await prisma.notifications.deleteMany({});
   await prisma.users.deleteMany({});
-  await prisma.branches.deleteMany({});
   await prisma.platform_settings.deleteMany({});
+  await prisma.campaigns.deleteMany({});
+  await prisma.contact_messages.deleteMany({});
+  await prisma.galleries.deleteMany({});
+  await prisma.transaction_profiles.deleteMany({});
+
 
   // 2. Hash passwords
   const superadminPasswordHash = await bcrypt.hash('Superadmin123!', 10);

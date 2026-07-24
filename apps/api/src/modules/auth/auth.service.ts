@@ -477,13 +477,7 @@ const user = await prisma.users.findFirst({
 		}
 	}
 
-	async forgotPassword(email: string, phone: string, sendTo?: string): Promise<void> {
-		const user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
-		if (!user) {
-			// To prevent user enumeration, we resolve successfully without throwing
-			return;
-		}
-
+	async forgotPassword(email: string | undefined, phone: string | undefined, sendTo?: string): Promise<void> {
 		const normalizePhone = (num: string) => {
 			let clean = num.replace(/[^0-9]/g, '');
 			if (clean.startsWith('0')) {
@@ -492,8 +486,21 @@ const user = await prisma.users.findFirst({
 			return clean;
 		};
 
-		if (!user.phone || normalizePhone(user.phone) !== normalizePhone(phone)) {
-			// Mismatch, resolve without sending or throwing error (prevents enumeration)
+		let user;
+
+		if (sendTo === 'whatsapp' && phone) {
+			// Lookup by phone number
+			const normalized = normalizePhone(phone);
+			const allUsers = await prisma.users.findMany({ where: { deleted_at: null } });
+			user = allUsers.find((u) => u.phone && normalizePhone(u.phone) === normalized);
+		} else {
+			// Default: lookup by email
+			if (!email) return;
+			user = await prisma.users.findFirst({ where: { email, deleted_at: null } });
+		}
+
+		if (!user) {
+			// To prevent user enumeration, we resolve successfully without throwing
 			return;
 		}
 
@@ -515,23 +522,25 @@ const user = await prisma.users.findFirst({
 
 		try {
 			if (!sendTo || sendTo === 'email') {
-				await sendEmail({ to: email, subject, text, html });
+				if (user.email) {
+					await sendEmail({ to: user.email, subject, text, html });
+				}
 			}
 
 			// Send WhatsApp reset link if user has a registered phone
-			if (user.phone && (!sendTo || sendTo === 'whatsapp')) {
+			if (user.phone && sendTo === 'whatsapp') {
 				const waMessage = `[Indo-Lelang] Halo, Anda menerima pesan ini karena meminta reset password untuk akun Anda.\n\nSilakan klik tautan berikut untuk mengatur ulang kata sandi Anda:\n${resetUrl}\n\nTautan ini berlaku selama 1 jam. Jika Anda tidak meminta ini, silakan abaikan pesan ini.`;
 				sendWhatsAppNotification(user.phone, waMessage).catch((err) => {
 					logger.error({ err, phone: user.phone }, 'Failed to send password reset WhatsApp notification');
 				});
 			}
 		} catch (emailError) {
-			logger.error({ emailError, email }, 'Failed to send password reset email');
+			logger.error({ emailError, email: user.email }, 'Failed to send password reset email');
 			console.log('\n==================================================');
-			console.log(`[DEBUG / DEV ONLY] PASSWORD RESET LINK FOR ${email}:`);
+			console.log(`[DEBUG / DEV ONLY] PASSWORD RESET LINK FOR ${user.email || user.phone}:`);
 			console.log(resetUrl);
 			console.log('==================================================\n');
-			throw new AppError(500, ErrorCode.INTERNAL_SERVER_ERROR, 'Gagal mengirim email reset password. Silakan coba beberapa saat lagi atau hubungi admin.');
+			throw new AppError(500, ErrorCode.INTERNAL_SERVER_ERROR, 'Gagal mengirim link reset password. Silakan coba beberapa saat lagi atau hubungi admin.');
 		}
 	}
 
