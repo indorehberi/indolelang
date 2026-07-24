@@ -304,15 +304,25 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
 
       {/* ====== MOBILE BROWSER: bidder menu trigger ====== */}
       {!isPWA && (
-        <div className="lg:hidden sticky top-0 z-20 flex items-center gap-3 px-margin-page py-2.5 bg-white/95 glass-nav border-b border-outline-variant/20">
+        <div className="lg:hidden sticky top-0 z-20 flex items-center justify-between px-margin-page py-2.5 bg-white/95 glass-nav border-b border-outline-variant/20">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors"
+              aria-label="Menu Bidder"
+            >
+              <span className="material-symbols-outlined text-on-surface">menu</span>
+            </button>
+            <span className="text-sm font-bold text-on-surface">{pageTitle}</span>
+          </div>
           <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors"
-            aria-label="Menu Bidder"
+            onClick={() => window.location.reload()}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-surface-container-low transition-colors"
+            title="Refresh Halaman"
+            aria-label="Refresh Halaman"
           >
-            <span className="material-symbols-outlined text-on-surface">menu</span>
+            <span className="material-symbols-outlined text-xl">refresh</span>
           </button>
-          <span className="text-sm font-bold text-on-surface">{pageTitle}</span>
         </div>
       )}
 
@@ -363,6 +373,14 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
+              title="Refresh Halaman"
+              aria-label="Refresh Halaman"
+            >
+              <span className="material-symbols-outlined text-xl">refresh</span>
+            </button>
             <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-bold text-on-surface">{userName}</span>
               <span className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">
@@ -560,6 +578,19 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
         }}>
           {toastMessage.text}
         </div>
+      )}
+
+      {/* Floating Refresh Button for PWA pages that hide the topbar */}
+      {isPWA && hidePwaTopbar && (
+        <button
+          onClick={() => window.location.reload()}
+          className="fixed bottom-24 right-6 w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg shadow-primary/30 z-[9999] hover:bg-primary/95 active:scale-95 transition-all animate-bounce"
+          title="Refresh Halaman"
+          aria-label="Refresh Halaman"
+          style={{ animationDuration: '3s' }}
+        >
+          <span className="material-symbols-outlined text-2xl">refresh</span>
+        </button>
       )}
     </div>
   );

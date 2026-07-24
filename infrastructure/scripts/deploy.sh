@@ -33,11 +33,15 @@ if [[ -z "$*" || "$*" == *"api"* ]]; then
     docker compose --env-file .env -f infrastructure/docker/docker-compose.prod.yml exec -T api npx prisma migrate deploy
 fi
 
-# 5. Clean up old dangling images to save storage
+# 5. Reload Nginx configuration to update container IPs in DNS cache
+echo "Reloading Nginx to update upstream container IPs..."
+docker compose --env-file .env -f infrastructure/docker/docker-compose.prod.yml exec -T nginx nginx -s reload
+
+# 6. Clean up old dangling images to save storage
 echo "Cleaning up dangling Docker images..."
 docker image prune -f
 
-# 6. Verify service health
+# 7. Verify service health
 echo "Verifying server health checks..."
 sleep 5
 API_HEALTH=$(docker inspect --format='{{json .State.Health.Status}}' indolelang_api_prod || echo '"unhealthy"')

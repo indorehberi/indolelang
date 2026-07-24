@@ -49,7 +49,17 @@ function getDisplayAssetImages(lot: any) {
 }
 
 // Sub-component to manage a single active lot
-function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClosed, isSingleLot }: {
+function ActiveLotCard({
+  lot,
+  token,
+  bidIncrement,
+  socket,
+  isConnected,
+  onLotClosed,
+  isSingleLot,
+  isCancelledOverride,
+  cancelCountdownOverride
+}: {
   lot: any;
   token: string;
   bidIncrement: number;
@@ -57,6 +67,8 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
   isConnected: boolean;
   onLotClosed: (data?: any, hasBidded?: boolean) => void;
   isSingleLot: boolean;
+  isCancelledOverride?: boolean;
+  cancelCountdownOverride?: number;
 }) {
   const toast = useToast();
   const [currentPrice, setCurrentPrice] = useState<number>(Number(lot.starting_price));
@@ -304,20 +316,24 @@ function ActiveLotCard({ lot, token, bidIncrement, socket, isConnected, onLotClo
     <>
     <div className="card mb-6 shadow-sm border-l-4 border-l-danger relative overflow-hidden">
       {startCountdown !== null && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-xl">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-md">
           <span className="material-symbols-outlined text-white mb-4 animate-bounce" style={{ fontSize: '100px' }}>notifications_active</span>
           <div className="text-white text-8xl font-black">{startCountdown}</div>
           <div className="text-white text-lg font-bold mt-2">Persiapkan Diri Anda!</div>
         </div>
       )}
 
-      {isCancelledOverlay && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-red-900/80 backdrop-blur-sm rounded-xl">
-          <span className="material-symbols-outlined text-white mb-3" style={{ fontSize: '80px' }}>cancel</span>
-          <div className="text-white text-3xl font-black tracking-widest mb-1">DIBATALKAN</div>
-          <div className="text-white/80 text-base">Lanjut ke lot berikutnya dalam</div>
-          <div className="text-white text-7xl font-black mt-2 animate-pulse">{cancelCountdown}</div>
-          <div className="text-white/80 text-sm mt-1">detik</div>
+      {(isCancelledOverlay || isCancelledOverride) && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md text-center p-6">
+          <span className="material-symbols-outlined text-red-500 mb-3" style={{ fontSize: '80px' }}>cancel</span>
+          <div className="text-red-500 text-3xl font-black tracking-widest mb-2">LOT INI DIBATALKAN</div>
+          <div className="text-white text-lg font-semibold">
+            Lot berikutnya dimulai setelah{" "}
+            <span className="text-red-500 text-3xl font-extrabold animate-pulse mx-1">
+              {cancelCountdownOverride ?? cancelCountdown}
+            </span>{" "}
+            detik
+          </div>
         </div>
       )}
 
@@ -881,21 +897,17 @@ export default function BidderBiddingRoom() {
     <BidderLayout pageTitle="Ruang Lelang Live">
 
       {frozenLot ? (
-        <div className="card py-16 text-center flex flex-col items-center justify-center gap-4 relative overflow-hidden bg-slate-50 border-danger">
-          <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
-            <span className="material-symbols-outlined text-[200px] text-danger">block</span>
-          </div>
-          <div className="z-10 relative">
-            <span className="material-symbols-outlined text-6xl text-danger mb-2">cancel</span>
-            <h2 className="text-3xl font-black text-slate-800 mb-2">LOT DIBATALKAN</h2>
-            <p className="text-lg font-bold text-slate-700 mb-1">Lot #{frozenLot.lot_data?.lot_number} - {frozenLot.lot_data?.asset?.title}</p>
-            <p className="text-sm text-slate-500 mb-6">Lot ini telah dibatalkan dan dilewati.</p>
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 inline-block">
-              <span className="block text-xs uppercase font-bold text-slate-400 mb-1">Lanjut otomatis dalam</span>
-              <div className="text-3xl font-black text-primary animate-pulse">{frozenCountdown} detik</div>
-            </div>
-          </div>
-        </div>
+        <ActiveLotCard
+          lot={frozenLot.lot_data}
+          token={typeof window !== "undefined" ? localStorage.getItem("accessToken") || "" : ""}
+          bidIncrement={bidIncrement}
+          socket={socket}
+          isConnected={isConnected}
+          onLotClosed={handleLotClosed}
+          isSingleLot={true}
+          isCancelledOverride={true}
+          cancelCountdownOverride={frozenCountdown}
+        />
       ) : activeLots.length > 0 ? (
         <div className="space-y-8">
           {activeLots.map((lot) => (

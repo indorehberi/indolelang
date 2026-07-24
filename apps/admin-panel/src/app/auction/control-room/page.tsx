@@ -125,6 +125,31 @@ export default function ControlRoomPage() {
   const [winnerModalData, setWinnerModalData] = useState<WinnerModalData | null>(null);
   const [popupSecondsLeft, setPopupSecondsLeft] = useState<number>(5);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      workspaceRef.current?.requestFullscreen().catch((err) => {
+        console.error('Error entering fullscreen:', err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   useEffect(() => {
     if (!winnerModalData) return;
     setPopupSecondsLeft(5);
@@ -375,12 +400,12 @@ export default function ControlRoomPage() {
         // Add to logs only if it's a new bid (amount is higher or log is empty)
         if (data.bidder_id && data.bidder_id !== '-') {
           setBidLogs((prev) => {
-            if (prev.length > 0 && prev[0].amount === data.current_price) {
+            if (prev.length > 0 && Number(prev[0].amount) === Number(data.current_price)) {
               return prev; // Do not add duplicate tick log entries
             }
             return [
               {
-                id: String(Date.now()),
+                id: `${data.bidder_id}-${data.current_price}-${Date.now()}-${Math.random()}`,
                 bidder_id: data.bidder_id,
                 bidder_name: data.bidder_name,
                 nipl_code: data.nipl_code,
@@ -684,7 +709,7 @@ export default function ControlRoomPage() {
 
     setBidLogs((prev) => [
       {
-        id: String(Date.now()),
+        id: `sim-${mockBidder}-${newPrice}-${Date.now()}-${Math.random()}`,
         bidder_id: mockBidder,
         amount: newPrice,
         time: new Date().toLocaleTimeString('id-ID'),
@@ -720,7 +745,43 @@ export default function ControlRoomPage() {
 
   return (
     <DashboardLayout breadcrumbParent="Lelang" breadcrumbCurrent="Ruang Kontrol">
-      {toast && (
+      <div
+        ref={workspaceRef}
+        className="control-room-workspace"
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+        }}
+      >
+        {isFullscreen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '1rem',
+              right: '1rem',
+              zIndex: 10000,
+            }}
+          >
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={toggleFullscreen}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>fullscreen_exit</span>
+              Keluar Full Screen
+            </Button>
+          </div>
+        )}
+
+        {toast && (
         <Toast
           message={toast.message}
           variant={toast.variant}
@@ -736,6 +797,23 @@ export default function ControlRoomPage() {
         </div>
         <div className="toolbar-right">
           <div className="d-flex align-center gap-1">
+            <Button
+              variant={isFullscreen ? 'danger' : 'outline'}
+              size="sm"
+              onClick={toggleFullscreen}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                height: '36px',
+                marginRight: '0.5rem',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+              </span>
+              {isFullscreen ? 'Keluar Full Screen' : 'Full Screen'}
+            </Button>
             <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Pilih Sesi:</span>
             <select
               className="form-select"
@@ -1369,7 +1447,16 @@ export default function ControlRoomPage() {
         </div>
       )}
 
+      </div>
+
       <style jsx global>{`
+        .control-room-workspace:fullscreen {
+          background-color: #f8fafc !important;
+          padding: 2rem !important;
+          overflow-y: auto !important;
+          width: 100vw !important;
+          height: 100vh !important;
+        }
         @keyframes pulse {
           0% { opacity: 1; }
           50% { opacity: 0.5; }
