@@ -26,10 +26,11 @@ export default function LupaPasswordPage() {
     }
 
     try {
-      const payload =
-        sendTo === "email"
-          ? { email, send_to: sendTo }
-          : { phone, send_to: sendTo };
+      const payload = {
+        email: sendTo === "email" ? email : "",
+        phone: sendTo === "whatsapp" ? phone : "",
+        send_to: sendTo,
+      };
 
       const response = await fetchWithRetry(apiUrl("/auth/forgot-password"), {
         method: "POST",

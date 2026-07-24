@@ -55,10 +55,22 @@ export const loginSchema = z.object({
  */
 export const forgotPasswordSchema = z.object({
 	body: z.object({
-		email: z.string().email('Email tidak valid'),
-		phone: z.string().min(8, 'Nomor WhatsApp minimal 8 karakter'),
-		send_to: z.enum(['email', 'whatsapp']).optional(),
-	}),
+		email: z.string().email('Email tidak valid').optional(),
+		phone: z.string().min(8, 'Nomor WhatsApp minimal 8 karakter').optional(),
+		send_to: z.enum(['email', 'whatsapp']).default('email'),
+	}).refine(
+		(data) => {
+			if (data.send_to === 'email') return !!data.email;
+			if (data.send_to === 'whatsapp') return !!data.phone;
+			return false;
+		},
+		(data) => ({
+			message: data.send_to === 'email'
+				? 'Alamat email harus diisi'
+				: 'Nomor WhatsApp harus diisi',
+			path: data.send_to === 'email' ? ['email'] : ['phone'],
+		}),
+	),
 });
 
 /**
