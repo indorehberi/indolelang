@@ -187,14 +187,14 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
             <div className="absolute bottom-0 left-2 right-2 translate-y-1/3 z-20 bg-white/95 backdrop-blur-md rounded-xl shadow-xl px-3 py-2 border border-red-200 text-center">
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
                 <span className="text-[10px] text-slate-500 font-bold uppercase">Harga Dasar</span>
-                <span className="text-xs font-extrabold text-slate-700">{formatRupiah(lot.hargaDasar)}</span>
+                <span className="font-extrabold text-slate-700" style={{ fontSize: "min(12px, 3.3vw)" }}>{formatRupiah(lot.hargaDasar)}</span>
               </div>
               <div className="bg-red-50/90 border border-red-200/80 rounded-lg py-1 px-2.5 flex items-center justify-between gap-2 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]">
                 <span className="text-[10px] text-red-600 font-extrabold uppercase tracking-wide flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
                   Penawaran Tinggi
                 </span>
-                <span className="text-sm font-black text-red-600 tracking-tight">
+                <span className="font-black text-red-600 tracking-tight" style={{ fontSize: "min(14px, 4vw)" }}>
                   {formatRupiah(lot.hargaPenawaranTinggi || lot.hargaDasar)}
                 </span>
               </div>
@@ -202,7 +202,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
           ) : (
             <div className="absolute bottom-0 left-3 right-3 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-4 py-2.5 border border-outline-variant/10 text-center">
               <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{lot.priceLabel ?? "Harga Dasar"}</p>
-              <p className="text-base font-black text-primary leading-tight">{formatRupiah(lot.hargaDasar)}</p>
+              <p className="font-black text-primary leading-tight" style={{ fontSize: "min(16px, 4.5vw)" }}>{formatRupiah(lot.hargaDasar)}</p>
             </div>
           )
         )}
