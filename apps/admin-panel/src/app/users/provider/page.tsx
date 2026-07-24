@@ -15,11 +15,16 @@ interface Provider {
   status: 'antri' | 'aktif' | 'ditolak' | 'nonaktif';
   company_name?: string;
   npwp?: string;
+  npwp_url?: string;
   provider_fee_type?: string;
   provider_fee_amount?: number;
   pmk41_paid_by_provider?: boolean;
   rejection_reason?: string;
   submitted_at: string;
+  address?: string;
+  bank_name?: string;
+  bank_account_no?: string;
+  bank_account_name?: string;
   kyc?: {
     id: string;
     status: string;
@@ -32,6 +37,24 @@ interface Provider {
     email: string;
     phone: string | null;
   };
+}
+
+async function downloadFile(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.open(url, '_blank', 'noopener');
+  }
 }
 
 export default function ProviderUsersPage() {
@@ -353,28 +376,45 @@ export default function ProviderUsersPage() {
       {/* VIEW MODAL */}
       {showViewModal && selectedProvider && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '2rem' }}>
-          <div style={{ maxWidth: '700px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <Card>
-              <h3 style={{ marginBottom: '1rem' }}>Peninjauan Provider</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div><strong>Nama Perwakilan:</strong><br />{selectedProvider.user?.full_name}</div>
-                <div><strong>Email:</strong><br />{selectedProvider.user?.email}</div>
-                <div><strong>Nama Perusahaan:</strong><br />{selectedProvider.company_name}</div>
-                <div><strong>NPWP:</strong><br />{selectedProvider.npwp}</div>
-                <div><strong>Fee Type:</strong><br />{selectedProvider.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Nominal Tetap (Rp)'}</div>
-                <div><strong>Fee Amount:</strong><br />{selectedProvider.provider_fee_amount}</div>
-                <div><strong>Status:</strong><br />{selectedProvider.status}</div>
-                {selectedProvider.status === 'ditolak' && (
-                  <div><strong>Alasan Ditolak:</strong><br />{selectedProvider.rejection_reason}</div>
+              <h3 style={{ marginBottom: '1rem' }}>Detail Provider</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', marginBottom: '1.5rem' }}>
+                <div><strong>Nama Perwakilan:</strong> {selectedProvider.user?.full_name || '-'}</div>
+                <div><strong>Email:</strong> {selectedProvider.user?.email || '-'}</div>
+                <div><strong>Telepon:</strong> {selectedProvider.user?.phone || '-'}</div>
+                <div><strong>Nama Perusahaan:</strong> {selectedProvider.company_name || '-'}</div>
+                <div><strong>NPWP:</strong> {selectedProvider.npwp || '-'}</div>
+                <div><strong>Tipe Fee:</strong> {selectedProvider.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Nominal Tetap (Rp)'}</div>
+                <div><strong>Nilai Fee:</strong> {selectedProvider.provider_fee_amount ?? '-'}</div>
+                <div><strong>Pajak PMK-41 Ditanggung:</strong> {selectedProvider.pmk41_paid_by_provider ? 'Ya (Provider)' : 'Tidak (Platform)'}</div>
+                <div><strong>Status:</strong> {getStatusBadge(selectedProvider.status)}</div>
+                <div style={{ gridColumn: '1 / -1' }}><strong>Alamat:</strong> {selectedProvider.address || '-'}</div>
+                <div><strong>Bank:</strong> {selectedProvider.bank_name || '-'}</div>
+                <div><strong>No. Rekening:</strong> {selectedProvider.bank_account_no || '-'}</div>
+                <div><strong>Atas Nama Rekening:</strong> {selectedProvider.bank_account_name || '-'}</div>
+                <div><strong>Tanggal Ajukan:</strong> {selectedProvider.submitted_at ? new Date(selectedProvider.submitted_at).toLocaleDateString('id-ID') : '-'}</div>
+                {selectedProvider.rejection_reason && (
+                  <div style={{ gridColumn: '1 / -1' }}><strong>Alasan Ditolak:</strong> {selectedProvider.rejection_reason}</div>
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
                   <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto KTP</h4>
                   {selectedProvider.kyc?.ktp_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedProvider.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedProvider.kyc.ktp_url} alt="KTP" style={{ width: '100%', height: '150px', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedProvider.kyc!.ktp_url!, `ktp-${selectedProvider.user?.full_name || selectedProvider.id}.jpg`)}
+                      >
+                        Unduh KTP
+                      </Button>
+                    </>
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada KTP</div>
                   )}
@@ -382,10 +422,39 @@ export default function ProviderUsersPage() {
                 <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
                   <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto Selfie</h4>
                   {selectedProvider.kyc?.selfie_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedProvider.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedProvider.kyc.selfie_url} alt="Selfie" style={{ width: '100%', height: '150px', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedProvider.kyc!.selfie_url!, `selfie-${selectedProvider.user?.full_name || selectedProvider.id}.jpg`)}
+                      >
+                        Unduh Selfie
+                      </Button>
+                    </>
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada Selfie</div>
+                  )}
+                </div>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto/Dokumen NPWP</h4>
+                  {selectedProvider.npwp_url ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedProvider.npwp_url} alt="NPWP" style={{ width: '100%', height: '150px', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedProvider.npwp_url!, `npwp-${selectedProvider.company_name || selectedProvider.id}.jpg`)}
+                      >
+                        Unduh NPWP
+                      </Button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada NPWP</div>
                   )}
                 </div>
               </div>

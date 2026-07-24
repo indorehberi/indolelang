@@ -38,6 +38,8 @@ interface Bidder {
     full_name: string;
     email: string;
     phone: string | null;
+    npwp?: string;
+    npwp_url?: string;
   };
 }
 
@@ -454,6 +456,7 @@ export default function BidderListPage() {
                 <div><strong>Email:</strong> {selectedBidder.user?.email || '-'}</div>
                 <div><strong>Telepon:</strong> {selectedBidder.user?.phone || '-'}</div>
                 <div><strong>NIK:</strong> {selectedBidder.kyc?.nik || '-'}</div>
+                <div><strong>NPWP:</strong> {selectedBidder.user?.npwp || '-'}</div>
                 <div><strong>Pekerjaan:</strong> {selectedBidder.occupation || '-'}</div>
                 <div><strong>Status:</strong> {getStatusBadge(selectedBidder.status)}</div>
                 <div style={{ gridColumn: '1 / -1' }}><strong>Alamat:</strong> {selectedBidder.address || '-'}</div>
@@ -467,7 +470,7 @@ export default function BidderListPage() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
                   <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto KTP</h4>
                   {selectedBidder.kyc?.ktp_url ? (
@@ -504,6 +507,25 @@ export default function BidderListPage() {
                     </>
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada Selfie</div>
+                  )}
+                </div>
+                <div style={{ border: '1px solid #eee', padding: '0.5rem', borderRadius: '4px' }}>
+                  <h4 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Foto/Dokumen NPWP</h4>
+                  {selectedBidder.user?.npwp_url ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedBidder.user.npwp_url} alt="NPWP" style={{ width: '100%', height: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ width: '100%' }}
+                        onClick={() => downloadFile(selectedBidder.user!.npwp_url!, `npwp-${selectedBidder.user?.full_name || selectedBidder.id}.jpg`)}
+                      >
+                        Unduh NPWP
+                      </Button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb' }}>Tidak ada NPWP</div>
                   )}
                 </div>
               </div>

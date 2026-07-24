@@ -440,6 +440,8 @@ export class BiddersService {
             full_name: bidder.user.full_name,
             role: bidder.user.role,
             status: bidder.user.status,
+            npwp: bidder.user.npwp || undefined,
+            npwp_url: bidder.user.npwp_url || undefined,
             created_at: bidder.user.created_at.toISOString(),
             updated_at: bidder.user.updated_at.toISOString(),
           }
