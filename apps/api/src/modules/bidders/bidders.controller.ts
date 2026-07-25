@@ -66,6 +66,17 @@ export class BiddersController {
     }
   }
 
+  async reVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const reviewerId = (req as any).user!.id;
+      const bidder = await biddersService.reVerify(req.params.id, reviewerId);
+      logAdminAction(req, 'RE_VERIFY_BIDDER', 'bidders', req.params.id, null, bidder);
+      sendSuccess(res, bidder, 'Status bidder berhasil dikembalikan ke antrean verifikasi');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async adjustNipl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const adminId = (req as any).user!.id;

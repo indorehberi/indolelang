@@ -70,6 +70,17 @@ export class ProvidersController {
       next(error);
     }
   }
+
+  async reVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const reviewerId = (req as any).user!.id;
+      const provider = await providersService.reVerify(req.params.id, reviewerId);
+      logAdminAction(req, 'RE_VERIFY_PROVIDER', 'providers', req.params.id, null, provider);
+      sendSuccess(res, provider, 'Status provider berhasil dikembalikan ke antrean verifikasi');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default ProvidersController;

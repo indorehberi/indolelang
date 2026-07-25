@@ -254,6 +254,41 @@ export class ProvidersService {
     return this.mapToDTO(updated);
   }
 
+  async reVerify(id: string, reviewerId: string): Promise<ProviderDTO> {
+    const provider = await prisma.providers.findUnique({ where: { id } });
+    if (!provider) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data provider tidak ditemukan');
+
+    const [updated] = await prisma.$transaction([
+      prisma.providers.update({
+        where: { id },
+        data: {
+          status: ApplicationStatus.ANTRI,
+          reviewed_by: null,
+          reviewed_at: null,
+          rejection_reason: null,
+        },
+      }),
+      prisma.users.update({
+        where: { id: provider.user_id },
+        data: {
+          provider_status: 'pending',
+          role: 'bidder',
+        },
+      }),
+      prisma.kyc_documents.updateMany({
+        where: { user_id: provider.user_id },
+        data: {
+          status: KycStatus.PENDING,
+          reviewer_id: null,
+          reviewed_at: null,
+          rejection_reason: null,
+        },
+      }),
+    ]);
+
+    return this.mapToDTO(updated);
+  }
+
   private mapToDTO(provider: any): ProviderDTO {
     return {
       id: provider.id,

@@ -341,19 +341,95 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
 ### 25. Perbaikan Kolom No. Polisi, Penambahan Sesi Lelang, dan Export XLSX Laporan Keuangan Panel Admin
 * **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
 * **File yang Diubah:**
-  * [payments.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/payments/payments.service.ts) (Backend API Payments & Settlements Service)
-  * [reports/finance/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/reports/finance/page.tsx) (Laporan Keuangan Admin Panel)
-* **Deskripsi Perubahan:**
   * **Penyajian Data No. Polisi:** Memperbaiki API backend untuk menyertakan `police_number` dan `year` dari tabel `assets`, sehingga kolom No. Polisi pada tabel Laporan Keuangan kini terisi dengan benar (contoh: `B 1234 ABC`).
   * **Penambahan Kolom Sesi Lelang:** Menambahkan kolom **Nama Sesi Lelang** (`session.title`) dan **Tanggal Sesi** (`session.scheduled_at`) untuk mempermudah audit rekapitulasi per sesi.
   * **Fitur Export XLSX:** Mengintegrasikan tombol **`📥 Export Excel`** yang mengunduh seluruh data Laporan Keuangan (lengkap dengan No. Lot, Nama Sesi, Tanggal Sesi, No. Polisi, Unit, GMV, Fee Admin, Fee Lelang, DPP, PPN, PPh 23, PMK 41, Pengeluaran PG, dan Net Settlement) ke format file `.xlsx`.
 
+### 26. Tombol Refresh Halaman khusus PWA App Bidder
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [BidderLayout.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/BidderLayout.tsx) (Frontend Layout Bidder Web)
+* **Deskripsi Perubahan:**
+  * Menambahkan tombol refresh (`refresh` icon) khusus untuk pengguna PWA standalone.
+  * Tombol refresh ditampilkan di bilah Header PWA (ketika topbar aktif).
+  * Menambahkan Floating Action Button (FAB) melayang di pojok kanan bawah (`fixed bottom-24 right-6`) dengan animasi bounce untuk mempermudah reload halaman pada viewports yang menyembunyikan topbar (seperti halaman Beranda).
+  * Tombol ini dinonaktifkan / disembunyikan otomatis pada peramban web desktop standard dan browser mobile biasa karena sudah memiliki navigasi refresh bawaan.
 
+### 27. Proteksi Kerusakan Tampilan Font / Harga (Font Scaling Accessibility Fix)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [globals.css](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/globals.css) (CSS Global Frontend Web)
+  * [LotCard.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/lots/LotCard.tsx) (Kartu Unit Katalog)
+* **Deskripsi Perubahan:**
+  * **Text Size Adjust:** Menambahkan properti CSS `-webkit-text-size-adjust: 100%` dan `text-size-adjust: 100%` pada selector `html, body` untuk memblokir pembesaran font otomatis akibat konfigurasi aksesibilitas font bawaan OS HP (Android/iOS).
+  * **Stacked Price Layout:** Mengubah struktur tata letak "Harga Dasar" dan "Penawaran Tinggi" menjadi bertingkat secara vertikal (vertical stack) guna memperluas ruang horizontal.
+  * **Pelebaran Kontainer:** Memperlebar batas overlay kartu lot dan memperkecil padding agar muat lebih banyak digit harga.
+  * **Font Unit Viewport (`vw`):** Menggunakan formula responsif berbasis `viewport width` (contoh: `min(14px, 3.8vw)`) untuk menjamin teks harga mengecil secara proporsional dan tidak akan pernah meluber (overflow) ke kanan pada grid 2-kolom mobile PWA.
 
+### 28. Fitur Fullscreen & Tombol Keluar di Ruang Kontrol Lelang Admin
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [control-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/auction/control-room/page.tsx) (Ruang Kontrol Lelang Live Admin)
+* **Deskripsi Perubahan:**
+  * Mengintegrasikan HTML5 Fullscreen API pada panel ruang kontrol lelang.
+  * Admin dapat menyembunyikan sidebar kiri dan topbar header untuk menampilkan visual sesi lelang secara penuh satu layar penuh.
+  * Menambahkan tombol toggle "Full Screen" di toolbar atas, serta tombol melayang "Keluar Full Screen" di pojok kanan atas layar agar admin dapat kapan saja keluar dari mode layar penuh dengan mudah.
 
+### 29. Penyesuaian Pengalihan Logout Otomatis Admin (Redirect Destination)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [api.ts](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/lib/api.ts) (Core API Client Admin Panel)
+* **Deskripsi Perubahan:**
+  * Memperbaiki tujuan pengalihan sesi saat admin log out secara otomatis akibat masa aktif habis (idle timeout).
+  * URL redirect diubah dari `/admin/login` (yang memicu error 404/Not Found) menjadi `/login`. Skema Next.js `basePath: '/admin'` akan otomatis mengarahkan url tersebut ke internal login page yang benar.
 
+### 30. Penyelarasan Layout Overlays Bell Timer & Canceled Lot di Bidder App
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * [bidding-room/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/bidding-room/page.tsx) (Ruang Lelang Bidder)
+* **Deskripsi Perubahan:**
+  * Mengubah posisi penayangan overlay "Bell Countdown" (lelang lot berikutnya akan dimulai) dan overlay "Lot Dibatalkan" dari posisi absolut card (`absolute inset-0`) menjadi posisi layar penuh (`fixed inset-0 z-[9999] backdrop-blur-md`).
+  * Hal ini memastikan modal overlay terpusat sempurna di tengah-tengah layar fisik perangkat pengguna (desktop, mobile, maupun PWA) dan tidak lagi terpotong ke bawah / menghilang di bawah lipatan layar saat pengguna melakukan scrolling.
 
+### 31. Form Lupa Password Kondisional (Metode Email vs No. WA)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [auth.schema.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.schema.ts) (Validasi ZodforgotPasswordSchema)
+    * [auth.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/auth/auth.service.ts) (Logika lookup user dinamis berdasarkan jenis pengiriman)
+  * **Public Web App (`apps/landing-web/src/`):**
+    * [lupa-password/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/lupa-password/page.tsx) (Form Reset Password)
+* **Deskripsi Perubahan:**
+  * **Input Dinamis:** Form lupa password kini menampilkan pill toggle selector untuk memilih metode pengiriman link reset password (Email atau WhatsApp).
+  * **Kondisional Wajib:** Jika Email dipilih, maka hanya input email yang tampil dan berstatus `required`. Jika WhatsApp dipilih, maka hanya input no ponsel yang tampil dan berstatus `required`.
+  * **Zod Preprocess:** Menambahkan preprocessing di backend Zod schema untuk mendeteksi string kosong `""` dan mengonversinya menjadi `undefined`, mencegah error format validasi email saat mengirim link via WA.
+  * **Look Up Condisional:** Pencarian user di backend disesuaikan secara dinamis: mencari berdasarkan email saja jika memilih opsi Email, atau mencari berdasarkan nomor ponsel saja jika memilih opsi WhatsApp.
 
+### 32. Proteksi Validasi Penghapusan Pengguna (User Deletion Safeguards)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [users.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/users/users.service.ts) (Metode deleteUser)
+    * [index.ts](file:///c:/Users/han/Herd/indo-lelang/packages/utils/src/index.ts) (Kamus Error Code)
+* **Deskripsi Perubahan:**
+  * Mencegah admin menghapus pengguna (Bidder atau Provider) jika masih memiliki transaksi aktif/menggantung:
+    1. **Deposit Tertunda:** Memiliki deposit berstatus `pending_approval` (bukti transfer diunggah tapi belum divalidasi).
+    2. **NIPL Aktif:** Memiliki kuota NIPL aktif (`status: 'active'`) yang belum dipakai bertransaksi dan belum di-refund.
+    3. **Tagihan Belum Lunas:** Memiliki tagihan `invoices` yang belum dibayar (`unpaid`/`pending_approval`) dan belum kedaluwarsa.
+    4. **Settlement Tertunda:** Provider memiliki settlement yang statusnya masih `pending` (belum ditransfer).
+  - Mengembalikan respon error yang jelas serta kode error spesifik (`PENDING_DEPOSIT_APPROVAL`, `ACTIVE_NIPL_EXISTS`, `UNPAID_INVOICE_EXISTS`, `PENDING_SETTLEMENT_EXISTS`).
 
-
-
+### 33. Tombol Aksi "Verifikasi Ulang" di Panel Admin (Bidders & Providers)
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Backend API (`apps/api/src/`):**
+    * [bidders.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/bidders/bidders.service.ts) & [bidders.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/bidders/bidders.controller.ts)
+    * [providers.service.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.service.ts) & [providers.controller.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.controller.ts)
+    * [bidders.routes.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/bidders/bidders.routes.ts) & [providers.routes.ts](file:///c:/Users/han/Herd/indo-lelang/apps/api/src/modules/providers/providers.routes.ts)
+  * **Web Admin Panel (`apps/admin-panel/src/`):**
+    * [bidder/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/bidder/page.tsx) (Daftar Bidder Admin)
+    * [provider/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/provider/page.tsx) (Daftar Provider Admin)
+* **Deskripsi Perubahan:**
+  * Menyediakan tombol aksi **"Verifikasi Ulang"** (warna emas) pada baris daftar bidder dan provider yang statusnya bukan lagi `'antri'`.
+  * Tombol ini memicu endpoint API `PUT .../re-verify` yang mengembalikan status registrasi akun pengguna kembali ke `'antri'`, mereset data peninjau, dan mengembalikan status dokumen KYC ke `'pending'`.
+  * Dilengkapi dialog konfirmasi bawaan dan notifikasi pop-up toast status di sisi admin panel.

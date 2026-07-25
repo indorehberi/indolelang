@@ -577,6 +577,55 @@ export class UsersService {
       throw new AppError(404, ErrorCode.USER_NOT_FOUND, 'Pengguna tidak ditemukan');
     }
 
+    // 1. Check if bidder has uploaded transfer proof but not approved yet
+    const pendingDeposit = await prisma.deposits.findFirst({
+      where: {
+        user_id: id,
+        status: 'pending_approval',
+      },
+    });
+    if (pendingDeposit) {
+      throw new AppError(400, ErrorCode.PENDING_DEPOSIT_APPROVAL, 'Pengguna memiliki bukti transfer deposit yang belum disetujui admin');
+    }
+
+    // 2. Check if bidder still has active NIPL codes
+    const activeNipl = await prisma.nipl_codes.findFirst({
+      where: {
+        status: 'active',
+        deposit: {
+          user_id: id,
+        },
+      },
+    });
+    if (activeNipl) {
+      throw new AppError(400, ErrorCode.ACTIVE_NIPL_EXISTS, 'Pengguna masih memiliki NIPL aktif yang belum digunakan atau direfund');
+    }
+
+    // 3. Check if bidder still has unpaid and unexpired invoices
+    const unpaidInvoice = await prisma.invoices.findFirst({
+      where: {
+        bidder_id: id,
+        status: { in: ['unpaid', 'pending_approval'] },
+        due_date: {
+          gt: new Date(),
+        },
+      },
+    });
+    if (unpaidInvoice) {
+      throw new AppError(400, ErrorCode.UNPAID_INVOICE_EXISTS, 'Pengguna masih memiliki tagihan lelang yang belum dibayar dan belum kedaluwarsa');
+    }
+
+    // 4. Check if provider still has pending settlements
+    const pendingSettlement = await prisma.settlements.findFirst({
+      where: {
+        provider_id: id,
+        status: 'pending',
+      },
+    });
+    if (pendingSettlement) {
+      throw new AppError(400, ErrorCode.PENDING_SETTLEMENT_EXISTS, 'Penyedia masih memiliki settlement yang belum dicairkan');
+    }
+
     await prisma.$transaction([
       prisma.bidders.deleteMany({ where: { user_id: id } }),
       prisma.providers.deleteMany({ where: { user_id: id } }),

@@ -297,6 +297,40 @@ export class BiddersService {
     return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
+  async reVerify(id: string, reviewerId: string): Promise<BidderDTO> {
+    const bidder = await prisma.bidders.findUnique({ where: { id } });
+    if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
+
+    const [updated] = await prisma.$transaction([
+      prisma.bidders.update({
+        where: { id },
+        data: {
+          status: ApplicationStatus.ANTRI,
+          reviewed_by: null,
+          reviewed_at: null,
+          rejection_reason: null,
+        },
+      }),
+      prisma.users.update({
+        where: { id: bidder.user_id },
+        data: { status: 'pending' },
+      }),
+      prisma.kyc_documents.updateMany({
+        where: { user_id: bidder.user_id },
+        data: {
+          status: KycStatus.PENDING,
+          reviewer_id: null,
+          reviewed_at: null,
+          rejection_reason: null,
+        },
+      }),
+    ]);
+
+    const stats = await this.getBidderNiplStats(bidder.user_id);
+
+    return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
+  }
+
   /**
    * Admin adjusts NIPL count for a bidder.
    * Expires all existing paid deposits and optionally creates a single

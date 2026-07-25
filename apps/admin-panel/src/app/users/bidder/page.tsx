@@ -210,6 +210,31 @@ export default function BidderListPage() {
     }
   };
 
+  const handleReVerify = async (id: string, fullName: string) => {
+    if (
+      !window.confirm(
+        `Apakah Anda yakin ingin melakukan verifikasi ulang untuk ${fullName}? Tindakan ini akan mengembalikan status akun ke antrean verifikasi.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const response = await apiFetch(`/admin/bidders/${id}/re-verify`, {
+        method: 'PUT',
+      });
+      if (response.ok) {
+        toast.success('Status bidder berhasil dikembalikan ke antrean verifikasi');
+        fetchBidders();
+      } else {
+        const data = await response.json();
+        toast.error(data.error?.message || 'Gagal melakukan verifikasi ulang');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Terjadi kesalahan sistem');
+    }
+  };
+
   const handleAdjustNipl = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBidder) return;
@@ -407,6 +432,15 @@ export default function BidderListPage() {
                         >
                           Edit NIPL
                         </Button>
+                        {bidder.status !== 'antri' && (
+                          <Button
+                            variant="gold"
+                            size="sm"
+                            onClick={() => handleReVerify(bidder.id, bidder.user?.full_name || '')}
+                          >
+                            Verifikasi Ulang
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

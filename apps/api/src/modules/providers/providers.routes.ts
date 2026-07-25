@@ -50,4 +50,11 @@ router.put(
   controller.reject
 );
 
+router.put(
+  '/admin/providers/:id/re-verify',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.reVerify
+);
+
 export default router;

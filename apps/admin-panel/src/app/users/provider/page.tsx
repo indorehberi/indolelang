@@ -226,6 +226,31 @@ export default function ProviderUsersPage() {
     }
   };
 
+  const handleReVerify = async (id: string, fullName: string) => {
+    if (
+      !window.confirm(
+        `Apakah Anda yakin ingin melakukan verifikasi ulang untuk ${fullName}? Tindakan ini akan mengembalikan status akun ke antrean verifikasi.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const response = await apiFetch(`/admin/providers/${id}/re-verify`, {
+        method: 'PUT',
+      });
+      if (response.ok) {
+        showToast('success', 'Status provider berhasil dikembalikan ke antrean verifikasi');
+        fetchProviders();
+      } else {
+        const data = await response.json();
+        showToast('error', data.error?.message || 'Gagal melakukan verifikasi ulang');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Terjadi kesalahan sistem');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Mitra Provider">
       {/* Toast */}
@@ -363,6 +388,15 @@ export default function ProviderUsersPage() {
                         }}>
                           Delete
                         </Button>
+                        {prov.status !== 'antri' && (
+                          <Button
+                            variant="gold"
+                            size="sm"
+                            onClick={() => handleReVerify(prov.id, prov.user?.full_name || '')}
+                          >
+                            Verifikasi Ulang
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

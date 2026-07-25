@@ -45,6 +45,13 @@ router.put(
 );
 
 router.put(
+  '/admin/bidders/:id/re-verify',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.reVerify
+);
+
+router.put(
   '/admin/bidders/:id/nipl',
   authenticate,
   authorize(Role.ADMIN, Role.SUPERADMIN),

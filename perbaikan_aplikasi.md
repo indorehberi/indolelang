@@ -2,12 +2,17 @@ saat login, pastikan ada fitur lupa password.
 OTP
 - WA
 - Email
-link social media
-- IG
-- FB
-- TikTok
-- Youtube
-- Twitter
+
+HALAMAN KATALOG
+- Search bar belum berfungsi
+- status card untuk lot aktif, sesi, kota, sesuaikan dengan data real
+- status card sesi terdekat tampilkan jadwal sesi terdekat atau sesi sedang live sekarang
+- 
+
+tampılkan jumlah yang onlıne saat lıve lelang
+layer lot berikutnya, lonceng dan timer countdownd 3 detik, terlalu kebawah 
+starting lelang admin dan bidder beda 10 detik
+saat live lelang, di beranda, lot yang sedang live, teks : penawaran tinggi 
 
 
 
@@ -19,24 +24,16 @@ jika ada yang menang di panel bidder NIPL, sebelum pelunasan, tombol refund dibu
 
 
 PERUBAHAN APLIKASI
-- samakan tampilan mobile bidder dan provider dengan tampilan PWA
-- selain bidder, provider juga dibuatkan tampilan PWA
-- field untuk form registrasi : Nama/No WA/email, Password, konfirmasi password. hanya dua fields
-- di form verifikasi bidder, cukup tampilkan field upload ktp dan foto selfie. ganti "Pengajuan Menjadi Bidder" menjadi "Berifikasi KTP"
-- semua kata KYC di ganti KTP
-- di app, saat buka camera, allow while visiting the site,  ada pesan : This site can't ask for your permission, close any bubbles or overlay from other app, the try again.
+
 - tambahkan menu dipanel bidder, list unit yang dimenangkan, kolom : tgl sesi, Lot, No Polisi, Harga terbentuk, Biaya Admin, PMK41, NIPL, Total Tagihan
-aksi untuk list unit yang dimenangkan : bayar (keluarkan popup, instruksi pembayaran, total yang harus dibayar, upload bukti ttransfer, tombol kirim
+aksi untuk list unit yang dimenangkan : bayar (keluarkan popup, instruksi pembayaran, total yang harus dibayar, upload bukti transfer, tombol kirim
 status untuk list unit yang dimenangkan : tunggu pembayaran, proses BAPL, Download BAPL, Ambil Unit, Unit sudah diambil
 - panel admin, keuangan/invoice pelunasan ganti dengan Pelunasan.
 panel admin, menu audit trail, ganti dengan log, tambahkan aktivitas semua role, tambahkan filter by admin, bidder, no NIPL, tanggal, provider, 
 - panel bidder, menu beranda, jika ada NIPL aktif, tampilkan tombol refund, jika diklik tombol refund, tombol refund berubah menjadi proses refund, dan warna berubah grey. dan tambahkan tombol batalkan refund. saat admin sudah proses refund, Nilai NIPL menjadi 0 (nol) tombol refund disembunyikan.
-- beberapa user di list bidder masih terlihat, tapi saat didelete, : Pengguna tidak ditemukan
-- di halaman registrasi, tambahkan keterangan di bawah field No WA : Email dan No WA di gunakan untuk reset Lupa Password.
 - di halaman register ganti teks berikut : Daftar akun dan dapatkan unit kendaraan terbaik dengan harga termurah di IndoLelang
 menjadi : Daftar akun dan dapatkan fitur lelang modern dari BIDKU
 
-- panel provider, menu beranda, hapus card Tindakan Mitra
 - samakan semua istilah kendaraan, unit aset, barang menjadi : Unit
 - admin panel, ada menu pencairan dan tab pencairan mitra di menu deposit. hapus tab pencairan mitra. cukup pakai menu pencairan. ganti nama menu pencairan menjadi pencairan provider
 - ganti istilah mitra menjadi provider
