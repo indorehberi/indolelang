@@ -98,8 +98,10 @@ export default function GoogleAuthModal({
         }
 
         onClose();
-        if (user.role === "bidder" || user.role === "user") {
+        if (user.role === "bidder") {
           router.push("/bidder/dashboard");
+        } else if (user.role === "user") {
+          router.push("/pilih-peran");
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
         } else if (["admin", "operator", "superadmin"].includes(user.role)) {

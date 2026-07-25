@@ -628,3 +628,17 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * Menyediakan tombol aksi **"Verifikasi Ulang"** (warna emas dengan teks putih agar terbaca dengan jelas) pada baris daftar bidder dan provider untuk semua status.
   * Tombol ini memicu endpoint API `PUT .../re-verify` yang mengulangi proses verifikasi dari awal (seperti pengguna baru mendaftar) dengan menghapus baris tabel `kyc_documents` dan profil `bidders` / `providers` terkait, serta mengembalikan status `users` menjadi `'pending'`. Ini memastikan pengguna diarahkan kembali ke halaman unggah berkas KTP & Selfie kamera saat membuka aplikasi.
   * Dilengkapi dialog konfirmasi bawaan dan notifikasi pop-up toast status di sisi admin panel.
+ 
+### 34. Akses Alur Pendaftaran & Pilihan Menjadi Mitra Provider
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Public Web App (`apps/landing-web/src/`):**
+    * [login/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/login/page.tsx) (Pengalihan Login Pengguna Baru)
+    * [GoogleAuthModal.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/GoogleAuthModal.tsx) (Pengalihan Social Login Google)
+    * [bidderNavItems.ts](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/components/layout/bidderNavItems.ts) (Penambahan Menu Sidebar Bidder)
+    * [page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/bidder/dashboard/page.tsx) (Banner CTA Halaman Beranda Bidder)
+* **Deskripsi Perubahan:**
+  * **Pencegahan Lewat Pilihan Peran:** Pengguna baru yang mendaftar dan belum menentukan peran (role default `'user'`) kini secara otomatis dialihkan ke halaman **`/pilih-peran`** sesaat setelah berhasil masuk (Login standard maupun Social Login Google), alih-alih langsung masuk ke dashboard bidder. Di halaman ini, pengguna dapat memilih secara jelas apakah akan menjadi **Bidder** atau **Mitra Provider**.
+  * **Menu Pendaftaran Provider di PWA Bidder:** Ditambahkan menu navigasi **`Jadi Mitra Provider`** pada sidebar menu aplikasi web Bidder. Bidder yang sudah aktif dapat mengklik menu ini kapan saja untuk mengajukan pendaftaran kemitraan provider.
+  * **Banner CTA di Dashboard Bidder:** Menambahkan banner kartu promosi bertema biru premium modern *"Ingin Titip Jual Kendaraan? Daftar Mitra Provider"* di bagian atas halaman Dashboard Bidder. Banner ini mengarahkan bidder yang tertarik melelang asetnya ke halaman formulir pendaftaran `/register/provider` dengan satu klik.
+  * **Kemudahan Pengisian (Prefill Form):** Halaman pendaftaran provider secara otomatis mengambil data KTP, Selfie, Alamat, dan Rekening Bank yang sudah diverifikasi saat menjadi Bidder, sehingga pengguna hanya perlu melengkapi NPWP, nama badan usaha, dan jenis provider tanpa perlu unggah ulang dokumen KTP/Selfie.

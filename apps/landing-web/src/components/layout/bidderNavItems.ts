@@ -23,6 +23,7 @@ export const moreNavItems: MenuItem[] = [
   { name: "Riwayat Lelang", href: "/bidder/riwayat-lelang", icon: "history" },
   { name: "Riwayat Deposit & Refund", href: "/bidder/deposit/history", icon: "account_balance_wallet" },
   { name: "Profil & eKYC", href: "/bidder/profile", icon: "person" },
+  { name: "Jadi Mitra Provider", href: "/register/provider", icon: "storefront" },
 ];
 
 export const allBidderNavItems: MenuItem[] = [...primaryNavItems, ...moreNavItems];

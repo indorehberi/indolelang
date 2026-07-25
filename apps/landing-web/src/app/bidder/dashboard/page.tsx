@@ -316,6 +316,25 @@ export default function BidderDashboard() {
         </div>
       ) : null}
 
+      {/* Banner Jadi Mitra Provider */}
+      <div className="card bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 shadow-sm">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-12 h-12 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-2xl">storefront</span>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-800 text-sm">Ingin Titip Jual Kendaraan?</h4>
+            <p className="text-xs text-slate-600 mt-0.5">Daftarkan bisnis Anda sebagai Mitra Provider untuk melelang unit di platform BIDKU.</p>
+          </div>
+        </div>
+        <Link
+          href="/register/provider"
+          className="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-sm transition-all"
+        >
+          Daftar Mitra Provider
+        </Link>
+      </div>
+
       {/* KPI Grid */}
       <div className="grid grid-cols-3 gap-3 mb-6 text-center">
         <div className="kpi-card success flex flex-col items-center justify-center p-4">
