@@ -103,19 +103,35 @@ export default function ProviderStatusPage() {
               Lanjut ke Dashboard Provider 🚀
             </Link>
           ) : isRejected ? (
-            <Link
-              href="/register/provider"
-              className="w-full py-4 bg-error text-white rounded-xl text-body-md font-bold hover:bg-error/90 transition-all text-center block"
-            >
-              Ajukan Kembali
-            </Link>
+            <div className="space-y-3">
+              <Link
+                href="/register/provider"
+                className="w-full py-4 bg-error text-white rounded-xl text-body-md font-bold hover:bg-error/90 transition-all text-center block"
+              >
+                Ajukan Kembali
+              </Link>
+              <Link
+                href="/bidder/dashboard"
+                className="w-full py-3 border border-outline-variant/60 hover:bg-slate-50 text-slate-700 rounded-xl text-body-md font-bold transition-all text-center block"
+              >
+                Kembali ke Dashboard
+              </Link>
+            </div>
           ) : (
-            <button
-              disabled
-              className="w-full py-4 bg-surface border border-outline-variant/40 text-outline rounded-xl text-body-md font-bold cursor-not-allowed text-center"
-            >
-              Menunggu Verifikasi Admin...
-            </button>
+            <div className="space-y-3">
+              <button
+                disabled
+                className="w-full py-4 bg-surface border border-outline-variant/40 text-outline rounded-xl text-body-md font-bold cursor-not-allowed text-center"
+              >
+                Menunggu Verifikasi Admin...
+              </button>
+              <Link
+                href="/bidder/dashboard"
+                className="w-full py-3 border border-outline-variant/60 hover:bg-slate-50 text-slate-700 rounded-xl text-body-md font-bold transition-all text-center block"
+              >
+                Kembali ke Dashboard
+              </Link>
+            </div>
           )}
         </div>
       </div>
