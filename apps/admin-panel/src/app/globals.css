@@ -333,7 +333,7 @@ table tbody tr:nth-child(even) { background: #fafbfc; }
 .btn:hover { text-decoration: none; opacity: 0.9; }
 .btn-primary { background: var(--wf-primary); color: #fff; }
 .btn-accent { background: var(--wf-accent); color: #fff; }
-.btn-gold { background: var(--wf-gold); color: var(--wf-primary); font-weight: 700; }
+.btn-gold { background: var(--wf-gold); color: #fff; font-weight: 700; }
 .btn-success { background: var(--wf-success); color: #fff; }
 .btn-danger { background: var(--wf-danger); color: #fff; }
 .btn-outline { background: transparent; border-color: var(--wf-border); color: var(--wf-text); }

@@ -254,39 +254,29 @@ export class ProvidersService {
     return this.mapToDTO(updated);
   }
 
-  async reVerify(id: string, reviewerId: string): Promise<ProviderDTO> {
+  async reVerify(id: string, reviewerId: string): Promise<any> {
     const provider = await prisma.providers.findUnique({ where: { id } });
     if (!provider) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data provider tidak ditemukan');
 
-    const [updated] = await prisma.$transaction([
-      prisma.providers.update({
+    const userId = provider.user_id;
+
+    await prisma.$transaction([
+      prisma.providers.delete({
         where: { id },
-        data: {
-          status: ApplicationStatus.ANTRI,
-          reviewed_by: null,
-          reviewed_at: null,
-          rejection_reason: null,
-        },
       }),
       prisma.users.update({
-        where: { id: provider.user_id },
+        where: { id: userId },
         data: {
           provider_status: 'pending',
           role: 'bidder',
         },
       }),
-      prisma.kyc_documents.updateMany({
-        where: { user_id: provider.user_id },
-        data: {
-          status: KycStatus.PENDING,
-          reviewer_id: null,
-          reviewed_at: null,
-          rejection_reason: null,
-        },
+      prisma.kyc_documents.deleteMany({
+        where: { user_id: userId },
       }),
     ]);
 
-    return this.mapToDTO(updated);
+    return { id, user_id: userId, status: 'deleted_for_reverify' };
   }
 
   private mapToDTO(provider: any): ProviderDTO {

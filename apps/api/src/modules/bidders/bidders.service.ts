@@ -297,38 +297,26 @@ export class BiddersService {
     return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
   }
 
-  async reVerify(id: string, reviewerId: string): Promise<BidderDTO> {
+  async reVerify(id: string, reviewerId: string): Promise<any> {
     const bidder = await prisma.bidders.findUnique({ where: { id } });
     if (!bidder) throw new AppError(404, ErrorCode.NOT_FOUND, 'Data bidder tidak ditemukan');
 
-    const [updated] = await prisma.$transaction([
-      prisma.bidders.update({
+    const userId = bidder.user_id;
+
+    await prisma.$transaction([
+      prisma.bidders.delete({
         where: { id },
-        data: {
-          status: ApplicationStatus.ANTRI,
-          reviewed_by: null,
-          reviewed_at: null,
-          rejection_reason: null,
-        },
       }),
       prisma.users.update({
-        where: { id: bidder.user_id },
+        where: { id: userId },
         data: { status: 'pending' },
       }),
-      prisma.kyc_documents.updateMany({
-        where: { user_id: bidder.user_id },
-        data: {
-          status: KycStatus.PENDING,
-          reviewer_id: null,
-          reviewed_at: null,
-          rejection_reason: null,
-        },
+      prisma.kyc_documents.deleteMany({
+        where: { user_id: userId },
       }),
     ]);
 
-    const stats = await this.getBidderNiplStats(bidder.user_id);
-
-    return this.mapToDTO(updated, stats.niplCount, stats.niplMobil, stats.niplMotor, stats.unlimitedMobil, stats.unlimitedMotor);
+    return { id, user_id: userId, status: 'deleted_for_reverify' };
   }
 
   /**
