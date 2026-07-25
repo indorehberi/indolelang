@@ -388,15 +388,13 @@ export default function ProviderUsersPage() {
                         }}>
                           Delete
                         </Button>
-                        {prov.status !== 'antri' && (
-                          <Button
-                            variant="gold"
-                            size="sm"
-                            onClick={() => handleReVerify(prov.id, prov.user?.full_name || '')}
-                          >
-                            Verifikasi Ulang
-                          </Button>
-                        )}
+                        <Button
+                          variant="gold"
+                          size="sm"
+                          onClick={() => handleReVerify(prov.id, prov.user?.full_name || '')}
+                        >
+                          Verifikasi Ulang
+                        </Button>
                       </div>
                     </td>
                   </tr>

@@ -432,15 +432,13 @@ export default function BidderListPage() {
                         >
                           Edit NIPL
                         </Button>
-                        {bidder.status !== 'antri' && (
-                          <Button
-                            variant="gold"
-                            size="sm"
-                            onClick={() => handleReVerify(bidder.id, bidder.user?.full_name || '')}
-                          >
-                            Verifikasi Ulang
-                          </Button>
-                        )}
+                        <Button
+                          variant="gold"
+                          size="sm"
+                          onClick={() => handleReVerify(bidder.id, bidder.user?.full_name || '')}
+                        >
+                          Verifikasi Ulang
+                        </Button>
                       </div>
                     </td>
                   </tr>

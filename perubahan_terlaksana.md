@@ -625,6 +625,6 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
     * [bidder/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/bidder/page.tsx) (Daftar Bidder Admin)
     * [provider/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/users/provider/page.tsx) (Daftar Provider Admin)
 * **Deskripsi Perubahan:**
-  * Menyediakan tombol aksi **"Verifikasi Ulang"** (warna emas dengan teks putih agar terbaca dengan jelas) pada baris daftar bidder dan provider yang statusnya bukan lagi `'antri'`.
+  * Menyediakan tombol aksi **"Verifikasi Ulang"** (warna emas dengan teks putih agar terbaca dengan jelas) pada baris daftar bidder dan provider untuk semua status.
   * Tombol ini memicu endpoint API `PUT .../re-verify` yang mengulangi proses verifikasi dari awal (seperti pengguna baru mendaftar) dengan menghapus baris tabel `kyc_documents` dan profil `bidders` / `providers` terkait, serta mengembalikan status `users` menjadi `'pending'`. Ini memastikan pengguna diarahkan kembali ke halaman unggah berkas KTP & Selfie kamera saat membuka aplikasi.
   * Dilengkapi dialog konfirmasi bawaan dan notifikasi pop-up toast status di sisi admin panel.
