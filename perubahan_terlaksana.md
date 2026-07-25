@@ -644,3 +644,20 @@ Dokumen ini mencatat daftar perubahan yang telah berhasil dieksekusi secara loka
   * **Banner CTA di Dashboard Bidder:** Menambahkan banner kartu promosi bertema biru premium modern *"Ingin Titip Jual Kendaraan? Daftar Mitra Provider"* di bagian atas halaman Dashboard Bidder. Banner ini mengarahkan bidder yang tertarik melelang asetnya ke halaman formulir pendaftaran `/register/provider` dengan satu klik.
   * **Kemudahan Pengisian (Prefill Form):** Halaman pendaftaran provider secara otomatis mengambil data KTP, Selfie, Alamat, dan Rekening Bank yang sudah diverifikasi saat menjadi Bidder, sehingga pengguna hanya perlu melengkapi NPWP, nama badan usaha, dan jenis provider tanpa perlu unggah ulang dokumen KTP/Selfie.
   * **Tombol Kembali ke Dashboard di Halaman Status:** Menambahkan tombol **"Kembali ke Dashboard"** pada halaman status verifikasi provider `/provider/status` saat pengajuan berstatus `'pending'` (menunggu verifikasi) atau `'ditolak'`. Tombol ini mengarahkan pengguna kembali ke panel bidder agar mereka tidak terjebak/mengunci navigasinya dan tetap bisa menggunakan fitur lelang sebagai bidder selama akun provider belum disetujui.
+
+### 35. Normalisasi Huruf Kapital (Uppercase) & Perbaikan Dropdown Merek, Model, & Bentuk Bodi Aset
+* **Status:** Selesai, Teruji & Berhasil Dikompilasi Produksi
+* **File yang Diubah:**
+  * **Public Web App (`apps/landing-web/src/`):**
+    * [ajukan-barang/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/landing-web/src/app/provider/ajukan-barang/page.tsx) (Pengubahan konstanta preset & normalisasi `handleChange` ke uppercase)
+  * **Web Admin Panel (`apps/admin-panel/src/`):**
+    * [assets/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/page.tsx) (Normalisasi konstanta & form input utama ke uppercase)
+    * [assets/new/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/new/page.tsx) (Penyelarasan input form tambah aset baru ke uppercase)
+    * [assets/[id]/page.tsx](file:///c:/Users/han/Herd/indo-lelang/apps/admin-panel/src/app/assets/[id]/page.tsx) (Normalisasi sentralisasi `handleFormChange` ke uppercase)
+* **Deskripsi Perubahan:**
+  * **Penyebab Masalah Dropdown Terkunci:** Sebelumnya, konstanta daftar merek, model, bodi, dan warna menggunakan penulisan camelcase/mixed case (misal: `'Toyota'`, `'Sedan'`). Namun ketika pengguna memilih opsi tersebut, state form diubah paksa menjadi uppercase (misal: `'TOYOTA'`, `'SEDAN'`). Karena value di state (`'TOYOTA'`) tidak lagi cocok dengan value di opsi tag `<option>` (`'Toyota'`), elemen select HTML menganggap pilihan tersebut tidak valid/kosong, sehingga pilihan otomatis terpental kembali ke placeholder awal ("Pilih Tipe...") dan daftar model mobil yang bergantung pada merek tidak muncul.
+  * **Solusi Normalisasi & Perbaikan:**
+    1. **Konstanta Uppercase:** Mengubah semua data preset di list `CAR_BRANDS`, `MOTOR_BRANDS`, `CAR_MODELS_BY_BRAND`, `MOTOR_MODELS_BY_BRAND`, `COLORS`, dan `BODY_TYPES`/`BODY_OPTIONS` menjadi huruf kapital secara menyeluruh di landing-web maupun admin-panel.
+    2. **Centralized Uppercasing:** Menambahkan pemrosesan penanganan input di `handleChange` (sisi provider) dan `handleFormChange` (sisi admin) agar semua input untuk `brand`, `model`, `type`, `body_type` (bentuk bodi), `color`, `transmission`, `fuel_type`, `police_number` (no polisi), `bpkb_number`, `frame_number` (no rangka), dan `engine_number` (no mesin) secara otomatis dikonversi ke uppercase secara real-time.
+    3. **Edit Mode Prefill Safeguard:** Ketika memuat data barang untuk diedit (`fetchAssetForEdit`), data di-uppercase terlebih dahulu dan dimasukkan ke custom lists (`customBrands`, `customModels`, dll.) jika tidak terdaftar di preset default, memastikan input edit selalu sinkron dan tidak kosong.
+    4. **Perbaikan Prompt Tambah Kustom:** Mengubah teks petunjuk (prompt dialog) pada tombol tambah bentuk bodi kustom dari *"Masukkan Tipe Baru"* menjadi *"Masukkan Bentuk Bodi Baru:"* agar lebih deskriptif dan akurat sesuai fungsionalitasnya.

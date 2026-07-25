@@ -15,35 +15,35 @@ const GRADE_OPTIONS = [
   { value: 'D', label: 'Grade D (Kurang)' },
 ];
 
-const FUEL_OPTIONS = ['N/A', 'Bensin', 'Solar', 'Hybrid', 'EV'];
-const TRANSMISSION_OPTIONS = ['N/A', 'Otomatis', 'Manual'];
-const BODY_OPTIONS = ['N/A', 'Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Minibus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
-const BRAND_OPTIONS = ['N/A', 'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Isuzu', 'Wuling', 'Hyundai', 'KIA', 'Mercedes-Benz', 'BMW', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza', 'Lainnya'];
+const FUEL_OPTIONS = ['N/A', 'BENSIN', 'SOLAR', 'HYBRID', 'EV'];
+const TRANSMISSION_OPTIONS = ['N/A', 'OTOMATIS', 'MANUAL'];
+const BODY_OPTIONS = ['N/A', 'SEDAN', 'SUV', 'MPV', 'HATCHBACK', 'PICK UP', 'TRUK', 'BUS', 'MINIBUS', 'MOTOR BEBEK', 'MOTOR MATIC', 'MOTOR SPORT'];
+const BRAND_OPTIONS = ['N/A', 'TOYOTA', 'HONDA', 'DAIHATSU', 'SUZUKI', 'MITSUBISHI', 'NISSAN', 'MAZDA', 'ISUZU', 'WULING', 'HYUNDAI', 'KIA', 'MERCEDES-BENZ', 'BMW', 'FORD', 'BYD', 'CHERY', 'MG', 'NETA', 'AION', 'VINFAST', 'GEELY', 'XPENG', 'DENZA', 'LAINNYA'];
 const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
-  Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
-  Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
-  Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
-  Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
-  Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
-  Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
-  Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
-  Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
-  Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
-  Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
-  Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
-  BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
-  'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
-  BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
-  Chery: ['Omoda E5', 'J6 (iCar 03)'],
+  TOYOTA: ['AVANZA', 'INNOVA', 'FORTUNER', 'ALPHARD', 'RUSH', 'AGYA', 'CALYA', 'YARIS', 'CAMRY', 'VIOS', 'COROLLA'],
+  HONDA: ['BRIO', 'JAZZ', 'HR-V', 'CR-V', 'MOBILIO', 'BR-V', 'CIVIC', 'CITY', 'ACCORD'],
+  DAIHATSU: ['XENIA', 'TERIOS', 'SIGRA', 'AYLA', 'GRAN MAX', 'LUXIO', 'SIRION'],
+  SUZUKI: ['ERTIGA', 'XL7', 'IGNIS', 'BALENO', 'CARRY', 'JIMNY', 'S-CROSS'],
+  MITSUBISHI: ['XPANDER', 'PAJERO SPORT', 'TRITON', 'L300', 'OUTLANDER'],
+  NISSAN: ['GRAND LIVINA', 'SERENA', 'X-TRAIL', 'JUKE', 'MARCH', 'KICKS'],
+  MAZDA: ['MAZDA2', 'MAZDA3', 'CX-3', 'CX-5', 'CX-9'],
+  FORD: ['FIESTA', 'ECOSPORT', 'EVEREST', 'RANGER', 'FOCUS'],
+  HYUNDAI: ['CRETA', 'PALISADE', 'SANTA FE', 'IONIQ 5', 'KONA', 'KONA ELECTRIC (BARU)', 'STARGAZER'],
+  KIA: ['SONET', 'SELTOS', 'CARNIVAL', 'PICANTO', 'RIO'],
+  WULING: ['CONFERO', 'CORTEZ', 'ALMAZ', 'AIR EV', 'BINGUOEV', 'CLOUD EV'],
+  BMW: ['3 SERIES', '5 SERIES', '7 SERIES', 'X1', 'X3', 'X5'],
+  'MERCEDES-BENZ': ['C-CLASS', 'E-CLASS', 'S-CLASS', 'GLC', 'GLE'],
+  BYD: ['DOLPHIN', 'ATTO 3', 'SEAL', 'M6', 'SEALION 7'],
+  CHERY: ['OMODA E5', 'J6 (ICAR 03)'],
   MG: ['MG4 EV', 'MG ZS EV'],
-  Neta: ['V-II', 'X'],
-  AION: ['Y Plus', 'V', 'UT'],
-  VinFast: ['VF 3', 'VF 5', 'VF e34'],
-  Geely: ['EX5'],
+  NETA: ['V-II', 'X'],
+  AION: ['Y PLUS', 'V', 'UT'],
+  VINFAST: ['VF 3', 'VF 5', 'VF E34'],
+  GEELY: ['EX5'],
   XPENG: ['G6', 'X9'],
-  Denza: ['D9']
+  DENZA: ['D9']
 };
-const COLOR_OPTIONS = ['N/A', 'Hitam', 'Putih', 'Silver', 'Abu-abu', 'Merah', 'Biru', 'Cokelat', 'Kuning', 'Hijau', 'Lainnya'];
+const COLOR_OPTIONS = ['N/A', 'HITAM', 'PUTIH', 'SILVER', 'ABU-ABU', 'MERAH', 'BIRU', 'COKELAT', 'KUNING', 'HIJAU', 'LAINNYA'];
 
 const PHOTO_FIELDS = [
   { key: "photo_front", label: "Foto Depan" },
@@ -108,7 +108,7 @@ export default function NewAssetPage() {
   };
 
   const handleAddType = (presetVal?: string) => {
-    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    const val = presetVal || window.prompt("Masukkan Bentuk Bodi Baru:");
     if (val && val.trim()) {
       const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) {
@@ -121,7 +121,7 @@ export default function NewAssetPage() {
   const handleAddColor = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Warna Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customColors.includes(trimmed)) {
         setCustomColors(prev => [...prev, trimmed]);
       }
@@ -669,13 +669,13 @@ export default function NewAssetPage() {
             </div>
             
             <Field label="Bahan Bakar">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.fuel_type} onChange={e => setFormData({ ...formData, fuel_type: e.target.value })}>
+              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.fuel_type} onChange={e => setFormData({ ...formData, fuel_type: e.target.value.toUpperCase() })}>
                 <option value="">Pilih...</option>
                 {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
             </Field>
             <Field label="Transmisi">
-              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.transmission} onChange={e => setFormData({ ...formData, transmission: e.target.value })}>
+              <select className="form-select" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.transmission} onChange={e => setFormData({ ...formData, transmission: e.target.value.toUpperCase() })}>
                 <option value="">Pilih...</option>
                 {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -697,16 +697,16 @@ export default function NewAssetPage() {
         <Card title="4. Nomor Identifikasi">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <Field label="No Polisi">
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.police_number} onChange={e => setFormData({ ...formData, police_number: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.police_number} onChange={e => setFormData({ ...formData, police_number: e.target.value.toUpperCase() })} />
             </Field>
             <Field label="No BPKB">
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.bpkb_number} onChange={e => setFormData({ ...formData, bpkb_number: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.bpkb_number} onChange={e => setFormData({ ...formData, bpkb_number: e.target.value.toUpperCase() })} />
             </Field>
             <Field label="No Rangka">
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.frame_number} onChange={e => setFormData({ ...formData, frame_number: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.frame_number} onChange={e => setFormData({ ...formData, frame_number: e.target.value.toUpperCase() })} />
             </Field>
             <Field label="No Mesin">
-              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.engine_number} onChange={e => setFormData({ ...formData, engine_number: e.target.value })} />
+              <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.engine_number} onChange={e => setFormData({ ...formData, engine_number: e.target.value.toUpperCase() })} />
             </Field>
           </div>
         </Card>

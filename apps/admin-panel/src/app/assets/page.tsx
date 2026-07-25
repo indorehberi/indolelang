@@ -135,46 +135,46 @@ export default function AssetsPage() {
 
   
   
-  const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza'];
-  const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
+  const CAR_BRANDS = ['TOYOTA', 'HONDA', 'DAIHATSU', 'SUZUKI', 'MITSUBISHI', 'NISSAN', 'MAZDA', 'HYUNDAI', 'KIA', 'WULING', 'BMW', 'MERCEDES-BENZ', 'FORD', 'BYD', 'CHERY', 'MG', 'NETA', 'AION', 'VINFAST', 'GEELY', 'XPENG', 'DENZA'];
+  const MOTOR_BRANDS = ['HONDA', 'YAMAHA', 'SUZUKI', 'KAWASAKI', 'VESPA', 'TVS', 'KTM'];
   
   const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
-    Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
-    Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
-    Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
-    Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
-    Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
-    Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
-    Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
-    Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
-    Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
-    Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
-    Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
-    BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
-    'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
-    BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
-    Chery: ['Omoda E5', 'J6 (iCar 03)'],
+    TOYOTA: ['AVANZA', 'INNOVA', 'FORTUNER', 'ALPHARD', 'RUSH', 'AGYA', 'CALYA', 'YARIS', 'CAMRY', 'VIOS', 'COROLLA'],
+    HONDA: ['BRIO', 'JAZZ', 'HR-V', 'CR-V', 'MOBILIO', 'BR-V', 'CIVIC', 'CITY', 'ACCORD'],
+    DAIHATSU: ['XENIA', 'TERIOS', 'SIGRA', 'AYLA', 'GRAN MAX', 'LUXIO', 'SIRION'],
+    SUZUKI: ['ERTIGA', 'XL7', 'IGNIS', 'BALENO', 'CARRY', 'JIMNY', 'S-CROSS'],
+    MITSUBISHI: ['XPANDER', 'PAJERO SPORT', 'TRITON', 'L300', 'OUTLANDER'],
+    NISSAN: ['GRAND LIVINA', 'SERENA', 'X-TRAIL', 'JUKE', 'MARCH', 'KICKS'],
+    MAZDA: ['MAZDA2', 'MAZDA3', 'CX-3', 'CX-5', 'CX-9'],
+    FORD: ['FIESTA', 'ECOSPORT', 'EVEREST', 'RANGER', 'FOCUS'],
+    HYUNDAI: ['CRETA', 'PALISADE', 'SANTA FE', 'IONIQ 5', 'KONA', 'KONA ELECTRIC (BARU)', 'STARGAZER'],
+    KIA: ['SONET', 'SELTOS', 'CARNIVAL', 'PICANTO', 'RIO'],
+    WULING: ['CONFERO', 'CORTEZ', 'ALMAZ', 'AIR EV', 'BINGUOEV', 'CLOUD EV'],
+    BMW: ['3 SERIES', '5 SERIES', '7 SERIES', 'X1', 'X3', 'X5'],
+    'MERCEDES-BENZ': ['C-CLASS', 'E-CLASS', 'S-CLASS', 'GLC', 'GLE'],
+    BYD: ['DOLPHIN', 'ATTO 3', 'SEAL', 'M6', 'SEALION 7'],
+    CHERY: ['OMODA E5', 'J6 (ICAR 03)'],
     MG: ['MG4 EV', 'MG ZS EV'],
-    Neta: ['V-II', 'X'],
-    AION: ['Y Plus', 'V', 'UT'],
-    VinFast: ['VF 3', 'VF 5', 'VF e34'],
-    Geely: ['EX5'],
+    NETA: ['V-II', 'X'],
+    AION: ['Y PLUS', 'V', 'UT'],
+    VINFAST: ['VF 3', 'VF 5', 'VF E34'],
+    GEELY: ['EX5'],
     XPENG: ['G6', 'X9'],
-    Denza: ['D9']
+    DENZA: ['D9']
   };
 
   const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
-    Honda: ['Beat', 'Vario', 'Scoopy', 'PCX', 'ADV', 'CBR', 'Supra', 'Revo', 'CB150R', 'CRF150L'],
-    Yamaha: ['NMAX', 'Aerox', 'Lexi', 'Mio', 'Fino', 'Vixion', 'R15', 'R25', 'MT-15', 'WR155R', 'Jupiter', 'Vega'],
-    Suzuki: ['Satria', 'GSX-R150', 'GSX-S150', 'Nex', 'Address', 'Smash'],
-    Kawasaki: ['Ninja 250', 'Ninja ZX-25R', 'KLX 150', 'W175', 'D-Tracker'],
-    Vespa: ['Primavera', 'Sprint', 'GTS', 'LX', 'S 125'],
-    TVS: ['Callisto', 'Ntorq', 'Apache'],
-    KTM: ['Duke 200', 'Duke 250', 'Duke 390', 'RC 200', 'RC 250']
+    HONDA: ['BEAT', 'VARIO', 'SCOOPY', 'PCX', 'ADV', 'CBR', 'SUPRA', 'REVO', 'CB150R', 'CRF150L'],
+    YAMAHA: ['NMAX', 'AEROX', 'LEXI', 'MIO', 'FINO', 'VIXION', 'R15', 'R25', 'MT-15', 'WR155R', 'JUPITER', 'VEGA'],
+    SUZUKI: ['SATRIA', 'GSX-R150', 'GSX-S150', 'NEX', 'ADDRESS', 'SMASH'],
+    KAWASAKI: ['NINJA 250', 'NINJA ZX-25R', 'KLX 150', 'W175', 'D-TRACKER'],
+    VESPA: ['PRIMAVERA', 'SPRINT', 'GTS', 'LX', 'S 125'],
+    TVS: ['CALLISTO', 'NTORQ', 'APACHE'],
+    KTM: ['DUKE 200', 'DUKE 250', 'DUKE 390', 'RC 200', 'RC 250']
   };
 
-  const COLORS = ['Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
-  const BODY_TYPES = ['Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus', 'Motor Bebek', 'Motor Matic', 'Motor Sport'];
+  const COLORS = ['HITAM', 'PUTIH', 'PERAK (SILVER)', 'ABU-ABU', 'MERAH', 'BIRU', 'HIJAU', 'KUNING', 'COKELAT', 'ORANGE'];
+  const BODY_TYPES = ['SEDAN', 'SUV', 'MPV', 'HATCHBACK', 'PICK UP', 'TRUK', 'BUS', 'MOTOR BEBEK', 'MOTOR MATIC', 'MOTOR SPORT'];
   const YEARS = Array.from({length: new Date().getFullYear() - 1899}, (_, i) => new Date().getFullYear() - i);
 
   const [customBrands, setCustomBrands] = useState<string[]>([]);
@@ -201,7 +201,7 @@ export default function AssetsPage() {
   };
 
   const handleAddType = (presetVal?: string) => {
-    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    const val = presetVal || window.prompt("Masukkan Bentuk Bodi Baru:");
     if (val && val.trim()) {
       const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
@@ -212,7 +212,7 @@ export default function AssetsPage() {
   const handleAddColor = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Warna Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customColors.includes(trimmed)) setCustomColors(prev => [...prev, trimmed]);
       setFormData((prev: any) => ({ ...prev, color: trimmed }));
     }
@@ -368,16 +368,16 @@ export default function AssetsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div style={{ marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bahan Bakar</label>
-              <select value={formData.fuel_type} onChange={(e) => setFormData({...formData, fuel_type: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <select value={formData.fuel_type} onChange={(e) => setFormData({...formData, fuel_type: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">--</option>
-                {['Bensin', 'Solar', 'Hybrid', 'EV'].map(f => <option key={f} value={f}>{f}</option>)}
+                {['BENSIN', 'SOLAR', 'HYBRID', 'EV'].map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
             <div style={{ marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>Transmisi</label>
-              <select value={formData.transmission} onChange={(e) => setFormData({...formData, transmission: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <select value={formData.transmission} onChange={(e) => setFormData({...formData, transmission: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
                 <option value="">--</option>
-                {['Manual', 'Otomatis'].map(t => <option key={t} value={t}>{t}</option>)}
+                {['MANUAL', 'OTOMATIS'].map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -403,18 +403,18 @@ export default function AssetsPage() {
             </div>
             <div style={{ marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>No Polisi</label>
-              <input type="text" value={formData.police_number} onChange={(e) => setFormData({...formData, police_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="B 1234 ABC" />
+              <input type="text" value={formData.police_number} onChange={(e) => setFormData({...formData, police_number: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="B 1234 ABC" />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div style={{ marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>No BPKB</label>
-              <input type="text" value={formData.bpkb_number} onChange={(e) => setFormData({...formData, bpkb_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="No BPKB" />
+              <input type="text" value={formData.bpkb_number} onChange={(e) => setFormData({...formData, bpkb_number: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="No BPKB" />
             </div>
             <div style={{ marginBottom: '0.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem' }}>No Rangka</label>
-              <input type="text" value={formData.frame_number} onChange={(e) => setFormData({...formData, frame_number: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="MH123..." />
+              <input type="text" value={formData.frame_number} onChange={(e) => setFormData({...formData, frame_number: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="MH123..." />
             </div>
           </div>
 

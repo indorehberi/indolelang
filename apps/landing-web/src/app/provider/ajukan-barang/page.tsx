@@ -6,46 +6,46 @@ import ProviderLayout from "../../../components/layout/ProviderLayout";
 import { apiUrl, fetchWithRetry, apiFetch } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
 
-const CAR_BRANDS = ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Nissan', 'Mazda', 'Hyundai', 'Kia', 'Wuling', 'BMW', 'Mercedes-Benz', 'Ford', 'BYD', 'Chery', 'MG', 'Neta', 'AION', 'VinFast', 'Geely', 'XPENG', 'Denza'];
-const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'TVS', 'KTM'];
+const CAR_BRANDS = ['TOYOTA', 'HONDA', 'DAIHATSU', 'SUZUKI', 'MITSUBISHI', 'NISSAN', 'MAZDA', 'HYUNDAI', 'KIA', 'WULING', 'BMW', 'MERCEDES-BENZ', 'FORD', 'BYD', 'CHERY', 'MG', 'NETA', 'AION', 'VINFAST', 'GEELY', 'XPENG', 'DENZA'];
+const MOTOR_BRANDS = ['HONDA', 'YAMAHA', 'SUZUKI', 'KAWASAKI', 'VESPA', 'TVS', 'KTM'];
 
 const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
-  Toyota: ['Avanza', 'Innova', 'Fortuner', 'Alphard', 'Rush', 'Agya', 'Calya', 'Yaris', 'Camry', 'Vios', 'Corolla'],
-  Honda: ['Brio', 'Jazz', 'HR-V', 'CR-V', 'Mobilio', 'BR-V', 'Civic', 'City', 'Accord'],
-  Daihatsu: ['Xenia', 'Terios', 'Sigra', 'Ayla', 'Gran Max', 'Luxio', 'Sirion'],
-  Suzuki: ['Ertiga', 'XL7', 'Ignis', 'Baleno', 'Carry', 'Jimny', 'S-Cross'],
-  Mitsubishi: ['Xpander', 'Pajero Sport', 'Triton', 'L300', 'Outlander'],
-  Nissan: ['Grand Livina', 'Serena', 'X-Trail', 'Juke', 'March', 'Kicks'],
-  Mazda: ['Mazda2', 'Mazda3', 'CX-3', 'CX-5', 'CX-9'],
-  Ford: ['Fiesta', 'EcoSport', 'Everest', 'Ranger', 'Focus'],
-  Hyundai: ['Creta', 'Palisade', 'Santa Fe', 'Ioniq 5', 'Kona', 'Kona Electric (baru)', 'Stargazer'],
-  Kia: ['Sonet', 'Seltos', 'Carnival', 'Picanto', 'Rio'],
-  Wuling: ['Confero', 'Cortez', 'Almaz', 'Air EV', 'BinguoEV', 'Cloud EV'],
-  BMW: ['3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5'],
-  'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE'],
-  BYD: ['Dolphin', 'Atto 3', 'Seal', 'M6', 'Sealion 7'],
-  Chery: ['Omoda E5', 'J6 (iCar 03)'],
+  TOYOTA: ['AVANZA', 'INNOVA', 'FORTUNER', 'ALPHARD', 'RUSH', 'AGYA', 'CALYA', 'YARIS', 'CAMRY', 'VIOS', 'COROLLA'],
+  HONDA: ['BRIO', 'JAZZ', 'HR-V', 'CR-V', 'MOBILIO', 'BR-V', 'CIVIC', 'CITY', 'ACCORD'],
+  DAIHATSU: ['XENIA', 'TERIOS', 'SIGRA', 'AYLA', 'GRAN MAX', 'LUXIO', 'SIRION'],
+  SUZUKI: ['ERTIGA', 'XL7', 'IGNIS', 'BALENO', 'CARRY', 'JIMNY', 'S-CROSS'],
+  MITSUBISHI: ['XPANDER', 'PAJERO SPORT', 'TRITON', 'L300', 'OUTLANDER'],
+  NISSAN: ['GRAND LIVINA', 'SERENA', 'X-TRAIL', 'JUKE', 'MARCH', 'KICKS'],
+  MAZDA: ['MAZDA2', 'MAZDA3', 'CX-3', 'CX-5', 'CX-9'],
+  FORD: ['FIESTA', 'ECOSPORT', 'EVEREST', 'RANGER', 'FOCUS'],
+  HYUNDAI: ['CRETA', 'PALISADE', 'SANTA FE', 'IONIQ 5', 'KONA', 'KONA ELECTRIC (BARU)', 'STARGAZER'],
+  KIA: ['SONET', 'SELTOS', 'CARNIVAL', 'PICANTO', 'RIO'],
+  WULING: ['CONFERO', 'CORTEZ', 'ALMAZ', 'AIR EV', 'BINGUOEV', 'CLOUD EV'],
+  BMW: ['3 SERIES', '5 SERIES', '7 SERIES', 'X1', 'X3', 'X5'],
+  'MERCEDES-BENZ': ['C-CLASS', 'E-CLASS', 'S-CLASS', 'GLC', 'GLE'],
+  BYD: ['DOLPHIN', 'ATTO 3', 'SEAL', 'M6', 'SEALION 7'],
+  CHERY: ['OMODA E5', 'J6 (ICAR 03)'],
   MG: ['MG4 EV', 'MG ZS EV'],
-  Neta: ['V-II', 'X'],
-  AION: ['Y Plus', 'V', 'UT'],
-  VinFast: ['VF 3', 'VF 5', 'VF e34'],
-  Geely: ['EX5'],
+  NETA: ['V-II', 'X'],
+  AION: ['Y PLUS', 'V', 'UT'],
+  VINFAST: ['VF 3', 'VF 5', 'VF E34'],
+  GEELY: ['EX5'],
   XPENG: ['G6', 'X9'],
-  Denza: ['D9']
+  DENZA: ['D9']
 };
 
 const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
-  Honda: ['Beat', 'Vario', 'Scoopy', 'PCX', 'ADV', 'CBR', 'Supra', 'Revo', 'CB150R', 'CRF150L'],
-  Yamaha: ['NMAX', 'Aerox', 'Lexi', 'Mio', 'Fino', 'Vixion', 'R15', 'R25', 'MT-15', 'WR155R', 'Jupiter', 'Vega'],
-  Suzuki: ['Satria', 'GSX-R150', 'GSX-S150', 'Nex', 'Address', 'Smash'],
-  Kawasaki: ['Ninja 250', 'Ninja ZX-25R', 'KLX 150', 'W175', 'D-Tracker'],
-  Vespa: ['Primavera', 'Sprint', 'GTS', 'LX', 'S 125'],
-  TVS: ['Callisto', 'Ntorq', 'Apache'],
-  KTM: ['Duke 200', 'Duke 250', 'Duke 390', 'RC 200', 'RC 250']
+  HONDA: ['BEAT', 'VARIO', 'SCOOPY', 'PCX', 'ADV', 'CBR', 'SUPRA', 'REVO', 'CB150R', 'CRF150L'],
+  YAMAHA: ['NMAX', 'AEROX', 'LEXI', 'MIO', 'FINO', 'VIXION', 'R15', 'R25', 'MT-15', 'WR155R', 'JUPITER', 'VEGA'],
+  SUZUKI: ['SATRIA', 'GSX-R150', 'GSX-S150', 'NEX', 'ADDRESS', 'SMASH'],
+  KAWASAKI: ['NINJA 250', 'NINJA ZX-25R', 'KLX 150', 'W175', 'D-TRACKER'],
+  VESPA: ['PRIMAVERA', 'SPRINT', 'GTS', 'LX', 'S 125'],
+  TVS: ['CALLISTO', 'NTORQ', 'APACHE'],
+  KTM: ['DUKE 200', 'DUKE 250', 'DUKE 390', 'RC 200', 'RC 250']
 };
 
-const COLORS = ['N/A', 'Hitam', 'Putih', 'Perak (Silver)', 'Abu-abu', 'Merah', 'Biru', 'Hijau', 'Kuning', 'Cokelat', 'Orange'];
-const BODY_TYPES = ['N/A', 'Sedan', 'SUV', 'MPV', 'Hatchback', 'Pick Up', 'Truk', 'Bus'];
+const COLORS = ['N/A', 'HITAM', 'PUTIH', 'PERAK (SILVER)', 'ABU-ABU', 'MERAH', 'BIRU', 'HIJAU', 'KUNING', 'COKELAT', 'ORANGE'];
+const BODY_TYPES = ['N/A', 'SEDAN', 'SUV', 'MPV', 'HATCHBACK', 'PICK UP', 'TRUK', 'BUS'];
 
 interface Branch {
   id: string;
@@ -158,7 +158,7 @@ function ProviderAjukanBarangContent() {
   };
 
   const handleAddType = (presetVal?: string) => {
-    const val = presetVal || window.prompt("Masukkan Tipe Baru:");
+    const val = presetVal || window.prompt("Masukkan Bentuk Bodi Baru:");
     if (val && val.trim()) {
       const trimmed = val.trim().toUpperCase();
       if (!customTypes.includes(trimmed)) setCustomTypes(prev => [...prev, trimmed]);
@@ -169,7 +169,7 @@ function ProviderAjukanBarangContent() {
   const handleAddColor = (presetVal?: string) => {
     const val = presetVal || window.prompt("Masukkan Warna Baru:");
     if (val && val.trim()) {
-      const trimmed = val.trim();
+      const trimmed = val.trim().toUpperCase();
       if (!customColors.includes(trimmed)) setCustomColors(prev => [...prev, trimmed]);
       handleChange('color', trimmed);
     }
@@ -240,20 +240,20 @@ function ProviderAjukanBarangContent() {
             branch_id: a.branch_id || "",
             pool_status: a.pool_status || "in_pool",
             notes: a.notes || "",
-            brand: a.brand || "",
-            model: a.model || "",
-            type: a.type || "",
-            color: a.color || "",
-            fuel_type: a.fuel_type || "Bensin",
-            transmission: a.transmission || "Otomatis",
-            body_type: a.body_type || "",
+            brand: (a.brand || "").toUpperCase(),
+            model: (a.model || "").toUpperCase(),
+            type: (a.type || "").toUpperCase(),
+            color: (a.color || "").toUpperCase(),
+            fuel_type: (a.fuel_type || "BENSIN").toUpperCase(),
+            transmission: (a.transmission || "OTOMATIS").toUpperCase(),
+            body_type: (a.body_type || "").toUpperCase(),
             year: a.year || prev.year,
             cylinder: a.cylinder ? String(a.cylinder) : "",
             odometer: a.odometer ? String(a.odometer) : "",
-            police_number: a.police_number || "",
-            bpkb_number: a.bpkb_number || "",
-            frame_number: a.frame_number || "",
-            engine_number: a.engine_number || "",
+            police_number: (a.police_number || "").toUpperCase(),
+            bpkb_number: (a.bpkb_number || "").toUpperCase(),
+            frame_number: (a.frame_number || "").toUpperCase(),
+            engine_number: (a.engine_number || "").toUpperCase(),
             stnk_date: a.stnk_date ? a.stnk_date.slice(0, 10) : "",
             stnk_tax_date: a.stnk_tax_date ? a.stnk_tax_date.slice(0, 10) : "",
             keur_date: a.keur_date ? a.keur_date.slice(0, 10) : "",
@@ -273,6 +273,32 @@ function ProviderAjukanBarangContent() {
             photo_interior: a.photo_interior || "",
             photo_stnk: a.photo_stnk || "",
           }));
+
+          // Prefill custom option lists if they are not in defaults
+          if (a.brand) {
+            const upBrand = a.brand.toUpperCase();
+            if (!CAR_BRANDS.includes(upBrand) && !MOTOR_BRANDS.includes(upBrand)) {
+              setCustomBrands((prev) => [...new Set([...prev, upBrand])]);
+            }
+          }
+          if (a.model) {
+            setCustomModels((prev) => [...new Set([...prev, a.model.toUpperCase()])]);
+          }
+          if (a.type) {
+            setCustomTypesVariant((prev) => [...new Set([...prev, a.type.toUpperCase()])]);
+          }
+          if (a.body_type) {
+            const upBody = a.body_type.toUpperCase();
+            if (!BODY_TYPES.includes(upBody)) {
+              setCustomTypes((prev) => [...new Set([...prev, upBody])]);
+            }
+          }
+          if (a.color) {
+            const upColor = a.color.toUpperCase();
+            if (!COLORS.includes(upColor)) {
+              setCustomColors((prev) => [...new Set([...prev, upColor])]);
+            }
+          }
         } else {
           toast.error("Gagal memuat data barang untuk diedit.");
           router.push("/provider/daftar-barang");
@@ -364,7 +390,26 @@ function ProviderAjukanBarangContent() {
   }, [editId]);
 
   const handleChange = (field: string, value: string | number | boolean | File | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    let finalValue = value;
+    if (
+      typeof value === 'string' &&
+      [
+        'brand',
+        'model',
+        'type',
+        'body_type',
+        'color',
+        'transmission',
+        'fuel_type',
+        'police_number',
+        'bpkb_number',
+        'frame_number',
+        'engine_number'
+      ].includes(field)
+    ) {
+      finalValue = value.toUpperCase();
+    }
+    setFormData((prev) => ({ ...prev, [field]: finalValue }));
   };
 
   const getAvailableBrands = () => {
@@ -692,9 +737,9 @@ function ProviderAjukanBarangContent() {
                   </div>
                   <div className="panel-form-group">
                     <label className="panel-form-label">Transmisi</label>
-                    <select value={formData.transmission} onChange={(e) => handleChange('transmission', e.target.value)} className="panel-form-select">
-                      <option value="Otomatis">Otomatis</option>
-                      <option value="Manual">Manual</option>
+                    <select value={formData.transmission} onChange={(e) => handleChange('transmission', e.target.value.toUpperCase())} className="panel-form-select">
+                      <option value="OTOMATIS">OTOMATIS</option>
+                      <option value="MANUAL">MANUAL</option>
                       <option value="N/A">N/A</option>
                     </select>
                   </div>
@@ -703,11 +748,11 @@ function ProviderAjukanBarangContent() {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div className="panel-form-group">
                     <label className="panel-form-label">Bahan Bakar</label>
-                    <select value={formData.fuel_type} onChange={(e) => handleChange('fuel_type', e.target.value)} className="panel-form-select">
-                      <option value="Bensin">Bensin</option>
-                      <option value="Solar">Solar</option>
-                      <option value="Hybrid">Hybrid</option>
-                      <option value="EV">EV (Listrik)</option>
+                    <select value={formData.fuel_type} onChange={(e) => handleChange('fuel_type', e.target.value.toUpperCase())} className="panel-form-select">
+                      <option value="BENSIN">BENSIN</option>
+                      <option value="SOLAR">SOLAR</option>
+                      <option value="HYBRID">HYBRID</option>
+                      <option value="EV">EV (LISTRIK)</option>
                       <option value="N/A">N/A</option>
                     </select>
                   </div>
@@ -731,7 +776,7 @@ function ProviderAjukanBarangContent() {
                   </div>
                   <div className="panel-form-group">
                     <label className="panel-form-label">Nomor BPKB</label>
-                    <input type="text" value={formData.bpkb_number} onChange={(e) => handleChange('bpkb_number', e.target.value)} placeholder="Contoh: K-12345678" className="panel-form-input" />
+                    <input type="text" value={formData.bpkb_number} onChange={(e) => handleChange('bpkb_number', e.target.value.toUpperCase())} placeholder="Contoh: K-12345678" className="panel-form-input" />
                   </div>
                 </div>
 
