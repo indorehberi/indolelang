@@ -34,17 +34,8 @@ export default function AssetsApprovalPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
+  const [searchPolice, setSearchPolice] = useState('');
   const [providers, setProviders] = useState<any[]>([]);
-
-  const [availableProviderIds, setAvailableProviderIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!providerFilter) {
-      setAvailableProviderIds(new Set(assets.map(a => a.provider_id)));
-    }
-  }, [assets, providerFilter]);
-
-  const displayedProviders = providers.filter(p => availableProviderIds.has(p.id) || providerFilter === p.id);
 
   const fetchProviders = async () => {
     try {
@@ -68,6 +59,7 @@ export default function AssetsApprovalPage() {
       if (dateFrom) query += `&date_from=${dateFrom}`;
       if (dateTo) query += `&date_to=${dateTo}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (searchPolice) query += `&police_number=${encodeURIComponent(searchPolice)}`;
 
       const response = await apiFetch(`/assets${query}`);
       const data = await response.json();
@@ -87,7 +79,7 @@ export default function AssetsApprovalPage() {
     const t = setTimeout(() => fetchApprovedAssets(), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, providerFilter, poolFilter, dateFrom, dateTo, search]);
+  }, [categoryFilter, providerFilter, poolFilter, dateFrom, dateTo, search, searchPolice]);
 
   useEffect(() => {
     fetchProviders();
@@ -216,6 +208,18 @@ export default function AssetsApprovalPage() {
           </div>
 
           <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari No. Polisi</label>
+            <input
+              type="text"
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              placeholder="Misal: B 1234 ABC"
+              value={searchPolice}
+              onChange={(e) => setSearchPolice(e.target.value)}
+            />
+          </div>
+
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Kategori</label>
             <select
               className="form-select"
@@ -238,7 +242,7 @@ export default function AssetsApprovalPage() {
               onChange={(e) => setProviderFilter(e.target.value)}
             >
               <option value="">Semua Provider</option>
-              {displayedProviders.map((p) => (
+              {providers.map((p) => (
                 <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
               ))}
             </select>

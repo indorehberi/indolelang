@@ -79,7 +79,25 @@ export default function Home() {
       if (window.location.pathname === "/") {
         const token = localStorage.getItem("accessToken");
         if (token) {
-          router.replace("/bidder/home");
+          // Route by role, not just "has a token": the admin panel is served
+          // from /admin on this same origin in production and shares this
+          // localStorage, so a signed-in staff account would otherwise land
+          // in the bidder panel.
+          let role: string | undefined;
+          try {
+            const stored = localStorage.getItem("user");
+            role = stored ? JSON.parse(stored).role : undefined;
+          } catch {
+            role = undefined;
+          }
+
+          if (role === "provider") {
+            router.replace("/provider/dashboard");
+          } else if (role === "superadmin" || role === "admin" || role === "operator") {
+            router.replace(`${process.env.NEXT_PUBLIC_ADMIN_URL || "/admin"}/dashboard`);
+          } else {
+            router.replace("/bidder/dashboard");
+          }
         } else {
           router.replace("/login");
         }

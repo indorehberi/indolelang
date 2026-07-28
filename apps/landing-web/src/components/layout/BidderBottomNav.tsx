@@ -84,7 +84,7 @@ export default function BidderBottomNav() {
     <div className="lg:hidden">
       {/* Scrollable tab row */}
       <nav
-        className="fixed bottom-0 inset-x-0 z-40 flex items-stretch h-16 bg-white/90 backdrop-blur-md border-t border-slate-200/50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] overflow-x-auto whitespace-nowrap scrollbar-none px-2 gap-1"
+        className="fixed bottom-0 inset-x-0 z-40 flex items-stretch h-16 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] overflow-x-auto whitespace-nowrap scrollbar-none px-2 gap-1"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {scrollNavItems.map((item) => {
@@ -96,9 +96,9 @@ export default function BidderBottomNav() {
               className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[64px] px-1"
             >
               <span className={`flex items-center justify-center px-3.5 py-1.5 rounded-full transition-all duration-200 ${
-                active ? `${item.theme.activeBg} ${item.theme.activeIcon}` : "bg-transparent text-slate-400"
+                active ? item.theme.activeBg : "bg-transparent"
               }`}>
-                <span className={`material-symbols-outlined text-xl transition-all ${active ? "filled scale-105 font-bold" : ""}`}>
+                <span className={`material-symbols-outlined bottom-nav-icon text-xl transition-all ${item.theme.activeIcon} ${active ? "scale-105" : ""}`}>
                   {item.icon}
                 </span>
               </span>
@@ -114,10 +114,10 @@ export default function BidderBottomNav() {
         {/* Tombol Logout */}
         <button
           onClick={() => clearAuthAndRedirect("Anda telah logout.")}
-          className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[64px] px-1 text-slate-400 hover:text-red-600"
+          className="flex-none flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all duration-150 min-w-[64px] px-1 text-slate-400 hover:text-red-500"
         >
-          <span className="flex items-center justify-center px-3.5 py-1.5 rounded-full transition-all duration-200 bg-transparent text-slate-400 hover:bg-red-500/12 hover:text-red-600">
-            <span className="material-symbols-outlined text-xl">
+          <span className="flex items-center justify-center px-3.5 py-1.5 rounded-full transition-all duration-200 bg-transparent hover:bg-red-500/12">
+            <span className="material-symbols-outlined bottom-nav-icon text-xl">
               logout
             </span>
           </span>
@@ -132,13 +132,18 @@ export default function BidderBottomNav() {
       <Link
         href={LELANG_HREF}
         aria-label="Ruang Lelang"
-        className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: `calc(env(safe-area-inset-bottom) + 36px)` }}
+        className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center transition-transform active:scale-95"
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + 48px)` }}
       >
         <span
-          className={`relative flex flex-col items-center justify-center rounded-full text-white shadow-xl shadow-rose-900/30 w-[60px] h-[60px] border-[3px] border-white ${
-            lelangActive ? "bg-rose-600" : "bg-rose-500"
-          } ${isLive ? "animate-pulse-soft" : ""}`}
+          className={`relative flex flex-col items-center justify-center rounded-full text-white w-[60px] h-[60px] shadow-[0_10px_20px_rgba(127,29,29,0.55)] ${
+            isLive ? "animate-pulse-soft" : ""
+          }`}
+          style={{
+            background: lelangActive
+              ? "radial-gradient(circle at 32% 28%, #f87171 0%, #dc2626 55%, #b91c1c 100%)"
+              : "radial-gradient(circle at 32% 28%, #fca5a5 0%, #ef4444 55%, #b91c1c 100%)",
+          }}
         >
           <span className="material-symbols-outlined text-[22px] leading-none filled">gavel</span>
           <span className="text-[10px] font-black tracking-wide leading-none mt-0.5">LELANG</span>

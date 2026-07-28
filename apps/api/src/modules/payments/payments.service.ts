@@ -3,6 +3,7 @@ import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
 import { logger } from '../../lib/logger';
 import { Prisma } from '@prisma/client';
+import { isUnlimitedPackage } from '../../lib/niplPackage';
 
 /**
  * Parse a settings value that may be a plain number or a "a/b" fraction
@@ -21,7 +22,160 @@ function parseFractionSetting(value: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+export type IncomeCategory = 'deposit' | 'biaya_admin' | 'fee_lelang';
+
+export interface IncomeEntry {
+  date: Date;
+  category: IncomeCategory;
+  description: string;
+  amount: number;
+}
+
 export class PaymentsService {
+  /**
+   * Flat ledger of everything the platform earned, newest first, for the
+   * admin "Pemasukan" list. Three sources are merged:
+   *
+   *  - deposit     — NIPL jaminan actually received (status 'paid'/'active').
+   *  - biaya_admin — the admin fee line of each settled invoice.
+   *  - fee_lelang  — the platform's cut of each settlement, which for a
+   *                  forfeiture is its half of the lapsed NIPL rather than a
+   *                  commission on a hammer price.
+   *
+   * Read-only and computed on the fly; nothing here writes or caches.
+   */
+  async getIncomeLedger(from?: Date, to?: Date): Promise<IncomeEntry[]> {
+    const withinRange = <T extends string>(field: T) =>
+      from || to
+        ? { [field]: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } }
+        : {};
+
+    const [deposits, invoices, settlements] = await Promise.all([
+      prisma.deposits.findMany({
+        where: {
+          status: { in: ['paid', 'active'] },
+          ...withinRange('created_at'),
+        },
+        select: { amount: true, created_at: true, unit_type: true, package_type: true },
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.invoices.findMany({
+        where: {
+          status: 'paid',
+          admin_fee: { gt: 0 },
+          ...withinRange('created_at'),
+        },
+        select: {
+          admin_fee: true,
+          created_at: true,
+          lot: { select: { lot_number: true, asset: { select: { title: true } } } },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.settlements.findMany({
+        where: withinRange('created_at'),
+        select: {
+          commission_deducted: true,
+          nipl_forfeiture_amount: true,
+          net_amount: true,
+          is_forfeiture: true,
+          created_at: true,
+          lot: { select: { lot_number: true, asset: { select: { title: true } } } },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
+
+    const entries: IncomeEntry[] = [];
+
+    for (const d of deposits) {
+      const unit = d.unit_type ? ` ${d.unit_type}` : '';
+      // package_type stores how many NIPL slots were bought, not a package
+      // name — except for the unlimited spellings, which must not be printed
+      // as a slot count ('999' would read as "999 NIPL").
+      const pkg = d.package_type
+        ? isUnlimitedPackage(d.package_type)
+          ? ' — Unlimited'
+          : ` — ${d.package_type} NIPL`
+        : '';
+      entries.push({
+        date: d.created_at,
+        category: 'deposit',
+        description: `Deposit NIPL${unit}${pkg}`,
+        amount: Number(d.amount),
+      });
+    }
+
+    for (const inv of invoices) {
+      const unitLabel = inv.lot?.asset?.title || `Lot ${inv.lot?.lot_number ?? '-'}`;
+      entries.push({
+        date: inv.created_at,
+        category: 'biaya_admin',
+        description: `Biaya admin — ${unitLabel}`,
+        amount: Number(inv.admin_fee),
+      });
+    }
+
+    for (const s of settlements) {
+      const unitLabel = s.lot?.asset?.title || `Lot ${s.lot?.lot_number ?? '-'}`;
+      // On a forfeiture the platform keeps the other half of the NIPL; the
+      // provider's half is what net_amount holds.
+      const amount = s.is_forfeiture
+        ? Number(s.nipl_forfeiture_amount || 0) - Number(s.net_amount || 0)
+        : Number(s.commission_deducted || 0);
+      if (amount <= 0) continue;
+      entries.push({
+        date: s.created_at,
+        category: 'fee_lelang',
+        description: s.is_forfeiture
+          ? `Bagian NIPL hangus — ${unitLabel}`
+          : `Fee lelang — ${unitLabel}`,
+        amount,
+      });
+    }
+
+    return entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  /**
+   * Create a NIPL forfeiture settlement for a provider when a bidder fails to
+   * pay (invoice expired). The provider receives half the base NIPL value
+   * (nipl_deposit_amount from platform settings, excluding unique_code).
+   * Idempotent: if a forfeiture settlement for this lot already exists, the
+   * existing record is returned as-is.
+   */
+  async createForfeitureSettlement(lotId: string, providerId: string, niplBaseAmount: number): Promise<any> {
+    const existing = await prisma.settlements.findFirst({ where: { lot_id: lotId, is_forfeiture: true } });
+    if (existing) return existing;
+
+    const halfNipl = Math.floor(niplBaseAmount / 2);
+
+    const settlement = await prisma.settlements.create({
+      data: {
+        lot_id: lotId,
+        provider_id: providerId,
+        gross_amount: new Prisma.Decimal(0),
+        commission_deducted: new Prisma.Decimal(0),
+        net_amount: new Prisma.Decimal(halfNipl),
+        is_forfeiture: true,
+        nipl_forfeiture_amount: new Prisma.Decimal(niplBaseAmount),
+        status: 'pending',
+      },
+    });
+
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(halfNipl);
+    await prisma.notifications.create({
+      data: {
+        user_id: providerId,
+        type: 'settlement_forfeiture',
+        title: 'Dana Forteit NIPL Siap Dicairkan',
+        body: `Karena pemenang lelang tidak melunasi unit, Anda berhak mendapatkan setengah dari nilai jaminan NIPL sebesar ${formattedAmount}. Dana sedang diproses oleh admin.`,
+      },
+    });
+
+    return settlement;
+  }
+
   /**
    * Compute and persist the provider settlement (pencairan) for a sold lot's
    * invoice. Shared by the Midtrans webhook path and the manual "tandai
@@ -271,6 +425,9 @@ export class PaymentsService {
       );
     }
 
+    // Forfeiture settlements can be disbursed the same way as normal settlements
+    // — the admin manually transfers the half-NIPL amount to the provider.
+
     const updated = await prisma.settlements.update({
       where: { id: settlementId },
       data: {
@@ -281,12 +438,17 @@ export class PaymentsService {
     });
 
     const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(settlement.net_amount));
+    const notifTitle = settlement.is_forfeiture ? 'Dana Forteit NIPL Terkirim' : 'Dana Pencairan Terkirim';
+    const notifBody = settlement.is_forfeiture
+      ? `Dana jaminan NIPL forteit (½ nilai NIPL) untuk unit "${settlement.lot.asset.title}" sebesar ${formattedAmount} telah ditransfer ke rekening Anda.`
+      : `Dana hasil penjualan unit "${settlement.lot.asset.title}" sebesar ${formattedAmount} telah ditransfer ke rekening Anda.`;
+
     await prisma.notifications.create({
       data: {
         user_id: settlement.provider_id,
-        type: 'settlement_disbursed',
-        title: 'Dana Pencairan Terkirim',
-        body: `Dana hasil penjualan unit "${settlement.lot.asset.title}" sebesar ${formattedAmount} telah ditransfer ke rekening Anda.`,
+        type: settlement.is_forfeiture ? 'settlement_forfeiture_disbursed' : 'settlement_disbursed',
+        title: notifTitle,
+        body: notifBody,
       },
     });
 

@@ -131,22 +131,21 @@ export default function LupaPasswordPage() {
                 <span className="text-body-sm font-bold">Email</span>
               </label>
 
+              {/* WhatsApp delivery is disabled for now — the option stays
+                  visible (greyed out) so the flow is self-explanatory, and
+                  re-enabling it later is just a matter of dropping `disabled`. */}
               <label
-                className={`flex-1 flex items-center gap-2 cursor-pointer border px-4 py-3 rounded-xl transition-all justify-center ${
-                  sendTo === "whatsapp"
-                    ? "bg-premium/10 border-premium text-premium"
-                    : "bg-surface border-outline-variant/60 text-on-surface-variant hover:border-premium/40"
-                }`}
+                aria-disabled="true"
+                title="Pengiriman via WhatsApp belum tersedia"
+                className="flex-1 flex items-center gap-2 border px-4 py-3 rounded-xl justify-center bg-surface border-outline-variant/40 text-on-surface-variant/50 cursor-not-allowed"
               >
                 <input
                   type="radio"
                   name="sendTo"
-                  checked={sendTo === "whatsapp"}
-                  onChange={() => {
-                    setSendTo("whatsapp");
-                    setEmail("");
-                  }}
-                  className="accent-premium w-4 h-4"
+                  disabled
+                  checked={false}
+                  readOnly
+                  className="accent-premium w-4 h-4 cursor-not-allowed"
                 />
                 <span className="material-symbols-outlined text-base">forum</span>
                 <span className="text-body-sm font-bold">No. WA</span>

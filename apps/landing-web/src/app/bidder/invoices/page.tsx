@@ -90,10 +90,8 @@ export default function BidderInvoices() {
                       <td>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-slate-200 rounded overflow-hidden flex-shrink-0">
-                            {inv.lot?.asset?.photo_front ? (
+                            {inv.lot?.asset?.photo_front && (
                               <img src={inv.lot.asset.photo_front} alt="Unit" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-slate-400">directions_car</span>
                             )}
                           </div>
                           <div className="font-bold text-slate-800 line-clamp-1">{inv.lot?.asset?.brand} {inv.lot?.asset?.model}</div>
@@ -106,7 +104,7 @@ export default function BidderInvoices() {
                       <td className="text-sm text-slate-600">
                         {new Date(inv.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </td>
-                      <td className="font-bold text-primary">
+                      <td className="font-bold text-primary-strong">
                         {formatRupiah(Number(inv.total))}
                       </td>
                       <td>{getStatusBadge(inv.status)}</td>

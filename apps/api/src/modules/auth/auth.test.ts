@@ -66,7 +66,7 @@ describe('Authentication Module Integration Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('id');
       expect(res.body.data.email).toBe(testEmail);
-      expect(res.body.data.role).toBe(Role.USER);
+      expect(res.body.data.role).toBe(Role.BIDDER);
       expect(res.body.data.status).toBe(UserStatus.PENDING);
 
       userId = res.body.data.id;
@@ -168,7 +168,7 @@ describe('Authentication Module Integration Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('accessToken');
       expect(res.body.data.user.email).toBe(testEmail);
-      expect(res.body.data.user.role).toBe(Role.USER);
+      expect(res.body.data.user.role).toBe(Role.BIDDER);
     });
 
     it('should reject login for wrong credentials', async () => {

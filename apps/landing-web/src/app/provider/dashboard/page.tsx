@@ -129,7 +129,7 @@ export default function ProviderDashboard() {
                 <span className="material-symbols-outlined text-sky-600">notifications</span>
                 <div>
                   <strong className="block text-sm font-semibold">{notif.title}</strong>
-                  <p className="text-xs text-sky-800 mt-0.5">{notif.message}</p>
+                  <p className="text-xs text-sky-800 mt-0.5">{notif.body}</p>
                 </div>
               </div>
               <button

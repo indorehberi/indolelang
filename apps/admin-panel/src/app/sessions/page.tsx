@@ -36,6 +36,9 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   
   // Edit & Delete states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -159,6 +162,9 @@ export default function SessionsPage() {
       let query = `?page=1&per_page=50`;
       if (statusFilter) query += `&status=${statusFilter}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (branchFilter) query += `&branch_id=${branchFilter}`;
+      if (typeFilter) query += `&is_exclusive=${typeFilter === 'exclusive'}`;
+      if (dateFilter) query += `&date=${dateFilter}`;
 
       const response = await apiFetch(`/sessions${query}`);
       const data = await response.json();
@@ -176,7 +182,7 @@ export default function SessionsPage() {
 
   useEffect(() => {
     fetchSessions();
-  }, [statusFilter, search]);
+  }, [statusFilter, search, branchFilter, typeFilter, dateFilter]);
 
   const handleOpenEdit = (session: Session) => {
     setSelectedSession(session);
@@ -316,6 +322,46 @@ export default function SessionsPage() {
               <option value="published">Published</option>
               <option value="live">🔴 Live</option>
               <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          <div style={{ width: '180px' }}>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+
+          <div style={{ width: '180px' }}>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tipe Sesi</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">Semua Tipe</option>
+              <option value="reguler">Reguler</option>
+              <option value="exclusive">Exclusive</option>
+            </select>
+          </div>
+
+          <div style={{ width: '200px' }}>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cabang</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            >
+              <option value="">Semua Cabang</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
             </select>
           </div>
         </div>

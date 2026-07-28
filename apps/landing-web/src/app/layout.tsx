@@ -66,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
+    <html lang="id" className={`${inter.variable} ${playfair.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link
@@ -77,6 +77,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                document.documentElement.classList.add('pwa-shell');
                 if (!sessionStorage.getItem('pwa-splash-shown')) {
                   document.documentElement.classList.add('pwa-splash-active');
                 }

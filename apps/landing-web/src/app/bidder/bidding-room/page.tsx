@@ -17,6 +17,40 @@ interface BidLog {
   isMe?: boolean;
 }
 
+// Static preview data for `?simulate=1` — lets redesign work on this page be
+// checked visually without a real live session, sockets, or bid history.
+const SIMULATE_LOT = {
+  id: "sim-lot-1",
+  session_id: "sim-session-1",
+  lot_number: "07",
+  starting_price: 145000000,
+  asset: {
+    title: "Toyota Avanza 1.3 G M/T 2021",
+    category: "mobil",
+    brand: "Toyota",
+    type: "Avanza 1.3 G M/T",
+    year: "2021",
+    cylinder: "1329",
+    color: "Putih",
+    odometer: "42.300",
+    bpkb_number: "L-08812934",
+    stnk_date: "2026-11-14",
+    stnk_tax_date: "2026-11-14",
+    keur_date: null,
+    location: "Jakarta Timur",
+    description: "Kondisi mesin sehat, service record lengkap, ban baru diganti 4 bulan lalu.",
+    images: null,
+  },
+};
+
+const SIMULATE_BID_LOGS: BidLog[] = [
+  { id: "sim-1", bidder: "Peserta #A1B2", amount: 160210500, time: "15:20:41", isMe: true },
+  { id: "sim-2", bidder: "Peserta #C3D4", amount: 158000000, time: "15:20:12" },
+  { id: "sim-3", bidder: "Peserta #E5F6", amount: 155500000, time: "15:19:40" },
+  { id: "sim-4", bidder: "Peserta #A1B2", amount: 152000000, time: "15:19:05" },
+  { id: "sim-5", bidder: "Peserta #G7H8", amount: 149000000, time: "15:18:22" },
+];
+
 function buildAuctionFallbackImage(label: string, accent: string, background: string) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
@@ -58,7 +92,10 @@ function ActiveLotCard({
   onLotClosed,
   isSingleLot,
   isCancelledOverride,
-  cancelCountdownOverride
+  cancelCountdownOverride,
+  initialTimeLeft,
+  initialStartCountdown,
+  initialBidLogs,
 }: {
   lot: any;
   token: string;
@@ -69,17 +106,28 @@ function ActiveLotCard({
   isSingleLot: boolean;
   isCancelledOverride?: boolean;
   cancelCountdownOverride?: number;
+  // Static-preview overrides (see `?simulate=1`) — skip the "get ready"
+  // countdown/sound and seed a non-zero timer + bid log so the page reads as
+  // a live lot instead of an empty just-mounted one.
+  initialTimeLeft?: number;
+  initialStartCountdown?: number | null;
+  initialBidLogs?: BidLog[];
 }) {
   const toast = useToast();
-  const [currentPrice, setCurrentPrice] = useState<number>(Number(lot.starting_price));
-  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [currentPrice, setCurrentPrice] = useState<number>(
+    initialBidLogs?.[0]?.amount ?? Number(lot.starting_price)
+  );
+  const [timeLeft, setTimeLeft] = useState<number>(initialTimeLeft ?? 0);
   const [hasNipl, setHasNipl] = useState<boolean>(true);
-  const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
+  const [bidLogs, setBidLogs] = useState<BidLog[]>(initialBidLogs ?? []);
+  const [onlineCount, setOnlineCount] = useState<number>(initialBidLogs ? 9 : 1);
   const [hasUserBidded, setHasUserBidded] = useState(false);
   const [bidCooldown, setBidCooldown] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isBidEnabled, setIsBidEnabled] = useState<boolean>(false);
-  const [startCountdown, setStartCountdown] = useState<number | null>(3);
+  const [startCountdown, setStartCountdown] = useState<number | null>(
+    initialStartCountdown !== undefined ? initialStartCountdown : 3
+  );
   const [currentImageIdx, setCurrentImageIdx] = useState<number>(0);
   const [isCancelledOverlay, setIsCancelledOverlay] = useState(false);
   const [cancelCountdown, setCancelCountdown] = useState(5);
@@ -91,7 +139,7 @@ function ActiveLotCard({
   const playBeep = () => {
     try {
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
       const ctx = audioCtxRef.current;
       const osc = ctx.createOscillator();
@@ -100,25 +148,84 @@ function ActiveLotCard({
       gain.connect(ctx.destination);
       osc.type = 'sine';
       osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
+      osc.stop(ctx.currentTime + 0.1);
     } catch (e) {}
+  };
+
+  const playBoxingBell = () => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      
+      const playSingleRing = (startTime: number) => {
+        const fundamental = 587.33; // D5 note
+        const ratios = [1, 1.2, 1.5, 2.0, 2.5, 3.0, 4.2];
+        
+        ratios.forEach((ratio) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = "sine";
+          osc.frequency.value = fundamental * ratio;
+          
+          gain.gain.setValueAtTime(0.15 / ratios.length, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 1.2);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(startTime);
+          osc.stop(startTime + 1.3);
+        });
+      };
+
+      const now = ctx.currentTime;
+      playSingleRing(now);
+      playSingleRing(now + 0.25);
+      playSingleRing(now + 0.5);
+    } catch (e) {
+      console.error("Failed to play boxing bell", e);
+    }
   };
 
   useEffect(() => {
     if (startCountdown === null) return;
+    
+    // Play sound based on count
+    if (startCountdown === 3) {
+      playBoxingBell();
+    } else if (startCountdown > 0) {
+      playBeep();
+    }
+    
     if (startCountdown > 0) {
-      const timer = setTimeout(() => setStartCountdown(prev => (prev as number) - 1), 1000);
+      const timer = setTimeout(() => {
+        setStartCountdown((prev) => {
+          if (prev === null) return null;
+          const next = prev - 1;
+          if (next === 0) {
+            playBoxingBell(); // Play final bell when it hits 0!
+            return null; // close the overlay
+          }
+          return next;
+        });
+      }, 1000);
       return () => clearTimeout(timer);
-    } else {
-      setStartCountdown(null);
     }
   }, [startCountdown]);
 
+  // A static preview lot has no real backend counterpart — skip every
+  // authenticated sub-fetch below instead of letting them 401.
+  const isMockLot = initialBidLogs !== undefined;
+
   // Check NIPL
   useEffect(() => {
+    if (isMockLot) return;
     const fetchNipl = async () => {
       try {
         const resDeposits = await apiFetch("/deposits");
@@ -141,6 +248,7 @@ function ActiveLotCard({
   }, [lot.asset?.category, token]);
 
   const fetchBidLogs = useCallback(async () => {
+    if (isMockLot) return;
     try {
       const response = await apiFetch(`/lots/${lot.id}/bids`);
       const data = await response.json();
@@ -164,7 +272,7 @@ function ActiveLotCard({
     } catch (err) {
       console.error('Failed to fetch bid logs:', err);
     }
-  }, [lot.id]);
+  }, [lot.id, isMockLot]);
 
   useEffect(() => {
     fetchBidLogs();
@@ -225,7 +333,12 @@ function ActiveLotCard({
     const handleLotClosed = (data: any) => {
       if (data.lot_id === lot.id) {
         setStartCountdown(null);
-        onLotClosed(data, hasUserBidded || bidLogs.some((b) => b.isMe));
+        onLotClosed({
+          ...data,
+          lot_number: lot.lot_number,
+          starting_price: lot.starting_price,
+          asset_title: lot.asset?.title,
+        }, hasUserBidded || bidLogs.some((b) => b.isMe));
       }
     };
 
@@ -240,7 +353,8 @@ function ActiveLotCard({
           setCancelCountdown(count);
           if (count <= 0) {
             if (cancelIntervalRef.current) clearInterval(cancelIntervalRef.current);
-            onLotClosed(data);
+            setIsCancelledOverlay(false);
+            onLotClosed({ ...data, result: 'cancelled' });
           }
         }, 1000);
       }
@@ -249,20 +363,15 @@ function ActiveLotCard({
     const handleLotStartCountdown = (data: any) => {
       if (data.lot_id === lot.id && data.duration_secs) {
         setStartCountdown(data.duration_secs);
-        playBeep();
-        
-        let counter = data.duration_secs;
-        const iv = setInterval(() => {
-          counter--;
-          if (counter > 0) {
-            setStartCountdown(counter);
-            playBeep();
-          } else {
-            clearInterval(iv);
-            setStartCountdown(null);
-          }
-        }, 1000);
       }
+    };
+
+    // Count of bidders with this lot open right now — server tracks it as
+    // the size of the `lot:{id}` socket room (see broadcastLotPresence in
+    // apps/api/src/lib/socket.ts) and pushes updates on join/leave.
+    const handleLotPresence = (data: any) => {
+      if (data.lot_id !== lot.id) return;
+      setOnlineCount(data.count);
     };
 
     socket.on("lot:sync", handleLotSync);
@@ -271,6 +380,7 @@ function ActiveLotCard({
     socket.on("lot:closed", handleLotClosed);
     socket.on("lot:cancelled", handleLotCancelled);
     socket.on("lot:start", handleLotStartCountdown);
+    socket.on("lot:presence", handleLotPresence);
 
     return () => {
       if (cancelIntervalRef.current) {
@@ -282,6 +392,7 @@ function ActiveLotCard({
       socket.off("lot:closed", handleLotClosed);
       socket.off("lot:cancelled", handleLotCancelled);
       socket.off("lot:start", handleLotStartCountdown);
+      socket.off("lot:presence", handleLotPresence);
     };
   }, [socket, lot.id, onLotClosed, playBeep]);
 
@@ -326,9 +437,9 @@ function ActiveLotCard({
       {(isCancelledOverlay || isCancelledOverride) && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md text-center p-6">
           <span className="material-symbols-outlined text-red-500 mb-3" style={{ fontSize: '80px' }}>cancel</span>
-          <div className="text-red-500 text-3xl font-black tracking-widest mb-2">LOT INI DIBATALKAN</div>
+          <div className="text-red-500 text-3xl font-black mb-2">Lot ini dibatalkan, lanjut ke lot berikutnya</div>
           <div className="text-white text-lg font-semibold">
-            Lot berikutnya dimulai setelah{" "}
+            Sisa waktu:{" "}
             <span className="text-red-500 text-3xl font-extrabold animate-pulse mx-1">
               {cancelCountdownOverride ?? cancelCountdown}
             </span>{" "}
@@ -358,7 +469,7 @@ function ActiveLotCard({
             </button>
           </div>
         </div>
-        <span className="font-bold text-lg">
+        <span className="font-bold text-lg text-[#f67904]">
           LOT #{lot.lot_number} &bull; {lot.asset?.title}
         </span>
       </div>
@@ -385,13 +496,13 @@ function ActiveLotCard({
         <div className="w-full md:w-1/2 flex flex-col gap-6 min-w-0">
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 min-w-0">
             <div className="space-y-4">
-              <div className="min-w-0">
+              <div className="min-w-0 text-center">
                 <span className="text-xs text-slate-500 uppercase tracking-widest font-semibold block mb-1">Harga Tertinggi Saat Ini</span>
-                <div className={`text-2xl sm:text-4xl font-black flex flex-wrap items-center gap-2 min-w-0 break-words ${bidLogs[0]?.isMe ? 'text-green-600' : 'text-primary'}`}>
+                <div className={`text-2xl sm:text-4xl font-black flex flex-wrap items-center justify-center gap-2 min-w-0 break-words ${bidLogs[0]?.isMe ? 'text-green-600' : 'text-primary-strong'}`}>
                   {formatRupiah(currentPrice)}
                   {bidLogs[0]?.isMe && <span className="material-symbols-outlined text-3xl sm:text-4xl text-amber-500 flex-shrink-0" title="Anda penawar tertinggi!">emoji_events</span>}
                 </div>
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-1 flex items-center justify-center gap-2">
                   <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Harga Dasar:</span>
                   <span className="text-sm font-bold text-slate-700">{formatRupiah(Number(lot.starting_price))}</span>
                 </div>
@@ -414,7 +525,7 @@ function ActiveLotCard({
                 <button
                   disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
                   onClick={() => handlePlaceBid(minIncrement)}
-                  className={`w-full py-4 px-4 text-sm font-black rounded-xl transition-all shadow-md active:scale-95 ${
+                  className={`w-full py-4 px-4 text-sm font-black text-center rounded-xl transition-all shadow-md active:scale-95 ${
                     isSingleLot ? "hidden lg:block" : ""
                   } ${
                     bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
@@ -449,13 +560,13 @@ function ActiveLotCard({
                     }`}
                   >
                     <div>
-                      <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                        {log.bidder} 
+                      <div className="text-sm font-normal text-slate-800 flex items-center gap-1.5">
+                        {log.bidder}
                         {log.isMe && <span className="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded uppercase">Anda</span>}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">{log.time}</div>
                     </div>
-                    <div className="text-base font-black text-slate-900">{formatRupiah(log.amount)}</div>
+                    <div className="text-sm font-black text-slate-900">{formatRupiah(log.amount)}</div>
                   </div>
                 ))
               )}
@@ -502,12 +613,12 @@ function ActiveLotCard({
             <div className="p-4">
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Penawar Aktif</div>
-                  <div className="text-lg font-black text-slate-900 mt-1">{Math.max(3, Math.min(12, bidLogs.length + 4))}</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Peserta Online</div>
+                  <div className="text-lg font-black text-slate-900 mt-1">{onlineCount}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Status</div>
-                  <div className="text-lg font-black text-primary mt-1">Live</div>
+                  <div className="text-lg font-black text-primary-strong mt-1">Live</div>
                 </div>
               </div>
 
@@ -574,15 +685,17 @@ function ActiveLotCard({
 
     {isSingleLot && hasNipl && (
       <div
-        className="fixed bottom-16 inset-x-0 z-30 lg:hidden bg-white/95 glass-nav border-t border-outline-variant/20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] px-4 py-3 flex justify-center items-center"
+        className={`fixed bottom-16 inset-x-0 lg:hidden px-4 py-3 flex justify-center items-center ${
+          isBidEnabled ? "z-[60]" : "z-30"
+        }`}
       >
         <button
           disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
           onClick={() => handlePlaceBid(minIncrement)}
-          className={`w-full py-5 text-xl font-black rounded-2xl transition-all shadow-md active:scale-95 ${
+          className={`w-full py-5 text-xl font-black text-center rounded-2xl transition-all shadow-md active:scale-95 ${
             bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
               ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-              : "bg-primary hover:bg-primary/95 text-white cursor-pointer"
+              : "bg-[#f67904]/95 hover:bg-[#f67904] text-white cursor-pointer"
           }`}
         >
           {isConnected ? "BID" : "TERPUTUS"}
@@ -595,14 +708,27 @@ function ActiveLotCard({
 
 export default function BidderBiddingRoom() {
   const router = useRouter();
+  // `?simulate=1` renders SIMULATE_LOT with fake bid history and no socket —
+  // a static stand-in for a live session so redesign work here can be seen
+  // without needing a real lot/session running. Development only: a fake lot
+  // shown to real bidders on bidku.co.id would be indistinguishable from a
+  // genuine one, so the flag is compiled out of production builds.
+  const [isSimulate] = useState(
+    () =>
+      process.env.NODE_ENV === "development" &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("simulate") === "1"
+  );
   const [activeLots, setActiveLots] = useState<any[]>([]);
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
   const [frozenLot, setFrozenLot] = useState<any | null>(null);
   const [frozenCountdown, setFrozenCountdown] = useState<number>(5);
   const frozenTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const closedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [closedResult, setClosedResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
+  const [isSessionEnded, setIsSessionEnded] = useState(false);
   
   // Settings for bidding
   const [bidIncrement, setBidIncrement] = useState<number>(500000);
@@ -625,6 +751,7 @@ export default function BidderBiddingRoom() {
     const interval = setInterval(() => {
       setThankYouSecondsLeft((prev) => {
         if (prev <= 1) {
+          clearInterval(interval);
           setThankYouModal(null);
           return 0;
         }
@@ -633,10 +760,17 @@ export default function BidderBiddingRoom() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [thankYouModal]);
+  }, [thankYouModal, router]);
 
   const fetchActiveLots = async (isPolling = false) => {
     if (typeof window === "undefined") return;
+
+    if (isSimulate) {
+      setActiveLots([SIMULATE_LOT]);
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem("accessToken");
     if (!token) {
       router.push("/login");
@@ -707,20 +841,45 @@ export default function BidderBiddingRoom() {
       }
     }
 
+    if (isSessionEnded) {
+      return;
+    }
+
     if (data) {
       const storedUser = localStorage.getItem("user");
       const currentUserId = storedUser ? JSON.parse(storedUser).id : "";
       const myMaskedId = currentUserId ? `Peserta #${currentUserId.substring(0, 4).toUpperCase()}` : "";
       const isWinner = data.result === "sold" && data.winner_id === myMaskedId;
 
-      // Hanya tampilkan popup hasil jika bidder memenangkan lot ATAU pernah melakukan bid pada lot tersebut
-      if (isWinner || hasBidded) {
-        setClosedResult({ ...data, isWinner });
+      if (closedTimerRef.current) clearInterval(closedTimerRef.current);
+
+      if (data.result === "sold") {
+        setClosedResult({
+          ...data,
+          isWinner,
+          hasUserBidded: hasBidded,
+        });
         
-        // Clear the modal after 10 seconds (or when next lot starts)
-        setTimeout(() => {
+        closedTimerRef.current = setTimeout(() => {
           setClosedResult(null);
         }, 10000);
+      } else if (data.result === "unsold") {
+        setClosedResult({
+          ...data,
+          result: "unsold",
+          countdown: 5,
+        });
+
+        let count = 5;
+        closedTimerRef.current = setInterval(() => {
+          count--;
+          setClosedResult((prev: any) => prev ? { ...prev, countdown: count } : null);
+          if (count <= 0) {
+            if (closedTimerRef.current) clearInterval(closedTimerRef.current);
+            setClosedResult(null);
+            fetchActiveLots();
+          }
+        }, 1000);
       } else {
         setClosedResult(null);
       }
@@ -743,8 +902,22 @@ export default function BidderBiddingRoom() {
     return () => clearInterval(interval);
   }, []);
 
+  // Cleanup timers on component unmount
+  useEffect(() => {
+    return () => {
+      if (frozenTimerRef.current) clearInterval(frozenTimerRef.current);
+      if (closedTimerRef.current) clearInterval(closedTimerRef.current);
+    };
+  }, []);
+
+  // Static preview never opens a real socket — it just looks "connected".
+  useEffect(() => {
+    if (isSimulate) setIsConnected(true);
+  }, [isSimulate]);
+
   // Central Socket Connection
   useEffect(() => {
+    if (isSimulate) return;
     // If there's no active lot AND no live session, we don't need a socket yet
     if (activeLots.length === 0 && !liveSessionId) return;
 
@@ -785,6 +958,7 @@ export default function BidderBiddingRoom() {
 
     // Join session room to listen for lot:start (for cancelled lot freezing)
     const handleLotStart = (data: any) => {
+      setClosedResult(null);
       if (data.is_canceled) {
         setFrozenLot(data);
         const duration = data.freeze_duration_secs || 5;
@@ -837,18 +1011,31 @@ export default function BidderBiddingRoom() {
     };
 
     const handleSessionEnded = (data: any) => {
+      setIsSessionEnded(true);
       const biddedInSession = hasSessionBidded || (typeof window !== "undefined" && sessionStorage.getItem("has_bidded_in_session") === "true");
       if (biddedInSession) {
         setThankYouModal({
           session_title: data?.session_title || liveSessionName || "Sesi Lelang Live",
         });
+      } else {
+        // No redirect, just stay on page
       }
+    };
+
+    const handleLotActivated = (data: any) => {
+      if (frozenTimerRef.current) {
+        clearInterval(frozenTimerRef.current);
+      }
+      setFrozenLot(null);
+      setClosedResult(null);
+      fetchActiveLots();
     };
 
     localSocket.on("connect", handleConnect);
     localSocket.on("disconnect", handleDisconnect);
     if (liveSessionId) {
       localSocket.on("lot:start", handleLotStart);
+      localSocket.on("lot:activated", handleLotActivated);
       localSocket.on("lot:cancelled", handleParentLotCancelled);
       localSocket.on("session:ended", handleSessionEnded);
     }
@@ -876,6 +1063,7 @@ export default function BidderBiddingRoom() {
       localSocket.off("connect", handleConnect);
       localSocket.off("disconnect", handleDisconnect);
       localSocket.off("lot:start", handleLotStart);
+      localSocket.off("lot:activated", handleLotActivated);
       localSocket.off("lot:cancelled", handleParentLotCancelled);
       localSocket.off("session:ended", handleSessionEnded);
       localSocket.disconnect();
@@ -883,7 +1071,7 @@ export default function BidderBiddingRoom() {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [activeLots.map(l => l.id).join(","), liveSessionId]);
+  }, [activeLots.map(l => l.id).join(","), liveSessionId, isSimulate]);
 
   if (loading) {
     return (
@@ -920,12 +1108,15 @@ export default function BidderBiddingRoom() {
               isConnected={isConnected}
               onLotClosed={handleLotClosed}
               isSingleLot={activeLots.length === 1}
+              {...(isSimulate
+                ? { initialTimeLeft: 45, initialStartCountdown: null, initialBidLogs: SIMULATE_BID_LOGS }
+                : {})}
             />
           ))}
         </div>
       ) : (
         <div className="card py-16 text-center flex flex-col items-center justify-center gap-4">
-          <span className="material-symbols-outlined text-6xl text-primary animate-bounce">gavel</span>
+          <span className="material-symbols-outlined text-6xl text-primary-strong animate-bounce">gavel</span>
           <span className="text-xl font-bold text-slate-700">Belum ada lot lelang aktif saat ini</span>
           <p className="text-sm text-slate-500 max-w-md">
             Ikuti jadwal sesi berikutnya.
@@ -937,7 +1128,7 @@ export default function BidderBiddingRoom() {
               <div className="space-y-3">
                 {upcomingSessions.map(session => (
                   <div key={session.id} className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-3">
-                    <div className="bg-primary/10 text-primary p-2 rounded-lg">
+                    <div className="bg-primary/10 text-primary-strong p-2 rounded-lg">
                       <span className="material-symbols-outlined">event</span>
                     </div>
                     <div>
@@ -953,7 +1144,7 @@ export default function BidderBiddingRoom() {
             <div className="mt-8 w-full max-w-md text-left">
               <h4 className="font-bold text-slate-800 mb-3 border-b pb-2">Jadwal Lelang Berikutnya</h4>
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center text-sm text-slate-500">
-                Silakan periksa halaman <Link href="/katalog" className="text-primary font-bold underline">Katalog</Link> untuk melihat jadwal lelang yang akan datang.
+                Silakan periksa halaman <Link href="/katalog" className="text-primary-strong font-bold underline">Katalog</Link> untuk melihat jadwal lelang yang akan datang.
               </div>
             </div>
           )}
@@ -965,7 +1156,7 @@ export default function BidderBiddingRoom() {
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-in zoom-in duration-300">
             {closedResult.isWinner ? (
               <>
-                <div className="text-8xl mb-4">🙏🏻</div>
+                <div className="text-8xl mb-4">🎉</div>
                 <h2 className="text-2xl font-black text-green-600 mb-2">Selamat Anda Memenangkan Lot {closedResult.lot_number}!</h2>
                 <p className="text-slate-600 mb-6">Silahkan melunasi melalui halaman Keranjang Tagihan.</p>
                 
@@ -976,7 +1167,7 @@ export default function BidderBiddingRoom() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 text-sm">Harga Terbentuk</span>
-                    <span className="font-black text-primary">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(closedResult.final_price))}</span>
+                    <span className="font-black text-primary-strong">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(closedResult.final_price))}</span>
                   </div>
                 </div>
 
@@ -989,7 +1180,19 @@ export default function BidderBiddingRoom() {
                   </Link>
                 </div>
               </>
-            ) : (
+            ) : closedResult.result === "unsold" ? (
+              <>
+                <div className="text-8xl mb-4">ℹ️</div>
+                <h2 className="text-2xl font-black text-slate-800 mb-2">Lot ini tidak ada pemenangnya, lanjut ke lot berikutnya</h2>
+                <p className="text-slate-500 mb-6">
+                  Sisa waktu: <span className="font-black text-primary-strong text-2xl animate-pulse">{closedResult.countdown ?? 5}</span> detik
+                </p>
+                
+                <button onClick={() => { setClosedResult(null); fetchActiveLots(); }} className="w-full py-3 px-4 rounded-xl font-bold bg-slate-150 text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200">
+                  Tutup
+                </button>
+              </>
+            ) : closedResult.hasUserBidded ? (
               <>
                 <div className="text-8xl mb-4">👑</div>
                 <h2 className="text-2xl font-black text-slate-800 mb-2">Maaf Anda Belum Memenangkan Lot Ini</h2>
@@ -1010,9 +1213,21 @@ export default function BidderBiddingRoom() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 text-sm">Pemenang</span>
-                    <span className="font-medium">{closedResult.result === "sold" ? closedResult.winner_id : "No Bidder"}</span>
+                    <span className="font-medium">{closedResult.winner_id || closedResult.winner_nipl || "No Bidder"}</span>
                   </div>
                 </div>
+
+                <button onClick={() => setClosedResult(null)} className="w-full py-3 px-4 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
+                  Lanjut Lelang Berikutnya
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-8xl mb-4">ℹ️</div>
+                <h2 className="text-2xl font-black text-slate-800 mb-2">Lot Selesai Terjual</h2>
+                <p className="text-slate-600 mb-6 leading-relaxed">
+                  Lot <span className="font-bold text-slate-800">{closedResult.asset_title || `Lot #${closedResult.lot_number}`}</span> dimenangkan dengan harga terbentuk <span className="font-bold text-primary-strong">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(closedResult.final_price))}</span> oleh Bidder <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-sm text-slate-700 font-bold">{closedResult.winner_id || closedResult.winner_nipl || "-"}</span>.
+                </p>
 
                 <button onClick={() => setClosedResult(null)} className="w-full py-3 px-4 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
                   Lanjut Lelang Berikutnya
@@ -1024,16 +1239,16 @@ export default function BidderBiddingRoom() {
       )}
 
       {thankYouModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl border-2 border-primary/20 relative overflow-hidden">
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+            <div className="w-16 h-16 bg-primary/10 text-primary-strong rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
               <span className="material-symbols-outlined text-4xl">celebration</span>
             </div>
 
             <h2 className="text-2xl font-black text-slate-800 mb-4">Lelang Telah Selesai 🎉</h2>
 
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 mb-6 text-left space-y-3 shadow-inner">
-              <p className="text-sm font-bold text-primary">
+              <p className="text-sm font-bold text-primary-strong">
                 Terimakasih atas partisipasinya dalam Lelang {thankYouModal.session_title}.
               </p>
               <p className="text-sm text-slate-700">
@@ -1058,7 +1273,9 @@ export default function BidderBiddingRoom() {
                 Pesan tertutup otomatis dalam <strong className="text-slate-700">{thankYouSecondsLeft} detik</strong>
               </p>
               <button
-                onClick={() => setThankYouModal(null)}
+                onClick={() => {
+                  setThankYouModal(null);
+                }}
                 className="w-full py-3 px-4 rounded-xl font-bold bg-slate-800 text-white hover:bg-slate-900 transition-colors text-sm"
               >
                 Tutup

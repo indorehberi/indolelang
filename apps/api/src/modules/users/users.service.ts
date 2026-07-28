@@ -4,6 +4,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { UserDTO, PaginationMeta, Role, UserStatus } from '@indo-lelang/shared-types';
 import { Prisma } from '@prisma/client';
 import { hashPassword } from '../../lib/hash';
+import { grantsUnlimitedNow, niplSlotsFor } from '../../lib/niplPackage';
 import { notificationsService } from '../notifications/notifications.service';
 export class UsersService {
   /**
@@ -75,16 +76,17 @@ export class UsersService {
       provider_status: user.provider_status || undefined,
       active_nipl_count: (() => {
         const deps = user.deposits || [];
-        return deps.reduce((sum: number, d: any) => {
-          if (!d) return sum;
-          if (d.package_type === 'unlimited') return sum + 5;
-          const n = parseInt(d.package_type || '0', 10);
-          return sum + (Number.isNaN(n) ? 0 : n);
-        }, 0);
+        return deps.reduce(
+          (sum: number, d: any) => (d ? sum + niplSlotsFor(d.package_type) : sum),
+          0
+        );
       })(),
       is_unlimited_nipl: (() => {
         const deps = user.deposits || [];
-        return deps.some((d: any) => d && d.package_type === 'unlimited');
+        // Unlimited only counts while the deposit is still inside its
+        // activation day; the daily cron stamps unlimited_downgraded_at once
+        // that day has passed.
+        return deps.some((d: any) => d && grantsUnlimitedNow(d));
       })(),
       kyc: user.kyc_document ? {
         id: user.kyc_document.id,

@@ -72,6 +72,22 @@ infrastructure/docker/data/
 .cache/
 tmp/
 
+# Throwaway dev/debug scripts must never reach a production checkout. A
+# clean_dev_data.ts once lived here that mass-deleted bidders, providers,
+# assets, NIPL, invoices and settlements — and its user deleteMany carried a
+# `where` filter, so the production guard in config/database.ts would NOT
+# have stopped it. Keep these patterns ignored: anything matching is scratch
+# work, and scratch work under src/ also gets compiled into the shipped image.
+apps/api/scripts/clean_dev_data.ts
+apps/api/scripts/dump_users.ts
+apps/api/scripts/restore_dev_users.ts
+apps/api/scratch-*.ts
+apps/api/src/inspect_*.ts
+
+# Database / uploads backups pulled from the server
+backup_db_*.sql
+backup_uploads_*.tar.gz
+
 # User exclusions
 /Panduan UI/
 /wireframe/

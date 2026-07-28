@@ -442,13 +442,13 @@ export default function BidderProfile() {
                       }
                     }}
                     disabled={isVerified && !isEditingEnabled}
-                    className="w-full px-4 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer focus:border-premium outline-none flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary-strong hover:file:bg-primary/20 cursor-pointer focus:border-premium outline-none flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <button
                     type="button"
                     onClick={handleNpwpUpload}
                     disabled={!npwpFile || isUploadingNpwp || (isVerified && !isEditingEnabled)}
-                    className="px-4 py-2 bg-secondary text-white font-bold rounded-xl disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                   >
                     {isUploadingNpwp ? "Upload..." : "Upload"}
                   </button>
@@ -482,7 +482,7 @@ export default function BidderProfile() {
                     <button
                       type="button"
                       onClick={() => setIsEditingEnabled(true)}
-                      className="w-full sm:w-auto px-6 py-3 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                     >
                       <span className="material-symbols-outlined text-lg">edit</span>
                       Ajukan Edit Data

@@ -3,6 +3,8 @@ import { prisma } from '../config/database';
 import { SessionStatus, LotStatus } from '@indo-lelang/shared-types';
 import { startActiveLot, closeActiveLot, activeLots } from './socket';
 import { logger } from './logger';
+import { paymentsService } from '../modules/payments/payments.service';
+import { UNLIMITED_PACKAGE_TYPE_FILTER } from './niplPackage';
 
 async function getSetting(key: string, defaultValue: string): Promise<string> {
   const setting = await prisma.platform_settings.findFirst({ where: { key } });
@@ -80,7 +82,14 @@ export function initCronJobs() {
         where: {
           status: 'unpaid',
           due_date: { lt: now }
-        }
+        },
+        include: {
+          lot: {
+            include: {
+              asset: { include: { provider: true } },
+            },
+          },
+        },
       });
 
       if (expiredInvoices.length > 0) {
@@ -92,6 +101,78 @@ export function initCronJobs() {
           },
           data: { status: 'expired' }
         });
+
+        // 1b. NIPL Forfeiture: for each expired invoice, forfeit any NIPL
+        //     deposit that was consumed at checkout (linked via nipl_codes).
+        //     Then create a half-NIPL settlement for the provider.
+        const niplBaseAmountSetting = await prisma.platform_settings.findFirst({
+          where: { key: 'nipl_deposit_amount' }
+        });
+        const niplMotorAmountSetting = await prisma.platform_settings.findFirst({
+          where: { key: 'nipl_motor_deposit_amount' }
+        });
+        const niplMobilBase = Number(niplBaseAmountSetting?.value) || 5000000;
+        const niplMotorBase = Number(niplMotorAmountSetting?.value) || 1000000;
+
+        for (const inv of expiredInvoices) {
+          try {
+            const providerId = inv.lot.asset.provider_id ?? inv.lot.asset.provider?.id;
+            if (!providerId) continue;
+
+            const isMotor = inv.lot.asset.category?.toLowerCase().includes('motor');
+            const niplBase = isMotor ? niplMotorBase : niplMobilBase;
+
+            // Find NIPL codes that were assigned to this invoice (status: 'used')
+            const usedNiplCodes = await prisma.nipl_codes.findMany({
+              where: { invoice_id: inv.id, status: 'used' },
+              include: { deposit: true },
+            });
+
+            if (usedNiplCodes.length > 0) {
+              // Forfeit all deposits linked to this invoice's NIPL codes
+              const depositIdsToForfeit = [...new Set(usedNiplCodes.map((c) => c.deposit_id).filter(Boolean))] as string[];
+
+              await prisma.$transaction([
+                // Mark deposits as forfeited
+                prisma.deposits.updateMany({
+                  where: { id: { in: depositIdsToForfeit } },
+                  data: { status: 'forfeited' },
+                }),
+                // Mark NIPL codes as forfeited
+                prisma.nipl_codes.updateMany({
+                  where: { invoice_id: inv.id, status: 'used' },
+                  data: { status: 'forfeited' },
+                }),
+                // Notify bidder
+                prisma.notifications.create({
+                  data: {
+                    user_id: inv.bidder_id,
+                    type: 'nipl_forfeited',
+                    title: 'Jaminan NIPL Hangus',
+                    body: `Jaminan NIPL Anda untuk unit "${inv.lot.asset.title}" hangus karena pelunasan tidak dilakukan sebelum batas waktu.`,
+                  },
+                }),
+                // Audit log
+                prisma.audit_logs.create({
+                  data: {
+                    action: 'NIPL_FORFEITED',
+                    resource_type: 'invoices',
+                    resource_id: inv.id,
+                    new_value: JSON.stringify({ depositIds: depositIdsToForfeit, reason: 'invoice expired unpaid' }),
+                  },
+                }),
+              ]);
+
+              logger.info({ invoiceId: inv.id, depositCount: depositIdsToForfeit.length }, 'CRON: NIPL forfeited for expired invoice');
+            }
+
+            // Create forfeiture settlement for provider (½ nilai NIPL dasar)
+            await paymentsService.createForfeitureSettlement(inv.lot_id, providerId, niplBase);
+            logger.info({ invoiceId: inv.id, providerId }, 'CRON: Forfeiture settlement created for provider');
+          } catch (forfeitErr) {
+            logger.error({ err: forfeitErr, invoiceId: inv.id }, 'CRON: Error processing NIPL forfeiture for expired invoice');
+          }
+        }
       }
 
       // 2. Revert asset status back to APPROVED for expired invoices after 23:59 WIB (16:59:59 UTC) of the expiration day
@@ -152,6 +233,96 @@ export function initCronJobs() {
       }
     } catch (err) {
       logger.error({ err }, 'CRON: Error in invoice auto-expire and revert job');
+    }
+  });
+
+  // Downgrade spent-out "unlimited" NIPL packages once their day is over.
+  //
+  // Unlimited lets a bidder win any number of units, but only on the WIB day
+  // the deposit was activated. From the next day on they hold an ordinary
+  // deposit worth however many NIPL slots they never used — and those cannot
+  // be topped back up to unlimited. Runs at 00:05 WIB (17:05 UTC), just after
+  // the day flips, and again hourly-safe because it is idempotent: the
+  // `unlimited_downgraded_at: null` filter means an already-downgraded
+  // deposit is never picked up twice.
+  cron.schedule('5 17 * * *', async () => {
+    try {
+      // Server clock is UTC; WIB is UTC+7. Shift into WIB to read off today's
+      // calendar date there, then convert that day's midnight back to UTC.
+      const nowUtc = new Date();
+      const wibNow = new Date(nowUtc.getTime() + 7 * 60 * 60 * 1000);
+      const startOfTodayWib = new Date(
+        Date.UTC(wibNow.getUTCFullYear(), wibNow.getUTCMonth(), wibNow.getUTCDate()) -
+          7 * 60 * 60 * 1000
+      );
+
+      const expired = await prisma.deposits.findMany({
+        where: {
+          // Matches both spellings — the legacy '999' rows are unlimited too.
+          ...UNLIMITED_PACKAGE_TYPE_FILTER,
+          status: 'paid',
+          unlimited_downgraded_at: null,
+          // Activated on an earlier WIB day. paid_at is the moment the
+          // privilege started; fall back to created_at for older rows that
+          // predate paid_at being populated.
+          OR: [
+            { paid_at: { lt: startOfTodayWib } },
+            { paid_at: null, created_at: { lt: startOfTodayWib } },
+          ],
+        },
+        select: { id: true, user_id: true, unit_type: true },
+      });
+
+      if (expired.length === 0) return;
+
+      for (const dep of expired) {
+        const totalCodes = await prisma.nipl_codes.count({ where: { deposit_id: dep.id } });
+        if (totalCodes === 0) {
+          // A paid deposit from before the nipl_codes table existed. There is
+          // nothing to count, so downgrading would drop the bidder to a quota
+          // of zero and strip slots they actually paid for. Leaving it alone
+          // keeps the deposit exactly as the admin recorded it — deliberately
+          // never forfeiting NIPL just because the rows are missing.
+          logger.warn(
+            { depositId: dep.id },
+            'CRON: Skipping unlimited downgrade — legacy deposit has no nipl_codes rows to count'
+          );
+          continue;
+        }
+
+        const remaining = await prisma.nipl_codes.count({
+          where: { deposit_id: dep.id, status: 'active' },
+        });
+
+        await prisma.$transaction([
+          prisma.deposits.update({
+            where: { id: dep.id },
+            data: { unlimited_downgraded_at: nowUtc },
+          }),
+          prisma.notifications.create({
+            data: {
+              user_id: dep.user_id,
+              type: 'nipl_unlimited_downgraded',
+              title: 'Paket NIPL Unlimited Berakhir',
+              body: remaining > 0
+                ? `Masa berlaku NIPL Unlimited Anda telah berakhir. Anda kini memiliki ${remaining} NIPL ${dep.unit_type || ''} tersisa yang tetap dapat digunakan atau diajukan refund.`.trim()
+                : 'Masa berlaku NIPL Unlimited Anda telah berakhir dan seluruh NIPL sudah terpakai. Silakan beli NIPL baru untuk mengikuti lelang berikutnya.',
+            },
+          }),
+          prisma.audit_logs.create({
+            data: {
+              action: 'NIPL_UNLIMITED_DOWNGRADED',
+              resource_type: 'deposits',
+              resource_id: dep.id,
+              new_value: JSON.stringify({ remaining_nipl: remaining, reason: 'unlimited day elapsed' }),
+            },
+          }),
+        ]);
+
+        logger.info({ depositId: dep.id, remaining }, 'CRON: Unlimited NIPL downgraded to satuan');
+      }
+    } catch (err) {
+      logger.error({ err }, 'CRON: Error downgrading expired unlimited NIPL deposits');
     }
   });
 

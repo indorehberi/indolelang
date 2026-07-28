@@ -196,12 +196,43 @@ async function main() {
       value: 'provider',
       is_encrypted: false,
     },
-    {
-      tenant_id: 'default',
-      key: 'referral_reward_amount',
-      value: '100000',
-      is_encrypted: false,
-    }
+    {\r
+      tenant_id: 'default',\r
+      key: 'referral_reward_amount',\r
+      value: '100000',\r
+      is_encrypted: false,\r
+    },\r
+    // Manual transfer payment settings\r
+    {\r
+      tenant_id: 'default',\r
+      key: 'manual_payment_account',\r
+      value: '7015886161',\r
+      is_encrypted: false,\r
+    },\r
+    {\r
+      tenant_id: 'default',\r
+      key: 'manual_payment_bank',\r
+      value: 'bca',\r
+      is_encrypted: false,\r
+    },\r
+    {\r
+      tenant_id: 'default',\r
+      key: 'manual_payment_name',\r
+      value: 'PT Indo Lelang Sejahtera',\r
+      is_encrypted: false,\r
+    },\r
+    {\r
+      tenant_id: 'default',\r
+      key: 'manual_transfer_fee',\r
+      value: '0',\r
+      is_encrypted: false,\r
+    },\r
+    {\r
+      tenant_id: 'default',\r
+      key: 'manual_refund_fee',\r
+      value: '0',\r
+      is_encrypted: false,\r
+    }\r
   );
 
   // Insert all settings

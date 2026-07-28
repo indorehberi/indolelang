@@ -146,45 +146,82 @@ export default function NewBidderPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           
           <Card>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>1. Data Akun</h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nama Lengkap *</label>
-              <input type="text" value={form.full_name} onChange={(e) => setForm({...form, full_name: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
-              {errors.full_name && <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>{errors.full_name}</span>}
+            <h3 className="card-header">1. Data Akun</h3>
+            <div className="form-group">
+              <label className="form-label">Nama Lengkap <span className="required">*</span></label>
+              <input
+                type="text"
+                className={`form-input${errors.full_name ? ' form-input-error' : ''}`}
+                value={form.full_name}
+                onChange={(e) => setForm({...form, full_name: e.target.value})}
+              />
+              {errors.full_name && <span className="form-error">{errors.full_name}</span>}
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Email *</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
-              {errors.email && <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>{errors.email}</span>}
+            <div className="form-group">
+              <label className="form-label">Email <span className="required">*</span></label>
+              <input
+                type="email"
+                className={`form-input${errors.email ? ' form-input-error' : ''}`}
+                value={form.email}
+                onChange={(e) => setForm({...form, email: e.target.value})}
+              />
+              {errors.email && <span className="form-error">{errors.email}</span>}
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nomor Telepon</label>
-              <input type="text" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div className="form-group">
+              <label className="form-label">Nomor Telepon</label>
+              <input
+                type="text"
+                className="form-input"
+                value={form.phone}
+                onChange={(e) => setForm({...form, phone: e.target.value})}
+              />
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Password *</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
-              {errors.password && <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>{errors.password}</span>}
+            <div className="form-group">
+              <label className="form-label">Password <span className="required">*</span></label>
+              <input
+                type="password"
+                className={`form-input${errors.password ? ' form-input-error' : ''}`}
+                value={form.password}
+                onChange={(e) => setForm({...form, password: e.target.value})}
+              />
+              {errors.password && <span className="form-error">{errors.password}</span>}
             </div>
           </Card>
 
           <Card>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>2. Data Profil & Alamat</h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Pekerjaan</label>
-              <input type="text" value={form.occupation} onChange={(e) => setForm({...form, occupation: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <h3 className="card-header">2. Data Profil &amp; Alamat</h3>
+            <div className="form-group">
+              <label className="form-label">Pekerjaan</label>
+              <input
+                type="text"
+                className="form-input"
+                value={form.occupation}
+                onChange={(e) => setForm({...form, occupation: e.target.value})}
+              />
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Alamat Lengkap</label>
-              <textarea rows={4} value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div className="form-group">
+              <label className="form-label">Alamat Lengkap</label>
+              <textarea
+                rows={4}
+                className="form-textarea"
+                value={form.address}
+                onChange={(e) => setForm({...form, address: e.target.value})}
+              />
             </div>
           </Card>
 
           <Card>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>3. Data Rekening Bank</h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nama Bank</label>
-              <input type="text" list="banks" value={form.bank_name} onChange={(e) => setForm({...form, bank_name: e.target.value})} placeholder="Ketik atau pilih nama bank..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <h3 className="card-header">3. Data Rekening Bank</h3>
+            <div className="form-group">
+              <label className="form-label">Nama Bank</label>
+              <input
+                type="text"
+                list="banks"
+                className="form-input"
+                value={form.bank_name}
+                onChange={(e) => setForm({...form, bank_name: e.target.value})}
+                placeholder="Ketik atau pilih nama bank..."
+              />
               <datalist id="banks">
                 <option value="BCA">BCA (Bank Central Asia)</option>
                 <option value="Mandiri">Bank Mandiri</option>
@@ -216,26 +253,48 @@ export default function NewBidderPage() {
                 <option value="BPD Jatim">Bank Jatim</option>
               </datalist>
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nomor Rekening</label>
-              <input type="text" value={form.bank_account_no} onChange={(e) => setForm({...form, bank_account_no: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div className="form-group">
+              <label className="form-label">Nomor Rekening</label>
+              <input
+                type="text"
+                className="form-input"
+                value={form.bank_account_no}
+                onChange={(e) => setForm({...form, bank_account_no: e.target.value})}
+              />
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Nama Pemilik Rekening</label>
-              <input type="text" value={form.bank_account_name} onChange={(e) => setForm({...form, bank_account_name: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div className="form-group">
+              <label className="form-label">Nama Pemilik Rekening</label>
+              <input
+                type="text"
+                className="form-input"
+                value={form.bank_account_name}
+                onChange={(e) => setForm({...form, bank_account_name: e.target.value})}
+              />
             </div>
           </Card>
 
           <Card>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>4. Dokumen KYC (Opsional)</h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Foto KTP</label>
-              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={(e) => handleFileChange(e, 'ktp')} style={{ width: '100%', padding: '0.4rem', border: '1px solid #d1d5db', borderRadius: '4px', background: '#f9fafb' }} />
+            <h3 className="card-header">4. Dokumen KYC (Opsional)</h3>
+            <div className="form-group">
+              <label className="form-label">Foto KTP</label>
+              <input
+                type="file"
+                accept="image/png, image/jpeg, image/jpg"
+                className="form-input"
+                style={{ paddingTop: '0.45rem', cursor: 'pointer' }}
+                onChange={(e) => handleFileChange(e, 'ktp')}
+              />
               {ktpFile && <small style={{ color: '#10b981', display: 'block', marginTop: '0.25rem' }}>✓ File terpilih: {ktpFile.name}</small>}
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Foto Selfie dengan KTP</label>
-              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={(e) => handleFileChange(e, 'selfie')} style={{ width: '100%', padding: '0.4rem', border: '1px solid #d1d5db', borderRadius: '4px', background: '#f9fafb' }} />
+            <div className="form-group">
+              <label className="form-label">Foto Selfie dengan KTP</label>
+              <input
+                type="file"
+                accept="image/png, image/jpeg, image/jpg"
+                className="form-input"
+                style={{ paddingTop: '0.45rem', cursor: 'pointer' }}
+                onChange={(e) => handleFileChange(e, 'selfie')}
+              />
               {selfieFile && <small style={{ color: '#10b981', display: 'block', marginTop: '0.25rem' }}>✓ File terpilih: {selfieFile.name}</small>}
             </div>
           </Card>

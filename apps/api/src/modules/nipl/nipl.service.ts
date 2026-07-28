@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../lib/appError';
 import { ErrorCode } from '@indo-lelang/utils';
+import { niplSlotsFor } from '../../lib/niplPackage';
 
 export interface NiplAllocationsDTO {
   mobil: {
@@ -32,7 +33,7 @@ export class NiplService {
 
     const getPurchased = (type: string) => deposits
       .filter(d => d.unit_type === type)
-      .reduce((sum, dep) => sum + (dep.package_type === 'unlimited' ? 5 : parseInt(dep.package_type || '0')), 0);
+      .reduce((sum, dep) => sum + niplSlotsFor(dep.package_type), 0);
 
     const purchasedMobil = getPurchased('mobil');
     const purchasedMotor = getPurchased('motor');

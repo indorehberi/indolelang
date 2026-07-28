@@ -707,7 +707,7 @@ export default function AssetsPage() {
                 onChange={(e) => setProviderFilter(e.target.value)}
               >
                 <option value="">Semua Provider</option>
-                {displayedProviders.map((p) => (
+                {providers.map((p) => (
                   <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
                 ))}
               </select>

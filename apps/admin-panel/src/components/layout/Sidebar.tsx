@@ -235,6 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Keuangan',
       items: [
+        { href: '/finance/income', icon: 'savings', iconColor: '#22c55e', label: 'Pemasukan' },
         { href: '/finance/deposits', icon: 'account_balance_wallet', iconColor: '#10b981', label: 'Deposit' },
         { href: '/finance/invoices', icon: 'payments', iconColor: '#34d399', label: 'Pelunasan' },
         { href: '/finance/settlements', icon: 'paid', iconColor: '#059669', label: 'Pencairan' },

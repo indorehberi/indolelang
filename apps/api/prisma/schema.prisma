@@ -319,6 +319,11 @@ model deposits {
   is_manual          Boolean?  @default(false)
   status             String    @default("pending")
   paid_at            DateTime?
+  // Unlimited is a same-day privilege. Once the WIB day it was activated on
+  // has passed, the daily cron stamps this and the deposit counts as an
+  // ordinary one — the bidder keeps only the NIPL slots still unused.
+  // package_type stays "unlimited" so the purchase history is preserved.
+  unlimited_downgraded_at DateTime?
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt
 
@@ -333,14 +338,15 @@ model deposits {
 // checkout consumes exactly one active row per settled unit and links it via
 // invoice_id, giving every won unit's NIPL deduction a traceable code.
 model nipl_codes {
-  id         String    @id @default(uuid())
-  deposit_id String
-  code       String    @unique
-  unit_type  String
-  status     String    @default("active")
-  invoice_id String?
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  deposit_id          String
+  code                String    @unique
+  payment_unique_code Int       @default(0)
+  unit_type           String
+  status              String    @default("active")
+  invoice_id          String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
 
   deposit deposits  @relation(fields: [deposit_id], references: [id], onDelete: Cascade)
   invoice invoices? @relation(fields: [invoice_id], references: [id])
@@ -400,22 +406,26 @@ model checkout_orders {
 }
 
 model settlements {
-  id                  String    @id @default(uuid())
-  lot_id              String
-  provider_id         String
-  gross_amount        Decimal
-  commission_deducted Decimal
-  net_amount          Decimal
-  fee_dpp             Decimal?  @default(0)
-  fee_dpp_lain        Decimal?  @default(0)
-  fee_ppn             Decimal?  @default(0)
-  fee_pph23           Decimal?  @default(0)
-  pmk41_amount        Decimal?  @default(0)
-  gateway_fee         Decimal?  @default(0)
-  status              String    @default("pending")
-  transferred_at      DateTime?
-  created_at          DateTime  @default(now())
-  updated_at          DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  lot_id                 String
+  provider_id            String
+  gross_amount           Decimal
+  commission_deducted    Decimal
+  net_amount             Decimal
+  fee_dpp                Decimal?  @default(0)
+  fee_dpp_lain           Decimal?  @default(0)
+  fee_ppn                Decimal?  @default(0)
+  fee_pph23              Decimal?  @default(0)
+  pmk41_amount           Decimal?  @default(0)
+  gateway_fee            Decimal?  @default(0)
+  status                 String    @default("pending")
+  transferred_at         DateTime?
+  // Forfeiture: true jika settlement ini berasal dari NIPL yang hangus (bidder
+  // tidak melunasi unit). net_amount akan berisi ½ dari nipl_forfeiture_amount.
+  is_forfeiture          Boolean   @default(false)
+  nipl_forfeiture_amount Decimal?  @default(0)
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
 
   lot      lots  @relation(fields: [lot_id], references: [id])
   provider users @relation(fields: [provider_id], references: [id])

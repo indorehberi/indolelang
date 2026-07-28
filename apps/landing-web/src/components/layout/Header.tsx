@@ -53,6 +53,29 @@ export default function Header() {
     return pathname.startsWith(href);
   };
 
+  /**
+   * Where the "Dashboard" button sends the logged-in user.
+   *
+   * Staff roles must be routed to the admin panel, not the bidder panel: in
+   * production the admin panel is served from /admin on this very origin
+   * (basePath: '/admin'), so it shares localStorage with the landing site.
+   * Signing in as superadmin there makes this header light up too, and
+   * anything that isn't explicitly handled here used to fall through to
+   * /bidder/dashboard — dropping a superadmin into the bidder panel.
+   */
+  const dashboardHref = (() => {
+    switch (user?.role) {
+      case "superadmin":
+      case "admin":
+      case "operator":
+        return `${process.env.NEXT_PUBLIC_ADMIN_URL || "/admin"}/dashboard`;
+      case "provider":
+        return "/provider/dashboard";
+      default:
+        return "/bidder/dashboard";
+    }
+  })();
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 glass-nav border-b border-outline-variant/20 shadow-sm">
       <div className="max-w-container-max mx-auto px-margin-page py-3 flex items-center justify-between gap-4">
@@ -105,7 +128,7 @@ export default function Header() {
           </div>
           {mounted && user ? (
             <Link
-              href={user.role === "provider" ? "/provider/dashboard" : "/bidder/dashboard"}
+              href={dashboardHref}
               className="px-5 py-2 text-body-md font-bold text-on-premium bg-premium rounded-full shadow-sm hover:bg-premium/85 btn-press transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-xl">dashboard</span>
@@ -162,7 +185,7 @@ export default function Header() {
             {mounted && user ? (
               <div className="flex gap-3 mt-2">
                 <Link
-                  href={user.role === "provider" ? "/provider/dashboard" : "/bidder/dashboard"}
+                  href={dashboardHref}
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-bold text-body-md btn-press transition-all hover:bg-primary/90 w-full text-center flex items-center justify-center gap-2"
                 >

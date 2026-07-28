@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
-import Card from '../../../components/ui/Card';
+import CollapsibleCard from '../../../components/ui/CollapsibleCard';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
@@ -956,11 +956,10 @@ export default function PlatformSettingsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
         {/* Left Column: Platform rules (fees, tax) */}
         <div>
-          <Card>
-            <h2 className="card-title">Otomatisasi Mesin Lelang (Auction Engine)</h2>
+          <CollapsibleCard className="mt-4" title="Otomatisasi Mesin Lelang (Auction Engine)">
             <div className="alert alert-warning mt-3 mb-4 text-xs">
               <strong>Perhatian:</strong> Jika mengubah trigger menjadi "Oleh Sistem", backend cron job akan mengambil alih fungsi dari Control Room.
             </div>
@@ -1015,7 +1014,7 @@ export default function PlatformSettingsPage() {
                 <option value="system">Oleh Sistem (Otomatis Setelah Jeda)</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label className="form-label">Sesi Diakhiri / Ditutup Oleh <span className="required">*</span></label>
               <select className="form-input" value={auctionSessionEndTrigger} onChange={(e) => setAuctionSessionEndTrigger(e.target.value)}>
@@ -1027,51 +1026,48 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-warning w-100 mt-2" onClick={handleSaveAuctionSettings} disabled={isSavingAuction}>
               {isSavingAuction ? 'Menyimpan...' : 'Simpan Otomatisasi'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
-          <div className="mt-4" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', borderRadius: 'var(--radius)', border: '1px solid', padding: '1.5rem' }}>
-            <h2 className="card-title text-green-800">Pengaturan Dokumen BAPL</h2>
+          <CollapsibleCard className="mt-4" title="Pengaturan Dokumen BAPL">
             <div className="alert alert-info mt-3 mb-4 text-xs">
-              Pengaturan ini akan digunakan untuk dokumen Berita Acara Pemenang Lelang.
-            </div>
+               Pengaturan ini akan digunakan untuk dokumen Berita Acara Pemenang Lelang.
+             </div>
+ 
+             <div className="form-group">
+               <label className="form-label">Pejabat Penjual <span className="required">*</span></label>
+               <input type="text" className="form-input" value={pejabatPenjual} onChange={(e) => setPejabatPenjual(e.target.value)} required placeholder="Contoh: Budi Santoso" />
+             </div>
+ 
+             <div className="form-group">
+               <label className="form-label">Pejabat Lelang Kelas II <span className="required">*</span></label>
+               <input type="text" className="form-input" value={pejabatLelang} onChange={(e) => setPejabatLelang(e.target.value)} required placeholder="Contoh: CARI AZHARI, S.H." />
+             </div>
+ 
+             <button className="btn btn-primary w-100 mt-2" onClick={handleSaveBaplSettings} disabled={isSavingBapl}>
+               {isSavingBapl ? 'Menyimpan...' : 'Simpan Pengaturan BAPL'}
+             </button>
+           </CollapsibleCard>
 
-            <div className="form-group">
-              <label className="form-label text-green-900">Pejabat Penjual <span className="required">*</span></label>
-              <input type="text" className="form-input border-green-200 focus:border-green-400" value={pejabatPenjual} onChange={(e) => setPejabatPenjual(e.target.value)} required placeholder="Contoh: Budi Santoso" />
-            </div>
+           <CollapsibleCard className="mt-4" title="Pengaturan Bidding Room">
+             <div className="alert alert-info mt-3 mb-4 text-xs">
+               Parameter yang digunakan pada layar Bidding Bidder (kelipatan bid dan countdown awal).
+             </div>
+ 
+             <div className="form-group">
+               <label className="form-label">Bid Increment (Rp)</label>
+               <input type="number" className="form-input" value={bidIncrement1} onChange={(e) => setBidIncrement1(e.target.value)} required />
+             </div>
+ 
+             <p className="text-xs text-muted mt-1">
+               Durasi countdown awal lot serta perilaku reset saat ada bid mengikuti pengaturan "Waktu Pertama" dan "Waktu Kedua" di atas (Otomatisasi Mesin Lelang) — satu sumber kebenaran untuk Ruang Kontrol maupun Bidding Room.
+             </p>
+ 
+             <button className="btn btn-primary w-100 mt-2" onClick={handleSaveBiddingSettings} disabled={isSavingBidding}>
+               {isSavingBidding ? 'Menyimpan...' : 'Simpan Pengaturan Bidding'}
+             </button>
+           </CollapsibleCard>
 
-            <div className="form-group">
-              <label className="form-label text-green-900">Pejabat Lelang Kelas II <span className="required">*</span></label>
-              <input type="text" className="form-input border-green-200 focus:border-green-400" value={pejabatLelang} onChange={(e) => setPejabatLelang(e.target.value)} required placeholder="Contoh: CARI AZHARI, S.H." />
-            </div>
-
-            <button className="btn btn-primary w-100 mt-2 !bg-green-600 hover:!bg-green-700" onClick={handleSaveBaplSettings} disabled={isSavingBapl}>
-              {isSavingBapl ? 'Menyimpan...' : 'Simpan Pengaturan BAPL'}
-            </button>
-          </div>
-
-          <div className="mt-4" style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderRadius: 'var(--radius)', border: '1px solid', padding: '1.5rem' }}>
-            <h2 className="card-title text-purple-800">Pengaturan Bidding Room</h2>
-            <div className="alert alert-info mt-3 mb-4 text-xs">
-              Parameter yang digunakan pada layar Bidding Bidder (kelipatan bid dan countdown awal).
-            </div>
-
-            <div className="form-group">
-              <label className="form-label text-purple-900">Bid Increment (Rp)</label>
-              <input type="number" className="form-input border-purple-200 focus:border-purple-400" value={bidIncrement1} onChange={(e) => setBidIncrement1(e.target.value)} required />
-            </div>
-
-            <p className="text-xs text-muted mt-1">
-              Durasi countdown awal lot serta perilaku reset saat ada bid mengikuti pengaturan "Waktu Pertama" dan "Waktu Kedua" di atas (Otomatisasi Mesin Lelang) — satu sumber kebenaran untuk Ruang Kontrol maupun Bidding Room.
-            </p>
-
-            <button className="btn btn-primary w-100 mt-2 !bg-purple-600 hover:!bg-purple-700" onClick={handleSaveBiddingSettings} disabled={isSavingBidding}>
-              {isSavingBidding ? 'Menyimpan...' : 'Simpan Pengaturan Bidding'}
-            </button>
-          </div>
-
-          <Card className="mt-4">
-            <h2 className="card-title">Aturan Keuangan: Deposit Jaminan</h2>
+          <CollapsibleCard className="mt-4" title="Aturan Keuangan: Deposit Jaminan">
             <div className="form-group mt-3">
               <label className="form-label">Deposit Jaminan NIPL Kendaraan (Rp) <span className="required">*</span></label>
               <input type="number" className="form-input" value={nipl} onChange={(e) => setNipl(e.target.value)} required />
@@ -1123,11 +1119,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveDepositSettings} disabled={isSavingDeposit}>
               {isSavingDeposit ? 'Menyimpan...' : 'Simpan Pengaturan Deposit'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
-          <Card className="mt-4">
-            <h2 className="card-title">Aturan Keuangan: Pajak &amp; Potongan</h2>
-            
+          <CollapsibleCard className="mt-4" title="Aturan Keuangan: Pajak & Potongan">
+
             <div className="form-group mt-3">
               <label className="form-label">Pajak Pertambahan Nilai / PPN (%)</label>
               <input type="number" step="0.1" className="form-input" value={tax} onChange={(e) => setTax(e.target.value)} required />
@@ -1163,10 +1158,9 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={() => setIsConfirmModalOpen(true)}>
               Simpan Pajak &amp; Potongan
             </button>
-          </Card>
+          </CollapsibleCard>
 
-          <Card className="mt-4">
-            <h2 className="card-title">Fee Lelang — Per Provider</h2>
+          <CollapsibleCard className="mt-4" title="Fee Lelang — Per Provider">
             <div className="alert alert-secondary text-xs mt-3 mb-3">
               Atur fee lelang khusus untuk provider tertentu, menimpa nilai default di atas. Hanya provider berstatus aktif yang bisa dipilih.
             </div>
@@ -1215,10 +1209,9 @@ export default function PlatformSettingsPage() {
                 </button>
               </>
             )}
-          </Card>
+          </CollapsibleCard>
 
-          <Card className="mt-4">
-            <h2 className="card-title">Aturan Keuangan: Tiered Admin Fee (Untuk Bidder)</h2>
+          <CollapsibleCard className="mt-4" title="Aturan Keuangan: Tiered Admin Fee (Untuk Bidder)">
             <div className="alert alert-secondary text-xs mt-3 mb-3">
               Kosongkan batas harga maksimal pada baris terakhir untuk menetapkan fee tanpa batas atas (<i>Unlimited</i>).
             </div>
@@ -1310,10 +1303,9 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveAdminFeeSettings} disabled={isSavingAdminFee}>
               {isSavingAdminFee ? 'Menyimpan...' : 'Simpan Tiered Admin Fee'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
-          <Card className="mt-4">
-            <h2 className="card-title">Hari Libur Nasional</h2>
+          <CollapsibleCard className="mt-4" title="Hari Libur Nasional">
             <p className="text-xs text-muted mt-1 mb-3">
               Tanggal libur nasional yang digunakan untuk menghitung batas waktu pelunasan lelang (3 hari kerja). Batas waktu pelunasan akan melompati hari Sabtu, Minggu, dan tanggal-tanggal yang terdaftar di bawah ini.
             </p>
@@ -1368,10 +1360,9 @@ export default function PlatformSettingsPage() {
             >
               {isSavingHolidays ? 'Menyimpan...' : 'Simpan Hari Libur'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
-          <Card className="mt-4">
-            <h2 className="card-title">Link Sosial Media</h2>
+          <CollapsibleCard className="mt-4" title="Link Sosial Media">
             <p className="text-xs text-muted mt-1 mb-3">
               Konfigurasi link sosial media PT INDO LELANG SEJAHTERA yang ditampilkan di bagian kaki (footer) website.
             </p>
@@ -1408,13 +1399,12 @@ export default function PlatformSettingsPage() {
             >
               {isSavingSocmed ? 'Menyimpan...' : 'Simpan Link Sosial Media'}
             </button>
-          </Card>
+          </CollapsibleCard>
         </div>
 
-        {/* Right Column: Feature Toggles */}
+        {/* Right Column: Feature Toggles + Integrations */}
         <div>
-          <Card>
-            <h2 className="card-title">Feature Toggles (Modul Layanan Pihak Ketiga)</h2>
+          <CollapsibleCard title="Feature Toggles (Modul Layanan Pihak Ketiga)">
             <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Perubahan status di bawah ini langsung berdampak pada alur registrasi, pembayaran, dan bidding room.</p>
 
             <div className="table-wrapper">
@@ -1422,16 +1412,15 @@ export default function PlatformSettingsPage() {
                 <thead>
                   <tr>
                     <th>Nama Modul / Fitur</th>
-                    <th>Feature Key</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'center' }}>Tindakan Toggle</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={4} className="text-center">Memuat status fitur...</td></tr>
+                    <tr><td colSpan={3} className="text-center">Memuat status fitur...</td></tr>
                   ) : toggles.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center text-muted">Tidak ada feature toggle ditemukan.</td></tr>
+                    <tr><td colSpan={3} className="text-center text-muted">Tidak ada feature toggle ditemukan.</td></tr>
                   ) : (
                     toggles.map((item) => (
                       <tr key={item.key}>
@@ -1452,7 +1441,6 @@ export default function PlatformSettingsPage() {
                             </button>
                           )}
                         </td>
-                        <td><code style={{ fontSize: '0.85rem' }}>{item.key}</code></td>
                         <td>
                           {item.value === 'true' ? (
                             <Badge variant="success">ON</Badge>
@@ -1476,16 +1464,10 @@ export default function PlatformSettingsPage() {
                 </tbody>
               </table>
             </div>
-          </Card>
-        </div>
-      </div>
-      
-      {/* Integrations Column - Split into 6 separate Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          </CollapsibleCard>
+
           {/* Card 1: Mode Pembayaran Deposit NIPL */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Mode Pembayaran Deposit NIPL</h3>
+          <CollapsibleCard title="Mode Pembayaran Deposit NIPL">
             <div className="form-group mb-4" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
               <label className="form-label fw-bold">Mode Pembayaran</label>
               <select 
@@ -1532,11 +1514,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSavePaymentMode} disabled={isSavingPaymentMode}>
               {isSavingPaymentMode ? 'Menyimpan...' : 'Simpan Mode Pembayaran'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 2: Instruksi Transfer Manual */}
-          <Card>
-            <h3 className="fw-bold text-sm mb-3">Instruksi Transfer Manual (Ditampilkan ke Bidder)</h3>
+          <CollapsibleCard title="Instruksi Transfer Manual (Ditampilkan ke Bidder)">
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Nama Bank</label>
               <input type="text" className="form-input" value={apiKeys.manual_payment_bank} onChange={(e) => setApiKeys({...apiKeys, manual_payment_bank: e.target.value})} placeholder="Contoh: BCA" />
@@ -1553,11 +1534,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveManualTransfer} disabled={isSavingManualTransfer}>
               {isSavingManualTransfer ? 'Menyimpan...' : 'Simpan Instruksi Transfer'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 3: Biaya & Batas Waktu */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Biaya Transfer, Refund &amp; Timeout NIPL</h3>
+          <CollapsibleCard title="Biaya Transfer, Refund & Timeout NIPL">
             <div className="form-group mb-2">
               <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>Biaya Transfer (Rp)</label>
               <input type="number" className="form-input" value={apiKeys.manual_transfer_fee} onChange={(e) => setApiKeys({...apiKeys, manual_transfer_fee: e.target.value})} />
@@ -1577,13 +1557,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveFeeTimeout} disabled={isSavingFeeTimeout}>
               {isSavingFeeTimeout ? 'Menyimpan...' : 'Simpan Biaya &amp; Batas Waktu'}
             </button>
-          </Card>
-        </div>
+          </CollapsibleCard>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Card 4: Amazon S3 / Cloudflare R2 */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Amazon S3 / Cloudflare R2 (Penyimpanan Foto)</h3>
+          <CollapsibleCard title="Amazon S3 / Cloudflare R2 (Penyimpanan Foto)">
             <div className="form-group mb-2">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>S3 Bucket Name</label>
               <input type="text" placeholder="indo-lelang-bucket" className="form-input" value={apiKeys.aws_bucket} onChange={(e) => setApiKeys({...apiKeys, aws_bucket: e.target.value})} />
@@ -1605,11 +1582,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveS3} disabled={isSavingS3}>
               {isSavingS3 ? 'Menyimpan...' : 'Simpan Penyimpanan'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 5a: Validasi Rekening Bank */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Validasi Rekening Bank</h3>
+          <CollapsibleCard title="Validasi Rekening Bank">
             <div className="form-group mb-2" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: '#f8fafc' }}>
               <label className="form-label fw-bold">Mode Validasi Rekening Bidder</label>
               <select className="form-input" value={apiKeys.bank_inquiry_mode || 'manual'} onChange={(e) => setApiKeys({...apiKeys, bank_inquiry_mode: e.target.value})}>
@@ -1629,11 +1605,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveBank} disabled={isSavingBank}>
               {isSavingBank ? 'Menyimpan...' : 'Simpan Validasi Rekening'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 5b: Verihubs API Key (eKYC) */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Verihubs eKYC</h3>
+          <CollapsibleCard title="Verihubs eKYC">
             <div className="form-group mb-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Verihubs API Key (eKYC)</label>
               <input type="password" placeholder="********" className="form-input" value={apiKeys.verihubs_api_key} onChange={(e) => setApiKeys({...apiKeys, verihubs_api_key: e.target.value})} />
@@ -1642,11 +1617,10 @@ export default function PlatformSettingsPage() {
             <button className="btn btn-primary w-100" onClick={handleSaveVerihubs} disabled={isSavingVerihubs}>
               {isSavingVerihubs ? 'Menyimpan...' : 'Simpan Verihubs'}
             </button>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 5c: Fonnte WhatsApp Gateway */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">Fonnte WhatsApp Gateway</h3>
+          <CollapsibleCard title="Fonnte WhatsApp Gateway">
             <div className="form-group mb-3">
               <label className="form-label" style={{ fontSize: '0.8rem' }}>Fonnte API Token (WhatsApp OTP &amp; Notification)</label>
               <input type="password" placeholder="Kosong (tidak diubah)" className="form-input" value={apiKeys.fonnte_token} onChange={(e) => setApiKeys({...apiKeys, fonnte_token: e.target.value})} />
@@ -1677,11 +1651,10 @@ export default function PlatformSettingsPage() {
                 {isTestingWhatsApp ? 'Mengirim...' : 'Tes Kirim WhatsApp'}
               </button>
             </div>
-          </Card>
+          </CollapsibleCard>
 
           {/* Card 6: SMTP (Email) */}
-          <Card>
-            <h3 className="text-md fw-bold mb-3">SMTP (Email)</h3>
+          <CollapsibleCard title="SMTP (Email)">
             <div className="alert alert-info mb-3" style={{ fontSize: '0.8rem' }}>
               Pengaturan SMTP disimpan terenkripsi. Uji email setelah menyimpan.
             </div>
@@ -1733,10 +1706,10 @@ export default function PlatformSettingsPage() {
                 </button>
               </div>
             </div>
-          </Card>
+          </CollapsibleCard>
         </div>
       </div>
-      
+
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
         <div className="modal-overlay">

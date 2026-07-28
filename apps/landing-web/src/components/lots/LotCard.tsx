@@ -202,7 +202,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
           ) : (
             <div className="absolute bottom-0 left-2 right-2 translate-y-1/2 z-20 bg-white rounded-xl shadow-lg px-2 py-2 border border-outline-variant/10 text-center">
               <p className="text-[9px] text-on-surface-variant font-semibold uppercase tracking-wide mb-0.5">{lot.priceLabel ?? "Harga Dasar"}</p>
-              <p className="font-black text-primary leading-tight" style={{ fontSize: "min(14px, 3.8vw)" }}>{formatRupiah(lot.hargaDasar)}</p>
+              <p className="font-black text-primary-strong leading-tight" style={{ fontSize: "min(14px, 3.8vw)" }}>{formatRupiah(lot.hargaDasar)}</p>
             </div>
           )
         )}
@@ -246,7 +246,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
               { icon: "speed", val: lot.odometer ? `${Number(lot.odometer).toLocaleString("id-ID")} km` : "-" },
             ].map((c, i) => (
               <div key={i} className="px-0.5 py-1 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 11 }}>{c.icon}</span>
+                <span className="material-symbols-outlined text-primary-strong" style={{ fontSize: 11 }}>{c.icon}</span>
                 <p className="text-[9px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
               </div>
             ))}
@@ -258,7 +258,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
               { icon: "receipt_long", val: formatPajak(lot.stnk_tax_date) },
             ].map((c, i) => (
               <div key={i} className="px-0.5 py-1 text-center">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 11 }}>{c.icon}</span>
+                <span className="material-symbols-outlined text-primary-strong" style={{ fontSize: 11 }}>{c.icon}</span>
                 <p className="text-[9px] font-semibold text-white mt-0.5 truncate">{c.val}</p>
               </div>
             ))}

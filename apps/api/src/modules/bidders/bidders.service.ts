@@ -6,6 +6,7 @@ import { BidderDTO, PaginationMeta, ApplicationStatus, KycStatus } from '@indo-l
 import { notificationsService } from '../notifications/notifications.service';
 import { KycService } from '../kyc/kyc.service';
 import { notifyAdmins } from '../../lib/notifyAdmins';
+import { grantsUnlimitedNow, niplSlotsFor } from '../../lib/niplPackage';
 
 const kycService = new KycService();
 
@@ -102,11 +103,14 @@ export class BiddersService {
   private async getBidderNiplStats(userId: string) {
     const deposits = await prisma.deposits.findMany({
       where: { user_id: userId, status: 'paid' },
-      select: { package_type: true, unit_type: true },
+      select: { package_type: true, unit_type: true, unlimited_downgraded_at: true },
     });
 
-    const unlimitedMobil = deposits.some(d => d.package_type === 'unlimited' && d.unit_type === 'mobil');
-    const unlimitedMotor = deposits.some(d => d.package_type === 'unlimited' && d.unit_type === 'motor');
+    // An unlimited deposit only grants unlimited wins on the WIB day it was
+    // activated; after the daily cron stamps unlimited_downgraded_at it is
+    // treated as an ordinary deposit worth its remaining NIPL codes.
+    const unlimitedMobil = deposits.some(d => grantsUnlimitedNow(d) && d.unit_type === 'mobil');
+    const unlimitedMotor = deposits.some(d => grantsUnlimitedNow(d) && d.unit_type === 'motor');
 
     const activeCodes = await prisma.nipl_codes.findMany({
       where: {
@@ -143,21 +147,33 @@ export class BiddersService {
     status?: string,
     search?: string
   ): Promise<{ bidders: BidderDTO[]; meta: PaginationMeta }> {
+    const userFilter: any = {
+      deleted_at: null,
+      role: { not: 'provider' },
+      OR: [
+        { provider_app: null },
+        {
+          provider_app: {
+            status: { notIn: ['antri', 'aktif'] }
+          }
+        }
+      ]
+    };
+
     const where: any = {
-      user: {
-        deleted_at: null,
-      },
+      user: userFilter,
     };
     if (status) where.status = status;
     if (search) {
-      where.user = {
-        deleted_at: null,
-        OR: [
-          { full_name: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-        ],
-      };
+      userFilter.AND = [
+        {
+          OR: [
+            { full_name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search } },
+          ]
+        }
+      ];
     }
 
     const skip = (page - 1) * perPage;
@@ -175,33 +191,45 @@ export class BiddersService {
     const statusOrder: Record<string, number> = { antri: 0, aktif: 1, ditolak: 2, nonaktif: 3 };
     records.sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
 
-    const deposits = await prisma.deposits.findMany({
-      where: {
-        user_id: { in: records.map((r) => r.user_id) },
-        status: 'paid',
-      },
-      select: {
-        user_id: true,
-        package_type: true,
-        unit_type: true,
-      },
-    });
+    const userIds = records.map((r) => r.user_id);
+
+    const [deposits, activeCodes] = await Promise.all([
+      prisma.deposits.findMany({
+        where: { user_id: { in: userIds }, status: 'paid' },
+        select: { user_id: true, package_type: true, unit_type: true, unlimited_downgraded_at: true },
+      }),
+      // Counting live NIPL slots rather than deriving from package_type keeps
+      // this list agreeing with the single-bidder view, and is the only way to
+      // get a downgraded unlimited deposit right: its package_type still reads
+      // "unlimited", but what the bidder actually holds is whatever slots are
+      // left unused.
+      prisma.nipl_codes.findMany({
+        where: {
+          status: 'active',
+          deposit: { user_id: { in: userIds }, status: 'paid' },
+        },
+        select: { unit_type: true, deposit: { select: { user_id: true } } },
+      }),
+    ]);
 
     const niplByUser = new Map<string, { total: number; mobil: number; motor: number; unlimitedMobil: boolean; unlimitedMotor: boolean }>();
+    const blank = () => ({ total: 0, mobil: 0, motor: 0, unlimitedMobil: false, unlimitedMotor: false });
+
+    for (const code of activeCodes) {
+      const userId = code.deposit?.user_id;
+      if (!userId) continue;
+      const current = niplByUser.get(userId) || blank();
+      current.total += 1;
+      if (code.unit_type === 'mobil') current.mobil += 1;
+      else if (code.unit_type === 'motor') current.motor += 1;
+      niplByUser.set(userId, current);
+    }
+
     for (const dep of deposits) {
-      const current = niplByUser.get(dep.user_id) || { total: 0, mobil: 0, motor: 0, unlimitedMobil: false, unlimitedMotor: false };
-      let count = 0;
-      if (dep.package_type === 'unlimited') {
-        count = 999;
-        if (dep.unit_type === 'mobil') current.unlimitedMobil = true;
-        else if (dep.unit_type === 'motor') current.unlimitedMotor = true;
-      } else {
-        const parsed = parseInt(dep.package_type || '0', 10);
-        count = Number.isNaN(parsed) ? 0 : parsed;
-      }
-      current.total += count;
-      if (dep.unit_type === 'mobil') current.mobil += count;
-      else if (dep.unit_type === 'motor') current.motor += count;
+      if (!grantsUnlimitedNow(dep)) continue;
+      const current = niplByUser.get(dep.user_id) || blank();
+      if (dep.unit_type === 'mobil') current.unlimitedMobil = true;
+      else if (dep.unit_type === 'motor') current.unlimitedMotor = true;
       niplByUser.set(dep.user_id, current);
     }
 
@@ -412,7 +440,7 @@ export class BiddersService {
 
     // Create nipl_codes for each newly created deposit
     for (const dep of createdDeposits) {
-      const count = dep.package_type === 'unlimited' ? 5 : parseInt(dep.package_type || '1', 10);
+      const count = niplSlotsFor(dep.package_type, 1);
       for (let i = 0; i < count; i++) {
         const code = `NIPL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
         await prisma.nipl_codes.create({

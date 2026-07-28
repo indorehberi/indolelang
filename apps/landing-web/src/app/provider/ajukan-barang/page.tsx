@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ProviderLayout from "../../../components/layout/ProviderLayout";
 import { apiUrl, fetchWithRetry, apiFetch } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
+import * as XLSX from "xlsx";
 
 const CAR_BRANDS = ['TOYOTA', 'HONDA', 'DAIHATSU', 'SUZUKI', 'MITSUBISHI', 'NISSAN', 'MAZDA', 'HYUNDAI', 'KIA', 'WULING', 'BMW', 'MERCEDES-BENZ', 'FORD', 'BYD', 'CHERY', 'MG', 'NETA', 'AION', 'VINFAST', 'GEELY', 'XPENG', 'DENZA'];
 const MOTOR_BRANDS = ['HONDA', 'YAMAHA', 'SUZUKI', 'KAWASAKI', 'VESPA', 'TVS', 'KTM'];
@@ -18,17 +19,17 @@ const CAR_MODELS_BY_BRAND: Record<string, string[]> = {
   NISSAN: ['GRAND LIVINA', 'SERENA', 'X-TRAIL', 'JUKE', 'MARCH', 'KICKS'],
   MAZDA: ['MAZDA2', 'MAZDA3', 'CX-3', 'CX-5', 'CX-9'],
   FORD: ['FIESTA', 'ECOSPORT', 'EVEREST', 'RANGER', 'FOCUS'],
-  HYUNDAI: ['CRETA', 'PALISADE', 'SANTA FE', 'IONIQ 5', 'KONA', 'KONA ELECTRIC (BARU)', 'STARGAZER'],
+  HYUNDAI: ['CRETA', 'PALISADE', 'SANTA FE', 'IONIQ 5', 'KONA', 'STARGAZER'],
   KIA: ['SONET', 'SELTOS', 'CARNIVAL', 'PICANTO', 'RIO'],
   WULING: ['CONFERO', 'CORTEZ', 'ALMAZ', 'AIR EV', 'BINGUOEV', 'CLOUD EV'],
   BMW: ['3 SERIES', '5 SERIES', '7 SERIES', 'X1', 'X3', 'X5'],
   'MERCEDES-BENZ': ['C-CLASS', 'E-CLASS', 'S-CLASS', 'GLC', 'GLE'],
-  BYD: ['DOLPHIN', 'ATTO 3', 'SEAL', 'M6', 'SEALION 7'],
-  CHERY: ['OMODA E5', 'J6 (ICAR 03)'],
+  BYD: ['DOLPHIN', 'ATTO 3', 'SEAL', 'M6'],
+  CHERY: ['OMODA E5', 'J6'],
   MG: ['MG4 EV', 'MG ZS EV'],
   NETA: ['V-II', 'X'],
   AION: ['Y PLUS', 'V', 'UT'],
-  VINFAST: ['VF 3', 'VF 5', 'VF E34'],
+  VINFAST: ['VF 3', 'VF 5'],
   GEELY: ['EX5'],
   XPENG: ['G6', 'X9'],
   DENZA: ['D9']
@@ -44,8 +45,159 @@ const MOTOR_MODELS_BY_BRAND: Record<string, string[]> = {
   KTM: ['DUKE 200', 'DUKE 250', 'DUKE 390', 'RC 200', 'RC 250']
 };
 
-const COLORS = ['N/A', 'HITAM', 'PUTIH', 'PERAK (SILVER)', 'ABU-ABU', 'MERAH', 'BIRU', 'HIJAU', 'KUNING', 'COKELAT', 'ORANGE'];
-const BODY_TYPES = ['N/A', 'SEDAN', 'SUV', 'MPV', 'HATCHBACK', 'PICK UP', 'TRUK', 'BUS'];
+const VARIANTS_BY_MODEL: Record<string, string[]> = {
+  AVANZA: ['1.3 G', '1.5 G', '1.3 E', 'VELOZ 1.5'],
+  INNOVA: ['2.0 G', '2.0 V', '2.4 G', '2.4 V', 'VENTURER', 'ZENIX Q', 'ZENIX V', 'ZENIX G'],
+  FORTUNER: ['2.4 G', '2.4 VRZ', '2.7 SRZ', '2.8 VRZ GR SPORT'],
+  ALPHARD: ['2.5 G', '2.5 X', '3.5 Q'],
+  RUSH: ['1.5 G', '1.5 S TRD', '1.5 GR SPORT'],
+  AGYA: ['1.2 G', '1.2 GR SPORT'],
+  CALYA: ['1.2 G', '1.2 E'],
+  YARIS: ['1.5 G', '1.5 TRD', '1.5 GR SPORT'],
+  CAMRY: ['2.5 G', '2.5 V', '2.5 HYBRID'],
+  VIOS: ['1.5 G', '1.5 E'],
+  COROLLA: ['1.8 ALTIS', 'CROSS HYBRID'],
+  BRIO: ['1.2 S', '1.2 E', '1.2 RS'],
+  JAZZ: ['1.5 S', '1.5 RS'],
+  'HR-V': ['1.5 S', '1.5 E', '1.5 SE', '1.5 TURBO RS'],
+  'CR-V': ['2.0 I-VTEC', '1.5 TURBO PRESTIGE', '2.0 RS E:HEV'],
+  MOBILIO: ['1.5 S', '1.5 E', '1.5 RS'],
+  'BR-V': ['1.5 S', '1.5 E', '1.5 PRESTIGE'],
+  CIVIC: ['1.5 TURBO', 'TYPE R', 'RS E:HEV'],
+  CITY: ['1.5 E', 'HATCHBACK RS'],
+  ACCORD: ['2.4 VTI-L', '1.5 TURBO', '2.0 RS E:HEV'],
+  XENIA: ['1.3 X', '1.3 R', '1.5 R'],
+  TERIOS: ['1.5 X', '1.5 R', '1.5 R CUSTOM'],
+  SIGRA: ['1.0 M', '1.2 X', '1.2 R'],
+  AYLA: ['1.0 X', '1.2 R'],
+  'GRAN MAX': ['1.3 PICK UP', '1.5 PICK UP', '1.3 BLIND VAN'],
+  LUXIO: ['1.5 D', '1.5 X'],
+  SIRION: ['1.3 D', '1.3 M'],
+  ERTIGA: ['1.4 GL', '1.4 GX', 'HYBRID SS'],
+  XL7: ['ZETA', 'BETA', 'ALPHA'],
+  IGNIS: ['GL', 'GX'],
+  BALENO: ['1.4', 'HATCHBACK'],
+  CARRY: ['1.5 PICK UP', 'FUTURA 1.5'],
+  JIMNY: ['MT', 'AT'],
+  'S-CROSS': ['1.5'],
+  XPANDER: ['GLS', 'EXCEED', 'SPORT', 'ULTIMATE', 'CROSS'],
+  'PAJERO SPORT': ['GLX', 'EXCEED', 'DAKAR', 'DAKAR ULTIMATE'],
+  TRITON: ['HDX', 'GLS', 'EXCEED', 'ULTIMATE'],
+  L300: ['PICK UP', 'BOX'],
+  OUTLANDER: ['PX', 'GLX', 'PHEV'],
+  'GRAND LIVINA': ['1.5 SV', '1.5 XV', '1.5 HIGHWAY STAR'],
+  SERENA: ['2.0 HIGHWAY STAR', 'E-POWER'],
+  'X-TRAIL': ['2.5', '2.0 HYBRID'],
+  JUKE: ['1.5 RX'],
+  MARCH: ['1.2', '1.5'],
+  KICKS: ['E-POWER'],
+  MAZDA2: ['GT', 'R', 'R-SPORT'],
+  MAZDA3: ['GT', 'SPEED'],
+  'CX-3': ['1.5 SPORT', '2.0 PRO'],
+  'CX-5': ['TOURING', 'GRAND TOURING', 'ELITE'],
+  'CX-9': ['2.5 TURBO', 'KURO EDITION'],
+  FIESTA: ['1.5 TREND', '1.5 SPORT', '1.0 ECOBOOST'],
+  ECOSPORT: ['1.5 TREND', '1.5 TITANIUM'],
+  EVEREST: ['2.5 XLT', '2.2 TITANIUM', '2.0 TITANIUM'],
+  RANGER: ['2.2 XLT', '3.2 WILDTRAK', '2.0 RAPTOR'],
+  FOCUS: ['1.6 TREND', '2.0 SPORT'],
+  CRETA: ['ACTIVE', 'TREND', 'STYLE', 'PRIME'],
+  PALISADE: ['PRIME', 'SIGNATURE'],
+  'SANTA FE': ['STYLE', 'PRIME', 'SIGNATURE'],
+  'IONIQ 5': ['PRIME STANDARD', 'SIGNATURE STANDARD', 'PRIME LONG RANGE', 'SIGNATURE LONG RANGE'],
+  KONA: ['2.0 SIGNATURE', 'ELECTRIC'],
+  STARGAZER: ['ACTIVE', 'TREND', 'STYLE', 'PRIME', 'ESSENTIAL'],
+  SONET: ['ACTIVE', 'SMART', 'PREMIERE'],
+  SELTOS: ['EXP', 'EX', 'GT LINE'],
+  CARNIVAL: ['PREMIERE'],
+  PICANTO: ['EX', 'GT LINE'],
+  RIO: ['EX'],
+  CONFERO: ['1.5 S', '1.5 DB', '1.5 C', '1.5 L'],
+  CORTEZ: ['1.5 S', '1.5 C', '1.5 L', '1.8 C', '1.8 L'],
+  ALMAZ: ['1.5 SMART ENJOY', '1.5 EXCLUSIVE', 'RS PRO', 'HYBRID'],
+  'AIR EV': ['LITE', 'STANDARD RANGE', 'LONG RANGE'],
+  BINGUOEV: ['333 KM', '410 KM'],
+  'CLOUD EV': ['460 KM'],
+  '3 SERIES': ['320I SPORT', '320I M SPORT', '330I M SPORT'],
+  '5 SERIES': ['520I LUXURY', '530I OPULENCE', '530I M SPORT'],
+  '7 SERIES': ['730LI SPORT', '740LI OPULENCE'],
+  X1: ['SDRIVE18I XLINE', 'SDRIVE18I M SPORT'],
+  X3: ['XDRIVE20I XLINE', 'XDRIVE30I M SPORT'],
+  X5: ['XDRIVE40I XLINE', 'XDRIVE40I M SPORT'],
+  'C-CLASS': ['C180', 'C200 AVANTGARDE', 'C300 AMG LINE'],
+  'E-CLASS': ['E200 AVANTGARDE', 'E300 AMG LINE'],
+  'S-CLASS': ['S450 L'],
+  GLC: ['GLC200 AMG LINE'],
+  GLE: ['GLE450 AMG LINE'],
+  DOLPHIN: ['DYNAMIC', 'PREMIUM'],
+  'ATTO 3': ['ADVANCED', 'SUPERIOR'],
+  SEAL: ['PREMIUM', 'PERFORMANCE'],
+  M6: ['STANDARD', 'SUPERIOR'],
+  'OMODA E5': ['STANDARD', 'PURE'],
+  J6: ['FWD', 'AWD'],
+  'MG4 EV': ['IGNITE', 'MAGNIFY'],
+  'MG ZS EV': ['IGNITE', 'MAGNIFY'],
+  'V-II': ['STANDARD'],
+  X: ['ELITE', 'SUPREME'],
+  'Y PLUS': ['EXCLUSIVE', 'PREMIUM'],
+  V: ['ELITE'],
+  UT: ['STANDARD'],
+  'VF 3': ['STANDARD'],
+  'VF 5': ['PLUS'],
+  EX5: ['STANDARD'],
+  G6: ['STANDARD', 'LONG RANGE'],
+  X9: ['STANDARD', 'LONG RANGE'],
+  D9: ['PREMIUM'],
+  BEAT: ['CBS', 'CBS ISS', 'DELUXE', 'STREET'],
+  VARIO: ['125 CBS', '150 EXCLUSIVE', '160 ABS'],
+  SCOOPY: ['SPORTY', 'STYLISH', 'PRESTIGE'],
+  PCX: ['150 ABS', '160 CBS', '160 ABS'],
+  ADV: ['150', '160'],
+  CBR: ['150R', '250RR'],
+  SUPRA: ['X 125', 'GTR 150'],
+  REVO: ['FIT', 'X'],
+  CB150R: ['STREETFIRE'],
+  CRF150L: ['STANDARD'],
+  NMAX: ['155 STANDARD', '155 CONNECTED ABS'],
+  AEROX: ['155 STANDARD', '155 CONNECTED ABS'],
+  LEXI: ['125', 'LX 155'],
+  MIO: ['M3', 'GEAR 125'],
+  FINO: ['125 PREMIUM', '125 SPORTY'],
+  VIXION: ['150', 'R 155'],
+  R15: ['STANDARD', 'M'],
+  R25: ['STANDARD', 'ABS'],
+  'MT-15': ['STANDARD'],
+  WR155R: ['STANDARD'],
+  JUPITER: ['Z1', 'MX KING 150'],
+  VEGA: ['FORCE'],
+  SATRIA: ['F150'],
+  'GSX-R150': ['STANDARD', 'KEYLESS'],
+  'GSX-S150': ['STANDARD'],
+  NEX: ['II', 'CROSS'],
+  ADDRESS: ['STANDARD', 'PLAYFUL'],
+  SMASH: ['FI'],
+  'NINJA 250': ['STANDARD', 'ABS SE'],
+  'NINJA ZX-25R': ['STANDARD', 'ABS SE'],
+  'KLX 150': ['STANDARD', 'L', 'S', 'BF'],
+  W175: ['STANDARD', 'CAFE', 'TR'],
+  'D-TRACKER': ['STANDARD', 'SE'],
+  PRIMAVERA: ['STANDARD', 'S'],
+  SPRINT: ['STANDARD', 'S'],
+  GTS: ['SUPER', 'SUPER SPORT', 'CLASSIC'],
+  LX: ['I-GET'],
+  'S 125': ['I-GET'],
+  CALLISTO: ['STANDARD', 'INTELIGO'],
+  NTORQ: ['RACE EDITION', 'XP'],
+  APACHE: ['RTR 160', 'RTR 200'],
+  'DUKE 200': ['STANDARD'],
+  'DUKE 250': ['STANDARD'],
+  'DUKE 390': ['STANDARD'],
+  'RC 200': ['STANDARD'],
+  'RC 250': ['STANDARD']
+};
+
+const COLORS = ['N/A', 'HITAM', 'PUTIH', 'PERAK (SILVER)', 'ABU-ABU', 'MERAH', 'BIRU', 'HIJAU', 'KUNING', 'COKELAT', 'ORANGE', 'LAINNYA'];
+const BODY_TYPES = ['N/A', 'SEDAN', 'SUV', 'MPV', 'HATCHBACK', 'PICK UP', 'TRUK', 'BUS', 'LAINNYA'];
 
 interface Branch {
   id: string;
@@ -122,6 +274,224 @@ function ProviderAjukanBarangContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
+
+  // Bulk import states
+  const [importedAssets, setImportedAssets] = useState<any[]>([]);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [rowUploadingPhoto, setRowUploadingPhoto] = useState<{ index: number; field: string } | null>(null);
+  const [managingPhotoIndex, setManagingPhotoIndex] = useState<number | null>(null);
+
+  const countUploadedPhotos = (asset: any) => {
+    return PHOTO_FIELDS.filter(f => asset[f.key]).length;
+  };
+
+  const handleRowPhotoUpload = async (index: number, field: string, file: File | null) => {
+    if (!file) return;
+    setRowUploadingPhoto({ index, field });
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    try {
+      const response = await apiFetch("/upload/single", {
+        method: "POST",
+        body: uploadData,
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setImportedAssets(prev => prev.map((asset, i) => {
+          if (i === index) {
+            return { ...asset, [field]: resData.data.url };
+          }
+          return asset;
+        }));
+        toast.success(`Foto berhasil diunggah!`);
+      } else {
+        toast.error(resData.error?.message || "Gagal mengunggah foto.");
+      }
+    } catch (err) {
+      toast.error("Koneksi gagal saat mengunggah foto.");
+    } finally {
+      setRowUploadingPhoto(null);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array", cellDates: true });
+        
+        // Find the correct sheet name (prioritize names with "aset" or "import", and exclude "Data_Lists")
+        let sheetName = workbook.SheetNames.find(n => n && (n.toLowerCase().includes("aset") || n.toLowerCase().includes("import")));
+        if (!sheetName) {
+          sheetName = workbook.SheetNames.find(n => n !== "Data_Lists") || workbook.SheetNames[0];
+        }
+
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const findVal = (row: any, ...possibleKeys: string[]) => {
+          for (const pk of possibleKeys) {
+            const match = Object.keys(row).find(k => 
+              k.trim().toLowerCase().replace(/\s+/g, "") === pk.toLowerCase().replace(/\s+/g, "")
+            );
+            if (match && row[match] !== undefined && row[match] !== null) {
+              return row[match];
+            }
+          }
+          return undefined;
+        };
+
+        const parsedAssets = rows
+          .filter((row: any) => {
+            const police = String(findVal(row, "No. Polisi", "police_number") || "").trim();
+            const bpkb = String(findVal(row, "No. BPKB", "bpkb_number") || "").trim();
+            const brand = String(findVal(row, "Merek", "brand") || "").trim();
+            const model = String(findVal(row, "Model", "model") || "").trim();
+            
+            // Skip example row only if it is exactly the unmodified example row
+            const isDefaultExample = 
+              brand.toUpperCase() === "TOYOTA" && 
+              model.toUpperCase() === "AVANZA" && 
+              police === "B 1234 ABC" && 
+              bpkb === "BPKB-998877";
+              
+            if (isDefaultExample) return false;
+            
+            return brand !== "" || model !== "";
+          })
+          .map((row: any) => {
+            const categoryInput = String(findVal(row, "Kategori (mobil/motor)", "category") || "mobil").trim().toLowerCase();
+            const category = categoryInput.includes("motor") ? "motor" : "mobil";
+            const branchInput = String(findVal(row, "Cabang", "branch") || "").trim();
+            const foundBranch = branches.find(b => 
+              b.name.toLowerCase().includes(branchInput.toLowerCase()) || 
+              b.city.toLowerCase().includes(branchInput.toLowerCase())
+            );
+
+            const parseBool = (val: any) => String(val || "").trim().toLowerCase() === "ada";
+            const parseDate = (val: any) => {
+              if (!val) return undefined;
+              if (val instanceof Date) return val.toISOString().split("T")[0];
+              return String(val).trim();
+            };
+
+            return {
+              category,
+              brand: String(findVal(row, "Merek", "brand") || "").trim().toUpperCase(),
+              model: String(findVal(row, "Model", "model") || "").trim().toUpperCase(),
+              type: String(findVal(row, "Tipe / Varian", "Tipe/Varian", "type") || "").trim().toUpperCase(),
+              year: parseInt(findVal(row, "Tahun Pembuatan", "year") || new Date().getFullYear(), 10),
+              police_number: String(findVal(row, "No. Polisi", "police_number") || "").trim().toUpperCase(),
+              base_price: parseFloat(String(findVal(row, "Harga Dasar Limit", "base_price") || "0").replace(/[^0-9.-]+/g, "")),
+              branch_id: foundBranch ? foundBranch.id : undefined,
+              branch_name: foundBranch ? foundBranch.name : branchInput || "-",
+              pool_status: String(findVal(row, "Status Pool (in_pool/out_pool)", "pool_status") || "in_pool").trim().toLowerCase() === "out_pool" ? "out_pool" : "in_pool",
+              color: String(findVal(row, "Warna", "color") || "N/A").trim().toUpperCase(),
+              fuel_type: String(findVal(row, "Bahan Bakar", "fuel_type") || "Bensin").trim(),
+              transmission: String(findVal(row, "Transmisi", "transmission") || "Otomatis").trim(),
+              body_type: String(findVal(row, "Bentuk Bodi", "body_type") || "N/A").trim().toUpperCase(),
+              cylinder: findVal(row, "Isi Silinder (cc)", "cylinder") ? parseInt(findVal(row, "Isi Silinder (cc)", "cylinder"), 10) : undefined,
+              odometer: findVal(row, "Odometer (km)", "odometer") ? parseInt(findVal(row, "Odometer (km)", "odometer"), 10) : undefined,
+              bpkb_number: String(findVal(row, "No. BPKB", "bpkb_number") || "").trim().toUpperCase(),
+              frame_number: String(findVal(row, "No. Rangka", "frame_number") || "").trim().toUpperCase(),
+              engine_number: String(findVal(row, "No. Mesin", "engine_number") || "").trim().toUpperCase(),
+              notes: String(findVal(row, "Catatan / Kondisi", "notes") || "").trim(),
+              doc_stnk: parseBool(findVal(row, "Ada STNK?", "doc_stnk")),
+              stnk_date: parseDate(findVal(row, "Masa Berlaku STNK (YYYY-MM-DD)", "stnk_date")),
+              doc_bpkb: parseBool(findVal(row, "Ada BPKB?", "doc_bpkb")),
+              doc_faktur: parseBool(findVal(row, "Ada Faktur?", "doc_faktur")),
+              doc_kwitansi: parseBool(findVal(row, "Ada Kwitansi?", "doc_kwitansi")),
+              doc_form_a: parseBool(findVal(row, "Ada Form A?", "doc_form_a")),
+              doc_copy_ktp: parseBool(findVal(row, "Ada Copy KTP?", "doc_copy_ktp")),
+              doc_keur: parseBool(findVal(row, "Ada KEUR?", "doc_keur")),
+              keur_date: parseDate(findVal(row, "Masa Berlaku KEUR (YYYY-MM-DD)", "keur_date")),
+              doc_sph: parseBool(findVal(row, "Ada SPH?", "doc_sph")),
+              photo_front: "",
+              photo_back: "",
+              photo_right: "",
+              photo_left: "",
+              photo_engine: "",
+              photo_interior: "",
+              photo_stnk: "",
+            };
+          });
+
+        if (parsedAssets.length === 0) {
+          const firstRow = rows[0] ? JSON.stringify(rows[0]).substring(0, 120) : "Kosong";
+          toast.error(`Tidak ada data aset valid yang ditemukan dalam sheet "${sheetName}". Baris pertama terbaca: ${firstRow}`);
+        } else {
+          setImportedAssets(parsedAssets);
+          toast.success(`Berhasil mengimpor ${parsedAssets.length} aset ke daftar pratinjau.`);
+        }
+      } catch (err) {
+        console.error("Error parsing Excel:", err);
+        toast.error("Gagal membaca file Excel. Pastikan format file sesuai.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
+
+  const handleBulkSubmit = async () => {
+    if (importedAssets.length === 0) return;
+    setIsSubmitting(true);
+    setImportProgress({ current: 0, total: importedAssets.length });
+    
+    let successCount = 0;
+    let failedCount = 0;
+    
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      toast.error("Sesi Anda telah berakhir, silakan login kembali.");
+      router.push("/login");
+      setIsSubmitting(false);
+      return;
+    }
+
+    for (let i = 0; i < importedAssets.length; i++) {
+      const asset = importedAssets[i];
+      setImportProgress({ current: i + 1, total: importedAssets.length });
+      
+      try {
+        const payload = {
+          ...asset,
+          title: `${asset.brand} ${asset.model} ${asset.year}`,
+          description: asset.notes || `Unit titipan ${asset.brand} ${asset.model}`,
+        };
+
+        const res = await apiFetch("/assets", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        
+        const resData = await res.json();
+        if (res.ok && resData.success) {
+          successCount++;
+        } else {
+          console.error(`Failed to import asset ${asset.police_number}:`, resData.error);
+          failedCount++;
+        }
+      } catch (err) {
+        console.error(`Error importing asset ${asset.police_number}:`, err);
+        failedCount++;
+      }
+    }
+    
+    setIsSubmitting(false);
+    if (successCount > 0) {
+      toast.success(`Berhasil mengajukan ${successCount} aset baru.`);
+    }
+    if (failedCount > 0) {
+      toast.error(`Gagal mengajukan ${failedCount} aset.`);
+    }
+    
+    setImportedAssets([]);
+  };
 
   const [customBrands, setCustomBrands] = useState<string[]>([]);
   const [customModels, setCustomModels] = useState<string[]>([]);
@@ -413,19 +783,31 @@ function ProviderAjukanBarangContent() {
   };
 
   const getAvailableBrands = () => {
-    if (formData.category === 'motor') return MOTOR_BRANDS;
-    if (formData.category === 'mobil') return CAR_BRANDS;
-    return [];
+    let brands: string[] = [];
+    if (formData.category === 'motor') brands = MOTOR_BRANDS;
+    else if (formData.category === 'mobil') brands = CAR_BRANDS;
+    return brands.map(b => b.toUpperCase());
   };
 
   const getAvailableModels = () => {
+    if (!formData.brand || formData.brand === 'N/A' || formData.brand === 'LAINNYA') {
+      return [];
+    }
+    let models: string[] = [];
     if (formData.category === 'motor') {
-      return formData.brand ? MOTOR_MODELS_BY_BRAND[formData.brand] || [] : [];
+      models = MOTOR_MODELS_BY_BRAND[formData.brand] || [];
+    } else if (formData.category === 'mobil') {
+      models = CAR_MODELS_BY_BRAND[formData.brand] || [];
     }
-    if (formData.category === 'mobil') {
-      return formData.brand ? CAR_MODELS_BY_BRAND[formData.brand] || [] : [];
+    return models.map(m => m.toUpperCase());
+  };
+
+  const getAvailableTypes = () => {
+    if (!formData.model || formData.model === 'N/A' || formData.model === 'LAINNYA') {
+      return [];
     }
-    return [];
+    const vars = VARIANTS_BY_MODEL[formData.model.toUpperCase()] || [];
+    return vars.map(v => v.toUpperCase());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -500,6 +882,207 @@ function ProviderAjukanBarangContent() {
 
       <div className="grid-2-1">
         <div>
+          {/* CARD 1: IMPORT MASSAL */}
+          {!editId && (
+            <div className="card mb-6">
+              <div className="card-header border-b pb-4 mb-4 flex justify-between items-center flex-wrap gap-2">
+                <span className="font-bold text-slate-800">Import Aset via Excel</span>
+                <a
+                  href="/api/template-import"
+                  download="template_import_aset.xlsx"
+                  className="px-3 py-1.5 text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-lg flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  Download Template Excel
+                </a>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Anda dapat mengimpor banyak unit sekaligus menggunakan file spreadsheet Excel. Unduh template di atas, isi data aset, lalu unggah kembali di bawah ini. Pilihan dropdown pada Excel sudah disesuaikan dengan form pengajuan.
+                </p>
+
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-primary/50 transition-colors bg-slate-50/50">
+                  <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">upload_file</span>
+                  <p className="text-xs text-slate-500 mb-3">Pilih berkas template Excel yang sudah diisi (.xlsx)</p>
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="excel-upload-input"
+                  />
+                  <label
+                    htmlFor="excel-upload-input"
+                    className="inline-flex px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs cursor-pointer transition-colors"
+                  >
+                    Pilih File Excel
+                  </label>
+                </div>
+
+                {importedAssets.length > 0 && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <h4 className="font-bold text-sm text-slate-800 mb-3 flex items-center justify-between">
+                      <span>Daftar Pratinjau Aset yang Akan Diimport ({importedAssets.length} unit)</span>
+                      <button
+                        onClick={() => setImportedAssets([])}
+                        className="text-xs text-red-500 hover:underline font-bold"
+                      >
+                        Batal Semua
+                      </button>
+                    </h4>
+
+                    <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[300px]">
+                      <table className="w-full text-left border-collapse" style={{ fontSize: "0.85rem" }}>
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="p-3 font-bold text-slate-700 w-12 text-center">No</th>
+                            <th className="p-3 font-bold text-slate-700">No. Polisi</th>
+                            <th className="p-3 font-bold text-slate-700">Nama Kendaraan</th>
+                            <th className="p-3 font-bold text-slate-700">Harga Dasar</th>
+                            <th className="p-3 font-bold text-slate-700">Cabang</th>
+                            <th className="p-3 font-bold text-slate-700">Status Pool</th>
+                            <th className="p-3 font-bold text-slate-700 text-center">Foto Unit</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {importedAssets.map((asset, index) => (
+                            <tr key={index}>
+                              <td className="p-3 text-center text-slate-500">{index + 1}</td>
+                              <td className="p-3 font-bold text-slate-800">{asset.police_number || "-"}</td>
+                              <td className="p-3 text-slate-700">{asset.brand} {asset.model} ({asset.year})</td>
+                              <td className="p-3 text-slate-700 font-bold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(asset.base_price)}</td>
+                              <td className="p-3 text-slate-700">{asset.branch_name}</td>
+                              <td className="p-3 text-slate-700 capitalize">{asset.pool_status}</td>
+                              <td className="p-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setManagingPhotoIndex(index)}
+                                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs flex items-center justify-center gap-1 mx-auto transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                                  <span>Kelola Foto ({countUploadedPhotos(asset)}/7)</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mt-4">
+                      <button
+                        onClick={handleBulkSubmit}
+                        disabled={isSubmitting}
+                        className="w-full py-3 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl transition-all shadow-md shadow-secondary/20 flex items-center justify-center gap-2"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <span className="w-4 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Memproses Pengajuan {importProgress.current} dari {importProgress.total}...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-lg">publish</span>
+                            <span>Ajukan Aset</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {managingPhotoIndex !== null && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col scale-in duration-200">
+                {/* Modal Header */}
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Import Excel - Kelola Foto</span>
+                    <h3 className="text-lg font-black text-slate-800 mt-1">
+                      Upload Foto: {importedAssets[managingPhotoIndex]?.brand} {importedAssets[managingPhotoIndex]?.model} ({importedAssets[managingPhotoIndex]?.year})
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setManagingPhotoIndex(null)}
+                    className="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                  {PHOTO_FIELDS.map((item) => {
+                    const url = importedAssets[managingPhotoIndex]?.[item.key];
+                    const isUploading = rowUploadingPhoto?.index === managingPhotoIndex && rowUploadingPhoto?.field === item.key;
+                    
+                    return (
+                      <div key={item.key} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <label className="font-bold text-xs text-slate-700 block mb-1">{item.label}</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleRowPhotoUpload(managingPhotoIndex, item.key, e.target.files?.[0] || null)}
+                            disabled={isUploading}
+                            className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                          />
+                          {isUploading && (
+                            <span className="text-[10px] text-slate-500 mt-1 block animate-pulse">Mengunggah foto...</span>
+                          )}
+                          {url && !isUploading && (
+                            <span className="text-[10px] text-success font-bold mt-1 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs">check_circle</span>
+                              Foto berhasil tersimpan
+                            </span>
+                          )}
+                        </div>
+
+                        {url && !isUploading && (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white flex-shrink-0 relative group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={item.label} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImportedAssets(prev => prev.map((asset, i) => {
+                                  if (i === managingPhotoIndex) {
+                                    return { ...asset, [item.key]: "" };
+                                  }
+                                  return asset;
+                                }));
+                              }}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 font-bold transition-opacity"
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setManagingPhotoIndex(null)}
+                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition-colors"
+                  >
+                    Selesai &amp; Simpan
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
           {isSuccess && (
             <div className="alert-box success mb-4">
               <span className="material-symbols-outlined">check_circle</span>
@@ -528,10 +1111,12 @@ function ProviderAjukanBarangContent() {
                       }}
                       className="panel-form-select"
                     >
-                      {enabledCategories.mobil && <option value="mobil">Mobil</option>}
-                      {enabledCategories.motor && <option value="motor">Motor</option>}
-                      {enabledCategories.heavy && <option value="alat-berat">Alat Berat</option>}
-                      {enabledCategories.properti && <option value="properti">Properti</option>}
+                      {enabledCategories.mobil && <option value="mobil">MOBIL</option>}
+                      {enabledCategories.motor && <option value="motor">MOTOR</option>}
+                      {enabledCategories.heavy && <option value="alat-berat">ALAT BERAT</option>}
+                      {enabledCategories.properti && <option value="properti">PROPERTI</option>}
+                      <option value="N/A">N/A</option>
+                      <option value="LAINNYA">LAINNYA</option>
                     </select>
                   </div>
                   <div className="panel-form-group">
@@ -564,8 +1149,9 @@ function ProviderAjukanBarangContent() {
                       className="panel-form-select" 
                     >
                       <option value="" disabled>Pilih Merek...</option>
-                      {Array.from(new Set([...getAvailableBrands(), ...customBrands])).map(b => <option key={b} value={b}>{b.toUpperCase()}</option>)}
-                      <option value="LAINNYA">LAINNYA...</option>
+                      {Array.from(new Set(['N/A', ...getAvailableBrands(), ...customBrands, 'LAINNYA'])).map(b => (
+                        <option key={b} value={b.toUpperCase()}>{b.toUpperCase()}</option>
+                      ))}
                       <option value="__ADD_NEW__">+ Tambahkan Merek Baru...</option>
                     </select>
                   </div>
@@ -582,13 +1168,15 @@ function ProviderAjukanBarangContent() {
                           handleAddModel();
                         } else {
                           handleChange('model', e.target.value.toUpperCase());
+                          handleChange('type', '');
                         }
                       }} 
                       className="panel-form-select" 
                     >
-                      <option value="">Pilih Model...</option>
-                      {Array.from(new Set([...getAvailableModels(), ...customModels])).map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-                      <option value="LAINNYA">LAINNYA...</option>
+                      <option value="" disabled>Pilih Model...</option>
+                      {Array.from(new Set(['N/A', ...getAvailableModels(), ...customModels, 'LAINNYA'])).map(m => (
+                        <option key={m} value={m.toUpperCase()}>{m.toUpperCase()}</option>
+                      ))}
                       <option value="__ADD_NEW__">+ Tambahkan Model Baru...</option>
                     </select>
                   </div>
@@ -609,8 +1197,10 @@ function ProviderAjukanBarangContent() {
                       }} 
                       className="panel-form-select" 
                     >
-                      <option value="">Pilih Tipe...</option>
-                      {customTypesVariant.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                      <option value="" disabled>Pilih Tipe...</option>
+                      {Array.from(new Set(['N/A', ...getAvailableTypes(), ...customTypesVariant, 'LAINNYA'])).map(t => (
+                        <option key={t} value={t.toUpperCase()}>{t.toUpperCase()}</option>
+                      ))}
                       <option value="__ADD_NEW__">+ Tambahkan Tipe Baru...</option>
                     </select>
                   </div>

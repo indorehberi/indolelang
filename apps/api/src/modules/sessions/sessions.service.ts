@@ -53,7 +53,9 @@ export class SessionsService {
     perPage: number,
     status?: string,
     branchId?: string,
-    search?: string
+    search?: string,
+    isExclusive?: boolean,
+    date?: string
   ): Promise<{ sessions: AuctionSessionDTO[]; meta: PaginationMeta }> {
     const where: Prisma.auction_sessionsWhereInput = {};
 
@@ -65,6 +67,14 @@ export class SessionsService {
     }
     if (search) {
       where.title = { contains: search, mode: 'insensitive' };
+    }
+    if (isExclusive !== undefined) {
+      where.is_exclusive = isExclusive;
+    }
+    if (date) {
+      const startOfDay = new Date(`${date}T00:00:00.000Z`);
+      const endOfDay = new Date(`${date}T23:59:59.999Z`);
+      where.scheduled_at = { gte: startOfDay, lte: endOfDay };
     }
 
     const skip = (page - 1) * perPage;

@@ -6,6 +6,7 @@ import { DepositStatus, LotStatus, AssetStatus, NotificationType } from '@indo-l
 import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
 import { paymentsService } from '../payments/payments.service';
+import { isUnlimitedPackage } from '../../lib/niplPackage';
 
 export interface BidSubmission {
   userId: string;
@@ -125,9 +126,19 @@ export class BiddingService {
     let isUnlimited = false;
 
     for (const d of activeDeposits) {
-      if (d.package_type === 'unlimited') {
-        isUnlimited = true;
-        break;
+      // A downgraded unlimited deposit no longer grants unlimited quota — it
+      // is worth the NIPL slots the bidder still has left, which the numeric
+      // branch below cannot read off its package_type, so count its live
+      // codes instead.
+      if (isUnlimitedPackage(d.package_type)) {
+        if (!d.unlimited_downgraded_at) {
+          isUnlimited = true;
+          break;
+        }
+        totalQuota += await prisma.nipl_codes.count({
+          where: { deposit_id: d.id, status: 'active' },
+        });
+        continue;
       }
       totalQuota += parseInt(d.package_type || '1', 10);
     }

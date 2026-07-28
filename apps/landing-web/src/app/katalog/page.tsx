@@ -45,7 +45,7 @@ const categories = ["Semua Lot", "Mobil", "Motor", "Properti", "Alat Berat"];
 
 export default function KatalogPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center font-bold font-serif text-primary text-heading-xl bg-surface">Memuat Katalog BIDKU...</div>}>
+    <Suspense fallback={<div className="p-20 text-center font-bold font-serif text-primary-strong text-heading-xl bg-surface">Memuat Katalog BIDKU...</div>}>
       <KatalogContent />
     </Suspense>
   );
@@ -355,7 +355,7 @@ function KatalogContent() {
                   <div>
                     <h1 className="text-heading-3xl md:text-[3.25rem] md:leading-[1.08] font-extrabold text-on-surface tracking-tight font-serif">
                       Katalog Lelang{" "}
-                      <span className="text-primary">BIDKU</span>
+                      <span className="text-primary-strong">BIDKU</span>
                     </h1>
                     <p className="text-body-lg text-on-surface-variant max-w-2xl mt-4 leading-relaxed">
                       Temukan lot kendaraan, properti, dan aset pilihan dengan
@@ -372,7 +372,7 @@ function KatalogContent() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
-                      <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary">
+                      <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary-strong">
                         <span className="material-symbols-outlined">
                           search
                         </span>
@@ -384,7 +384,7 @@ function KatalogContent() {
                 {/* Right — stat grid */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white/90 rounded-2xl p-4 border border-white shadow-sm hover:shadow-md transition-shadow">
-                    <p className="text-heading-xl font-extrabold text-primary">{totalLots}</p>
+                    <p className="text-heading-xl font-extrabold text-primary-strong">{totalLots}</p>
                     <p className="text-body-sm text-on-surface-variant mt-1">Lot Aktif</p>
                   </div>
                   <div className="bg-white/90 rounded-2xl p-4 border border-white shadow-sm hover:shadow-md transition-shadow">
@@ -410,7 +410,7 @@ function KatalogContent() {
                         </p>
                       </div>
                     </div>
-                    <span className={`material-symbols-outlined ${isSesiLive ? "text-error animate-pulse" : "text-primary"} text-3xl`}>
+                    <span className={`material-symbols-outlined ${isSesiLive ? "text-error animate-pulse" : "text-primary-strong"} text-3xl`}>
                       {isSesiLive ? "live_tv" : "event_available"}
                     </span>
                   </div>
@@ -441,7 +441,7 @@ function KatalogContent() {
                       className={`px-4 py-2 rounded-full text-body-sm font-bold whitespace-nowrap transition-all btn-press ${
                         activeCategory === cat
                           ? "bg-primary text-on-primary shadow-sm"
-                          : "bg-surface-container-low text-on-surface hover:text-primary hover:bg-primary/10"
+                          : "bg-surface-container-low text-on-surface hover:text-primary-strong hover:bg-primary/10"
                       }`}
                     >
                       {cat}
@@ -519,7 +519,7 @@ function KatalogContent() {
                         setMaxHarga("");
                         setSearchQuery("");
                       }}
-                      className="text-body-sm font-bold text-primary hover:underline"
+                      className="text-body-sm font-bold text-primary-strong hover:underline"
                     >
                       Reset
                     </button>
@@ -731,7 +731,7 @@ function KatalogContent() {
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                         validCurrentPage === 1 
                           ? "bg-surface-container text-outline/50 cursor-not-allowed" 
-                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary hover:border-primary"
+                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary-strong hover:border-primary"
                       }`}
                     >
                       <span className="material-symbols-outlined">chevron_left</span>
@@ -755,7 +755,7 @@ function KatalogContent() {
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                         validCurrentPage === totalPages 
                           ? "bg-surface-container text-outline/50 cursor-not-allowed" 
-                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary hover:border-primary"
+                          : "bg-white border border-outline-variant/20 text-outline hover:text-primary-strong hover:border-primary"
                       }`}
                     >
                       <span className="material-symbols-outlined">chevron_right</span>

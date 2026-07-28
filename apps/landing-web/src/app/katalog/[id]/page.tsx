@@ -148,7 +148,7 @@ export default function DetailLotPage() {
         )}
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-spin">sync</span>
+            <span className="material-symbols-outlined text-4xl text-primary-strong animate-spin">sync</span>
             <p className="text-body-md text-on-surface-variant mt-3 font-semibold">Memuat detail lot...</p>
           </div>
         </main>
@@ -305,11 +305,11 @@ export default function DetailLotPage() {
       <main className="max-w-container-max mx-auto px-6 py-6 pb-24">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-body-sm text-on-surface-variant mb-6 overflow-x-auto whitespace-nowrap py-1">
-          <Link href="/" className="hover:text-primary transition-colors">
+          <Link href="/" className="hover:text-primary-strong transition-colors">
             Beranda
           </Link>
           <span className="text-outline">/</span>
-          <Link href="/katalog" className="hover:text-primary transition-colors">
+          <Link href="/katalog" className="hover:text-primary-strong transition-colors">
             Katalog Lelang
           </Link>
           <span className="text-outline">/</span>
@@ -394,7 +394,7 @@ export default function DetailLotPage() {
             {/* Info Lot Panel */}
             <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm">
               <h2 className="text-heading-md font-bold text-on-surface mb-5 flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary">info</span>
+                <span className="material-symbols-outlined text-primary-strong">info</span>
                 Info Lot
               </h2>
               <div className="space-y-3 text-sm">
@@ -420,7 +420,7 @@ export default function DetailLotPage() {
             {/* Specifications Card */}
             <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm">
               <h2 className="text-heading-md font-bold text-on-surface mb-5 flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary">description</span>
+                <span className="material-symbols-outlined text-primary-strong">description</span>
                 Spesifikasi Lengkap Aset
               </h2>
               <div className="overflow-x-auto">
@@ -494,7 +494,7 @@ export default function DetailLotPage() {
                     <span className="text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider">
                       Harga Awal Pembukaan:
                     </span>
-                    <span className="text-heading-lg font-black text-primary text-right">
+                    <span className="text-heading-lg font-black text-primary-strong text-right">
                       {formatRupiah(bidAmount)}
                     </span>
                   </div>

@@ -315,6 +315,29 @@ export class PaymentsController {
   /**
    * GET list of settlements (Admin/Operator sees all, Provider sees own)
    */
+  /**
+   * Admin income ledger (deposit / biaya admin / fee lelang), newest first.
+   * Optional `from` and `to` query params narrow it to a date range.
+   */
+  async getIncomeLedger(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const parseDate = (raw: unknown): Date | undefined => {
+        if (typeof raw !== 'string' || !raw) return undefined;
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? undefined : d;
+      };
+
+      const entries = await paymentsService.getIncomeLedger(
+        parseDate(req.query.from),
+        parseDate(req.query.to)
+      );
+
+      sendSuccess(res, entries, 'Daftar pemasukan berhasil dimuat');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getSettlements(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const page = parseInt(req.query.page as string || '1', 10);

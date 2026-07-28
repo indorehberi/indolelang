@@ -92,24 +92,33 @@ export default function GoogleAuthModal({
         const user = resData.data.user;
         const accessToken = resData.data.accessToken;
 
+        onClose();
+
+        if (["admin", "operator", "superadmin"].includes(user.role)) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+          }
+          let adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+          if (typeof window !== "undefined" && window.location.hostname !== 'localhost') {
+            adminUrl = '/admin'; // Force relative path in production
+          }
+          window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
+          return;
+        }
+
         if (typeof window !== "undefined") {
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("user", JSON.stringify(user));
         }
 
-        onClose();
         if (user.role === "bidder") {
           router.push("/bidder/dashboard");
         } else if (user.role === "user") {
           router.push("/pilih-peran");
         } else if (user.role === "provider") {
           router.push("/provider/dashboard");
-        } else if (["admin", "operator", "superadmin"].includes(user.role)) {
-          let adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
-          if (typeof window !== "undefined" && window.location.hostname !== 'localhost') {
-            adminUrl = '/admin'; // Force relative path in production
-          }
-          window.location.href = `${adminUrl}/login?token=${accessToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
         } else {
           toast.error("Role akun Anda tidak didukung pada halaman ini.");
         }

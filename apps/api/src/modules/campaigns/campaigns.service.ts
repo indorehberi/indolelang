@@ -40,8 +40,8 @@ export class CampaignsService {
       }
     });
 
-    // 2. Fetch target users (only approved)
-    const whereClause: any = { status: 'approved' };
+    // 2. Fetch target users (only active)
+    const whereClause: any = { status: 'active' };
     if (data.target_role !== 'all') {
       whereClause.role = data.target_role;
     }

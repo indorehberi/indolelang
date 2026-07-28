@@ -357,7 +357,13 @@ export default function BidderListPage() {
                     <td>{bidder.user?.phone || '-'}</td>
                     <td>
                       <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
-                        {(bidder.is_unlimited_mobil && bidder.is_unlimited_motor) ? 'Unlimited' : `${bidder.active_nipl_count || 0} NIPL`}
+                        {bidder.is_unlimited_mobil && bidder.is_unlimited_motor
+                          ? 'Unlimited'
+                          : bidder.is_unlimited_mobil
+                          ? 'Unlimited Mobil'
+                          : bidder.is_unlimited_motor
+                          ? 'Unlimited Motor'
+                          : `${bidder.active_nipl_count || 0} NIPL`}
                       </Badge>
                       {((bidder.nipl_mobil || 0) > 0 || (bidder.nipl_motor || 0) > 0) && (
                         <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>
@@ -495,7 +501,16 @@ export default function BidderListPage() {
                 <div><strong>Bank:</strong> {selectedBidder.bank_name || '-'}</div>
                 <div><strong>No. Rekening:</strong> {selectedBidder.bank_account_no || '-'}</div>
                 <div><strong>Nama Pemilik Rekening:</strong> {selectedBidder.bank_account_name || '-'}</div>
-                <div><strong>NIPL Aktif:</strong> {(selectedBidder.is_unlimited_mobil && selectedBidder.is_unlimited_motor) ? 'Unlimited' : (selectedBidder.active_nipl_count || 0)}</div>
+                <div>
+                  <strong>NIPL Aktif:</strong>{' '}
+                  {selectedBidder.is_unlimited_mobil && selectedBidder.is_unlimited_motor
+                    ? 'Unlimited'
+                    : selectedBidder.is_unlimited_mobil
+                    ? 'Unlimited Mobil'
+                    : selectedBidder.is_unlimited_motor
+                    ? 'Unlimited Motor'
+                    : (selectedBidder.active_nipl_count || 0)}
+                </div>
                 <div><strong>Tanggal Ajukan:</strong> {selectedBidder.submitted_at.split('T')[0]}</div>
                 {selectedBidder.rejection_reason && (
                   <div style={{ gridColumn: '1 / -1' }}><strong>Alasan Ditolak:</strong> {selectedBidder.rejection_reason}</div>
@@ -624,7 +639,15 @@ export default function BidderListPage() {
             <h3 style={{ marginBottom: '0.5rem' }}>Edit Jumlah NIPL</h3>
             <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
               Bidder: <strong>{selectedBidder.user?.full_name}</strong><br />
-              NIPL saat ini: <strong>{(selectedBidder.is_unlimited_mobil && selectedBidder.is_unlimited_motor) ? 'Unlimited' : (selectedBidder.active_nipl_count || 0)}</strong>
+              NIPL saat ini: <strong>
+                {selectedBidder.is_unlimited_mobil && selectedBidder.is_unlimited_motor
+                  ? 'Unlimited'
+                  : selectedBidder.is_unlimited_mobil
+                  ? 'Unlimited Mobil'
+                  : selectedBidder.is_unlimited_motor
+                  ? 'Unlimited Motor'
+                  : (selectedBidder.active_nipl_count || 0)}
+              </strong>
             </p>
             <form onSubmit={handleAdjustNipl}>
               <div style={{ marginBottom: '1rem' }}>

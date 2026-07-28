@@ -20,6 +20,7 @@ export default function AuctionResultsPage() {
   const [dateFilter, setDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchBidder, setSearchBidder] = useState('');
+  const [searchPolice, setSearchPolice] = useState('');
 
   const fetchProviders = async () => {
     try {
@@ -80,6 +81,11 @@ export default function AuctionResultsPage() {
       const matchesName = lot.winner?.full_name?.toLowerCase().includes(query);
       const matchesEmail = lot.winner?.email?.toLowerCase().includes(query);
       if (!matchesName && !matchesEmail) return false;
+    }
+    if (searchPolice) {
+      const query = searchPolice.toLowerCase().replace(/\s+/g, '');
+      const police = lot.asset?.police_number?.toLowerCase().replace(/\s+/g, '') || '';
+      if (!police.includes(query)) return false;
     }
     return true;
   });
@@ -179,6 +185,18 @@ export default function AuctionResultsPage() {
               placeholder="Nama atau Email..."
               value={searchBidder}
               onChange={(e) => setSearchBidder(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari No. Polisi</label>
+            <input
+              type="text"
+              className="search-box"
+              placeholder="Misal: B 1234 ABC"
+              value={searchPolice}
+              onChange={(e) => setSearchPolice(e.target.value)}
               style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
             />
           </div>

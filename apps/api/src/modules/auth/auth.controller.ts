@@ -32,7 +32,11 @@ export class AuthController {
 			res.cookie('refreshToken', refreshToken, {
 				httpOnly: true,
 				secure: env.NODE_ENV === 'production',
-				sameSite: 'strict',
+				// 'lax' allows the cookie to be sent on same-site navigation and top-level
+				// cross-site navigation, while still blocking cross-site POST from third-party
+				// sites. 'strict' would block it entirely when admin panel and API are on
+				// different subdomains (e.g. admin.indo-lelang.com vs api.indo-lelang.com).
+				sameSite: env.NODE_ENV === 'production' ? 'lax' : 'lax',
 				path: `${env.API_PREFIX}/auth`,
 				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 			});

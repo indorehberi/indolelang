@@ -53,8 +53,8 @@ export default function FinanceReportPage() {
     const sessionTitle = item.lot?.session?.title || '';
     const feeAdmin = getBidderAdminFee(item.gross_amount);
     const feeLelang = item.commission_deducted;
-    const ppnStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
-    const pphStatus = item.status === 'processed' ? 'Lunas' : 'Pending';
+    const ppnStatus = item.status !== 'unpaid' ? 'Lunas' : 'Pending';
+    const pphStatus = item.status !== 'unpaid' ? 'Lunas' : 'Pending';
     const pgExpense = item.status === 'processed' ? 3200 : 0; // gateway settlement payout fee
 
     if (searchUnit && !unitTitle.toLowerCase().includes(searchUnit.toLowerCase()) && !policeNum.toLowerCase().includes(searchUnit.toLowerCase()) && !sessionTitle.toLowerCase().includes(searchUnit.toLowerCase())) return false;
@@ -101,9 +101,9 @@ export default function FinanceReportPage() {
         'Pemasukan Fee Lelang': item.commission_deducted || 0,
         'DPP': dpp,
         'PPN': ppn,
-        'Status PPN': item.status === 'processed' ? 'Lunas' : 'Pending',
+        'Status PPN': item.status !== 'unpaid' ? 'Lunas' : 'Pending',
         'PPH 23 (2%)': pph23,
-        'Status PPH 23': item.status === 'processed' ? 'Lunas' : 'Pending',
+        'Status PPH 23': item.status !== 'unpaid' ? 'Lunas' : 'Pending',
         'PPN Pemenang (PMK 41)': pmk41,
         'Pengeluaran PG': pgExpense,
         'Nominal Settlement': item.net_amount || 0,
@@ -270,14 +270,14 @@ export default function FinanceReportPage() {
                       <td>{formatPrice(dpp)}</td>
                       <td>{formatPrice(ppn)}</td>
                       <td>
-                        <Badge variant={item.status === 'processed' ? 'success' : 'warning'}>
-                          {item.status === 'processed' ? 'Lunas' : 'Pending'}
+                        <Badge variant={item.status !== 'unpaid' ? 'success' : 'warning'}>
+                          {item.status !== 'unpaid' ? 'Lunas' : 'Pending'}
                         </Badge>
                       </td>
                       <td>{formatPrice(pph23)}</td>
                       <td>
-                        <Badge variant={item.status === 'processed' ? 'success' : 'warning'}>
-                          {item.status === 'processed' ? 'Lunas' : 'Pending'}
+                        <Badge variant={item.status !== 'unpaid' ? 'success' : 'warning'}>
+                          {item.status !== 'unpaid' ? 'Lunas' : 'Pending'}
                         </Badge>
                       </td>
                       <td>{formatPrice(pmk41)}</td>

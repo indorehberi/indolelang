@@ -87,12 +87,37 @@ export default function ControlRoomPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [sessionStartTrigger, setSessionStartTrigger] = useState<'admin' | 'system'>('admin');
-  const [nextLotAdvanceMode, setNextLotAdvanceMode] = useState<'admin' | 'auto'>('admin');
+  const [nextLotAdvanceMode, setNextLotAdvanceMode] = useState<'admin' | 'system'>('admin');
+
+  // Auction Engine Configuration States
+  const [auctionLotDuration, setAuctionLotDuration] = useState('120');
+  const [auctionLotSecondDuration, setAuctionLotSecondDuration] = useState('60');
+  const [auctionLotNextDelay, setAuctionLotNextDelay] = useState('5');
+  const [auctionLotCanceledDuration, setAuctionLotCanceledDuration] = useState('5');
+  const [auctionSessionStartTrigger, setAuctionSessionStartTrigger] = useState('admin');
+  const [auctionLotEndTrigger, setAuctionLotEndTrigger] = useState('admin');
+  const [auctionLotNextTrigger, setAuctionLotNextTrigger] = useState('admin');
+  const [auctionSessionEndTrigger, setAuctionSessionEndTrigger] = useState('admin');
+  const [isSavingAuction, setIsSavingAuction] = useState(false);
+  const [lastProcessedLotNumber, setLastProcessedLotNumber] = useState<number>(0);
 
   const nextPendingLot = React.useMemo(() => {
     return lots
-      .filter((l) => l.status === 'pending')
+      .filter((l) => (l.status === 'pending' || l.status === 'cancelled') && (l.lot_number || 0) > lastProcessedLotNumber)
       .sort((a, b) => (a.lot_number || 0) - (b.lot_number || 0))[0] || null;
+  }, [lots, lastProcessedLotNumber]);
+
+  // Synchronize lastProcessedLotNumber with the current state of lots in the session
+  React.useEffect(() => {
+    if (lots && lots.length > 0) {
+      const processedLots = lots.filter(
+        (l) => l.status === 'active' || l.status === 'sold' || l.status === 'unsold'
+      );
+      if (processedLots.length > 0) {
+        const maxProcessed = Math.max(...processedLots.map((l) => l.lot_number || 0));
+        setLastProcessedLotNumber((prev) => Math.max(prev, maxProcessed));
+      }
+    }
   }, [lots]);
   
   // Real-time Active Lot State
@@ -208,23 +233,35 @@ export default function ControlRoomPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [resSessions, resSettings, resNextLotTrigger] = await Promise.all([
+        const [resSessions, resAllSettings] = await Promise.all([
           apiFetch('/sessions?per_page=50'),
-          apiFetch('/admin/settings/auction_session_start_trigger'),
-          apiFetch('/admin/settings/auction_next_lot_trigger')
+          apiFetch('/admin/settings')
         ]);
 
-        if (resSettings.ok) {
-          const settingsData = await resSettings.json();
-          if (settingsData.success && settingsData.data) {
-            setSessionStartTrigger(settingsData.data.value as 'admin' | 'system');
-          }
-        }
-
-        if (resNextLotTrigger.ok) {
-          const nextLotData = await resNextLotTrigger.json();
-          if (nextLotData.success && nextLotData.data) {
-            setNextLotAdvanceMode(nextLotData.data.value as 'admin' | 'auto');
+        if (resAllSettings.ok) {
+          const settingsListData = await resAllSettings.json();
+          if (settingsListData.success && Array.isArray(settingsListData.data)) {
+            settingsListData.data.forEach((item: any) => {
+              if (item.key === 'auction_lot_duration_secs') {
+                setAuctionLotDuration(item.value);
+              } else if (item.key === 'auction_lot_second_duration_secs') {
+                setAuctionLotSecondDuration(item.value);
+              } else if (item.key === 'auction_lot_next_delay_secs') {
+                setAuctionLotNextDelay(item.value);
+              } else if (item.key === 'auction_lot_canceled_duration_secs') {
+                setAuctionLotCanceledDuration(item.value);
+              } else if (item.key === 'auction_session_start_trigger') {
+                setAuctionSessionStartTrigger(item.value);
+                setSessionStartTrigger(item.value as 'admin' | 'system');
+              } else if (item.key === 'auction_lot_end_trigger') {
+                setAuctionLotEndTrigger(item.value);
+              } else if (item.key === 'auction_lot_next_trigger') {
+                setAuctionLotNextTrigger(item.value);
+                setNextLotAdvanceMode(item.value as 'admin' | 'system');
+              } else if (item.key === 'auction_session_end_trigger') {
+                setAuctionSessionEndTrigger(item.value);
+              }
+            });
           }
         }
 
@@ -464,6 +501,7 @@ export default function ControlRoomPage() {
         );
         
         if (cancelledLot) {
+          setLastProcessedLotNumber((prev) => Math.max(prev, cancelledLot.lot_number || 0));
           setCancelledLotOverlay({
             lot_number: cancelledLot.lot_number,
             title: cancelledLot.asset.title,
@@ -485,6 +523,36 @@ export default function ControlRoomPage() {
 
         setActiveLot((prev) => (prev?.id === data.lot_id ? null : prev));
         setBidLogs([]);
+      });
+
+      socket.on('lot:start', (data: any) => {
+        if (data.is_canceled) {
+          const duration = data.freeze_duration_secs || 5;
+          setCancelledLotOverlay({
+            lot_number: data.lot_data?.lot_number || 0,
+            title: data.lot_data?.asset?.title || 'Lot',
+          });
+          setCancelCountdown(duration);
+          
+          if (data.lot_data?.lot_number) {
+            setLastProcessedLotNumber((prev) => Math.max(prev, data.lot_data.lot_number));
+          }
+
+          if (cancelTimerRef.current) clearInterval(cancelTimerRef.current);
+          
+          let count = duration;
+          cancelTimerRef.current = setInterval(() => {
+            count--;
+            setCancelCountdown(count);
+            if (count <= 0) {
+              if (cancelTimerRef.current) clearInterval(cancelTimerRef.current);
+              setCancelledLotOverlay(null);
+            }
+          }, 1000);
+
+          setActiveLot(null);
+          setBidLogs([]);
+        }
       });
 
       socket.on('session:ended', (data: any) => {
@@ -534,6 +602,11 @@ export default function ControlRoomPage() {
   const handleActivateLot = async (lotId: string) => {
     setProcessingId(lotId);
     setToast(null);
+
+    const targetLot = lots.find((l) => l.id === lotId);
+    if (targetLot) {
+      setLastProcessedLotNumber((prev) => Math.max(prev, targetLot.lot_number || 0));
+    }
     // Join the lot's socket room *before* calling activate — the server broadcasts
     // `lot:activated` synchronously while handling that request, i.e. before this
     // fetch's response comes back, so joining afterwards would miss it.
@@ -633,15 +706,65 @@ export default function ControlRoomPage() {
     }
   };
 
-  const handleModeChange = async (mode: 'admin' | 'auto') => {
+  const handleModeChange = async (mode: 'admin' | 'system') => {
     setNextLotAdvanceMode(mode);
+    setAuctionLotNextTrigger(mode);
     try {
-      await apiFetch('/admin/settings/auction_next_lot_trigger', {
+      await apiFetch('/admin/settings/auction_lot_next_trigger', {
         method: 'PUT',
         body: JSON.stringify({ value: mode }),
       });
+      setToast({ message: 'Kelanjutan lot otomatis diperbarui.', variant: 'success' });
     } catch (e) {
       console.error(e);
+      setToast({ message: 'Gagal memperbarui kelanjutan lot.', variant: 'danger' });
+    }
+  };
+
+  const handleSaveAuctionSettings = async () => {
+    if (Number(auctionLotSecondDuration) >= Number(auctionLotDuration)) {
+      setToast({ message: 'Waktu Kedua harus lebih kecil dari Waktu Pertama.', variant: 'danger' });
+      return;
+    }
+
+    setIsSavingAuction(true);
+    try {
+      const updates = [
+        { key: 'auction_lot_duration_secs', value: auctionLotDuration },
+        { key: 'auction_lot_second_duration_secs', value: auctionLotSecondDuration },
+        { key: 'auction_lot_next_delay_secs', value: auctionLotNextDelay },
+        { key: 'auction_lot_canceled_duration_secs', value: auctionLotCanceledDuration },
+        { key: 'auction_session_start_trigger', value: auctionSessionStartTrigger },
+        { key: 'auction_lot_end_trigger', value: auctionLotEndTrigger },
+        { key: 'auction_lot_next_trigger', value: auctionLotNextTrigger },
+        { key: 'auction_session_end_trigger', value: auctionSessionEndTrigger },
+      ];
+
+      let ok = true;
+      const failedKeys: string[] = [];
+      for (const update of updates) {
+        const response = await apiFetch(`/admin/settings/${update.key}`, {
+          method: 'PUT',
+          body: JSON.stringify({ value: update.value }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
+          failedKeys.push(update.key);
+          ok = false;
+        }
+      }
+
+      if (ok) {
+        setToast({ message: 'Otomatisasi Mesin Lelang berhasil disimpan!', variant: 'success' });
+        setSessionStartTrigger(auctionSessionStartTrigger as 'admin' | 'system');
+        setNextLotAdvanceMode(auctionLotNextTrigger as 'admin' | 'system');
+      } else {
+        setToast({ message: `Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`, variant: 'danger' });
+      }
+    } catch (e) {
+      setToast({ message: 'Gagal menyimpan otomatisasi mesin lelang.', variant: 'danger' });
+    } finally {
+      setIsSavingAuction(false);
     }
   };
 
@@ -755,31 +878,7 @@ export default function ControlRoomPage() {
           gap: '1.5rem',
         }}
       >
-        {isFullscreen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: '1rem',
-              right: '1rem',
-              zIndex: 10000,
-            }}
-          >
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={toggleFullscreen}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>fullscreen_exit</span>
-              Keluar Full Screen
-            </Button>
-          </div>
-        )}
+
 
         {toast && (
         <Toast
@@ -890,64 +989,38 @@ export default function ControlRoomPage() {
 
       {activeTab === 'live' ? (
         <>
-          {/* BAR KONTROL MODE LOT BERIKUTNYA & TOMBOL NEXT LOT */}
-          <div style={{
-            padding: '1rem 1.25rem',
-            background: '#f8fafc',
-            border: '1px solid var(--wf-border)',
-            borderRadius: 'var(--radius)',
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-            marginBottom: '1.25rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--wf-text)' }}>
-                ⚙️ Lot Berikutnya Dilanjutkan Oleh:
-              </span>
-              <select
-                value={nextLotAdvanceMode}
-                onChange={(e) => handleModeChange(e.target.value as 'admin' | 'auto')}
+          {/* BAR KONTROL TOMBOL NEXT LOT (Hanya tampil jika mode manual/admin) */}
+          {nextLotAdvanceMode === 'admin' && (
+            <div style={{
+              padding: '1rem 1.25rem',
+              background: '#f8fafc',
+              border: '1px solid var(--wf-border)',
+              borderRadius: 'var(--radius)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              marginBottom: '1.25rem'
+            }}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={!nextPendingLot || processingId === (nextPendingLot?.id || '') || sessionDetails?.status !== 'live'}
+                onClick={handleNextLotInSequence}
                 style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem',
+                  backgroundColor: '#2563eb',
+                  borderColor: '#2563eb',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   fontWeight: 700,
-                  background: '#ffffff',
-                  cursor: 'pointer'
+                  padding: '0.5rem 1.1rem'
                 }}
               >
-                <option value="admin">👤 Admin (Manual)</option>
-                <option value="auto">🤖 Otomatis (System)</option>
-              </select>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>skip_next</span>
+                {nextPendingLot ? `Next Lot (Mulai Lot #${nextPendingLot.lot_number})` : 'Next Lot (Tidak Ada Lot Pending)'}
+              </Button>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {nextLotAdvanceMode === 'admin' && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!nextPendingLot || processingId === (nextPendingLot?.id || '') || sessionDetails?.status !== 'live'}
-                  onClick={handleNextLotInSequence}
-                  style={{
-                    backgroundColor: '#2563eb',
-                    borderColor: '#2563eb',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontWeight: 700,
-                    padding: '0.5rem 1.1rem'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>skip_next</span>
-                  {nextPendingLot ? `Next Lot (Mulai Lot #${nextPendingLot.lot_number})` : 'Next Lot (Tidak Ada Lot Pending)'}
-                </Button>
-              )}
-            </div>
-          </div>
+          )}
 
 
           <div className="grid-2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
@@ -1169,14 +1242,14 @@ export default function ControlRoomPage() {
                       <td>{formatRupiah(lot.starting_price)}</td>
                       <td>{getLotStatusBadge(lot.status)}</td>
                       <td>
-                        {lot.status === 'pending' && (
+                        {(lot.status === 'pending' || lot.status === 'cancelled') && (
                           <Button
-                            variant="primary"
+                            variant={lot.status === 'cancelled' ? 'outline' : 'primary'}
                             size="sm"
                             disabled={!!activeLot || processingId === lot.id || sessionDetails?.status !== 'live'}
                             onClick={() => handleActivateLot(lot.id)}
                           >
-                            Lot Berikutnya
+                            {lot.status === 'cancelled' ? 'Lanjut (Batal)' : 'Lot Berikutnya'}
                           </Button>
                         )}
                         {lot.status === 'active' && (
@@ -1200,7 +1273,7 @@ export default function ControlRoomPage() {
                             </Button>
                           </div>
                         )}
-                        {lot.status !== 'pending' && lot.status !== 'active' && (
+                        {lot.status !== 'pending' && lot.status !== 'cancelled' && lot.status !== 'active' && (
                           <span className="text-muted" style={{ fontSize: '0.85rem' }}>Selesai</span>
                         )}
                       </td>
@@ -1212,56 +1285,128 @@ export default function ControlRoomPage() {
           </Card>
         </div>
 
-        {/* RIGHT COLUMN: REAL-TIME BID LOG */}
-        <Card title="Live Penawaran (Bids Log)" className="h-100">
-          <div
-            style={{
-              maxHeight: '400px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-            }}
-          >
-            {bidLogs.length === 0 ? (
-              <div style={{ padding: '2rem 0', color: 'var(--wf-text-light)' }} className="text-center">
-                Belum ada bid masuk untuk lot aktif ini.
-              </div>
-            ) : (
-              bidLogs.map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0.6rem 0.75rem',
-                    background: 'var(--wf-bg)',
-                    borderRadius: '4px',
-                    fontSize: '0.9rem',
-                    borderLeft: '3px solid var(--wf-success)',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: '0.9rem' }}>{log.bidder_name || 'Anonymous'}</strong>
-                      <span className="text-muted" style={{ fontSize: '0.75rem' }}>({log.bidder_id})</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--wf-text-light)', marginTop: '2px', flexWrap: 'wrap' }}>
-                      <code style={{ background: '#e2e8f0', padding: '1px 4px', borderRadius: '3px', fontWeight: '600' }}>{log.nipl_code || '-'}</code>
-                      <span>·</span>
-                      <span>{log.time}</span>
-                    </div>
-                  </div>
-                  <strong style={{ color: 'var(--wf-success)' }}>{formatRupiah(log.amount)}</strong>
+        {/* RIGHT COLUMN: REAL-TIME BID LOG & AUCTION SETTINGS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <Card title="Live Penawaran (Bids Log)">
+            <div
+              style={{
+                maxHeight: '400px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              {bidLogs.length === 0 ? (
+                <div style={{ padding: '2rem 0', color: 'var(--wf-text-light)' }} className="text-center">
+                  Belum ada bid masuk untuk lot aktif ini.
                 </div>
-              ))
-            )}
-          </div>
-        </Card>
-          </div>
-        </>
-      ) : (
+              ) : (
+                bidLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.6rem 0.75rem',
+                      background: 'var(--wf-bg)',
+                      borderRadius: '4px',
+                      fontSize: '0.9rem',
+                      borderLeft: '3px solid var(--wf-success)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '0.9rem' }}>{log.bidder_name || 'Anonymous'}</strong>
+                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>({log.bidder_id})</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--wf-text-light)', marginTop: '2px', flexWrap: 'wrap' }}>
+                        <code style={{ background: '#e2e8f0', padding: '1px 4px', borderRadius: '3px', fontWeight: '600' }}>{log.nipl_code || '-'}</code>
+                        <span>·</span>
+                        <span>{log.time}</span>
+                      </div>
+                    </div>
+                    <strong style={{ color: 'var(--wf-success)' }}>{formatRupiah(log.amount)}</strong>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+
+          <Card title="⚙️ Otomatisasi Mesin Lelang (Auction Engine)">
+            <div className="alert alert-warning text-xs mb-4">
+              <strong>Perhatian:</strong> Jika mengubah trigger menjadi "Oleh Sistem", backend cron job akan mengambil alih fungsi dari Control Room.
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Waktu Pertama (Detik) <span className="required" style={{ color: 'red' }}>*</span></label>
+              <input type="number" className="form-input" value={auctionLotDuration} onChange={(e) => setAuctionLotDuration(e.target.value)} required />
+              <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '4px', lineHeight: '1.25' }}>
+                Durasi awal countdown tiap lot. Selama sisa waktu masih di atas "Waktu Kedua", bid baru akan mengembalikan countdown ke durasi ini. Default: 120 detik.
+              </p>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Waktu Kedua (Detik) <span className="required" style={{ color: 'red' }}>*</span></label>
+              <input type="number" className="form-input" value={auctionLotSecondDuration} onChange={(e) => setAuctionLotSecondDuration(e.target.value)} required />
+              <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '4px', lineHeight: '1.25' }}>
+                Begitu sisa waktu sudah turun ke angka ini atau kurang, bid baru hanya mengembalikan countdown ke durasi ini (tidak lagi ke Waktu Pertama). Harus lebih kecil dari Waktu Pertama. Default: 60 detik.
+              </p>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Jeda Transisi Lot (detik) <span className="required" style={{ color: 'red' }}>*</span></label>
+              <input type="number" className="form-input" value={auctionLotNextDelay} onChange={(e) => setAuctionLotNextDelay(e.target.value)} required />
+              <small className="text-muted" style={{ fontSize: '0.75rem', display: 'block', marginTop: '2px' }}>Lama waktu tunggu setelah ketok palu sebelum lot berikutnya dimulai.</small>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Durasi Tampil Lot Dibatalkan (detik) <span className="required" style={{ color: 'red' }}>*</span></label>
+              <input type="number" className="form-input" value={auctionLotCanceledDuration} onChange={(e) => setAuctionLotCanceledDuration(e.target.value)} required />
+              <small className="text-muted" style={{ fontSize: '0.75rem', display: 'block', marginTop: '2px' }}>Lama waktu tayang (freeze) untuk lot yang dibatalkan sebelum otomatis lanjut ke lot berikutnya.</small>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sesi Lelang Dimulai Oleh <span className="required" style={{ color: 'red' }}>*</span></label>
+              <select className="form-input" style={{ background: 'white' }} value={auctionSessionStartTrigger} onChange={(e) => setAuctionSessionStartTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Auto-run Sesuai Jadwal)</option>
+              </select>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Lot Diakhiri / Ketok Palu Oleh <span className="required" style={{ color: 'red' }}>*</span></label>
+              <select className="form-input" style={{ background: 'white' }} value={auctionLotEndTrigger} onChange={(e) => setAuctionLotEndTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis saat Waktu Habis)</option>
+              </select>
+            </div>
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Lot Berikutnya Dilanjutkan Oleh <span className="required" style={{ color: 'red' }}>*</span></label>
+              <select className="form-input" style={{ background: 'white' }} value={auctionLotNextTrigger} onChange={(e) => setAuctionLotNextTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis Setelah Jeda)</option>
+              </select>
+            </div>
+            
+            <div className="form-group mb-4">
+              <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sesi Diakhiri / Ditutup Oleh <span className="required" style={{ color: 'red' }}>*</span></label>
+              <select className="form-input" style={{ background: 'white' }} value={auctionSessionEndTrigger} onChange={(e) => setAuctionSessionEndTrigger(e.target.value)}>
+                <option value="admin">Oleh Admin (Manual via Control Room)</option>
+                <option value="system">Oleh Sistem (Otomatis setelah semua Lot Selesai)</option>
+              </select>
+            </div>
+
+            <button className="btn btn-warning w-100 mt-2" onClick={handleSaveAuctionSettings} disabled={isSavingAuction} style={{ fontWeight: '700', padding: '0.6rem' }}>
+              {isSavingAuction ? 'Menyimpan...' : 'Simpan Otomatisasi'}
+            </button>
+          </Card>
+        </div>
+      </div>
+    </>
+  ) : (
         <Card title={`Arsip Sesi: ${sessionDetails?.title || '-'}`}>
           {sessionDetails?.status !== 'closed' ? (
             <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--wf-text-light)' }}>

@@ -30,6 +30,13 @@ export function maskUserId(userId: string): string {
   return `Peserta #${userId.substring(0, 4).toUpperCase()}`;
 }
 
+// Number of sockets currently in `lot:{lotId}` — i.e. bidders with that lot
+// open right now — broadcast as "Peserta Online" on the bidding-room card.
+function broadcastLotPresence(ioServer: SocketIoServer, lotId: string): void {
+  const room = ioServer.sockets.adapter.rooms.get(`lot:${lotId}`);
+  ioServer.to(`lot:${lotId}`).emit('lot:presence', { lot_id: lotId, count: room?.size || 0 });
+}
+
 export function initSocket(server: HttpServer): SocketIoServer {
   io = new SocketIoServer(server, {
     cors: {
@@ -67,6 +74,7 @@ export function initSocket(server: HttpServer): SocketIoServer {
       if (!data.lot_id) return;
       socket.join(`lot:${data.lot_id}`);
       logger.debug({ socketId: socket.id, lot_id: data.lot_id }, 'Client watching lot');
+      broadcastLotPresence(io!, data.lot_id);
 
       // Send current lot state immediately if lot is already active
       const state = activeLots.get(data.lot_id);
@@ -88,6 +96,7 @@ export function initSocket(server: HttpServer): SocketIoServer {
       if (!data.lot_id) return;
       socket.leave(`lot:${data.lot_id}`);
       logger.debug({ socketId: socket.id, lot_id: data.lot_id }, 'Client unwatched lot');
+      broadcastLotPresence(io!, data.lot_id);
     });
 
     // 2. Bid submission event
@@ -192,6 +201,18 @@ export function initSocket(server: HttpServer): SocketIoServer {
         logger.info({ lotId: data.lot_id, bidder: user.id, amount: data.amount }, 'New highest bid submitted');
       } catch (err: any) {
         socket.emit('bid:error', { message: err.message || 'Gagal memproses penawaran Anda.' });
+      }
+    });
+
+    // `disconnecting` (not `disconnect`) fires while socket.rooms is still
+    // populated, so this is the only place we can know which lot rooms need
+    // their presence count adjusted for this socket leaving.
+    socket.on('disconnecting', () => {
+      for (const room of socket.rooms) {
+        if (!room.startsWith('lot:')) continue;
+        const lotId = room.slice('lot:'.length);
+        const size = io!.sockets.adapter.rooms.get(room)?.size || 1;
+        io!.to(room).emit('lot:presence', { lot_id: lotId, count: Math.max(0, size - 1) });
       }
     });
 
@@ -387,7 +408,7 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
 
   const updated = await prisma.lots.update({
     where: { id: lotId },
-    data: { status: 'pending' },
+    data: { status: 'cancelled' },
     include: { asset: true },
   });
 
@@ -395,6 +416,17 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
     ioServer.to(`lot:${lotId}`).to(`session:${updated.session_id}`).emit('lot:cancelled', {
       lot_id: lotId,
     });
+  }
+
+  // Trigger auto-next if auto mode is enabled.
+  // The cancelled lot overlay shows for 5 seconds, so we delay the auto-next by 5 seconds!
+  const nextSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_next_trigger' } });
+  if (nextSetting?.value === 'system') {
+    const freezeDurationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_canceled_duration_secs' } });
+    const freezeDurationSecs = freezeDurationSetting ? parseInt(freezeDurationSetting.value, 10) : 5;
+    setTimeout(async () => {
+      await handleAutoNextAndSessionEnd(updated);
+    }, freezeDurationSecs * 1000);
   }
 
   return updated;

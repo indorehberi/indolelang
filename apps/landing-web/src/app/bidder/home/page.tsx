@@ -172,7 +172,7 @@ export default function BidderHome() {
       <div className="mb-6 px-1">
         <h2 className="text-xl font-bold text-slate-800 mb-1">Hallo {profile?.full_name || profile?.name || "Bidder"}</h2>
         <p className="text-sm text-slate-600">
-          Kamu memiliki <span className="font-black text-primary">{niplCounts.unlimitedMotor ? 'Unlimited' : niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary">{niplCounts.unlimitedMobil ? 'Unlimited' : niplCounts.mobil}</span> NIPL Mobil
+          Kamu memiliki <span className="font-black text-primary-strong">{niplCounts.unlimitedMotor ? 'Unlimited' : niplCounts.motor}</span> NIPL Motor dan <span className="font-black text-primary-strong">{niplCounts.unlimitedMobil ? 'Unlimited' : niplCounts.mobil}</span> NIPL Mobil
         </p>
       </div>
 
@@ -256,7 +256,7 @@ export default function BidderHome() {
                 : "Belum ada jadwal"}
             </p>
           </div>
-          <Link href="/katalog" className="text-primary text-xs font-bold hover:underline">Lihat Semua</Link>
+          <Link href="/katalog" className="text-primary-strong text-xs font-bold hover:underline">Lihat Semua</Link>
         </div>
 
         {/* No published session at all — tell the user, then fall back to the
@@ -295,7 +295,7 @@ export default function BidderHome() {
            </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {paginatedLots.map((lot: any) => (
                 <LotCard key={lot.id} lot={mapLotToCard(lot)} />
               ))}

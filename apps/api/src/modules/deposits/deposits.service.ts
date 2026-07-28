@@ -4,6 +4,7 @@ import { logger } from '../../lib/logger';
 import { ErrorCode } from '@indo-lelang/utils';
 import { DepositDTO, PaginationMeta, DepositStatus, Role } from '@indo-lelang/shared-types';
 import { sendEmail, sendEmailSafe } from '../../lib/email';
+import { niplSlotsFor } from '../../lib/niplPackage';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import { notifyAdmins } from '../../lib/notifyAdmins';
@@ -53,6 +54,7 @@ export class DepositsService {
               title: true,
             },
           },
+          nipl_codes: true,
         },
       }),
     ]);
@@ -73,6 +75,7 @@ export class DepositsService {
       created_at: r.created_at.toISOString(),
       user: r.user,
       session: r.session,
+      nipl_codes: r.nipl_codes,
     }));
 
     const totalPages = Math.ceil(total / perPage);
@@ -138,35 +141,27 @@ export class DepositsService {
     const manualTransferFee = parseFloat(settings.find(s => s.key === 'manual_transfer_fee')?.value || '0');
     const manualRefundFee = parseFloat(settings.find(s => s.key === 'manual_refund_fee')?.value || '0');
 
-    // 3. Calculate amount based on unit_type and package_type
+    // 3. Calculate amount based on unit_type and package_type.
+    // Unlimited is priced as UNLIMITED_NIPL_SLOTS x base, the same slot count
+    // it is issued, so one helper covers both the price and the NIPL count.
+    const numNipls = niplSlotsFor(package_type, 1);
+
     let amount = 0;
     if (unit_type === 'mobil') {
-      if (package_type === 'unlimited') {
-        amount = niplMobilBase * 5; // Default unlimited is 5x base
-      } else {
-        amount = parseInt(package_type) * niplMobilBase;
-      }
+      amount = numNipls * niplMobilBase;
     } else if (unit_type === 'motor') {
-      if (package_type === 'unlimited') {
-        amount = niplMotorBase * 5; // Default unlimited is 5x base
-      } else {
-        amount = parseInt(package_type) * niplMotorBase;
-      }
+      amount = numNipls * niplMotorBase;
     } else {
       throw new AppError(400, ErrorCode.BAD_REQUEST, 'Jenis unit tidak valid');
     }
 
-    // Add unique code for each NIPL purchased (random 1-999)
-    let numNipls = 1;
-    if (package_type === 'unlimited') {
-      numNipls = 5;
-    } else {
-      numNipls = parseInt(package_type, 10) || 1;
-    }
-
+    // Generate distinct unique code integer for EACH NIPL unit and track them
+    const generatedUniqueCodes: number[] = [];
     let totalUniqueCode = 0;
     for (let i = 0; i < numNipls; i++) {
-      totalUniqueCode += Math.floor(Math.random() * 999) + 1;
+      const code = Math.floor(Math.random() * 999) + 1;
+      generatedUniqueCodes.push(code);
+      totalUniqueCode += code;
     }
 
     amount = amount + totalUniqueCode;
@@ -223,7 +218,7 @@ export class DepositsService {
     // blended code across every unit it later pays for — checkout consumes
     // exactly one active row per settled unit and links it to that invoice.
     for (let i = 0; i < numNipls; i++) {
-      await this.createNiplCode(deposit.id, unit_type);
+      await this.createNiplCode(deposit.id, unit_type, generatedUniqueCodes[i]);
     }
 
     // 7. Send notification email with manual transfer instructions
@@ -296,12 +291,12 @@ export class DepositsService {
    * Retries on the rare unique-constraint collision instead of trusting
    * randomness alone.
    */
-  private async createNiplCode(depositId: string, unitType: string): Promise<void> {
+  private async createNiplCode(depositId: string, unitType: string, paymentUniqueCode: number): Promise<void> {
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = `NIPL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       try {
         await prisma.nipl_codes.create({
-          data: { deposit_id: depositId, code, unit_type: unitType },
+          data: { deposit_id: depositId, code, unit_type: unitType, payment_unique_code: paymentUniqueCode },
         });
         return;
       } catch (err: any) {

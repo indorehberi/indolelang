@@ -121,6 +121,7 @@ export class ControlController {
 
   /**
    * Start an auction session manually (change status to live)
+   * Automatically activates the first pending lot so bidding begins immediately.
    */
   async startSession(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -139,15 +140,60 @@ export class ControlController {
         throw new AppError(400, ErrorCode.BAD_REQUEST, 'Hanya sesi yang sudah di-publish yang bisa dimulai');
       }
 
+      // Make sure there is no active lot already in this session
+      for (const [, state] of activeLots.entries()) {
+        if (state.sessionId === sessionId) {
+          throw new AppError(400, ErrorCode.BAD_REQUEST, 'Ada lot yang sudah aktif dalam sesi ini.');
+        }
+      }
+
+      // Mark session as LIVE
       const updatedSession = await prisma.auction_sessions.update({
         where: { id: sessionId },
         data: { status: SessionStatus.LIVE },
       });
 
-      // Audit Log
       logAdminAction(req, 'START_AUCTION_SESSION', 'auction_sessions', sessionId, session, updatedSession);
 
-      sendSuccess(res, updatedSession, 'Sesi lelang berhasil dimulai.');
+      // Auto-activate the first pending lot (lowest lot_number)
+      const firstLot = await prisma.lots.findFirst({
+        where: { session_id: sessionId, status: LotStatus.PENDING },
+        orderBy: { lot_number: 'asc' },
+        include: { asset: true },
+      });
+
+      if (firstLot) {
+        // Update lot status to active
+        const activatedLot = await prisma.lots.update({
+          where: { id: firstLot.id },
+          data: { status: LotStatus.ACTIVE },
+          include: { asset: true },
+        });
+
+        // Fetch lot duration from settings
+        const settingsService = new SettingsService();
+        let lotDuration = 120;
+        try {
+          const durationSetting = await settingsService.getSettingByKey('auction_lot_duration_secs');
+          if (durationSetting && !isNaN(Number(durationSetting.value))) {
+            lotDuration = Number(durationSetting.value);
+          }
+        } catch (_) { /* use default */ }
+        if (lotDuration < 1) lotDuration = 120;
+
+        logger.info({ lotId: firstLot.id, lotDuration }, 'Auto-activating first lot on session start');
+
+        // Start countdown via Socket.io
+        startActiveLot(activatedLot, lotDuration);
+
+        logAdminAction(req, 'AUTO_ACTIVATE_FIRST_LOT', 'lots', firstLot.id, firstLot, activatedLot);
+
+        sendSuccess(res, { session: updatedSession, first_lot: activatedLot }, 'Sesi lelang dimulai. Lot pertama otomatis diaktifkan.');
+      } else {
+        // No pending lots — session started but nothing to activate
+        logger.warn({ sessionId }, 'Session started but no pending lots found to auto-activate');
+        sendSuccess(res, { session: updatedSession, first_lot: null }, 'Sesi lelang dimulai, tetapi tidak ada lot yang tersedia untuk diaktifkan.');
+      }
     } catch (error) {
       next(error);
     }
@@ -312,17 +358,10 @@ export class ControlController {
           session_id: sessionId,
           status: { in: [LotStatus.CANCELLED, LotStatus.UNSOLD] }
         },
-        select: { asset_id: true }
+        select: { id: true, asset_id: true }
       });
       
-      if (revertedLots.length > 0) {
-        await prisma.assets.updateMany({
-          where: { id: { in: revertedLots.map(l => l.asset_id) } },
-          data: { status: 'approved' } // Using AssetStatus.APPROVED value directly since it might not be imported
-        });
-      }
-
-      // 4. Calculate session results and broadcast session:ended
+      // Calculate session results BEFORE we delete the unsold/cancelled lot records
       const totalLotsCount = await prisma.lots.count({ where: { session_id: sessionId } });
       const soldLotsCount = await prisma.lots.count({ where: { session_id: sessionId, status: LotStatus.SOLD } });
       const revenueRes = await prisma.lots.aggregate({
@@ -330,6 +369,19 @@ export class ControlController {
         _sum: { hammer_price: true },
       });
       const revenue = Number(revenueRes._sum.hammer_price || 0);
+
+      if (revertedLots.length > 0) {
+        await prisma.assets.updateMany({
+          where: { id: { in: revertedLots.map(l => l.asset_id) } },
+          data: { status: 'approved' } // Using AssetStatus.APPROVED value directly since it might not be imported
+        });
+
+        // The unsold / cancelled lot rows are deliberately kept. The public
+        // catalogue lists cancelled lots on purpose (see public.service.ts),
+        // and `bids` cascade-deletes with `lots`, so removing them here would
+        // both hide those units and destroy the bidding history behind them.
+        // To tidy the control room list, filter by status in the UI instead.
+      }
 
       try {
         const io = getSocketIo();

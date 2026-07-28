@@ -4,6 +4,8 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import { notifyAdmins } from '../../lib/notifyAdmins';
+import { paymentsService } from '../payments/payments.service';
+import { grantsUnlimitedNow } from '../../lib/niplPackage';
 
 export class CheckoutService {
   /**
@@ -51,6 +53,12 @@ export class CheckoutService {
         user_id: userId,
         status: 'paid',
       },
+      include: {
+        nipl_codes: {
+          where: { status: 'active' },
+          orderBy: { created_at: 'asc' }
+        }
+      },
       orderBy: { created_at: 'asc' },
     });
 
@@ -59,7 +67,10 @@ export class CheckoutService {
 
     activeDeposits.forEach(d => {
        totalDepositValue = totalDepositValue.add(d.amount);
-       if (d.package_type === 'unlimited') hasUnlimited = true;
+       // Only an unlimited deposit still inside its activation day lifts the
+       // per-NIPL cap; once the daily cron has downgraded it the bidder is
+       // limited to the slots they have left.
+       if (grantsUnlimitedNow(d)) hasUnlimited = true;
     });
 
     let totalInvoiceAmount = new Prisma.Decimal(0);
@@ -67,10 +78,14 @@ export class CheckoutService {
       totalInvoiceAmount = totalInvoiceAmount.add(inv.total);
     });
 
+    // Only orders still awaiting payment appear here — once the bidder has
+    // uploaded transfer proof (status becomes 'pending_approval'), it drops
+    // out of this section since there's nothing left for them to do but wait
+    // for Admin to verify.
     const pendingOrders = await prisma.checkout_orders.findMany({
       where: {
         bidder_id: userId,
-        status: { in: ['unpaid', 'pending_approval'] }
+        status: 'unpaid'
       },
       include: {
         invoices: {
@@ -94,7 +109,8 @@ export class CheckoutService {
         unit_type: d.unit_type,
         package_type: d.package_type,
         unique_code: d.unique_code || 0,
-        created_at: d.created_at
+        created_at: d.created_at,
+        nipl_codes: d.nipl_codes.map(c => ({ id: c.id, payment_unique_code: c.payment_unique_code }))
       })),
       total_deposit_value: Number(totalDepositValue),
       total_invoice_amount: Number(totalInvoiceAmount),
@@ -153,15 +169,18 @@ export class CheckoutService {
   }
 
   /**
-   * Greedily draw `niplValue` worth of guarantee per invoice (oldest invoice
-   * first) from an ordered (oldest-first) deposits queue shared across all of
-   * them. A deposit's unique_code is spent in full the moment the deposit is
-   * first touched — whether that consumption drains it completely or only
-   * partially — matching how the money side has always worked; only the
-   * trailing, not-fully-drained deposit (if any) survives as a fresh,
-   * code-free remainder once every invoice's requirement has been filled.
-   * This makes the total deduction identical to the old aggregate algorithm
-   * while additionally attributing an exact amount to each invoice.
+   * Alokasi jaminan NIPL per invoice dengan prinsip 1 deposit = 1 invoice:
+   * setiap deposit mencakup tepat satu tagihan unit dan kode unik deposit
+   * tersebut dikreditkan HANYA ke tagihan yang sama. Jika nilai deposit lebih
+   * kecil dari niplValue (karena sisa saldo), deposit berikutnya ditarik untuk
+   * melengkapi satu tagihan yang sama. Kode unik setiap deposit yang disentuh
+   * ikut dikreditkan ke tagihan tersebut, tidak pernah "meluber" ke tagihan lain.
+   *
+   * Contoh: 5 NIPL (@5 jt + kode unik masing-masing) untuk 3 invoice:
+   *   Invoice 1 ← Deposit 1 (5 jt + kode-unik-1) → potongan = 5 jt + kode-unik-1
+   *   Invoice 2 ← Deposit 2 (5 jt + kode-unik-2) → potongan = 5 jt + kode-unik-2
+   *   Invoice 3 ← Deposit 3 (5 jt + kode-unik-3) → potongan = 5 jt + kode-unik-3
+   *   Deposit 4 & 5 → tetap aktif (tidak disentuh)
    */
   private allocateNiplDeductions(
     invoiceIdsOrdered: string[],
@@ -176,17 +195,24 @@ export class CheckoutService {
       va_number: string | null;
       va_bank: string | null;
       payment_method: string | null;
+      nipl_codes: Array<{
+        id: string;
+        payment_unique_code: number;
+      }>;
     }>,
     niplValue: number
   ) {
     const queue = depositsForType.map((d) => {
       const code = new Prisma.Decimal(Number(d.unique_code || 0));
       const base = new Prisma.Decimal(d.amount).minus(code);
-      return { ...d, remainingBase: base, originalBase: base, code };
+      return { ...d, remainingBase: base, originalBase: base, code, activeCodes: [...d.nipl_codes], partiallyUsed: false };
     });
 
     const perInvoiceDeduction = new Map<string, Prisma.Decimal>();
     const consumedDepositIds: string[] = [];
+    const remainderDepositsToCreate: any[] = [];
+    const codeUpdates: Array<{ oldDepositId: string; newDepositId: string }> = [];
+    const codeAssignments: Array<{ invoiceId: string; codeId: string }> = [];
     let totalDeduction = new Prisma.Decimal(0);
 
     for (const invoiceId of invoiceIdsOrdered) {
@@ -195,24 +221,46 @@ export class CheckoutService {
 
       while (need.greaterThan(0) && queue.length > 0) {
         const d = queue[0];
+
         if (d.remainingBase.lessThanOrEqualTo(need)) {
+          // Fully consumed by current invoice
           deduction = deduction.add(d.remainingBase);
           need = need.minus(d.remainingBase);
           d.remainingBase = new Prisma.Decimal(0);
-          if (d.code.greaterThan(0)) {
-            deduction = deduction.add(d.code);
-            d.code = new Prisma.Decimal(0);
+          
+          // Since fully consumed, use all remaining activeCodes
+          let codesSum = new Prisma.Decimal(0);
+          while (d.activeCodes.length > 0) {
+            const popped = d.activeCodes.shift()!;
+            codesSum = codesSum.add(popped.payment_unique_code);
+            codeAssignments.push({ invoiceId, codeId: popped.id });
           }
+          deduction = deduction.add(codesSum);
+          d.code = new Prisma.Decimal(0);
+
           consumedDepositIds.push(d.id);
           queue.shift();
         } else {
+          // Partially drains. Take exactly ONE NIPL base and ONE code, and
+          // leave the deposit at the head of the queue: its remaining base
+          // still belongs to this bidder and must stay available to the next
+          // invoice in the same checkout. (Dropping it here meant only the
+          // first unit of a multi-unit checkout ever got a NIPL deduction.)
           deduction = deduction.add(need);
-          if (d.code.greaterThan(0)) {
-            deduction = deduction.add(d.code);
-            d.code = new Prisma.Decimal(0);
+
+          let codeToDeduct = new Prisma.Decimal(0);
+          if (d.activeCodes.length > 0) {
+            const popped = d.activeCodes.shift()!;
+            codeToDeduct = new Prisma.Decimal(popped.payment_unique_code);
+            codeAssignments.push({ invoiceId, codeId: popped.id });
           }
+
+          deduction = deduction.add(codeToDeduct);
+          d.code = d.code.minus(codeToDeduct);
+
           d.remainingBase = d.remainingBase.minus(need);
           need = new Prisma.Decimal(0);
+          d.partiallyUsed = true;
         }
       }
 
@@ -220,41 +268,39 @@ export class CheckoutService {
       totalDeduction = totalDeduction.add(deduction);
     }
 
-    // Close out a trailing partially-drained deposit: mark it consumed and
-    // spawn a fresh, code-free remainder for whatever base value is left.
-    const remainderDepositsToCreate: any[] = [];
-    const codeUpdates: Array<{ oldDepositId: string; newDepositId: string }> = [];
-    if (queue.length > 0) {
-      const d = queue[0];
-      if (d.remainingBase.lessThan(d.originalBase)) {
-        consumedDepositIds.push(d.id);
-        if (d.remainingBase.greaterThan(0)) {
-          const newId = crypto.randomUUID();
-          remainderDepositsToCreate.push({
-            id: newId,
-            user_id: d.user_id,
-            session_id: d.session_id,
-            amount: d.remainingBase,
-            gateway_fee: 0,
-            transfer_fee: 0,
-            refund_fee: 0,
-            unique_code: 0,
-            is_manual: d.is_manual,
-            unit_type: d.unit_type,
-            package_type: Math.round(Number(d.remainingBase) / niplValue).toString(),
-            va_number: d.va_number,
-            va_bank: d.va_bank,
-            payment_method: d.payment_method,
-            status: 'paid',
-            paid_at: new Date(),
-          });
-          codeUpdates.push({ oldDepositId: d.id, newDepositId: newId });
-        }
+    // Anything left in the queue that was drawn from but not exhausted gets
+    // replaced by a remainder deposit carrying the untouched base and codes,
+    // so the bidder keeps the NIPL slots they did not spend here.
+    for (const d of queue) {
+      if (!d.partiallyUsed) continue;
+      consumedDepositIds.push(d.id);
+      if (d.remainingBase.greaterThan(0)) {
+        const newId = crypto.randomUUID();
+        remainderDepositsToCreate.push({
+          id: newId,
+          user_id: d.user_id,
+          session_id: d.session_id,
+          amount: d.remainingBase.add(d.code), // base + leftover code
+          gateway_fee: 0,
+          transfer_fee: 0,
+          refund_fee: 0,
+          unique_code: Number(d.code), // leftover code sum
+          is_manual: d.is_manual,
+          unit_type: d.unit_type,
+          package_type: Math.round(Number(d.remainingBase) / niplValue).toString(),
+          va_number: d.va_number,
+          va_bank: d.va_bank,
+          payment_method: d.payment_method,
+          status: 'paid',
+          paid_at: new Date(),
+        });
+        codeUpdates.push({ oldDepositId: d.id, newDepositId: newId });
       }
     }
 
-    return { perInvoiceDeduction, totalDeduction, consumedDepositIds, remainderDepositsToCreate, codeUpdates };
+    return { perInvoiceDeduction, totalDeduction, consumedDepositIds, remainderDepositsToCreate, codeUpdates, codeAssignments };
   }
+
 
   /**
    * Process checkout
@@ -278,12 +324,7 @@ export class CheckoutService {
        throw new AppError(400, ErrorCode.BAD_REQUEST, 'Beberapa tagihan tidak valid, atau sudah masuk ke order lain');
     }
 
-    // A checkout order is scoped to a single auction day — reject attempts to
-    // combine lots won on different session dates into one order.
-    const sessionDates = new Set(invoices.map((inv) => inv.lot.session.scheduled_at.toISOString().slice(0, 10)));
-    if (sessionDates.size > 1) {
-      throw new AppError(400, ErrorCode.BAD_REQUEST, 'Tagihan yang dipilih berasal dari sesi lelang yang berbeda hari. Selesaikan pembayaran per hari lelang.');
-    }
+
 
     // Calculate total
     let totalInvoices = new Prisma.Decimal(0);
@@ -298,6 +339,12 @@ export class CheckoutService {
     // 2. Consume active deposits (NIPL Deductions), attributed per unit
     const activeDeposits = await prisma.deposits.findMany({
       where: { user_id: userId, status: 'paid' },
+      include: {
+        nipl_codes: {
+          where: { status: 'active' },
+          orderBy: { created_at: 'asc' }
+        }
+      },
       orderBy: { created_at: 'asc' }
     });
 
@@ -323,31 +370,7 @@ export class CheckoutService {
     const remainderDepositsToCreate = [...motorAllocation.remainderDepositsToCreate, ...mobilAllocation.remainderDepositsToCreate];
     const codeUpdates = [...motorAllocation.codeUpdates, ...mobilAllocation.codeUpdates];
 
-    // 3. Assign one traceable NIPL code per unit that actually drew a
-    // deduction, oldest active code first — decoupled from the money-side
-    // remainder splitting above so it stays correct even if a legacy deposit
-    // (purchased before codes existed) has no linked codes to give out.
-    const codeInvoiceIds = invoicesOrdered.filter(inv => (perInvoiceDeduction.get(inv.id) || new Prisma.Decimal(0)).greaterThan(0)).map(inv => ({
-      id: inv.id,
-      unitType: inv.lot.asset.category.toLowerCase().includes('motor') ? 'motor' : 'mobil',
-    }));
-    const availableCodes = codeInvoiceIds.length > 0
-      ? await prisma.nipl_codes.findMany({
-          where: {
-            status: 'active',
-            unit_type: { in: [...new Set(codeInvoiceIds.map(c => c.unitType))] },
-            deposit: { user_id: userId, status: 'paid' },
-          },
-          orderBy: { created_at: 'asc' },
-        })
-      : [];
-    const codeAssignments: Array<{ invoiceId: string; codeId: string }> = [];
-    for (const inv of codeInvoiceIds) {
-      const idx = availableCodes.findIndex(c => c.unit_type === inv.unitType);
-      if (idx === -1) continue;
-      const [code] = availableCodes.splice(idx, 1);
-      codeAssignments.push({ invoiceId: inv.id, codeId: code.id });
-    }
+    const codeAssignments = [...motorAllocation.codeAssignments, ...mobilAllocation.codeAssignments];
 
     let finalAmount = totalInvoices.minus(depositDeduction);
     if (finalAmount.lessThan(0)) {
@@ -529,7 +552,11 @@ export class CheckoutService {
   async verifyOrder(orderId: string, status: 'paid' | 'rejected', adminId: string, approvedInvoiceIds?: string[]) {
     const order = await prisma.checkout_orders.findUnique({
       where: { id: orderId },
-      include: { invoices: true }
+      include: {
+        invoices: {
+          include: { lot: { include: { asset: true } } }
+        }
+      }
     });
 
     if (!order) {
@@ -567,11 +594,63 @@ export class CheckoutService {
               where: { id: inv.id },
               data: { 
                 status: 'unpaid',
-                order_id: null 
+                order_id: null,
+                nipl_deduction: 0,
               }
             });
           }
         }
+      } else if (status === 'rejected') {
+        // Penolakan: semua invoice dikembalikan ke status 'unpaid' dan dilepas dari order
+        // sehingga muncul kembali di keranjang bidder
+        await tx.invoices.updateMany({
+          where: { order_id: orderId },
+          data: {
+            status: 'unpaid',
+            order_id: null,
+            nipl_deduction: 0,
+          }
+        });
+
+        // Kembalikan NIPL yang terpakai untuk order ini. Deposit asli yang
+        // dikonsumsi saat checkout bisa saja sudah terpecah jadi deposit
+        // "sisa" (lihat allocateNiplDeductions), jadi mencoba merekonstruksi
+        // deposit lama itu berisiko dobel-hitung atau salah status. Sebagai
+        // gantinya kita terbitkan deposit pengganti baru senilai persis
+        // `nipl_deduction` yang sudah tercatat akurat per invoice saat
+        // checkout — jadi pemulihan selalu tepat nilainya, terlepas dari
+        // berapa lama proses verifikasi admin berlangsung.
+        //
+        // Status deposit yang bisa dipakai lagi (dibaca ulang oleh getCart
+        // dan processCheckout) adalah 'paid' — BUKAN 'active'.
+        for (const inv of order.invoices) {
+          const deduction = Number(inv.nipl_deduction || 0);
+          if (deduction <= 0) continue;
+
+          const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
+          await tx.deposits.create({
+            data: {
+              user_id: order.bidder_id,
+              amount: new Prisma.Decimal(deduction),
+              unit_type: isMotor ? 'motor' : 'mobil',
+              package_type: '1',
+              unique_code: 0,
+              is_manual: true,
+              payment_method: 'nipl_refund_rejected_order',
+              status: 'paid',
+              paid_at: new Date(),
+            }
+          });
+        }
+
+        // Lepas tautan kode NIPL yang sempat terpakai untuk invoice-invoice
+        // order ini — kode itu sendiri tidak dipakai ulang (nilainya sudah
+        // digantikan oleh deposit baru di atas), tapi tetap perlu dilepas
+        // dari invoice yang sekarang sudah kembali jadi unpaid.
+        await tx.nipl_codes.updateMany({
+          where: { invoice_id: { in: order.invoices.map((inv) => inv.id) } },
+          data: { invoice_id: null }
+        });
       }
 
       // 3. Log audit
@@ -588,6 +667,36 @@ export class CheckoutService {
 
       return updatedOrder;
     });
+
+    // Create or upgrade provider settlements for each approved invoice.
+    // This runs OUTSIDE the $transaction because createSettlementForInvoice
+    // uses the global prisma client (not tx). This mirrors the exact pattern
+    // used in lots.service.markAsPaid().
+    if (status === 'paid') {
+      for (const inv of order.invoices) {
+        const isApproved = !approvedInvoiceIds || approvedInvoiceIds.includes(inv.id);
+        if (!isApproved) continue;
+
+        const existingSettlement = await prisma.settlements.findFirst({
+          where: { lot_id: inv.lot_id },
+        });
+
+        if (existingSettlement && existingSettlement.status === 'unpaid') {
+          // Settlement sudah ada (dibuat saat lot terjual) tapi masih 'unpaid'
+          // karena bidder belum bayar — upgrade ke 'pending' sekarang.
+          await prisma.settlements.update({
+            where: { id: existingSettlement.id },
+            data: { status: 'pending' },
+          });
+        } else if (!existingSettlement) {
+          // Belum ada settlement sama sekali — buat baru.
+          // Invoice sudah paid (transaction commit di atas), jadi
+          // createSettlementForInvoice akan menetapkan status 'pending'.
+          await paymentsService.createSettlementForInvoice(inv.id);
+        }
+        // else: sudah 'pending' atau 'processed' — tidak perlu diubah.
+      }
+    }
 
     return updated;
   }

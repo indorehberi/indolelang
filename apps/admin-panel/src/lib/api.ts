@@ -135,7 +135,17 @@ export function clearAuthAndRedirect(reason?: string): void {
   localStorage.removeItem('user');
   localStorage.removeItem('refreshToken');
   notify(reason || 'Sesi Anda telah berakhir. Silakan login kembali.', 'error');
-  window.location.href = '/login';
+  
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // Admin panel runs on port 3001 — redirect to its own login page, not landing-web (3000)
+      const adminPort = process.env.NEXT_PUBLIC_ADMIN_PORT || '3001';
+      window.location.href = `http://localhost:${adminPort}/login`;
+    } else {
+      window.location.href = '/login';
+    }
+  }
 }
 
 /**

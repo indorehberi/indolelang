@@ -10,6 +10,14 @@ const controller = new PaymentsController();
 // Midtrans webhook notifications (public but signature verified in controller)
 router.post('/payments/webhook', controller.handleWebhook);
 
+// Admin income ledger (staff only — providers must not see platform revenue)
+router.get(
+  '/payments/income',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.getIncomeLedger
+);
+
 // Provider settlements
 router.get(
   '/payments/settlements',

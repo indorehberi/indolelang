@@ -28,11 +28,17 @@ export default function LoginPage() {
       }
 
       const token = localStorage.getItem('accessToken');
-      if (token && token !== 'undefined' && token !== 'null') {
+      const storedUser = localStorage.getItem('user');
+      // Only redirect if BOTH token AND user data are present
+      if (token && token !== 'undefined' && token !== 'null' && storedUser && storedUser !== 'null') {
         router.replace('/dashboard');
         return;
       } else {
+        // Clean up any partial/stale session data
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
       }
       setCheckingAuth(false);
     }
@@ -64,11 +70,13 @@ export default function LoginPage() {
         // Redirect to dashboard
         router.replace('/dashboard');
       } else {
-        setError(data.message || 'Login gagal. Periksa email dan password Anda.');
+        // API error response format: { success: false, error: { code, message } }
+        const errMsg = data.error?.message || data.message || 'Login gagal. Periksa email dan password Anda.';
+        setError(errMsg);
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Terjadi kesalahan koneksi. Silakan coba lagi.');
+      setError('Terjadi kesalahan koneksi. Pastikan server API berjalan dan coba lagi.');
     } finally {
       setIsLoading(false);
     }

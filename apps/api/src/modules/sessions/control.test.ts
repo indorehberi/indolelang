@@ -29,14 +29,32 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
       });
     });
 
-    // 2. Clean up leftovers
-    await prisma.lots.deleteMany({});
-    await prisma.assets.deleteMany({});
-    await prisma.auction_sessions.deleteMany({});
-    await prisma.branches.deleteMany({});
+    // 2. Clean up leftovers (target-specific, non-destructive)
+    const existingLots = await prisma.lots.findMany({
+      where: { session: { title: 'Control Test Session' } }
+    });
+    if (existingLots.length > 0) {
+      await prisma.lots.deleteMany({
+        where: { id: { in: existingLots.map(l => l.id) } }
+      });
+    }
+    await prisma.assets.deleteMany({
+      where: { title: 'Toyota Corolla Altis 2018' }
+    });
+    await prisma.auction_sessions.deleteMany({
+      where: { title: 'Control Test Session' }
+    });
+    await prisma.branches.deleteMany({
+      where: { name: 'Test Control Branch' }
+    });
     await prisma.users.deleteMany({
       where: {
-        OR: [{ email: testAdminEmail }, { phone: testPhone }],
+        OR: [
+          { email: testAdminEmail },
+          { email: 'provider_control@example.com' },
+          { phone: testPhone },
+          { phone: '+628999999666' }
+        ],
       },
     });
 
@@ -129,17 +147,31 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
     startMock.mockRestore();
     closeMock.mockRestore();
 
-    // Database Cleanup
-    await prisma.lots.deleteMany({});
-    await prisma.assets.deleteMany({});
-    await prisma.auction_sessions.deleteMany({});
-    await prisma.branches.deleteMany({});
+    // Database Cleanup (target-specific, non-destructive)
+    const existingLots = await prisma.lots.findMany({
+      where: { session: { title: 'Control Test Session' } }
+    });
+    if (existingLots.length > 0) {
+      await prisma.lots.deleteMany({
+        where: { id: { in: existingLots.map(l => l.id) } }
+      });
+    }
+    await prisma.assets.deleteMany({
+      where: { title: 'Toyota Corolla Altis 2018' }
+    });
+    await prisma.auction_sessions.deleteMany({
+      where: { title: 'Control Test Session' }
+    });
+    await prisma.branches.deleteMany({
+      where: { name: 'Test Control Branch' }
+    });
     await prisma.users.deleteMany({
       where: {
         OR: [
           { email: testAdminEmail },
           { email: 'provider_control@example.com' },
           { phone: testPhone },
+          { phone: '+628999999666' }
         ],
       },
     });
@@ -192,7 +224,7 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
   });
 
   describe('POST /api/v1/admin/sessions/:id/end', () => {
-    it('should successfully close the session and cancel remaining lots', async () => {
+    it('should successfully close the session, delete unsold lots, and revert their assets', async () => {
       const res = await request(app)
         .post(`/api/v1/admin/sessions/${sessionId}/end`)
         .set('Authorization', `Bearer ${token}`)
@@ -201,6 +233,18 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.session.status).toBe(SessionStatus.CLOSED);
+
+      // Verify the unsold lot has been deleted from the database
+      const lot = await prisma.lots.findUnique({
+        where: { id: lotId }
+      });
+      expect(lot).toBeNull();
+
+      // Verify the asset's status has been reverted back to approved
+      const asset = await prisma.assets.findUnique({
+        where: { id: assetId }
+      });
+      expect(asset?.status).toBe(AssetStatus.APPROVED);
     });
   });
 });

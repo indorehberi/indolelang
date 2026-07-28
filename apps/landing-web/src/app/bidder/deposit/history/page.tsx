@@ -109,7 +109,7 @@ export default function DepositHistoryPage() {
         </Link>
         <Link
           href="/bidder/deposit/history"
-          className="py-3 font-bold text-body-md text-primary border-b-2 border-primary relative transition-all"
+          className="py-3 font-bold text-body-md text-primary-strong border-b-2 border-primary relative transition-all"
         >
           🕒 Riwayat Deposit & Refund
         </Link>
@@ -117,7 +117,7 @@ export default function DepositHistoryPage() {
 
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <p className="page-subtitle mb-0">Daftar transaksi pembelian NIPL dan status refund Anda</p>
-        <Link href="/bidder/deposit" className="panel-btn panel-btn-gold">
+        <Link href="/bidder/deposit" className="panel-btn panel-btn-lightblue">
           + Beli NIPL Baru
         </Link>
       </div>

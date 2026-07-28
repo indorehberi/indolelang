@@ -8,7 +8,7 @@ interface PWAInstallButtonProps {
 }
 
 export default function PWAInstallButton({
-  className = "px-4 py-2 text-body-md font-bold text-primary border border-primary rounded-full hover:bg-primary/5 transition-all flex items-center gap-1.5",
+  className = "px-4 py-2 text-body-md font-bold text-primary-strong border border-primary rounded-full hover:bg-primary/5 transition-all flex items-center gap-1.5",
   label = "Pasang Aplikasi",
 }: PWAInstallButtonProps) {
   const [installable, setInstallable] = useState(false);
@@ -95,7 +95,7 @@ export default function PWAInstallButton({
             </button>
 
             <div className="text-center pt-2">
-              <span className="material-symbols-outlined text-primary text-5xl mb-3 block">
+              <span className="material-symbols-outlined text-primary-strong text-5xl mb-3 block">
                 install_mobile
               </span>
               <h3 className="text-heading-sm font-bold text-on-surface mb-2">
@@ -107,7 +107,7 @@ export default function PWAInstallButton({
 
               <ol className="text-left space-y-4 text-body-sm text-on-surface-variant max-w-xs mx-auto mb-6">
                 <li className="flex gap-3 items-start">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary-strong flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     1
                   </span>
                   <span>
@@ -115,7 +115,7 @@ export default function PWAInstallButton({
                   </span>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary-strong flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     2
                   </span>
                   <span>
@@ -127,7 +127,7 @@ export default function PWAInstallButton({
                   </span>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary-strong flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     3
                   </span>
                   <span>

@@ -53,15 +53,15 @@ export class AuthService {
 		// 3. Hash password
 		const passwordHash = await hashPassword(data.password);
 
-		// 4. Create a plain user account. Choosing to become a Bidder or Provider
-		// happens afterwards via /bidders/apply or /providers/apply, not at signup.
+		// 4. Default to Bidder role. If they want to be a provider, they can apply
+		// via /providers/apply from their Bidder Dashboard later.
 		const user = await prisma.users.create({
 			data: {
 				email: data.email,
 				phone: data.phone || null,
 				password_hash: passwordHash,
 				full_name: data.full_name,
-				role: Role.USER,
+				role: Role.BIDDER,
 				status: UserStatus.PENDING, // Pending until OTP/verification is confirmed
 			},
 		});

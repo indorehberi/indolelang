@@ -54,5 +54,7 @@ export const getSessionsQuerySchema = z.object({
     ]).optional(),
     branch_id: z.string().uuid('ID Cabang tidak valid').optional(),
     search: z.string().optional(),
+    is_exclusive: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
+    date: z.string().optional(),
   }),
 });

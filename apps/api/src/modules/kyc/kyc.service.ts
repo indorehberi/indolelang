@@ -44,10 +44,18 @@ export class KycService {
 
     // Keep the relational bidder application row in sync: submitting KYC
     // documents is, today, the moment a user actually "applies" as a bidder.
+    // However, if the user has an active or pending provider application, they shouldn't
+    // be put in the active bidder queue.
+    const providerApp = await prisma.providers.findUnique({
+      where: { user_id: userId },
+    });
+    const isProviderOrApplying = providerApp && (providerApp.status === 'aktif' || providerApp.status === 'antri');
+    const bidderStatus = isProviderOrApplying ? 'nonaktif' : 'antri';
+
     await prisma.bidders.upsert({
       where: { user_id: userId },
-      create: { user_id: userId, status: 'antri' },
-      update: { status: 'antri', rejection_reason: null, reviewed_by: null, reviewed_at: null },
+      create: { user_id: userId, status: bidderStatus },
+      update: { status: bidderStatus, rejection_reason: null, reviewed_by: null, reviewed_at: null },
     });
 
     return this.mapToDTO(doc);

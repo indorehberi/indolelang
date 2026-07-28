@@ -199,7 +199,7 @@ export class ProvidersService {
       }),
       // A provider becoming active can no longer bid — deactivate any bidder profile.
       prisma.bidders.updateMany({
-        where: { user_id: provider.user_id, status: ApplicationStatus.AKTIF },
+        where: { user_id: provider.user_id },
         data: { status: ApplicationStatus.NONAKTIF },
       }),
       prisma.users.update({

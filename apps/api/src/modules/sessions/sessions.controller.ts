@@ -13,14 +13,16 @@ export class SessionsController {
     try {
       const page = parseInt(req.query.page as string || '1', 10);
       const perPage = parseInt(req.query.per_page as string || '20', 10);
-      const { status, branch_id, search } = req.query as any;
+      const { status, branch_id, search, is_exclusive, date } = req.query as any;
 
       const { sessions, meta } = await sessionsService.getSessions(
         page,
         perPage,
         status,
         branch_id,
-        search
+        search,
+        is_exclusive,
+        date
       );
       sendSuccess(res, sessions, 'Daftar sesi lelang berhasil dimuat', meta);
     } catch (error) {

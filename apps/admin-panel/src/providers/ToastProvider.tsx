@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Toast from '../components/ui/Toast';
 import { registerToastHandler } from '../lib/api';
 
@@ -49,13 +49,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     return () => registerToastHandler(null);
   }, [show]);
 
-  const value: ToastContextValue = {
-    show,
-    success: (message, duration) => show(message, 'success', duration),
-    error: (message, duration) => show(message, 'error', duration),
-    warning: (message, duration) => show(message, 'warning', duration),
-    info: (message, duration) => show(message, 'info', duration),
-  };
+  // Memoised so `useToast()` returns a stable reference — see the matching
+  // comment in landing-web's ToastProvider. An unstable value here turns any
+  // hook that lists `toast` as a dependency into a refetch loop.
+  const value = useMemo<ToastContextValue>(
+    () => ({
+      show,
+      success: (message, duration) => show(message, 'success', duration),
+      error: (message, duration) => show(message, 'error', duration),
+      warning: (message, duration) => show(message, 'warning', duration),
+      info: (message, duration) => show(message, 'info', duration),
+    }),
+    [show]
+  );
 
   return (
     <ToastContext.Provider value={value}>

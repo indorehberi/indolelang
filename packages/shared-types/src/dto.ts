@@ -332,6 +332,7 @@ export interface DepositDTO {
   status: string;
   paid_at?: string;
   created_at: string;
+  nipl_codes?: any[];
 }
 
 export interface InvoiceDTO {

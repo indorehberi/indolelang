@@ -163,9 +163,33 @@ export default function BidderDashboard() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "success") return <span className="badge-ui success">Berhasil</span>;
-    if (status === "expired" || status === "failed") return <span className="badge-ui danger">Gagal</span>;
-    return <span className="badge-ui warning">Pending</span>;
+    switch (status) {
+      case "paid":
+      case "success":
+        return <span className="badge-ui success">NIPL Aktif</span>;
+      case "pending":
+      case "pending_approval":
+        return <span className="badge-ui warning">Pending</span>;
+      case "pending_refund":
+        return <span className="badge-ui warning">Menunggu Refund</span>;
+      case "refunded":
+        return <span className="badge-ui info">Refunded</span>;
+      case "consumed":
+        return <span className="badge-ui default">Terpakai (Checkout)</span>;
+      case "expired":
+        return <span className="badge-ui danger">Expired</span>;
+      case "failed":
+        return <span className="badge-ui danger">Gagal</span>;
+      default:
+        return <span className="badge-ui default">{status}</span>;
+    }
+  };
+
+  const getTxType = (status: string) => {
+    if (status === "refunded") return "Refund NIPL (Jaminan)";
+    if (status === "pending_refund") return "Pengajuan Refund";
+    if (status === "consumed") return "NIPL Terpakai (Checkout)";
+    return "Pembelian NIPL (Jaminan)";
   };
 
   const handleUploadNpwp = async () => {
@@ -268,7 +292,7 @@ export default function BidderDashboard() {
                 <span className="material-symbols-outlined text-sky-600">notifications</span>
                 <div>
                   <strong className="block text-sm font-semibold">{notif.title}</strong>
-                  <p className="text-xs text-sky-800 mt-0.5">{notif.message}</p>
+                  <p className="text-xs text-sky-800 mt-0.5">{notif.body}</p>
                 </div>
               </div>
               <button
@@ -284,56 +308,42 @@ export default function BidderDashboard() {
         </div>
       )}
 
-      {/* eKYC Alert Box — an admin approval always wins over the raw-field
-          completeness check below. Older/manually-created bidder accounts
-          can have permanently blank address/bank fields on `users` (the
-          mirror in bidders.service.ts only runs on a fresh /bidders/apply
-          submission, which is blocked once already "aktif"), so without this
-          guard an approved bidder could be stuck seeing "Profil Belum
-          Lengkap" forever with no way to clear it. */}
-      {bidderStatus === "aktif" ? null : !isProfileComplete ? (
-        <div className="alert-box danger">
-          <span className="material-symbols-outlined">error</span>
-          <div>
-            <strong>⚠️ Profil Belum Lengkap:</strong> Anda harus melengkapi data profil (No. HP, Alamat, dan Rekening Bank) sebelum dapat melakukan verifikasi KTP.
-            <Link href="/bidder/profile" className="ml-2 font-bold underline hover:text-red-950">Lengkapi Profil</Link>
-          </div>
-        </div>
-      ) : bidderStatus === "nonaktif" || bidderStatus === "ditolak" ? (
-        <div className="alert-box danger">
-          <span className="material-symbols-outlined">report</span>
-          <div>
-            <strong>❌ Akun Bidder Belum Aktif:</strong> {rejectionReason ? `Pengajuan Anda ditolak admin: ${rejectionReason}. Harap lengkapi ulang profil & verifikasi KTP Anda.` : 'Anda belum melengkapi pendaftaran Bidder atau verifikasi KTP. Anda belum bisa ikut lelang.'}
-            <Link href="/ekyc/upload" className="ml-2 font-bold underline hover:text-red-950">Verifikasi KTP</Link>
+      {/* Bidder Verification Alerts */}
+      {bidderStatus !== "aktif" && bidderStatus !== "antri" ? (
+        <div className="card bg-white border border-outline-variant/60 p-6 rounded-2xl mb-6 shadow-sm space-y-4">
+          <h3 className="font-bold text-slate-800 text-body-md mb-2">Langkah Pendaftaran Akun</h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-premium mt-0.5">gavel</span>
+              <p className="text-body-sm text-on-surface-variant">
+                Ingin ikut menjadi peserta lelang?{" "}
+                <Link href={isProfileComplete ? "/ekyc/upload" : "/bidder/profile"} className="font-bold text-premium underline hover:text-red-950">
+                  verifikasi KTP terlebih dahulu di sini
+                </Link>
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-sky-700 mt-0.5">storefront</span>
+              <p className="text-body-sm text-on-surface-variant">
+                Ingin titip jual barang Anda?{" "}
+                <Link href="/register/provider" className="font-bold text-sky-700 underline hover:text-sky-900">
+                  verifikasi menjadi provider disini
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       ) : bidderStatus === "antri" ? (
-        <div className="alert-box warning">
+        <div className="alert-box warning mb-6">
           <span className="material-symbols-outlined">schedule</span>
           <div>
             <strong>⏳ Menunggu Approval Admin:</strong> Data Anda telah kami terima dan sedang diverifikasi secara manual oleh Tim Admin. Silakan tunggu beberapa saat.
           </div>
         </div>
-      ) : null}
-
-      {/* Banner Jadi Mitra Provider */}
-      <div className="card bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-3 text-center sm:text-left">
-          <div className="w-12 h-12 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-2xl">storefront</span>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-800 text-sm">Ingin Titip Jual Kendaraan?</h4>
-            <p className="text-xs text-slate-600 mt-0.5">Daftarkan bisnis Anda sebagai Mitra Provider untuk melelang unit di platform BIDKU.</p>
-          </div>
-        </div>
-        <Link
-          href="/register/provider"
-          className="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-sm transition-all"
-        >
-          Daftar Mitra Provider
-        </Link>
-      </div>
+      ) : (
+        /* Jika sudah aktif, hilangkan penawaran titip jual / provider */
+        null
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-3 gap-3 mb-6 text-center">
@@ -416,7 +426,7 @@ export default function BidderDashboard() {
                 {transactions.map((tx) => (
                   <tr key={tx.id}>
                     <td>#{tx.id.substring(0, 8).toUpperCase()}</td>
-                    <td className="font-bold text-slate-800">Pembelian NIPL (Jaminan)</td>
+                    <td className="font-bold text-slate-800">{getTxType(tx.status)}</td>
                     <td>{tx.session?.name || "Sesi Lelang"}</td>
                     <td className="font-bold">{formatRupiah(tx.amount)}</td>
                     <td>{getStatusBadge(tx.status)}</td>
@@ -433,7 +443,7 @@ export default function BidderDashboard() {
       <ResponsiveModal open={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)}>
             <form onSubmit={handleUpgradeProvider} className="space-y-4 pt-2">
               <h3 className="text-heading-sm font-bold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">storefront</span>
+                <span className="material-symbols-outlined text-primary-strong">storefront</span>
                 Daftar Sebagai Provider
               </h3>
               <p className="text-body-sm text-on-surface-variant">
@@ -475,7 +485,7 @@ export default function BidderDashboard() {
                         setNpwpFile(e.target.files[0]);
                       }
                     }}
-                    className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer outline-none flex-1"
+                    className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/60 text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary-strong hover:file:bg-primary/20 cursor-pointer outline-none flex-1"
                   />
                   <button
                     type="button"

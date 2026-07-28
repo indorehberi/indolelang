@@ -215,9 +215,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
 
   const navLinks = (onNavigate?: () => void) =>
     allBidderNavItems
-      .filter((item) => item.href !== "/bidder/home")
       .map((item) => {
-        const displayName = item.href === "/bidder/dashboard" ? "Beranda" : item.name;
         return (
           <Link
             key={item.href}
@@ -230,7 +228,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
             }`}
           >
             <span className="material-symbols-outlined text-lg">{item.icon}</span>
-            <span className="flex-1">{displayName}</span>
+            <span className="flex-1">{item.name}</span>
             {item.badge && (
               <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
                 {item.badge}
@@ -264,7 +262,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
   );
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans">
+    <div className={`min-h-screen bg-surface flex flex-col font-sans ${isPWA ? "pwa-shell" : ""}`}>
       <SessionTimeout />
 
       {/* Site header — mobile browser only. Desktop keeps the sidebar, the PWA
@@ -359,7 +357,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
         >
           <div className="flex flex-col justify-center">
             <h1 className="text-heading-lg text-on-surface font-extrabold leading-tight">{pageTitle}</h1>
-            <span className="text-[10px] text-primary font-bold uppercase tracking-wider mt-0.5">Bidder</span>
+            <span className="text-[10px] text-primary-strong font-bold uppercase tracking-wider mt-0.5">Bidder</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -379,7 +377,7 @@ export default function BidderLayout({ children, pageTitle, hidePwaTopbar = fals
                 Peserta Lelang
               </span>
             </div>
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/25">
+            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary-strong flex items-center justify-center font-bold text-sm border border-primary/25">
               {userInitial}
             </div>
           </div>

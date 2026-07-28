@@ -3,15 +3,23 @@
 import { useSyncExternalStore } from "react";
 import { getAuthToken } from "@/lib/api";
 
+// Roles the bidder app-shell belongs to. "user" is included because a freshly
+// registered account has not picked bidder-or-provider yet and still browses
+// the bidder side. Everything else — provider and the staff roles — must be
+// excluded by name: in production the admin panel is served from /admin on
+// this same origin, so a signed-in superadmin shares this localStorage, and
+// an "anything but provider" test would hand them the bidder shell.
+const BIDDER_SHELL_ROLES = ["bidder", "user"];
+
 function getSnapshot(): boolean {
   const token = getAuthToken();
   if (!token) return false;
   try {
     const stored = localStorage.getItem("user");
     const role = stored ? JSON.parse(stored).role : undefined;
-    return role !== "provider";
+    return BIDDER_SHELL_ROLES.includes(role);
   } catch {
-    return true;
+    return false;
   }
 }
 

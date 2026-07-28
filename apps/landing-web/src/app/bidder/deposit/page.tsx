@@ -35,6 +35,7 @@ export default function BidderDeposit() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [userDeposits, setUserDeposits] = useState<any[]>([]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -47,6 +48,18 @@ export default function BidderDeposit() {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  };
+
+  const fetchUserDeposits = async () => {
+    try {
+      const response = await apiFetch("/deposits?per_page=100");
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setUserDeposits(resData.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user deposits", err);
+    }
   };
 
   const fetchSessions = async () => {
@@ -101,6 +114,7 @@ export default function BidderDeposit() {
   useEffect(() => {
     fetchSessions();
     fetchSettings();
+    fetchUserDeposits();
   }, []);
 
   const calculateTotalAmount = () => {
@@ -209,6 +223,18 @@ export default function BidderDeposit() {
     }).format(value);
   };
 
+  const activeNipls = userDeposits
+    .filter((d: any) => d.status === "paid" || d.status === "success")
+    .flatMap((d: any) => 
+      (d.nipl_codes || []).map((code: any) => ({
+        ...code,
+        deposit_created_at: d.created_at,
+        payment_method: d.payment_method,
+        session_title: d.session?.title || "Lintas Sesi (Saldo Bebas)"
+      }))
+    )
+    .filter((c: any) => c.status === "active");
+
   if (loading) {
     return (
       <BidderLayout pageTitle="DEPOSIT">
@@ -224,7 +250,7 @@ export default function BidderDeposit() {
       <div className="flex border-b border-outline-variant/60 mb-6 gap-6">
         <Link
           href="/bidder/deposit"
-          className="py-3 font-bold text-body-md text-primary border-b-2 border-primary relative transition-all"
+          className="py-3 font-bold text-body-md text-primary-strong border-b-2 border-primary relative transition-all"
         >
           💳 Setor Deposit NIPL (Saldo Bebas)
         </Link>
@@ -254,7 +280,7 @@ export default function BidderDeposit() {
                     onClick={() => { setUnitType("mobil"); setPackageType("1"); }}
                     className={`p-3 border rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all ${
                       unitType === "mobil"
-                        ? "border-primary bg-primary/5 text-primary"
+                        ? "border-primary bg-primary/5 text-primary-strong"
                         : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
@@ -267,7 +293,7 @@ export default function BidderDeposit() {
                     onClick={() => { setUnitType("motor"); setPackageType("1"); }}
                     className={`p-3 border rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all ${
                       unitType === "motor"
-                        ? "border-primary bg-primary/5 text-primary"
+                        ? "border-primary bg-primary/5 text-primary-strong"
                         : "border-outline-variant/30 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
@@ -303,7 +329,7 @@ export default function BidderDeposit() {
                         value={option.value}
                         checked={packageType === option.value}
                         onChange={() => setPackageType(option.value)}
-                        className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
+                        className="w-4 h-4 text-primary-strong focus:ring-primary border-slate-300"
                       />
                       <div className="flex flex-col">
                         <span className="font-bold text-sm leading-none mb-1">{option.label}</span>
@@ -317,7 +343,7 @@ export default function BidderDeposit() {
               {/* Total Payment Info */}
               <div className="panel-form-group">
                 <label className="panel-form-label">Total Deposit</label>
-                <div className="text-heading-xl text-primary font-black">
+                <div className="text-heading-xl text-primary-strong font-black">
                   {formatRupiah(calculateTotalAmount())}
                 </div>
               </div>
@@ -347,13 +373,66 @@ export default function BidderDeposit() {
               </button>
             </form>
           </div>
+
+          {/* Active NIPL List */}
+          <div className="card mt-6">
+            <div className="card-header flex items-center justify-between border-b pb-3">
+              <span className="font-bold text-slate-800 text-sm">Daftar NIPL Aktif Anda</span>
+              <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {activeNipls.length} Aktif
+              </span>
+            </div>
+
+            {activeNipls.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 text-xs">
+                Anda belum memiliki jaminan NIPL aktif saat ini.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                {activeNipls.map((nipl: any) => (
+                  <div key={nipl.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                          {nipl.code}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          nipl.unit_type === "mobil" 
+                            ? "bg-success/10 text-success" 
+                            : "bg-info/10 text-info"
+                        }`}>
+                          NIPL {nipl.unit_type === "mobil" ? "Mobil" : "Motor"}
+                        </span>
+                      </div>
+                      <div className="text-slate-500 text-[11px] mt-1">
+                        Keterangan: <span className="font-medium text-slate-700">{nipl.session_title}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-row md:flex-col justify-between md:items-end gap-1 border-t md:border-t-0 pt-2 md:pt-0 border-dashed border-slate-100">
+                      <div className="text-slate-500 text-[11px]">
+                        Kode Unik: <span className="font-bold text-primary-strong text-sm">+{nipl.payment_unique_code || 0}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Aktif Sejak: {new Date(nipl.deposit_created_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column Payment Instruction */}
         <div>
           {vaNumber ? (
             <div className="card border-primary/30 bg-primary/[0.02]">
-              <div className="card-header text-primary">
+              <div className="card-header text-primary-strong">
                 {paymentType === "qris" ? "Bayar via QRIS Code" : "Instruksi Pembayaran VA"}
               </div>
               <div className="space-y-4">
