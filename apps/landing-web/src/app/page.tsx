@@ -6,7 +6,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useFeaturedLots, usePlatformStats, useCategoryStats, usePublicSessions, usePublicBlogs, usePublicTestimonials, usePublicGalleries } from "@/hooks/usePublicData";
-import { apiUrl, getImageUrl, getAssetImages } from "@/lib/api";
+import { apiUrl, getImageUrl, getAssetImages, adminBaseUrl } from "@/lib/api";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import { useToast } from "@/providers/ToastProvider";
 import LotCard from "@/components/lots/LotCard";
@@ -94,7 +94,7 @@ export default function Home() {
           if (role === "provider") {
             router.replace("/provider/dashboard");
           } else if (role === "superadmin" || role === "admin" || role === "operator") {
-            router.replace(`${process.env.NEXT_PUBLIC_ADMIN_URL || "/admin"}/dashboard`);
+            window.location.href = `${adminBaseUrl()}/dashboard`;
           } else {
             router.replace("/bidder/dashboard");
           }

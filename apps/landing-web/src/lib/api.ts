@@ -82,6 +82,23 @@ export function getImageUrl(url: string | undefined): string {
   return `${resolveDynamicBase(API_BASE_URL)}${cleanPath}`;
 }
 
+/**
+ * Base URL of the admin panel.
+ *
+ * In production the admin panel is served from /admin on this same origin
+ * (basePath: '/admin'), so a relative path is always right there. Only fall
+ * back to NEXT_PUBLIC_ADMIN_URL on localhost, where the two apps run on
+ * separate ports — that variable is baked in at build time and defaults to
+ * `http://localhost/admin` when the server's .env doesn't define it, which
+ * would otherwise send live users to a dead localhost address.
+ */
+export function adminBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return '/admin';
+  }
+  return process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001/admin';
+}
+
 export function apiUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   // Dynamic host replacement for mobile device testing on local network

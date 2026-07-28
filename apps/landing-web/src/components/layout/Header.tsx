@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import PWAInstallButton from "../pwa/PWAInstallButton";
+import { adminBaseUrl } from "../../lib/api";
 
 export default function Header() {
   const pathname = usePathname();
@@ -68,7 +69,7 @@ export default function Header() {
       case "superadmin":
       case "admin":
       case "operator":
-        return `${process.env.NEXT_PUBLIC_ADMIN_URL || "/admin"}/dashboard`;
+        return `${adminBaseUrl()}/dashboard`;
       case "provider":
         return "/provider/dashboard";
       default:
