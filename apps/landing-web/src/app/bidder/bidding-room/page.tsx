@@ -457,8 +457,8 @@ function ActiveLotCard({
             </div>
             <button
               onClick={() => setIsBidEnabled(!isBidEnabled)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                isBidEnabled ? "bg-primary" : "bg-slate-300"
+              className={`switch-toggle relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isBidEnabled ? "bg-brand-orange" : "bg-slate-300"
               }`}
             >
               <span
@@ -526,11 +526,11 @@ function ActiveLotCard({
                   disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
                   onClick={() => handlePlaceBid(minIncrement)}
                   className={`w-full py-4 px-4 text-sm font-black text-center rounded-xl transition-all shadow-md active:scale-95 ${
-                    isSingleLot ? "hidden lg:block" : ""
+                    isSingleLot ? "btn-desktop-only" : ""
                   } ${
                     bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                      : "bg-primary hover:bg-primary/95 text-white cursor-pointer hover:shadow-lg"
+                      : "bg-brand-orange text-white cursor-pointer hover:shadow-lg"
                   }`}
                 >
                   Ajukan Penawaran (+ {formatRupiah(minIncrement)})
@@ -692,10 +692,10 @@ function ActiveLotCard({
         <button
           disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
           onClick={() => handlePlaceBid(minIncrement)}
-          className={`w-full py-5 text-xl font-black text-center rounded-2xl transition-all shadow-md active:scale-95 ${
+          className={`bid-cta w-full rounded-2xl transition-all shadow-md active:scale-95 ${
             bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
               ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-              : "bg-[#f67904]/95 hover:bg-[#f67904] text-white cursor-pointer"
+              : "bg-brand-orange text-white cursor-pointer"
           }`}
         >
           {isConnected ? "BID" : "TERPUTUS"}

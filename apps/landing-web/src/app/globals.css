@@ -773,6 +773,65 @@ select.form-select,
   box-shadow: var(--control-shadow);
   font-family: inherit;
 }
+/* Switch-style toggles are <button> elements, so the blanket button rule above
+   hits them too — its min-height, padding and `border-radius: !important` turn
+   the pill into a padded rounded box and push the knob off-centre. This opts a
+   toggle back out; the !important is required to outrank that rule. */
+.switch-toggle {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+  gap: 0 !important;
+}
+.switch-toggle:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* Tailwind's `hidden` sets `display: none`, but the blanket button rule above
+   sets `display: inline-flex` at equal specificity and wins on order — so
+   `hidden` silently does nothing on a <button>. That is how the bidding room
+   ended up showing both the inline "Ajukan Penawaran" button and the sticky
+   BID button at once on phones. This pair carries !important so the intent
+   holds regardless of rule order. */
+.btn-desktop-only {
+  display: none !important;
+}
+@media (min-width: 1024px) {
+  .btn-desktop-only {
+    display: block !important;
+  }
+}
+
+/* The sticky BID call-to-action on phones. Sizing lives here rather than in
+   Tailwind utilities because the blanket button rule above sets `padding` and
+   `display: inline-flex` at equal specificity and wins on order — that is why
+   `text-center` never centred this label (text-align does nothing to a flex
+   item; it needs justify-content). */
+.bid-cta {
+  padding: 1.4rem 1.6rem !important;
+  font-size: 1.75rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em !important;
+  justify-content: center !important;
+  min-height: 0 !important;
+  border-radius: 1rem !important;
+}
+
+/* Brand orange for the bidding controls. Written out here rather than as a
+   Tailwind arbitrary value (`bg-[#f67904]`) so it never depends on the class
+   scanner having picked the literal up — the bidding room must not silently
+   lose its call-to-action colour. */
+.bg-brand-orange {
+  background-color: #f67904;
+}
+.bg-brand-orange:hover {
+  background-color: #e06d03;
+}
+
 .panel-btn:hover, .wf-btn:hover, button:hover {
   opacity: 0.95;
   transform: translateY(-1px);
