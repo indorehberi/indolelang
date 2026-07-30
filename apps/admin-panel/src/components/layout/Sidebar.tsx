@@ -44,6 +44,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [liveSession, setLiveSession] = useState<boolean>(false);
   const [showAnalytics, setShowAnalytics] = useState<boolean>(true);
   const [showAuditTrail, setShowAuditTrail] = useState<boolean>(true);
+  // Menu Pemasukan & Pencairan default MATI — baru tampil kalau toggle-nya
+  // dinyalakan di Pengaturan Platform. Sengaja begini supaya fitur yang belum
+  // dipakai tidak muncul sendiri di sidebar.
+  const [showIncome, setShowIncome] = useState<boolean>(false);
+  const [showSettlement, setShowSettlement] = useState<boolean>(false);
 
   useEffect(() => {
     if (kycPendingCount !== undefined) {
@@ -114,6 +119,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         if (cookieMap['feat_audit_trail'] === 'false') {
           setShowAuditTrail(false);
         }
+        if (cookieMap['feat_income_report'] === 'true') {
+          setShowIncome(true);
+        }
+        if (cookieMap['feat_settlement_menu'] === 'true') {
+          setShowSettlement(true);
+        }
 
         const res = await apiFetch('/admin/settings');
         const data = await res.json();
@@ -127,6 +138,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           if (auditToggle) {
             const val = cookieMap['feat_audit_trail'] || auditToggle.value;
             setShowAuditTrail(val === 'true');
+          }
+          const incomeToggle = data.data.find((item: any) => item.key === 'feat_income_report');
+          if (incomeToggle) {
+            const val = cookieMap['feat_income_report'] || incomeToggle.value;
+            setShowIncome(val === 'true');
+          }
+          const settlementToggle = data.data.find((item: any) => item.key === 'feat_settlement_menu');
+          if (settlementToggle) {
+            const val = cookieMap['feat_settlement_menu'] || settlementToggle.value;
+            setShowSettlement(val === 'true');
           }
         }
       } catch (e) {
@@ -235,12 +256,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Keuangan',
       items: [
-        { href: '/finance/income', icon: 'savings', iconColor: '#22c55e', label: 'Pemasukan' },
+        showIncome && { href: '/finance/income', icon: 'savings', iconColor: '#22c55e', label: 'Pemasukan' },
         { href: '/finance/deposits', icon: 'account_balance_wallet', iconColor: '#10b981', label: 'Deposit' },
         { href: '/finance/invoices', icon: 'payments', iconColor: '#34d399', label: 'Pelunasan' },
-        { href: '/finance/settlements', icon: 'paid', iconColor: '#059669', label: 'Pencairan' },
+        showSettlement && { href: '/finance/settlements', icon: 'paid', iconColor: '#059669', label: 'Pencairan' },
         { href: '/finance/refunds', icon: 'currency_exchange', iconColor: '#f59e0b', label: 'Refund' },
-      ],
+      ].filter(Boolean) as NavItem[],
     },
     {
       title: 'Laporan',

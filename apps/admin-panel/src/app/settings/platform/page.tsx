@@ -200,6 +200,8 @@ export default function PlatformSettingsPage() {
     feat_multi_branch: 'Multi Branch System',
     feat_analytics_dashboard: 'Dashboard Analitik',
     feat_audit_trail: 'Audit Trail System',
+    feat_income_report: 'Menu Pemasukan (Keuangan)',
+    feat_settlement_menu: 'Menu Pencairan (Keuangan)',
     feat_payment_gateway_auto: 'Payment Gateway (Otomatis)',
     feat_auction_english: 'English Auction',
     feat_auction_dutch: 'Dutch Auction',
@@ -346,6 +348,9 @@ export default function PlatformSettingsPage() {
       ensureToggle('feat_multi_branch', 'true');
       ensureToggle('feat_analytics_dashboard', 'true');
       ensureToggle('feat_audit_trail', 'true');
+      // Dua menu keuangan ini sengaja default MATI sampai siap dipakai.
+      ensureToggle('feat_income_report', 'false');
+      ensureToggle('feat_settlement_menu', 'false');
 
       // Toggle tipe lelang
       ensureToggle('feat_auction_english', 'true');
