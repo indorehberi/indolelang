@@ -455,10 +455,24 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
     activeLots.delete(lotId);
   }
 
-  const updated = await prisma.lots.update({
-    where: { id: lotId },
-    data: { status: 'cancelled' },
-    include: { asset: true },
+  // Lepaskan barangnya kembali ke stok pada saat pembatalan, bukan menunggu
+  // sesi diakhiri. Kalau sesi tidak pernah ditutup, barang yang lotnya
+  // dibatalkan akan tertahan di status 'listed' selamanya dan tidak pernah
+  // muncul lagi di daftar penyusunan lot — tanpa pesan apa pun yang
+  // menjelaskan kenapa. Satu transaksi supaya keduanya berubah bersamaan.
+  const updated = await prisma.$transaction(async (tx) => {
+    const lot = await tx.lots.update({
+      where: { id: lotId },
+      data: { status: 'cancelled' },
+      include: { asset: true },
+    });
+
+    await tx.assets.update({
+      where: { id: lot.asset_id },
+      data: { status: 'approved' },
+    });
+
+    return lot;
   });
 
   if (ioServer) {
