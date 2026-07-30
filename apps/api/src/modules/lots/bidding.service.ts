@@ -7,6 +7,7 @@ import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
 import { paymentsService } from '../payments/payments.service';
 import { isUnlimitedPackage } from '../../lib/niplPackage';
+import { withLock } from '../../lib/mutex';
 
 export interface BidSubmission {
   userId: string;
@@ -140,7 +141,24 @@ export class BiddingService {
         });
         continue;
       }
-      totalQuota += parseInt(d.package_type || '1', 10);
+      // package_type holds a slot count as a string. Anything that isn't a
+      // number must not be allowed to poison the total: parseInt would yield
+      // NaN, and every comparison below (`totalQuota <= 0`, `totalWon >=
+      // totalQuota`) is false against NaN — so a single malformed row would
+      // silently hand that bidder unlimited quota. Fall back to counting the
+      // NIPL they actually hold.
+      const parsedSlots = parseInt(d.package_type || '1', 10);
+      if (Number.isFinite(parsedSlots) && parsedSlots >= 0) {
+        totalQuota += parsedSlots;
+      } else {
+        logger.warn(
+          { depositId: d.id, packageType: d.package_type },
+          'Deposit has a non-numeric package_type; falling back to live NIPL code count'
+        );
+        totalQuota += await prisma.nipl_codes.count({
+          where: { deposit_id: d.id, status: 'active' },
+        });
+      }
     }
 
     if (!isUnlimited && totalQuota <= 0) {
@@ -216,9 +234,18 @@ export class BiddingService {
   }
 
   /**
-   * Settle a lot when its timer runs out or manually closed by admin
+   * Settle a lot when its timer runs out or manually closed by admin.
+   *
+   * Serialised per lot: the status check below is a read-then-write, and the
+   * timer expiring at the same moment an admin closes the lot by hand used to
+   * let both callers through — producing two invoices, two settlements and two
+   * "you won" notifications for a single unit.
    */
   async settleLot(lotId: string): Promise<any> {
+    return withLock(`settle:${lotId}`, () => this.settleLotUnlocked(lotId));
+  }
+
+  private async settleLotUnlocked(lotId: string): Promise<any> {
     const lot = await prisma.lots.findUnique({
       where: { id: lotId },
       include: {
@@ -240,6 +267,16 @@ export class BiddingService {
 
     // If already settled, skip
     if (lot.status === LotStatus.SOLD || lot.status === LotStatus.UNSOLD) {
+      return lot;
+    }
+
+    // Second line of defence behind the per-lot lock: if an invoice already
+    // exists for this lot then it has been settled before, whatever its status
+    // column says. Billing a bidder twice for one unit is not recoverable by
+    // an apology, so this is checked even though it should be unreachable.
+    const existingInvoice = await prisma.invoices.findFirst({ where: { lot_id: lotId } });
+    if (existingInvoice) {
+      logger.warn({ lotId, invoiceId: existingInvoice.id }, 'settleLot called for a lot that already has an invoice; skipping');
       return lot;
     }
 

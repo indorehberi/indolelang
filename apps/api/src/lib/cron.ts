@@ -19,13 +19,28 @@ export function initCronJobs() {
       
       if (sessionTrigger === 'system') {
         const now = new Date();
-        
+
+        // Never start a session on top of one that is already running. Two live
+        // sessions at once would have two lots counting down in parallel, and
+        // bidders polling `/lots?status=active` would flip between them.
+        const liveCount = await prisma.auction_sessions.count({
+          where: { status: SessionStatus.LIVE },
+        });
+        if (liveCount > 0) {
+          return;
+        }
+
         // Find published sessions whose start_time has passed
         const sessionsToStart = await prisma.auction_sessions.findMany({
           where: {
             status: SessionStatus.PUBLISHED,
             scheduled_at: { lte: now }
-          }
+          },
+          // Oldest scheduled first, so a backlog starts in the intended order.
+          orderBy: { scheduled_at: 'asc' },
+          // One per tick — the next tick re-checks the guard above, which the
+          // session just started will now trip.
+          take: 1,
         });
 
         for (const session of sessionsToStart) {

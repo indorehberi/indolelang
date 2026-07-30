@@ -5,6 +5,7 @@ import { biddingService } from '../modules/lots/bidding.service';
 import { prisma } from '../config/database';
 import { Prisma } from '@prisma/client';
 import { logger } from './logger';
+import { withLock } from './mutex';
 
 export interface ActiveLotState {
   lotId: string;
@@ -19,6 +20,7 @@ export interface ActiveLotState {
   extensionCount: number;
   timerInterval?: NodeJS.Timeout;
   autoEndTrigger?: string;
+  autoEndTriggerLoaded?: boolean;
 }
 
 // In-memory active lot state
@@ -43,6 +45,14 @@ export function initSocket(server: HttpServer): SocketIoServer {
       origin: '*',
       methods: ['GET', 'POST'],
     },
+    // Socket.io's defaults (25s interval + 20s timeout) mean a client whose
+    // network drops can take up to 45 seconds to notice. On a 60–90 second lot
+    // that is most of the auction spent looking connected while receiving
+    // nothing. Tightened so a dead connection is detected in roughly 10–20
+    // seconds instead, which is what makes the "Koneksi terputus" warning and
+    // the disabled BID button fire while they still matter.
+    pingInterval: 10000,
+    pingTimeout: 10000,
   });
 
   // JWT authentication handshake middleware
@@ -108,46 +118,77 @@ export function initSocket(server: HttpServer): SocketIoServer {
           return;
         }
 
-        const state = activeLots.get(data.lot_id);
-        if (!state) {
-          socket.emit('bid:error', { message: 'Bidding untuk lot ini belum aktif atau sudah ditutup.' });
-          return;
-        }
+        // Everything from reading the current price to writing the new one has
+        // to be one indivisible step. Validation costs several queries, and
+        // without this two bids landing in that window both validated against
+        // the same stale price and the same NIPL quota — letting a bidder win
+        // more units than they hold NIPL for. The user key is taken first (and
+        // always first, everywhere) so the quota check is also serialised
+        // across different lots the same bidder is bidding on.
+        await withLock(`user:${user.id}`, () =>
+          withLock(`lot:${data.lot_id}`, async () => {
+            // Re-read inside the lock: the lot may have closed while queued.
+            const state = activeLots.get(data.lot_id);
+            if (!state) {
+              socket.emit('bid:error', { message: 'Bidding untuk lot ini belum aktif atau sudah ditutup.' });
+              return;
+            }
 
-        // Validate bid constraints (NIPL, increments, self-bid)
-        await biddingService.validateBid(
-          {
-            userId: user.id,
-            sessionId: data.session_id,
-            lotId: data.lot_id,
-            amount: data.amount,
-          },
-          state.currentPrice,
-          state.highestBidderId
+            // Validate bid constraints (NIPL, increments, self-bid)
+            await biddingService.validateBid(
+              {
+                userId: user.id,
+                sessionId: data.session_id,
+                lotId: data.lot_id,
+                amount: data.amount,
+              },
+              state.currentPrice,
+              state.highestBidderId
+            );
+
+            // Record the bid and demote the previous leader together, so a
+            // crash between the two can never leave a lot with two winners.
+            const bid = await prisma.$transaction(async (tx) => {
+              const created = await tx.bids.create({
+                data: {
+                  lot_id: data.lot_id,
+                  bidder_id: user.id,
+                  amount: new Prisma.Decimal(data.amount),
+                  is_winning: true,
+                },
+              });
+
+              await tx.bids.updateMany({
+                where: {
+                  lot_id: data.lot_id,
+                  id: { not: created.id },
+                },
+                data: {
+                  is_winning: false,
+                },
+              });
+
+              return created;
+            });
+
+            await finaliseBid(socket, data, state, user, bid);
+          })
         );
+      } catch (err: any) {
+        socket.emit('bid:error', { message: err.message || 'Gagal memproses penawaran Anda.' });
+      }
+    });
 
-        // Save bid to database
-        const bid = await prisma.bids.create({
-          data: {
-            lot_id: data.lot_id,
-            bidder_id: user.id,
-            amount: new Prisma.Decimal(data.amount),
-            is_winning: true,
-          },
-        });
-
-        // Set previous winner bids' winning status to false
-        await prisma.bids.updateMany({
-          where: {
-            lot_id: data.lot_id,
-            id: { not: bid.id },
-          },
-          data: {
-            is_winning: false,
-          },
-        });
-
-        // Calculate anti-sniping timer extension — "waktu pertama" and "waktu
+    // Timer extension, in-memory state update and broadcast for an accepted
+    // bid. Split out only to keep the locked section above readable.
+    async function finaliseBid(
+      socket: Socket,
+      data: { lot_id: string; session_id: string; amount: number },
+      state: ActiveLotState,
+      user: any,
+      bid: { id: string; created_at: Date }
+    ) {
+      // Calculate anti-sniping timer extension — "waktu pertama" and "waktu
         // kedua" are read fresh on every bid so an admin can retune them
         // between lots without restarting the process.
         const [firstDurationSetting, secondDurationSetting] = await Promise.all([
@@ -197,12 +238,9 @@ export function initSocket(server: HttpServer): SocketIoServer {
           created_at: bid.created_at.toISOString(),
         });
 
-        // Log admin/system audit trail if needed
-        logger.info({ lotId: data.lot_id, bidder: user.id, amount: data.amount }, 'New highest bid submitted');
-      } catch (err: any) {
-        socket.emit('bid:error', { message: err.message || 'Gagal memproses penawaran Anda.' });
-      }
-    });
+      // Log admin/system audit trail if needed
+      logger.info({ lotId: data.lot_id, bidder: user.id, amount: data.amount }, 'New highest bid submitted');
+    }
 
     // `disconnecting` (not `disconnect`) fires while socket.rooms is still
     // populated, so this is the only place we can know which lot rooms need
@@ -257,12 +295,23 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     timeRemaining: effectiveDuration,
     extensionCount: 0,
     autoEndTrigger: 'admin', // will be fetched asynchronously
+    autoEndTriggerLoaded: false,
   };
 
-  // Fetch triggers
-  prisma.platform_settings.findFirst({ where: { key: 'auction_lot_end_trigger' } }).then(setting => {
-    if (setting) state.autoEndTrigger = setting.value;
-  });
+  // Fetch triggers. Until this resolves the timer must not act on the
+  // placeholder value above: a short lot could otherwise run out while the
+  // setting is still in flight and, reading the 'admin' placeholder, sit at
+  // 00:00 forever instead of closing itself.
+  prisma.platform_settings
+    .findFirst({ where: { key: 'auction_lot_end_trigger' } })
+    .then((setting) => {
+      if (setting) state.autoEndTrigger = setting.value;
+      state.autoEndTriggerLoaded = true;
+    })
+    .catch((err) => {
+      logger.error({ err, lotId: lot.id }, 'Failed to read auction_lot_end_trigger; lot will wait for admin');
+      state.autoEndTriggerLoaded = true;
+    });
 
   // Start interval loop
   state.timerInterval = setInterval(async () => {
@@ -271,7 +320,7 @@ export function startActiveLot(lot: any, durationSeconds = 120): void {
     }
 
     if (state.timeRemaining <= 0) {
-      if (state.autoEndTrigger === 'system') {
+      if (state.autoEndTriggerLoaded && state.autoEndTrigger === 'system') {
         clearInterval(state.timerInterval);
         activeLots.delete(lot.id);
 

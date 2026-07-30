@@ -137,13 +137,17 @@ export function clearAuthAndRedirect(reason?: string): void {
   notify(reason || 'Sesi Anda telah berakhir. Silakan login kembali.', 'error');
   
   if (typeof window !== 'undefined') {
+    // This app is served under basePath '/admin' (see next.config.ts). Next's
+    // router adds that prefix automatically, but a raw window.location
+    // assignment does not — so the prefix has to be written explicitly here or
+    // the redirect lands on a path that does not exist.
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       // Admin panel runs on port 3001 — redirect to its own login page, not landing-web (3000)
       const adminPort = process.env.NEXT_PUBLIC_ADMIN_PORT || '3001';
-      window.location.href = `http://localhost:${adminPort}/login`;
+      window.location.href = `http://localhost:${adminPort}/admin/login`;
     } else {
-      window.location.href = '/login';
+      window.location.href = '/admin/login';
     }
   }
 }

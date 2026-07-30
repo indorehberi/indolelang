@@ -89,6 +89,7 @@ function ActiveLotCard({
   bidIncrement,
   socket,
   isConnected,
+  isStalled,
   onLotClosed,
   isSingleLot,
   isCancelledOverride,
@@ -102,6 +103,10 @@ function ActiveLotCard({
   bidIncrement: number;
   socket: Socket | null;
   isConnected: boolean;
+  // Socket is up but the per-second countdown has gone quiet — the room
+  // subscription was lost and is being repaired. The screen is stale, so say so
+  // rather than letting the bidder trust a frozen clock.
+  isStalled?: boolean;
   onLotClosed: (data?: any, hasBidded?: boolean) => void;
   isSingleLot: boolean;
   isCancelledOverride?: boolean;
@@ -133,7 +138,34 @@ function ActiveLotCard({
   const [cancelCountdown, setCancelCountdown] = useState(5);
   const cancelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  
+  const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bid rejections are transient. Left on screen they read as an unresolved
+  // fault ("Anda sudah memegang penawaran tertinggi" stayed up for the rest of
+  // the lot), so every message clears itself and is also cleared by the next
+  // price update.
+  const clearBidError = useCallback(() => {
+    if (errorTimerRef.current) {
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
+    setErrorMessage("");
+  }, []);
+
+  const showBidError = useCallback((message: string) => {
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    setErrorMessage(message);
+    errorTimerRef.current = setTimeout(() => {
+      setErrorMessage("");
+      errorTimerRef.current = null;
+    }, 5000);
+  }, []);
+
+  useEffect(() => () => {
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+  }, []);
+
+
   const displayImages = getDisplayAssetImages(lot);
 
   const playBeep = () => {
@@ -286,6 +318,12 @@ function ActiveLotCard({
       setCurrentPrice(data.current_price);
       setTimeLeft(data.time_remaining);
 
+      // A rejection message describes one attempt, not a lasting state. Once
+      // the lot has moved on — someone bid, or the clock simply ticked — the
+      // old complaint is stale and must not keep sitting on screen implying
+      // something is still wrong.
+      clearBidError();
+
       // Only log if there is an active bidder (not '-' or empty)
       if (data.bidder_id && data.bidder_id !== "-") {
         // `bidder_id` in the broadcast is the server's masked id ("Peserta #XXXX",
@@ -319,8 +357,8 @@ function ActiveLotCard({
     };
 
     const handleBidError = (data: any) => {
-      if (data.lot_id && data.lot_id !== lot.id) return; 
-      setErrorMessage(data.message);
+      if (data.lot_id && data.lot_id !== lot.id) return;
+      showBidError(data.message);
       toast.error(data.message);
     };
 
@@ -394,12 +432,18 @@ function ActiveLotCard({
       socket.off("lot:start", handleLotStartCountdown);
       socket.off("lot:presence", handleLotPresence);
     };
-  }, [socket, lot.id, onLotClosed, playBeep]);
+  }, [socket, lot.id, onLotClosed, playBeep, showBidError, clearBidError]);
 
   const handlePlaceBid = (incrementAmount: number) => {
     // While disconnected the price on screen is whatever arrived last, so a bid
     // built on top of it would be based on a stale number.
-    if (!socket || !isConnected || bidCooldown) return;
+    //
+    // `isStalled` matters just as much: the socket can still believe it is
+    // connected while no longer receiving anything (a dropped network takes
+    // socket.io seconds to notice, and a lost room subscription it never
+    // notices at all). Bidding on that screen sends a number built on a price
+    // and a clock that have both stopped being true.
+    if (!socket || !isConnected || isStalled || bidCooldown) return;
     setHasUserBidded(true);
     if ("vibrate" in navigator) navigator.vibrate(15);
     setBidCooldown(true);
@@ -484,6 +528,16 @@ function ActiveLotCard({
         </div>
       )}
 
+      {isConnected && isStalled && (
+        <div className="alert-box warning mb-4 flex items-center gap-2 transition-all mx-5 mt-4">
+          <span className="material-symbols-outlined animate-pulse">sync_problem</span>
+          <span>
+            Data lelang tertunda — sedang menyambungkan ulang. Hitung mundur di layar mungkin belum yang
+            terbaru.
+          </span>
+        </div>
+      )}
+
       {errorMessage && (
         <div className="alert-box danger mb-4 flex items-center gap-2 transition-all mx-5 mt-4">
           <span className="material-symbols-outlined">error</span>
@@ -523,17 +577,19 @@ function ActiveLotCard({
             {hasNipl ? (
               <div className="mt-6 space-y-4">
                 <button
-                  disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
+                  disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected || isStalled}
                   onClick={() => handlePlaceBid(minIncrement)}
                   className={`w-full py-4 px-4 text-sm font-black text-center rounded-xl transition-all shadow-md active:scale-95 ${
                     isSingleLot ? "btn-desktop-only" : ""
                   } ${
-                    bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
+                    bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected || isStalled
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                       : "bg-brand-orange text-white cursor-pointer hover:shadow-lg"
                   }`}
                 >
-                  Ajukan Penawaran (+ {formatRupiah(minIncrement)})
+                  {isStalled && isConnected
+                    ? "Menunggu data terbaru…"
+                    : `Ajukan Penawaran (+ ${formatRupiah(minIncrement)})`}
                 </button>
               </div>
             ) : (
@@ -690,15 +746,15 @@ function ActiveLotCard({
         }`}
       >
         <button
-          disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected}
+          disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected || isStalled}
           onClick={() => handlePlaceBid(minIncrement)}
           className={`bid-cta w-full rounded-2xl transition-all shadow-md active:scale-95 ${
-            bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected
+            bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected || isStalled
               ? "bg-slate-300 text-slate-500 cursor-not-allowed"
               : "bg-brand-orange text-white cursor-pointer"
           }`}
         >
-          {isConnected ? "BID" : "TERPUTUS"}
+          {!isConnected ? "TERPUTUS" : isStalled ? "MENUNGGU" : "BID"}
         </button>
       </div>
     )}
@@ -735,6 +791,26 @@ export default function BidderBiddingRoom() {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Which lot rooms this socket has actually joined. Room membership is what
+  // decides whether `bid:update` (the countdown) reaches us at all, so it is
+  // tracked explicitly rather than inferred from render state.
+  const watchedLotIdsRef = useRef<Set<string>>(new Set());
+  // Read by socket handlers that outlive the render they were created in.
+  const activeLotsRef = useRef<any[]>([]);
+  const liveSessionIdRef = useRef<string | null>(null);
+  // Timestamp of the last countdown tick received from the server; the
+  // watchdog below uses it to notice a silently dropped subscription.
+  const lastBidUpdateAtRef = useRef<number>(0);
+  const [isStalled, setIsStalled] = useState(false);
+
+  useEffect(() => {
+    activeLotsRef.current = activeLots;
+  }, [activeLots]);
+
+  useEffect(() => {
+    liveSessionIdRef.current = liveSessionId;
+  }, [liveSessionId]);
 
   // Thank You Modal state for Session End
   interface ThankYouModalData {
@@ -788,30 +864,46 @@ export default function BidderBiddingRoom() {
         return;
       }
 
-      // Fetch ALL active lots
+      // Fetch ALL active lots.
+      //
+      // "The server says there is no active lot" and "I failed to ask" are NOT
+      // the same thing, and conflating them is what froze the bidding room
+      // mid-auction: one 401 during a token refresh, or one dropped request on
+      // a weak signal, emptied activeLots — which tore the socket down and
+      // rebuilt it subscribed to nothing. The countdown stopped while the app
+      // still looked connected. On a failed request we now keep whatever we
+      // already had and simply try again on the next poll.
       const res = await apiFetch("/lots?status=active");
-      const resData = await res.json();
+      const resData = await res.json().catch(() => null);
+      const lotsRequestSucceeded = res.ok && resData?.success;
 
-      if (res.ok && resData.success && resData.data?.length > 0) {
-        setActiveLots(resData.data);
-      } else {
-        setActiveLots([]);
-        // Fetch upcoming sessions if no active lots
-        const resSessions = await apiFetch("/sessions?status=published");
-        const sessData = await resSessions.json();
-        if (resSessions.ok && sessData.success) {
-          setUpcomingSessions(sessData.data);
+      if (lotsRequestSucceeded) {
+        if (resData.data?.length > 0) {
+          setActiveLots(resData.data);
+        } else {
+          setActiveLots([]);
+          // Fetch upcoming sessions if no active lots
+          const resSessions = await apiFetch("/sessions?status=published");
+          const sessData = await resSessions.json().catch(() => null);
+          if (resSessions.ok && sessData?.success) {
+            setUpcomingSessions(sessData.data);
+          }
         }
       }
 
-      // Fetch LIVE session to keep socket alive even when transitioning through cancelled lots
+      // Fetch LIVE session to keep socket alive even when transitioning through
+      // cancelled lots. Same rule as above — only a successful answer is
+      // allowed to clear it, since dropping liveSessionId closes the socket
+      // outright and takes the session-room broadcasts down with it.
       const resSession = await apiFetch("/sessions?status=live");
-      const sessionData = await resSession.json();
-      if (resSession.ok && sessionData.success && sessionData.data?.length > 0) {
-        setLiveSessionId(sessionData.data[0].id);
-        setLiveSessionName(sessionData.data[0].title || sessionData.data[0].name || "");
-      } else {
-        setLiveSessionId(null);
+      const sessionData = await resSession.json().catch(() => null);
+      if (resSession.ok && sessionData?.success) {
+        if (sessionData.data?.length > 0) {
+          setLiveSessionId(sessionData.data[0].id);
+          setLiveSessionName(sessionData.data[0].title || sessionData.data[0].name || "");
+        } else {
+          setLiveSessionId(null);
+        }
       }
 
       // Fetch settings for bid increments
@@ -915,11 +1007,20 @@ export default function BidderBiddingRoom() {
     if (isSimulate) setIsConnected(true);
   }, [isSimulate]);
 
-  // Central Socket Connection
+  // Central Socket Connection.
+  //
+  // Deliberately keyed on the live session only — NOT on the set of active lot
+  // ids. With lot advancement set to "admin", `/lots?status=active` is
+  // legitimately empty between lots, so keying on lot ids tore the connection
+  // down and rebuilt it on every transition (up to twice per lot). Each rebuild
+  // was a chance to come back subscribed to nothing while `isConnected` stayed
+  // true, which is exactly how the room went silent mid-countdown. The socket
+  // now lives for the whole session and lot rooms are joined and left on it by
+  // the membership effect below.
   useEffect(() => {
     if (isSimulate) return;
-    // If there's no active lot AND no live session, we don't need a socket yet
-    if (activeLots.length === 0 && !liveSessionId) return;
+    // No live session means nothing to listen to yet.
+    if (!liveSessionId) return;
 
     // A callback (rather than a plain object) is re-invoked before every
     // connection attempt, so a reconnect after a long background never
@@ -941,20 +1042,32 @@ export default function BidderBiddingRoom() {
     // client silently stops receiving price updates while the screen still looks
     // live. The server answers bid:watch with the current price, which also
     // resyncs whatever was missed while we were away.
+    //
+    // Reads the refs, not the render closure: this handler outlives the render
+    // that created it, and rejoining the lot the bidder was on five minutes ago
+    // would be worse than useless.
     const handleConnect = () => {
       setIsConnected(true);
-      activeLots.forEach((lot) => {
+      watchedLotIdsRef.current = new Set();
+      const sessionId = liveSessionIdRef.current;
+      if (sessionId) {
+        localSocket.emit("bid:watch", { session_id: sessionId });
+      }
+      activeLotsRef.current.forEach((lot) => {
         localSocket.emit("bid:watch", {
           lot_id: lot.id,
           session_id: lot.session_id,
         });
+        watchedLotIdsRef.current.add(lot.id);
       });
-      if (liveSessionId) {
-        localSocket.emit("bid:watch", { session_id: liveSessionId });
-      }
+      lastBidUpdateAtRef.current = Date.now();
+      setIsStalled(false);
     };
 
-    const handleDisconnect = () => setIsConnected(false);
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      watchedLotIdsRef.current = new Set();
+    };
 
     // Join session room to listen for lot:start (for cancelled lot freezing)
     const handleLotStart = (data: any) => {
@@ -988,7 +1101,7 @@ export default function BidderBiddingRoom() {
     };
 
     const handleParentLotCancelled = (data: any) => {
-      const cancelledLot = activeLots.find((l) => l.id === data.lot_id);
+      const cancelledLot = activeLotsRef.current.find((l) => l.id === data.lot_id);
       if (cancelledLot) {
         setFrozenLot({
           lot_data: cancelledLot,
@@ -1031,8 +1144,17 @@ export default function BidderBiddingRoom() {
       fetchActiveLots();
     };
 
+    // The lot card has its own bid:update listener for rendering; this one only
+    // records that a tick arrived, which is what tells the watchdog the lot
+    // room subscription is alive. Socket.io fans out to both listeners.
+    const handleBidUpdateHeartbeat = () => {
+      lastBidUpdateAtRef.current = Date.now();
+      setIsStalled(false);
+    };
+
     localSocket.on("connect", handleConnect);
     localSocket.on("disconnect", handleDisconnect);
+    localSocket.on("bid:update", handleBidUpdateHeartbeat);
     if (liveSessionId) {
       localSocket.on("lot:start", handleLotStart);
       localSocket.on("lot:activated", handleLotActivated);
@@ -1055,13 +1177,10 @@ export default function BidderBiddingRoom() {
       if (frozenTimerRef.current) {
         clearInterval(frozenTimerRef.current);
       }
-      if (localSocket.connected) {
-        activeLots.forEach((lot) => {
-          localSocket.emit("bid:unwatch", { lot_id: lot.id });
-        });
-      }
+      watchedLotIdsRef.current = new Set();
       localSocket.off("connect", handleConnect);
       localSocket.off("disconnect", handleDisconnect);
+      localSocket.off("bid:update", handleBidUpdateHeartbeat);
       localSocket.off("lot:start", handleLotStart);
       localSocket.off("lot:activated", handleLotActivated);
       localSocket.off("lot:cancelled", handleParentLotCancelled);
@@ -1071,7 +1190,71 @@ export default function BidderBiddingRoom() {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [activeLots.map(l => l.id).join(","), liveSessionId, isSimulate]);
+  }, [liveSessionId, isSimulate]);
+
+  // Lot room membership, kept in step with the active lots WITHOUT touching the
+  // connection. Joins rooms that appeared, leaves rooms that went away, and
+  // re-runs after every reconnect (isConnected flipping back to true) so a
+  // resumed socket is never left subscribed to nothing.
+  const activeLotIdsKey = activeLots.map((l) => l.id).join(",");
+  useEffect(() => {
+    if (isSimulate) return;
+    const s = socketRef.current;
+    if (!s || !isConnected) return;
+
+    const wanted = new Set<string>(activeLots.map((l) => l.id));
+
+    for (const lot of activeLots) {
+      if (watchedLotIdsRef.current.has(lot.id)) continue;
+      s.emit("bid:watch", { lot_id: lot.id, session_id: lot.session_id });
+      watchedLotIdsRef.current.add(lot.id);
+      lastBidUpdateAtRef.current = Date.now();
+    }
+
+    for (const id of Array.from(watchedLotIdsRef.current)) {
+      if (wanted.has(id)) continue;
+      s.emit("bid:unwatch", { lot_id: id });
+      watchedLotIdsRef.current.delete(id);
+    }
+  }, [activeLotIdsKey, isConnected, isSimulate]);
+
+  // Watchdog. The server broadcasts a countdown tick every second to everyone
+  // in the lot room, so silence while a lot is active means this client has
+  // fallen out of that room — the failure that leaves the screen frozen with no
+  // "disconnected" warning to explain it. Rejoin on our own rather than waiting
+  // for the next poll, and tell the bidder while it is happening.
+  useEffect(() => {
+    if (isSimulate) return;
+    if (activeLots.length === 0) {
+      setIsStalled(false);
+      return;
+    }
+
+    const STALL_AFTER_MS = 4000;
+    const interval = setInterval(() => {
+      const s = socketRef.current;
+      if (!s || !s.connected) return;
+
+      const silentFor = Date.now() - lastBidUpdateAtRef.current;
+      if (silentFor < STALL_AFTER_MS) {
+        setIsStalled(false);
+        return;
+      }
+
+      setIsStalled(true);
+      // Re-subscribing is idempotent server-side (a repeated join is a no-op)
+      // and is answered with the current price, so this both repairs a lost
+      // subscription and resyncs whatever was missed.
+      activeLotsRef.current.forEach((lot) => {
+        s.emit("bid:watch", { lot_id: lot.id, session_id: lot.session_id });
+        watchedLotIdsRef.current.add(lot.id);
+      });
+      const sessionId = liveSessionIdRef.current;
+      if (sessionId) s.emit("bid:watch", { session_id: sessionId });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeLots.length, isSimulate]);
 
   if (loading) {
     return (
@@ -1091,6 +1274,7 @@ export default function BidderBiddingRoom() {
           bidIncrement={bidIncrement}
           socket={socket}
           isConnected={isConnected}
+          isStalled={isStalled}
           onLotClosed={handleLotClosed}
           isSingleLot={true}
           isCancelledOverride={true}
@@ -1106,6 +1290,7 @@ export default function BidderBiddingRoom() {
               bidIncrement={bidIncrement}
               socket={socket}
               isConnected={isConnected}
+              isStalled={isStalled}
               onLotClosed={handleLotClosed}
               isSingleLot={activeLots.length === 1}
               {...(isSimulate
