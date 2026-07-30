@@ -496,21 +496,15 @@ export class LotsService {
       throw new AppError(400, ErrorCode.VALIDATION_ERROR, 'Lot yang sudah terjual tidak dapat dibatalkan');
     }
 
-    // Membatalkan lot harus langsung melepaskan barangnya kembali ke stok.
-    // Sebelumnya status barang hanya dikembalikan saat sesi diakhiri, jadi
-    // kalau sesi tidak pernah ditutup barang itu tertahan di 'listed'
-    // selamanya — tidak muncul lagi di daftar penyusunan lot, tanpa pesan
-    // apa pun yang menjelaskan kenapa.
-    await prisma.$transaction([
-      prisma.lots.update({
-        where: { id },
-        data: { status: LotStatus.CANCELLED },
-      }),
-      prisma.assets.update({
-        where: { id: lot.asset_id },
-        data: { status: AssetStatus.APPROVED },
-      }),
-    ]);
+    // Status barang sengaja TIDAK diubah di sini. Lot yang dibatalkan tetap
+    // ditampilkan dan tetap dilewati dalam urutan lelang (beku beberapa detik
+    // lalu lanjut ke lot berikutnya), jadi barangnya masih terikat pada sesi
+    // ini. Pengembaliannya ke 'approved' dilakukan saat sesi ditutup, bersama
+    // unit-unit lain — lihat endSession di control.controller.
+    await prisma.lots.update({
+      where: { id },
+      data: { status: LotStatus.CANCELLED },
+    });
 
     // Check if active in socket
     const active = activeLots.get(id);

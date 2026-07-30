@@ -455,24 +455,15 @@ export async function cancelActiveLot(lotId: string): Promise<any> {
     activeLots.delete(lotId);
   }
 
-  // Lepaskan barangnya kembali ke stok pada saat pembatalan, bukan menunggu
-  // sesi diakhiri. Kalau sesi tidak pernah ditutup, barang yang lotnya
-  // dibatalkan akan tertahan di status 'listed' selamanya dan tidak pernah
-  // muncul lagi di daftar penyusunan lot — tanpa pesan apa pun yang
-  // menjelaskan kenapa. Satu transaksi supaya keduanya berubah bersamaan.
-  const updated = await prisma.$transaction(async (tx) => {
-    const lot = await tx.lots.update({
-      where: { id: lotId },
-      data: { status: 'cancelled' },
-      include: { asset: true },
-    });
-
-    await tx.assets.update({
-      where: { id: lot.asset_id },
-      data: { status: 'approved' },
-    });
-
-    return lot;
+  // Status barang sengaja TIDAK diubah di sini. Lot yang dibatalkan tetap
+  // ditampilkan dan tetap dilewati dalam urutan lelang (beku beberapa detik
+  // lalu lanjut ke lot berikutnya), jadi barangnya masih terikat pada sesi
+  // yang sedang berjalan. Pengembaliannya ke 'approved' dilakukan saat sesi
+  // ditutup, bersama unit-unit lain — lihat endSession di control.controller.
+  const updated = await prisma.lots.update({
+    where: { id: lotId },
+    data: { status: 'cancelled' },
+    include: { asset: true },
   });
 
   if (ioServer) {
@@ -499,7 +490,17 @@ export async function closeActiveLotAndTriggerNext(lotId: string): Promise<any> 
   return await closeActiveLot(lotId);
 }
 
-export async function handleAutoNextAndSessionEnd(settledLot: any) {
+/**
+ * Menjalankan lot berikutnya, atau menutup sesi kalau sudah habis.
+ *
+ * `retryCount` hanya dipakai oleh penanganan error di dalam: satu kegagalan
+ * basis data tidak boleh menghentikan seluruh sesi, tapi percobaan ulangnya
+ * harus berhenti pada suatu titik supaya kegagalan permanen tidak berubah
+ * jadi lingkaran tak berujung.
+ */
+const MAX_AUTO_NEXT_RETRY = 3;
+
+export async function handleAutoNextAndSessionEnd(settledLot: any, retryCount = 0) {
   try {
     const sessionId = settledLot.session_id;
 
@@ -523,40 +524,78 @@ export async function handleAutoNextAndSessionEnd(settledLot: any) {
         const delay = nextDelaySetting ? parseInt(nextDelaySetting.value, 10) * 1000 : 10000;
         logger.info({ lotId: nextLot.id, delayMs: delay }, 'Auto-next trigger enabled. Next lot will start shortly.');
         
-        setTimeout(async () => {
-          // Double check if it's still pending or cancelled
-          const currentStatus = await prisma.lots.findUnique({ where: { id: nextLot.id } });
-          
-          if (currentStatus?.status === 'cancelled') {
-            // Emits freeze event to frontend
-            const ioServer = getSocketIo();
-            const freezeDurationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_canceled_duration_secs' } });
-            const freezeDurationSecs = freezeDurationSetting ? parseInt(freezeDurationSetting.value, 10) : 5;
-            
-            if (ioServer) {
-              ioServer.to(`session:${sessionId}`).emit('lot:start', {
-                lot_id: nextLot.id,
-                is_canceled: true,
-                freeze_duration_secs: freezeDurationSecs,
-                lot_data: nextLot,
-              });
+        // Rantai lanjut-lot ini hidup di dalam setTimeout. Kalau callback-nya
+        // melempar error, tidak ada yang menangkapnya dan rantainya putus:
+        // sesi berhenti tanpa lot aktif, tanpa pesan, dan tidak akan pernah
+        // lanjut sendiri. Setiap cabang di bawah karena itu wajib berakhir
+        // pada satu dari dua hal — lot berikutnya dimulai, atau
+        // handleAutoNextAndSessionEnd dipanggil lagi.
+        setTimeout(() => {
+          void (async () => {
+            try {
+              // Double check if it's still pending or cancelled
+              const currentStatus = await prisma.lots.findUnique({ where: { id: nextLot.id } });
+
+              if (currentStatus?.status === 'cancelled') {
+                // Emits freeze event to frontend
+                const ioServer = getSocketIo();
+                const freezeDurationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_canceled_duration_secs' } });
+                const freezeDurationSecs = freezeDurationSetting ? parseInt(freezeDurationSetting.value, 10) : 5;
+
+                if (ioServer) {
+                  ioServer.to(`session:${sessionId}`).emit('lot:start', {
+                    lot_id: nextLot.id,
+                    is_canceled: true,
+                    freeze_duration_secs: freezeDurationSecs,
+                    lot_data: nextLot,
+                  });
+                }
+
+                // Auto next again after freeze
+                setTimeout(() => {
+                  void handleAutoNextAndSessionEnd(nextLot);
+                }, freezeDurationSecs * 1000);
+
+              } else if (currentStatus?.status === 'pending') {
+                const updated = await prisma.lots.update({
+                  where: { id: nextLot.id },
+                  data: { status: 'active' },
+                  include: { asset: true }
+                });
+                // 120s matches the historical hardcoded lot duration.
+                const durationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_duration_secs' } });
+                startActiveLot(updated, durationSetting ? parseInt(durationSetting.value, 10) : 120);
+              } else {
+                // Lot ini sudah bukan pending maupun cancelled — misalnya
+                // admin sudah menanganinya sendiri, atau lotnya dihapus.
+                // Jangan berhenti di sini: lanjutkan penelusuran dari nomor
+                // lot ini supaya sisa sesi tetap berjalan.
+                logger.warn(
+                  { lotId: nextLot.id, status: currentStatus?.status ?? 'tidak ditemukan' },
+                  'Auto-next: lot berikutnya sudah tidak dalam keadaan yang bisa dijalankan, melanjutkan ke lot sesudahnya'
+                );
+                void handleAutoNextAndSessionEnd(nextLot);
+              }
+            } catch (err) {
+              if (retryCount < MAX_AUTO_NEXT_RETRY) {
+                logger.error(
+                  { err, lotId: nextLot.id, sessionId, percobaan: retryCount + 1 },
+                  'Auto-next gagal menjalankan lot berikutnya; mencoba lagi agar sesi tidak mandek'
+                );
+                setTimeout(() => {
+                  void handleAutoNextAndSessionEnd(settledLot, retryCount + 1);
+                }, 5000);
+              } else {
+                // Sudah dicoba beberapa kali dan tetap gagal. Berhenti mencoba
+                // supaya kegagalan permanen tidak jadi lingkaran tak berujung,
+                // tetapi catat dengan jelas — sesi ini butuh admin.
+                logger.error(
+                  { err, lotId: nextLot.id, sessionId },
+                  'Auto-next menyerah setelah beberapa percobaan. Sesi berhenti dan perlu dilanjutkan manual oleh admin.'
+                );
+              }
             }
-
-            // Auto next again after freeze
-            setTimeout(() => {
-               handleAutoNextAndSessionEnd(nextLot);
-            }, freezeDurationSecs * 1000);
-
-          } else if (currentStatus?.status === 'pending') {
-            const updated = await prisma.lots.update({
-              where: { id: nextLot.id },
-              data: { status: 'active' },
-              include: { asset: true }
-            });
-            // 120s matches the historical hardcoded lot duration.
-            const durationSetting = await prisma.platform_settings.findFirst({ where: { key: 'auction_lot_duration_secs' } });
-            startActiveLot(updated, durationSetting ? parseInt(durationSetting.value, 10) : 120);
-          }
+          })();
         }, delay);
       }
     } else {

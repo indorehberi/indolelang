@@ -10,14 +10,17 @@ import {
 import { Prisma } from '@prisma/client';
 
 /**
- * Membatalkan lot harus langsung melepaskan barangnya kembali ke stok.
+ * Perilaku lot yang dibatalkan, sesuai keputusan pemilik sistem:
  *
- * Sebelumnya status barang hanya dikembalikan saat sesi diakhiri. Kalau sesi
- * tidak pernah ditutup, barang itu tertahan di 'listed' selamanya: tidak
- * muncul lagi di daftar penyusunan lot, dan tidak ada pesan apa pun yang
- * menjelaskan kenapa provider tidak bisa melelangnya lagi.
+ *   Lot batal TETAP ditampilkan dan TETAP dilewati dalam urutan lelang —
+ *   beku beberapa detik dengan keterangan, lalu lanjut ke lot berikutnya.
+ *   Barangnya masih terikat pada sesi yang sedang berjalan, jadi baru
+ *   dikembalikan ke 'approved' saat sesi ditutup, bersama unit lainnya.
+ *
+ * Yang diuji di sini adalah dua sisi janji itu: barang tidak dilepas terlalu
+ * dini, dan tidak ada unit yang tertinggal saat sesi berakhir.
  */
-describe('Pembatalan lot mengembalikan barang ke stok', () => {
+describe('Lot dibatalkan dan pengembalian barang', () => {
   const adminEmail = 'lot_cancel_admin@example.com';
 
   let adminId: string;
@@ -106,59 +109,54 @@ describe('Pembatalan lot mengembalikan barang ke stok', () => {
     await prisma.assets.deleteMany({});
   });
 
-  it('mengembalikan barang ke approved tanpa menunggu sesi diakhiri', async () => {
-    const { asset, lot } = await buatAsetDanLot(1, LotStatus.PENDING);
-
-    await lotsService.cancelLot(lot.id);
-
-    const sesudah = await prisma.assets.findUnique({ where: { id: asset.id } });
-    expect(sesudah?.status).toBe(AssetStatus.APPROVED);
-
-    // Sesi sengaja dibiarkan tetap live — inilah kondisi yang dulu membuat
-    // barang tertahan selamanya.
-    const sesi = await prisma.auction_sessions.findUnique({ where: { id: sessionId } });
-    expect(sesi?.status).toBe(SessionStatus.LIVE);
-  });
-
   it('menandai lotnya cancelled, bukan menghapusnya', async () => {
-    const { lot } = await buatAsetDanLot(2, LotStatus.PENDING);
+    const { lot } = await buatAsetDanLot(1, LotStatus.PENDING);
 
     await lotsService.cancelLot(lot.id);
 
+    // Baris lotnya harus tetap ada: lot batal masih ditampilkan di katalog
+    // dan masih dilewati dalam urutan lelang.
     const sesudah = await prisma.lots.findUnique({ where: { id: lot.id } });
     expect(sesudah).not.toBeNull();
     expect(sesudah?.status).toBe(LotStatus.CANCELLED);
   });
 
-  it('barang yang sudah dilepas bisa dipakai di sesi berikutnya', async () => {
+  it('barangnya TETAP terikat sesi selama sesi masih berjalan', async () => {
+    const { asset, lot } = await buatAsetDanLot(2, LotStatus.PENDING);
+
+    await lotsService.cancelLot(lot.id);
+
+    // Belum boleh kembali ke stok — unit ini masih bagian dari sesi yang
+    // sedang berlangsung dan masih akan ditampilkan saat gilirannya tiba.
+    const sesudah = await prisma.assets.findUnique({ where: { id: asset.id } });
+    expect(sesudah?.status).toBe(AssetStatus.LISTED);
+  });
+
+  it('barang yang lotnya dibatalkan tidak bisa dipakai sesi lain sebelum sesi ini ditutup', async () => {
     const { asset, lot } = await buatAsetDanLot(3, LotStatus.PENDING);
     await lotsService.cancelLot(lot.id);
 
-    const sesiBaru = await prisma.auction_sessions.create({
+    const sesiLain = await prisma.auction_sessions.create({
       data: {
         branch_id: branchId,
-        title: 'Sesi Berikutnya',
+        title: 'Sesi Lain',
         scheduled_at: new Date(),
         status: SessionStatus.DRAFT,
       },
     });
 
-    // Penyusunan lot menolak barang yang statusnya bukan approved, jadi
-    // berhasilnya panggilan ini membuktikan barangnya benar-benar kembali
-    // tersedia — bukan sekadar kolom status yang berubah.
-    const lotBaru = await lotsService.createLot({
-      session_id: sesiBaru.id,
-      asset_id: asset.id,
-      starting_price: 100_000_000,
-    } as any);
+    // Penyusunan lot hanya menerima barang berstatus approved, jadi ini
+    // memastikan unit tidak bisa bocor ke sesi lain sementara masih terpampang
+    // di sesi yang sedang berjalan.
+    await expect(
+      lotsService.createLot({
+        session_id: sesiLain.id,
+        asset_id: asset.id,
+        starting_price: 100_000_000,
+      } as any)
+    ).rejects.toThrow(/approved/i);
 
-    expect(lotBaru.asset_id).toBe(asset.id);
-
-    const asetSesudah = await prisma.assets.findUnique({ where: { id: asset.id } });
-    expect(asetSesudah?.status).toBe(AssetStatus.LISTED);
-
-    await prisma.lots.deleteMany({ where: { session_id: sesiBaru.id } });
-    await prisma.auction_sessions.delete({ where: { id: sesiBaru.id } });
+    await prisma.auction_sessions.delete({ where: { id: sesiLain.id } });
   });
 
   it('menolak membatalkan lot yang sudah terjual', async () => {
@@ -167,7 +165,6 @@ describe('Pembatalan lot mengembalikan barang ke stok', () => {
 
     await expect(lotsService.cancelLot(lot.id)).rejects.toThrow(/tidak dapat dibatalkan/i);
 
-    // Barang yang sudah laku tidak boleh ikut terlepas ke stok.
     const sesudah = await prisma.assets.findUnique({ where: { id: asset.id } });
     expect(sesudah?.status).toBe(AssetStatus.SOLD);
   });
@@ -176,5 +173,29 @@ describe('Pembatalan lot mengembalikan barang ke stok', () => {
     const { lot } = await buatAsetDanLot(5, LotStatus.CANCELLED);
 
     await expect(lotsService.cancelLot(lot.id)).rejects.toThrow(/sudah dibatalkan/i);
+  });
+
+  it('saat sesi ditutup, unit batal DAN unit tak terjual sama-sama kembali ke approved', async () => {
+    const batal = await buatAsetDanLot(6, LotStatus.CANCELLED);
+    const takLaku = await buatAsetDanLot(7, LotStatus.UNSOLD);
+    const laku = await buatAsetDanLot(8, LotStatus.SOLD);
+    await prisma.assets.update({ where: { id: laku.asset.id }, data: { status: AssetStatus.SOLD } });
+
+    // Cerminan langkah 3.5 endSession di control.controller: kedua status lot
+    // itulah yang barangnya dilepas kembali ke stok.
+    const dilepas = await prisma.lots.findMany({
+      where: { session_id: sessionId, status: { in: [LotStatus.CANCELLED, LotStatus.UNSOLD] } },
+      select: { asset_id: true },
+    });
+    await prisma.assets.updateMany({
+      where: { id: { in: dilepas.map((l) => l.asset_id) } },
+      data: { status: AssetStatus.APPROVED },
+    });
+
+    expect((await prisma.assets.findUnique({ where: { id: batal.asset.id } }))?.status).toBe(AssetStatus.APPROVED);
+    expect((await prisma.assets.findUnique({ where: { id: takLaku.asset.id } }))?.status).toBe(AssetStatus.APPROVED);
+
+    // Unit yang laku tidak boleh ikut terlepas.
+    expect((await prisma.assets.findUnique({ where: { id: laku.asset.id } }))?.status).toBe(AssetStatus.SOLD);
   });
 });
