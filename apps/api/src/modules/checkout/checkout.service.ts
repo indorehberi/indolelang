@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { notifyAdmins } from '../../lib/notifyAdmins';
 import { paymentsService } from '../payments/payments.service';
 import { grantsUnlimitedNow } from '../../lib/niplPackage';
+import { withLock } from '../../lib/mutex';
 
 export class CheckoutService {
   /**
@@ -303,6 +304,66 @@ export class CheckoutService {
 
 
   /**
+   * Kembalikan jaminan NIPL untuk satu tagihan yang batal ditagihkan, entah
+   * karena seluruh order ditolak atau karena admin hanya menyetujui sebagian
+   * unit di dalamnya.
+   *
+   * Deposit asli yang dikonsumsi saat checkout bisa saja sudah terpecah jadi
+   * deposit "sisa" (lihat allocateNiplDeductions), jadi merekonstruksi deposit
+   * lama itu berisiko dobel-hitung atau salah status. Sebagai gantinya kita
+   * terbitkan deposit pengganti senilai persis `nipl_deduction` yang sudah
+   * tercatat akurat per tagihan saat checkout — pemulihannya selalu tepat
+   * nilainya, terlepas dari berapa lama proses verifikasi admin berlangsung.
+   *
+   * Status deposit yang bisa dipakai lagi (dibaca ulang oleh getCart dan
+   * processCheckout) adalah 'paid' — BUKAN 'active'.
+   */
+  private async restoreNiplForInvoice(
+    tx: Prisma.TransactionClient,
+    bidderId: string,
+    inv: { id: string; nipl_deduction: Prisma.Decimal | null; lot?: { asset?: { category?: string | null; title?: string | null } | null } | null }
+  ): Promise<number> {
+    const deduction = Number(inv.nipl_deduction || 0);
+    if (deduction <= 0) return 0;
+
+    const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
+
+    await tx.deposits.create({
+      data: {
+        user_id: bidderId,
+        amount: new Prisma.Decimal(deduction),
+        unit_type: isMotor ? 'motor' : 'mobil',
+        package_type: '1',
+        unique_code: 0,
+        is_manual: true,
+        payment_method: 'nipl_refund_rejected_order',
+        status: 'paid',
+        paid_at: new Date(),
+      },
+    });
+
+    // Lepas tautan kode NIPL dari tagihan yang sekarang kembali jadi unpaid.
+    // Kode itu sendiri tidak dipakai ulang — nilainya sudah digantikan oleh
+    // deposit pengganti di atas.
+    await tx.nipl_codes.updateMany({
+      where: { invoice_id: inv.id },
+      data: { invoice_id: null },
+    });
+
+    // Jaminan yang berpindah tanpa kabar adalah jaminan yang dianggap hilang.
+    await tx.notifications.create({
+      data: {
+        user_id: bidderId,
+        type: 'nipl_returned',
+        title: 'Jaminan NIPL Dikembalikan',
+        body: `Jaminan NIPL sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(deduction)} untuk unit "${inv.lot?.asset?.title || 'lelang'}" telah dikembalikan ke akun Anda dan dapat dipakai kembali.`,
+      },
+    });
+
+    return deduction;
+  }
+
+  /**
    * Process checkout
    */
   async processCheckout(userId: string, invoiceIds: string[], bank: string, useNiplInvoiceIds?: string[]) {
@@ -547,9 +608,20 @@ export class CheckoutService {
   }
 
   /**
-   * Verify order (Admin)
+   * Verify order (Admin).
+   *
+   * Serialised per order: the "sudah diverifikasi?" check below is a
+   * read-then-write, and an admin double-clicking a slow page used to get two
+   * runs through it. Now that a rejection issues replacement NIPL deposits,
+   * two runs would hand the bidder their jaminan back twice.
    */
   async verifyOrder(orderId: string, status: 'paid' | 'rejected', adminId: string, approvedInvoiceIds?: string[]) {
+    return withLock(`checkout-order:${orderId}`, () =>
+      this.verifyOrderUnlocked(orderId, status, adminId, approvedInvoiceIds)
+    );
+  }
+
+  private async verifyOrderUnlocked(orderId: string, status: 'paid' | 'rejected', adminId: string, approvedInvoiceIds?: string[]) {
     const order = await prisma.checkout_orders.findUnique({
       where: { id: orderId },
       include: {
@@ -589,10 +661,16 @@ export class CheckoutService {
               data: { status: 'paid' }
             });
           } else {
-            // Detach rejected invoices so they become unpaid and outstanding again
+            // Unit ini tidak disetujui: kembalikan jaminannya SEBELUM
+            // nipl_deduction dinolkan, lalu lepaskan tagihannya kembali ke
+            // keranjang. Tanpa langkah pertama, potongan NIPL-nya lenyap
+            // begitu saja — tagihan kembali penuh sementara jaminan yang
+            // sudah dipotong tidak pernah kembali ke peserta.
+            await this.restoreNiplForInvoice(tx, order.bidder_id, inv);
+
             await tx.invoices.update({
               where: { id: inv.id },
-              data: { 
+              data: {
                 status: 'unpaid',
                 order_id: null,
                 nipl_deduction: 0,
@@ -601,7 +679,13 @@ export class CheckoutService {
           }
         }
       } else if (status === 'rejected') {
-        // Penolakan: semua invoice dikembalikan ke status 'unpaid' dan dilepas dari order
+        // Penolakan penuh: kembalikan jaminan setiap unit lebih dulu — sekali
+        // nipl_deduction dinolkan, nilainya tidak bisa dibaca lagi.
+        for (const inv of order.invoices) {
+          await this.restoreNiplForInvoice(tx, order.bidder_id, inv);
+        }
+
+        // Semua invoice dikembalikan ke status 'unpaid' dan dilepas dari order
         // sehingga muncul kembali di keranjang bidder
         await tx.invoices.updateMany({
           where: { order_id: orderId },
@@ -610,46 +694,6 @@ export class CheckoutService {
             order_id: null,
             nipl_deduction: 0,
           }
-        });
-
-        // Kembalikan NIPL yang terpakai untuk order ini. Deposit asli yang
-        // dikonsumsi saat checkout bisa saja sudah terpecah jadi deposit
-        // "sisa" (lihat allocateNiplDeductions), jadi mencoba merekonstruksi
-        // deposit lama itu berisiko dobel-hitung atau salah status. Sebagai
-        // gantinya kita terbitkan deposit pengganti baru senilai persis
-        // `nipl_deduction` yang sudah tercatat akurat per invoice saat
-        // checkout — jadi pemulihan selalu tepat nilainya, terlepas dari
-        // berapa lama proses verifikasi admin berlangsung.
-        //
-        // Status deposit yang bisa dipakai lagi (dibaca ulang oleh getCart
-        // dan processCheckout) adalah 'paid' — BUKAN 'active'.
-        for (const inv of order.invoices) {
-          const deduction = Number(inv.nipl_deduction || 0);
-          if (deduction <= 0) continue;
-
-          const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
-          await tx.deposits.create({
-            data: {
-              user_id: order.bidder_id,
-              amount: new Prisma.Decimal(deduction),
-              unit_type: isMotor ? 'motor' : 'mobil',
-              package_type: '1',
-              unique_code: 0,
-              is_manual: true,
-              payment_method: 'nipl_refund_rejected_order',
-              status: 'paid',
-              paid_at: new Date(),
-            }
-          });
-        }
-
-        // Lepas tautan kode NIPL yang sempat terpakai untuk invoice-invoice
-        // order ini — kode itu sendiri tidak dipakai ulang (nilainya sudah
-        // digantikan oleh deposit baru di atas), tapi tetap perlu dilepas
-        // dari invoice yang sekarang sudah kembali jadi unpaid.
-        await tx.nipl_codes.updateMany({
-          where: { invoice_id: { in: order.invoices.map((inv) => inv.id) } },
-          data: { invoice_id: null }
         });
       }
 

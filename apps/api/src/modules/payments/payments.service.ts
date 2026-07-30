@@ -4,6 +4,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { logger } from '../../lib/logger';
 import { Prisma } from '@prisma/client';
 import { isUnlimitedPackage } from '../../lib/niplPackage';
+import { withLock } from '../../lib/mutex';
 
 /**
  * Parse a settings value that may be a plain number or a "a/b" fraction
@@ -401,6 +402,10 @@ export class PaymentsService {
    * manually outside the system, then calls this to record it as done.
    */
   async disburseSettlement(settlementId: string): Promise<any> {
+    return withLock(`settlement:${settlementId}`, () => this.disburseSettlementUnlocked(settlementId));
+  }
+
+  private async disburseSettlementUnlocked(settlementId: string): Promise<any> {
     const settlement = await prisma.settlements.findUnique({
       where: { id: settlementId },
       include: {
@@ -468,6 +473,10 @@ export class PaymentsService {
    * Process manual or auto refund of a deposit NIPL
    */
   async refundDeposit(depositId: string): Promise<any> {
+    return withLock(`deposit:${depositId}`, () => this.refundDepositUnlocked(depositId));
+  }
+
+  private async refundDepositUnlocked(depositId: string): Promise<any> {
     const deposit = await prisma.deposits.findUnique({
       where: { id: depositId },
       include: {
@@ -489,29 +498,57 @@ export class PaymentsService {
       );
     }
 
-    // Validation to prevent refunding deposits if the user won a lot but failed to pay (NIPL forfeit).
-    // We check if the user has any overdue invoices in the same session.
-    const overdueInvoices = await prisma.invoices.count({
-      where: {
-        bidder_id: deposit.user_id,
-        status: 'overdue',
-        lot: {
-          session_id: deposit.session_id || undefined
-        }
-      }
-    });
-
-    if (overdueInvoices > 0) {
-      // System logic: Forfeit this 1 NIPL (mark as forfeited) and reject refund
-      await prisma.deposits.update({
-        where: { id: depositId },
-        data: { status: 'forfeited' }
+    // Menghanguskan jaminan orang adalah tindakan yang tidak bisa ditarik
+    // kembali, jadi dua syarat harus terpenuhi lebih dulu.
+    //
+    // Syarat 1 — deposit ini harus benar-benar terikat pada sebuah sesi.
+    //   Sebelumnya penyaring sesi ditulis `session_id: deposit.session_id ||
+    //   undefined`. Untuk deposit umum yang tidak terikat sesi, Prisma
+    //   MEMBUANG penyaring bernilai undefined — sehingga pemeriksaannya
+    //   melebar ke SELURUH sesi yang pernah ada, dan tunggakan lama yang tidak
+    //   ada hubungannya bisa menghanguskan deposit yang bersih.
+    //
+    // Syarat 2 — deposit harus punya kode NIPL yang benar-benar dipakai.
+    //   Jaminan tanpa kode NIPL tidak pernah dipertaruhkan di lelang mana pun,
+    //   jadi tidak ada dasar untuk menghanguskannya.
+    if (deposit.session_id) {
+      const overdueInvoices = await prisma.invoices.count({
+        where: {
+          bidder_id: deposit.user_id,
+          status: 'overdue',
+          lot: { session_id: deposit.session_id },
+        },
       });
-      throw new AppError(
-        400,
-        ErrorCode.BAD_REQUEST,
-        'Refund ditolak. Deposit (NIPL) ini hangus karena Anda memiliki tagihan pelunasan lelang yang tidak dibayar (Overdue) pada sesi ini.'
-      );
+
+      const niplCodeCount = await prisma.nipl_codes.count({
+        where: { deposit_id: deposit.id },
+      });
+
+      if (overdueInvoices > 0 && niplCodeCount > 0) {
+        await prisma.deposits.update({
+          where: { id: depositId },
+          data: { status: 'forfeited' },
+        });
+        throw new AppError(
+          400,
+          ErrorCode.BAD_REQUEST,
+          'Refund ditolak. Deposit (NIPL) ini hangus karena Anda memiliki tagihan pelunasan lelang yang tidak dibayar (Overdue) pada sesi ini.'
+        );
+      }
+
+      if (overdueInvoices > 0) {
+        // Ada tunggakan, tapi deposit ini tidak memegang kode NIPL apa pun —
+        // jangan hanguskan, cukup tahan refundnya untuk ditinjau admin.
+        logger.warn(
+          { depositId, userId: deposit.user_id, sessionId: deposit.session_id },
+          'Refund ditahan: bidder punya tagihan overdue, tetapi deposit ini tidak memiliki nipl_codes sehingga tidak dihanguskan'
+        );
+        throw new AppError(
+          400,
+          ErrorCode.BAD_REQUEST,
+          'Refund belum dapat diproses karena Anda masih memiliki tagihan pelunasan yang jatuh tempo pada sesi ini. Silakan hubungi admin.'
+        );
+      }
     }
 
     try {

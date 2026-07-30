@@ -179,11 +179,21 @@ export function initCronJobs() {
               ]);
 
               logger.info({ invoiceId: inv.id, depositCount: depositIdsToForfeit.length }, 'CRON: NIPL forfeited for expired invoice');
-            }
 
-            // Create forfeiture settlement for provider (½ nilai NIPL dasar)
-            await paymentsService.createForfeitureSettlement(inv.lot_id, providerId, niplBase);
-            logger.info({ invoiceId: inv.id, providerId }, 'CRON: Forfeiture settlement created for provider');
+              // Bagian provider hanya boleh terbit kalau memang ada NIPL yang
+              // benar-benar disita. Sebelumnya panggilan ini berada di luar
+              // blok ini, sehingga SETIAP tagihan lewat tenggat membayar ½
+              // NIPL ke provider — termasuk saat pemenang tidak pernah
+              // checkout dan tidak ada jaminan yang hangus sama sekali.
+              // Platform menombok selisihnya dari kantong sendiri.
+              await paymentsService.createForfeitureSettlement(inv.lot_id, providerId, niplBase);
+              logger.info({ invoiceId: inv.id, providerId }, 'CRON: Forfeiture settlement created for provider');
+            } else {
+              logger.info(
+                { invoiceId: inv.id, providerId },
+                'CRON: Tagihan lewat tenggat tanpa NIPL terpakai — tidak ada yang hangus, bagian provider tidak diterbitkan'
+              );
+            }
           } catch (forfeitErr) {
             logger.error({ err: forfeitErr, invoiceId: inv.id }, 'CRON: Error processing NIPL forfeiture for expired invoice');
           }
