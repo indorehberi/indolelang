@@ -1,1 +1,6 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.lots.findMany({ orderBy: { updated_at: 'desc' }, take: 5, include: { asset: true, invoices: true, bids: true } }).then(l => console.log(JSON.stringify(l, null, 2))).finally(() => prisma.$disconnect());
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+async function main() {
+  console.log(await prisma.platform_settings.findMany());
+}
+main().finally(() => prisma.$disconnect());
