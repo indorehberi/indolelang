@@ -136,8 +136,15 @@ export class BiddingService {
           isUnlimited = true;
           break;
         }
+        // 'reserved' ikut dihitung sebagai kuota yang dimiliki.
+        //
+        // Kode yang disisihkan untuk unit yang baru dimenangkan sudah bukan
+        // NIPL bebas, tapi pengurangannya sudah tercermin di totalWon di bawah
+        // (lot yang dimenangkan + tagihan belum lunas). Kalau di sini ikut
+        // dikurangi juga, peserta terkena potongan dua kali untuk satu
+        // kemenangan yang sama.
         totalQuota += await prisma.nipl_codes.count({
-          where: { deposit_id: d.id, status: 'active' },
+          where: { deposit_id: d.id, status: { in: ['active', 'reserved'] } },
         });
         continue;
       }
@@ -156,7 +163,7 @@ export class BiddingService {
           'Deposit has a non-numeric package_type; falling back to live NIPL code count'
         );
         totalQuota += await prisma.nipl_codes.count({
-          where: { deposit_id: d.id, status: 'active' },
+          where: { deposit_id: d.id, status: { in: ['active', 'reserved'] } },
         });
       }
     }
@@ -245,6 +252,51 @@ export class BiddingService {
     return withLock(`settle:${lotId}`, () => this.settleLotUnlocked(lotId));
   }
 
+  /**
+   * Sisihkan satu kode NIPL milik pemenang untuk tagihan yang baru terbit.
+   *
+   * Status 'reserved' berarti jaminan itu sudah terpakai untuk sebuah unit —
+   * tidak lagi terhitung sebagai NIPL bebas — tetapi belum dianggap tuntas.
+   * Kalau tagihannya batal, kode dikembalikan ke 'active'; kalau tenggat lewat
+   * tanpa pelunasan, kode inilah yang dihanguskan.
+   *
+   * Bersifat idempoten: kalau tagihan ini sudah punya kode terikat, tidak ada
+   * yang disisihkan lagi.
+   */
+  async reserveNiplForInvoice(userId: string, invoiceId: string, unitType: string): Promise<boolean> {
+    const sudahAda = await prisma.nipl_codes.findFirst({ where: { invoice_id: invoiceId } });
+    if (sudahAda) return false;
+
+    // Yang tertua dulu, mengikuti urutan pemakaian yang sama dengan checkout.
+    const kode = await prisma.nipl_codes.findFirst({
+      where: {
+        status: 'active',
+        unit_type: unitType,
+        deposit: { user_id: userId, status: 'paid' },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+
+    if (!kode) {
+      // Bisa terjadi pada deposit lama yang dibuat sebelum tabel nipl_codes
+      // ada. Jangan menghalangi penutupan lot — pemenangnya tetap sah — tapi
+      // catat, karena jaminannya tidak akan bisa dihanguskan otomatis.
+      logger.warn(
+        { userId, invoiceId, unitType },
+        'Tidak ada kode NIPL aktif untuk disisihkan bagi pemenang; penghangusan otomatis tidak akan berlaku untuk tagihan ini'
+      );
+      return false;
+    }
+
+    await prisma.nipl_codes.update({
+      where: { id: kode.id },
+      data: { status: 'reserved', invoice_id: invoiceId },
+    });
+
+    logger.info({ userId, invoiceId, niplCodeId: kode.id, unitType }, 'NIPL disisihkan untuk pemenang lelang');
+    return true;
+  }
+
   private async settleLotUnlocked(lotId: string): Promise<any> {
     const lot = await prisma.lots.findUnique({
       where: { id: lotId },
@@ -286,6 +338,7 @@ export class BiddingService {
       // 1. Settle lot as SOLD
       const hammerPrice = Number(winningBid.amount);
       const winnerId = winningBid.bidder_id;
+      const unitType = lot.asset.category?.toLowerCase().includes('motor') ? 'motor' : 'mobil';
 
       // Ambil pengaturan dinamis dari platform_settings
       const settings = await prisma.platform_settings.findMany({
@@ -424,6 +477,23 @@ export class BiddingService {
           },
         }),
       ]);
+
+      // Jaminan NIPL dipakai saat MENANG, bukan saat melunasi.
+      //
+      // Sebelumnya kode NIPL baru terikat ke tagihan pada saat checkout. Dua
+      // akibatnya:
+      //
+      //   1. Sisa NIPL di layar peserta tidak berkurang meski sudah menang,
+      //      sehingga angkanya tidak menggambarkan jaminan yang benar-benar
+      //      masih bebas dipakai.
+      //   2. Pemenang yang TIDAK PERNAH checkout sama sekali — justru kasus
+      //      gagal bayar paling umum — tidak punya kode terikat, sehingga cron
+      //      penghangusan tidak menemukan apa pun dan jaminannya selamat.
+      //
+      // Kode disisihkan di sini dengan status 'reserved': tidak lagi terhitung
+      // sebagai NIPL bebas, tetapi juga belum terpakai — masih bisa dilepas
+      // kembali kalau tagihannya batal.
+      await this.reserveNiplForInvoice(winnerId, invoice.id, unitType);
 
       const bidderUser = await prisma.users.findUnique({
         where: { id: winnerId },

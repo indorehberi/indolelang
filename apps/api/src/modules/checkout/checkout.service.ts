@@ -327,12 +327,13 @@ export class CheckoutService {
     if (deduction <= 0) return 0;
 
     const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
+    const unitType = isMotor ? 'motor' : 'mobil';
 
-    await tx.deposits.create({
+    const depositPengganti = await tx.deposits.create({
       data: {
         user_id: bidderId,
         amount: new Prisma.Decimal(deduction),
-        unit_type: isMotor ? 'motor' : 'mobil',
+        unit_type: unitType,
         package_type: '1',
         unique_code: 0,
         is_manual: true,
@@ -342,12 +343,28 @@ export class CheckoutService {
       },
     });
 
-    // Lepas tautan kode NIPL dari tagihan yang sekarang kembali jadi unpaid.
-    // Kode itu sendiri tidak dipakai ulang — nilainya sudah digantikan oleh
-    // deposit pengganti di atas.
+    // Kode lama ditutup — nilainya sudah digantikan deposit pengganti di atas.
     await tx.nipl_codes.updateMany({
       where: { invoice_id: inv.id },
-      data: { invoice_id: null },
+      data: { status: 'refunded', invoice_id: null },
+    });
+
+    // Deposit pengganti diberi kode NIPL sendiri, lalu LANGSUNG disisihkan
+    // untuk tagihan yang sama.
+    //
+    // Tagihannya kembali ke keranjang, artinya unit itu masih terutang. Kalau
+    // jaminannya dilepas jadi NIPL bebas, peserta bisa memakainya memenangkan
+    // unit lain sementara unit ini menggantung tanpa jaminan — dan kalau
+    // tenggatnya lewat, tidak ada yang bisa dihanguskan.
+    await tx.nipl_codes.create({
+      data: {
+        deposit_id: depositPengganti.id,
+        code: `NIPL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        unit_type: unitType,
+        payment_unique_code: 0,
+        status: 'reserved',
+        invoice_id: inv.id,
+      },
     });
 
     // Jaminan yang berpindah tanpa kabar adalah jaminan yang dianggap hilang.
@@ -398,11 +415,24 @@ export class CheckoutService {
     const invoicesOrdered = [...invoices].sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
 
     // 2. Consume active deposits (NIPL Deductions), attributed per unit
+    //
+    // Kode berstatus 'reserved' ikut diambil, TAPI hanya yang disisihkan untuk
+    // tagihan-tagihan yang sedang di-checkout ini. Sejak jaminan dipakai pada
+    // saat menang (lihat reserveNiplForInvoice), kode untuk unit yang sedang
+    // dibayar memang sudah tidak berstatus 'active' lagi — tanpa ini alokasi
+    // tidak akan menemukan apa pun dan tagihannya kehilangan potongan NIPL.
+    // Kode yang disisihkan untuk tagihan LAIN sengaja tidak ikut, supaya
+    // jaminan satu unit tidak terpakai untuk unit yang berbeda.
     const activeDeposits = await prisma.deposits.findMany({
       where: { user_id: userId, status: 'paid' },
       include: {
         nipl_codes: {
-          where: { status: 'active' },
+          where: {
+            OR: [
+              { status: 'active' },
+              { status: 'reserved', invoice_id: { in: invoiceIds } },
+            ],
+          },
           orderBy: { created_at: 'asc' }
         }
       },

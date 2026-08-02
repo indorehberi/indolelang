@@ -137,9 +137,15 @@ export function initCronJobs() {
             const isMotor = inv.lot.asset.category?.toLowerCase().includes('motor');
             const niplBase = isMotor ? niplMotorBase : niplMobilBase;
 
-            // Find NIPL codes that were assigned to this invoice (status: 'used')
+            // Kode NIPL yang terikat pada tagihan ini.
+            //
+            // 'reserved' wajib ikut. Jaminan kini disisihkan pada saat MENANG,
+            // bukan saat checkout — dan justru pemenang yang tidak pernah
+            // checkout sama sekali adalah kasus gagal bayar paling umum.
+            // Sebelumnya mereka tidak punya kode terikat sehingga tidak ada
+            // yang hangus, dan jaminannya selamat meski unitnya tidak dilunasi.
             const usedNiplCodes = await prisma.nipl_codes.findMany({
-              where: { invoice_id: inv.id, status: 'used' },
+              where: { invoice_id: inv.id, status: { in: ['used', 'reserved'] } },
               include: { deposit: true },
             });
 
@@ -155,7 +161,7 @@ export function initCronJobs() {
                 }),
                 // Mark NIPL codes as forfeited
                 prisma.nipl_codes.updateMany({
-                  where: { invoice_id: inv.id, status: 'used' },
+                  where: { invoice_id: inv.id, status: { in: ['used', 'reserved'] } },
                   data: { status: 'forfeited' },
                 }),
                 // Notify bidder
