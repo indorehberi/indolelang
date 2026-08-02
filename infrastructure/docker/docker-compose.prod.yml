@@ -66,8 +66,20 @@ services:
       - PORT=8000
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgrespassword}@postgres:5432/${DB_NAME:-indolelang_prod}?schema=public
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET:-your_super_production_secret_key}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your_super_production_refresh_secret_key}
+      # Wajib diisi — TANPA nilai cadangan.
+      #
+      # Sebelumnya baris ini berbunyi `${JWT_SECRET:-your_super_production_secret_key}`.
+      # Nilai cadangan itu tertulis di repositori, dan substitusi `${...}` dibaca
+      # Compose dari shell atau dari .env yang berada SEJAJAR dengan berkas ini —
+      # bukan dari `env_file` di atas. Karena infrastructure/docker/.env tidak ada,
+      # produksi diam-diam berjalan memakai kunci yang bisa dibaca siapa saja,
+      # dan blok `environment` ini menimpa nilai benar yang datang dari env_file.
+      #
+      # Tanda `:?` membuat Compose MENOLAK menjalankan stack kalau nilainya tidak
+      # ditemukan. Gagal terang-terangan jauh lebih baik daripada jalan diam-diam
+      # dengan kunci publik.
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET wajib diisi di infrastructure/docker/.env}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET wajib diisi di infrastructure/docker/.env}
       - CORS_ORIGIN=https://bidku.co.id,http://localhost:3000,http://localhost:3001
       - JWT_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=30d
