@@ -139,6 +139,21 @@ function ActiveLotCard({
   const cancelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bidTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Apakah peserta ini sedang memegang penawaran tertinggi — dipakai untuk
+  // mengenali momen tersalip, bukan sekadar "ada penawaran baru".
+  const wasLeadingRef = useRef<boolean>(false);
+
+  // Membuka kembali tombol BID begitu server menjawab — diterima maupun
+  // ditolak. Dipanggil dari kedua penangan supaya tidak ada jalur yang
+  // meninggalkan tombol terkunci.
+  const releaseBidLock = useCallback(() => {
+    if (bidTimeoutRef.current) {
+      clearTimeout(bidTimeoutRef.current);
+      bidTimeoutRef.current = null;
+    }
+    setBidCooldown(false);
+  }, []);
 
   // Bid rejections are transient. Left on screen they read as an unresolved
   // fault ("Anda sudah memegang penawaran tertinggi" stayed up for the rest of
@@ -163,6 +178,7 @@ function ActiveLotCard({
 
   useEffect(() => () => {
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    if (bidTimeoutRef.current) clearTimeout(bidTimeoutRef.current);
   }, []);
 
 
@@ -269,8 +285,19 @@ function ActiveLotCard({
           const lotCategory = lot.asset?.category?.toLowerCase() || "";
           const lotUnitType = lotCategory.includes("motor") ? "motor" : "mobil";
 
+          // Harus mengikuti aturan yang sama dengan validateBid di server, yang
+          // menerima deposit dengan unit_type cocok ATAU unit_type kosong
+          // (deposit umum, tidak dikhususkan untuk motor/mobil).
+          //
+          // Sebelumnya di sini dipakai kecocokan persis. Peserta yang memegang
+          // deposit umum yang sah tidak melihat tombol BID sama sekali — bukan
+          // pesan penolakan, tombolnya memang tidak dirender — padahal server
+          // akan menerima penawarannya. Dari sisi peserta itu terlihat seperti
+          // sistem yang rusak.
           const activeNipl = list.some(
-            (d: any) => d.status === "paid" && d.unit_type === lotUnitType
+            (d: any) =>
+              d.status === "paid" &&
+              (d.unit_type === lotUnitType || d.unit_type == null || d.unit_type === "")
           );
           setHasNipl(activeNipl);
         }
@@ -324,6 +351,10 @@ function ActiveLotCard({
       // something is still wrong.
       clearBidError();
 
+      // Harga terbaru sudah di tangan, jadi penawaran berikutnya bisa dihitung
+      // dari angka yang benar. Tidak ada alasan menahan tombol lebih lama.
+      releaseBidLock();
+
       // Only log if there is an active bidder (not '-' or empty)
       if (data.bidder_id && data.bidder_id !== "-") {
         // `bidder_id` in the broadcast is the server's masked id ("Peserta #XXXX",
@@ -337,6 +368,15 @@ function ActiveLotCard({
         if (isMe) {
           setHasUserBidded(true);
           if ("vibrate" in navigator) navigator.vibrate([20, 40, 20]);
+          wasLeadingRef.current = true;
+        } else if (wasLeadingRef.current) {
+          // Peserta ini tadi memimpin dan baru saja tersalip. Tanpa tanda apa
+          // pun, satu-satunya petunjuk adalah warna angka harga yang berubah —
+          // mudah sekali terlewat di layar ponsel saat penawaran beruntun,
+          // dan orang baru sadar sudah kalah setelah lot ditutup.
+          wasLeadingRef.current = false;
+          if ("vibrate" in navigator) navigator.vibrate([80, 60, 80]);
+          toast.warning("Penawaran Anda tersalip. Tekan BID untuk menawar lagi.");
         }
 
         const newLog: BidLog = {
@@ -358,6 +398,9 @@ function ActiveLotCard({
 
     const handleBidError = (data: any) => {
       if (data.lot_id && data.lot_id !== lot.id) return;
+      // Kalah cepat bukan kesalahan peserta. Buka tombolnya saat itu juga
+      // supaya mereka bisa langsung menawar ulang di harga terbaru.
+      releaseBidLock();
       showBidError(data.message);
       toast.error(data.message);
     };
@@ -432,7 +475,7 @@ function ActiveLotCard({
       socket.off("lot:start", handleLotStartCountdown);
       socket.off("lot:presence", handleLotPresence);
     };
-  }, [socket, lot.id, onLotClosed, playBeep, showBidError, clearBidError]);
+  }, [socket, lot.id, onLotClosed, playBeep, showBidError, clearBidError, releaseBidLock]);
 
   const handlePlaceBid = (incrementAmount: number) => {
     // While disconnected the price on screen is whatever arrived last, so a bid
@@ -446,8 +489,24 @@ function ActiveLotCard({
     if (!socket || !isConnected || isStalled || bidCooldown) return;
     setHasUserBidded(true);
     if ("vibrate" in navigator) navigator.vibrate(15);
+
+    // Tombol dikunci hanya selama penawaran ini menunggu jawaban server, BUKAN
+    // selama waktu tetap.
+    //
+    // Di detik-detik terakhir puluhan orang menekan BID pada harga yang sama.
+    // Hanya satu yang menang; sisanya ditolak karena harga sudah bergerak
+    // duluan. Dengan kunci 1,2 detik yang lama, orang yang kalah cepat ikut
+    // terhukum: sudah ditolak, masih harus menunggu, lalu kalah lagi. Sekarang
+    // penolakan langsung membuka tombol supaya mereka bisa menawar ulang
+    // seketika di harga yang baru.
     setBidCooldown(true);
-    setTimeout(() => setBidCooldown(false), 1200);
+    if (bidTimeoutRef.current) clearTimeout(bidTimeoutRef.current);
+    bidTimeoutRef.current = setTimeout(() => {
+      // Jaring pengaman: kalau jawaban server tidak pernah datang, tombol
+      // tidak boleh terkunci selamanya.
+      setBidCooldown(false);
+      bidTimeoutRef.current = null;
+    }, 3000);
 
     const nextBidAmount = currentPrice + incrementAmount;
     socket.emit("bid:submit", {
