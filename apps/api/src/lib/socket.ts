@@ -21,6 +21,11 @@ export interface ActiveLotState {
   timerInterval?: NodeJS.Timeout;
   autoEndTrigger?: string;
   autoEndTriggerLoaded?: boolean;
+  // Berapa orang yang memperebutkan harga tertinggi saat ini: pemegangnya
+  // sendiri ditambah setiap peserta yang mengirim angka sama tetapi kalah
+  // cepat. Dipakai untuk menampilkan "N penawar" di log penawaran, supaya
+  // peserta melihat bahwa penolakan tadi berarti ramai — bukan rusak.
+  contendersAtCurrentPrice?: number;
 }
 
 // In-memory active lot state
@@ -30,6 +35,14 @@ let io: SocketIoServer | null = null;
 
 export function maskUserId(userId: string): string {
   return `Peserta #${userId.substring(0, 4).toUpperCase()}`;
+}
+
+function formatRupiah(value: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(value);
 }
 
 // Number of sockets currently in `lot:{lotId}` — i.e. bidders with that lot
@@ -134,6 +147,33 @@ export function initSocket(server: HttpServer): SocketIoServer {
               return;
             }
 
+            // Kalah cepat, bukan penawaran yang salah.
+            //
+            // Di detik terakhir puluhan orang menekan BID pada harga yang sama
+            // persis. Antrean kunci memproses mereka satu per satu, jadi hanya
+            // yang pertama menang — sisanya tiba dengan angka yang sudah dilewati.
+            // Sebelumnya semuanya jatuh ke pesan "Penawaran minimal adalah Rp X",
+            // yang bagi peserta awam terbaca sebagai aplikasi rusak. Dibedakan di
+            // sini supaya bisa dijelaskan dalam bahasa lelang.
+            if (data.amount <= state.currentPrice) {
+              state.contendersAtCurrentPrice = (state.contendersAtCurrentPrice || 1) + 1;
+
+              socket.emit('bid:error', {
+                lot_id: data.lot_id,
+                race_lost: true,
+                message: `Anda kalah cepat di harga ${formatRupiah(state.currentPrice)}, ajukan penawaran harga terbaru`,
+              });
+
+              // Semua yang menonton lot ini ikut melihat bahwa harga tadi
+              // diperebutkan — angkanya muncul di log penawaran.
+              io?.to(`lot:${data.lot_id}`).emit('bid:contested', {
+                lot_id: data.lot_id,
+                price: state.currentPrice,
+                contenders: state.contendersAtCurrentPrice,
+              });
+              return;
+            }
+
             // Validate bid constraints (NIPL, increments, self-bid)
             await biddingService.validateBid(
               {
@@ -218,6 +258,8 @@ export function initSocket(server: HttpServer): SocketIoServer {
         state.highestBidderName = bidderName;
         state.highestBidderNipl = niplCode;
         state.bidsCount += 1;
+        // Harga baru, perebutan dihitung ulang dari pemegangnya sendiri.
+        state.contendersAtCurrentPrice = 1;
 
         if (snipeCheck.extended) {
           state.timeRemaining = snipeCheck.newTimeRemaining;

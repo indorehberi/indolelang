@@ -15,6 +15,10 @@ interface BidLog {
   amount: number;
   time: string;
   isMe?: boolean;
+  // Berapa peserta yang mengirim angka ini. Lebih dari satu berarti harga
+  // tersebut diperebutkan dan yang lain kalah cepat — ditampilkan supaya
+  // penolakan tadi terbaca sebagai persaingan, bukan kerusakan sistem.
+  contenders?: number;
 }
 
 // Static preview data for `?simulate=1` — lets redesign work on this page be
@@ -140,9 +144,6 @@ function ActiveLotCard({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
   const bidTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Apakah peserta ini sedang memegang penawaran tertinggi — dipakai untuk
-  // mengenali momen tersalip, bukan sekadar "ada penawaran baru".
-  const wasLeadingRef = useRef<boolean>(false);
 
   // Membuka kembali tombol BID begitu server menjawab — diterima maupun
   // ditolak. Dipanggil dari kedua penangan supaya tidak ada jalur yang
@@ -368,15 +369,6 @@ function ActiveLotCard({
         if (isMe) {
           setHasUserBidded(true);
           if ("vibrate" in navigator) navigator.vibrate([20, 40, 20]);
-          wasLeadingRef.current = true;
-        } else if (wasLeadingRef.current) {
-          // Peserta ini tadi memimpin dan baru saja tersalip. Tanpa tanda apa
-          // pun, satu-satunya petunjuk adalah warna angka harga yang berubah —
-          // mudah sekali terlewat di layar ponsel saat penawaran beruntun,
-          // dan orang baru sadar sudah kalah setelah lot ditutup.
-          wasLeadingRef.current = false;
-          if ("vibrate" in navigator) navigator.vibrate([80, 60, 80]);
-          toast.warning("Penawaran Anda tersalip. Tekan BID untuk menawar lagi.");
         }
 
         const newLog: BidLog = {
@@ -403,6 +395,18 @@ function ActiveLotCard({
       releaseBidLock();
       showBidError(data.message);
       toast.error(data.message);
+    };
+
+    // Server memberi tahu berapa orang yang memperebutkan harga tertinggi saat
+    // ini. Ditempelkan ke baris teratas log penawaran.
+    const handleBidContested = (data: any) => {
+      if (data.lot_id !== lot.id) return;
+      setBidLogs((prev) => {
+        if (prev.length === 0) return prev;
+        if (Number(prev[0].amount) !== Number(data.price)) return prev;
+        const [teratas, ...sisanya] = prev;
+        return [{ ...teratas, contenders: data.contenders }, ...sisanya];
+      });
     };
 
     const handleLotSync = (data: any) => {
@@ -457,6 +461,7 @@ function ActiveLotCard({
 
     socket.on("lot:sync", handleLotSync);
     socket.on("bid:update", handleBidUpdate);
+    socket.on("bid:contested", handleBidContested);
     socket.on("bid:error", handleBidError);
     socket.on("lot:closed", handleLotClosed);
     socket.on("lot:cancelled", handleLotCancelled);
@@ -469,6 +474,7 @@ function ActiveLotCard({
       }
       socket.off("lot:sync", handleLotSync);
       socket.off("bid:update", handleBidUpdate);
+      socket.off("bid:contested", handleBidContested);
       socket.off("bid:error", handleBidError);
       socket.off("lot:closed", handleLotClosed);
       socket.off("lot:cancelled", handleLotCancelled);
@@ -582,7 +588,7 @@ function ActiveLotCard({
           <span className="material-symbols-outlined animate-pulse">wifi_off</span>
           <span>
             Koneksi terputus — harga di layar mungkin sudah tidak terbaru. Penawaran dinonaktifkan sampai
-            tersambung kembali.
+            tersambung kembali. <strong>Sedang dilakukan reconnecting…</strong>
           </span>
         </div>
       )}
@@ -679,7 +685,14 @@ function ActiveLotCard({
                         {log.bidder}
                         {log.isMe && <span className="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded uppercase">Anda</span>}
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{log.time}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                        <span>{log.time}</span>
+                        {(log.contenders ?? 1) > 1 && (
+                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold">
+                            {log.contenders} penawar
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-sm font-black text-slate-900">{formatRupiah(log.amount)}</div>
                   </div>
@@ -1089,7 +1102,21 @@ export default function BidderBiddingRoom() {
         const token = localStorage.getItem("accessToken") || "";
         cb({ token });
       },
-      transports: ["websocket"],
+      // Websocket dulu, tapi polling tetap disediakan sebagai cadangan.
+      //
+      // Sebelumnya hanya websocket. Peserta di jaringan yang memblokirnya —
+      // sebagian proxy kantor, beberapa APN seluler — tidak akan pernah
+      // tersambung sama sekali, dan penjaga otomatis tidak bisa menolong
+      // karena tidak ada koneksi untuk dijaga. Polling lebih boros, tapi
+      // masih bisa menawar jauh lebih baik daripada tidak bisa sama sekali.
+      transports: ["websocket", "polling"],
+      // Mencoba menyambung ulang tanpa henti. Sinyal lemah, baterai lemah,
+      // atau berpindah antara WiFi dan seluler tidak boleh berakhir dengan
+      // peserta yang menyerah sendiri.
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 4000,
     });
     socketRef.current = localSocket;
     setSocket(localSocket);

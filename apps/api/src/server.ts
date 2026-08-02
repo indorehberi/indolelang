@@ -56,6 +56,30 @@ async function startServer() {
 
     process.on('SIGTERM', () => handleShutdown('SIGTERM'));
     process.on('SIGINT', () => handleShutdown('SIGINT'));
+
+    // Sejak Node 15, sebuah promise yang gagal tanpa penangan MENGAKHIRI
+    // proses. Untuk server biasa itu wajar — permintaan berikutnya bisa
+    // dicoba ulang. Di sini tidak: hitung mundur lot dan seluruh keadaan
+    // lelang hidup di memori proses ini, jadi satu kegagalan sepele di sudut
+    // mana pun akan mematikan lelang yang sedang berjalan, dan Docker akan
+    // menyalakan ulang proses yang sudah kehilangan semua keadaannya.
+    //
+    // Dicatat sejelas mungkin lalu proses DIBIARKAN HIDUP. Lelang yang masih
+    // berjalan dengan satu kesalahan tercatat jauh lebih baik daripada lelang
+    // yang mati diam-diam di tengah penawaran.
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error(
+        { reason, promise: String(promise) },
+        'PROMISE GAGAL TANPA PENANGAN — proses sengaja dibiarkan hidup agar lelang yang sedang berjalan tidak ikut mati. Segera periksa penyebabnya.'
+      );
+    });
+
+    process.on('uncaughtException', (err) => {
+      logger.error(
+        { err },
+        'KESALAHAN TIDAK TERTANGKAP — proses sengaja dibiarkan hidup agar lelang yang sedang berjalan tidak ikut mati. Segera periksa penyebabnya.'
+      );
+    });
   } catch (error) {
     logger.error({ error }, 'Fatal error on server startup');
     process.exit(1);
