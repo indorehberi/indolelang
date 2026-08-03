@@ -192,26 +192,57 @@ async function main() {
   const perbaikanOrder = [];
   const orderBermasalah = [];
 
+  // unique_code adalah kode unik pencocokan pembayaran: angka kecil yang
+  // menempel pada nominal transfer supaya bank bisa mengenali pembayaran itu
+  // milik order yang mana. Kode checkout sekarang menyetelnya 0, tetapi order
+  // lama masih membawanya — kalau dibuang saat menghitung ulang, bidder akan
+  // mentransfer nominal yang tidak lagi bisa dicocokkan.
+  const hitungFinal = (subtotal, o) =>
+    Math.max(0, subtotal - Number(o.deposit_deduction)) + Number(o.unique_code || 0) + Number(o.gateway_fee || 0);
+
   for (const o of orders) {
     const subtotalBaru = o.invoices.reduce(
       (jml, inv) => jml + (totalBaruPerInvoice.has(inv.id) ? totalBaruPerInvoice.get(inv.id) : Number(inv.total)),
       0
     );
-    const finalBaru = Math.max(0, subtotalBaru - Number(o.deposit_deduction));
-    const rincian = { id: o.id, subtotalLama: Number(o.subtotal_amount), subtotalBaru, finalLama: Number(o.final_amount), finalBaru };
+    const finalBaru = hitungFinal(subtotalBaru, o);
+    const rincian = {
+      id: o.id,
+      subtotalLama: Number(o.subtotal_amount),
+      subtotalBaru,
+      finalLama: Number(o.final_amount),
+      finalBaru,
+      kodeUnik: Number(o.unique_code || 0),
+    };
 
-    // Order yang jatuh ke nol berarti seluruhnya tertutup jaminan — alurnya
-    // berbeda (checkout menandainya langsung 'paid'), jadi jangan ditebak.
-    if (finalBaru === 0 && Number(o.final_amount) > 0) orderBermasalah.push({ ...rincian, sebab: 'final_amount jatuh ke Rp 0' });
-    else if (o.transfer_proof_url) orderBermasalah.push({ ...rincian, sebab: 'bukti transfer sudah diunggah' });
-    else perbaikanOrder.push(rincian);
+    // Bukti diri: rumus di atas harus bisa mereproduksi final_amount yang
+    // TERSIMPAN dari subtotal yang tersimpan. Kalau tidak bisa, berarti order
+    // ini dibentuk dengan cara yang tidak dipahami skrip — jangan ditimpa
+    // dengan angka hasil tebakan.
+    const finalLamaMenurutRumus = hitungFinal(Number(o.subtotal_amount), o);
+
+    if (finalLamaMenurutRumus !== Number(o.final_amount)) {
+      orderBermasalah.push({
+        ...rincian,
+        sebab: `rumus tidak cocok dengan data lama (final_amount tersimpan ${rupiah(Number(o.final_amount))}, menurut rumus ${rupiah(finalLamaMenurutRumus)})`,
+      });
+    } else if (o.transfer_proof_url) {
+      orderBermasalah.push({ ...rincian, sebab: 'bukti transfer sudah diunggah' });
+    } else if (finalBaru === 0 && Number(o.final_amount) > 0) {
+      // Order yang jatuh ke nol berarti seluruhnya tertutup jaminan — alurnya
+      // berbeda (checkout menandainya langsung 'paid'), jadi jangan ditebak.
+      orderBermasalah.push({ ...rincian, sebab: 'final_amount jatuh ke Rp 0' });
+    } else {
+      perbaikanOrder.push(rincian);
+    }
   }
 
   if (orders.length > 0) {
     console.log(`\n=== Checkout order yang ikut dihitung ulang: ${perbaikanOrder.length} ===`);
     for (const o of perbaikanOrder) {
       console.log(
-        `  order ${o.id}\n      subtotal ${rupiah(o.subtotalLama)} → ${rupiah(o.subtotalBaru)} | yang harus ditransfer ${rupiah(o.finalLama)} → ${rupiah(o.finalBaru)}`
+        `  order ${o.id}\n      subtotal ${rupiah(o.subtotalLama)} → ${rupiah(o.subtotalBaru)} | yang harus ditransfer ${rupiah(o.finalLama)} → ${rupiah(o.finalBaru)}` +
+          (o.kodeUnik ? `\n      kode unik ${o.kodeUnik} dari penerbitan NIPL — dipertahankan apa adanya, tidak dibuat ulang` : '')
       );
     }
   }
