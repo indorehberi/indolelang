@@ -92,6 +92,19 @@ services:
       - SMTP_FROM=${SMTP_FROM:-noreply@bidku.co.id}
     volumes:
       - uploads_prod:/app/apps/api/uploads
+    # Postgres dan Redis punya pemeriksaan kesehatan, API tidak — padahal
+    # justru API yang menanggung lelang. Tanpa ini, proses yang menggantung
+    # tanpa mati tidak akan pernah dinyalakan ulang oleh Docker, dan skrip
+    # deploy melaporkan status kosong sebagai "tidak sehat" pada setiap deploy.
+    # wget tersedia lewat busybox di image node:alpine.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Longgar di awal: container menjalankan `prisma db push` dulu sebelum
+      # server menyala, dan itu butuh waktu pada basis data yang sudah besar.
+      start_period: 60s
     deploy:
       resources:
         limits:
