@@ -10,18 +10,26 @@
  * apps/api/src/modules/lots/bidding.service.ts, lalu melaporkan atau
  * memperbaiki selisihnya.
  *
- * Yang diperbaiki otomatis HANYA tagihan yang masih berada di keranjang:
- * status 'unpaid' dan belum terikat checkout order (order_id NULL). Tagihan
- * yang sudah masuk order (`pending_checkout`) atau sudah 'paid' hanya
- * dilaporkan — mengubah nilainya akan membuat checkout_orders.subtotal_amount
- * dan pembayaran yang sudah diterima tidak lagi cocok, dan itu keputusan
- * bisnis, bukan keputusan skrip.
+ * Tagihan yang sudah 'paid' atau 'expired' TIDAK PERNAH disentuh: uangnya
+ * sudah diterima, atau jaminannya sudah hangus. Mengubahnya hanya akan
+ * membuat pembukuan tidak cocok.
+ *
+ * Ada dua kelompok yang bisa diperbaiki:
+ *
+ *   - status 'unpaid' dan belum terikat order (order_id NULL) — masih di
+ *     keranjang, aman diubah sendirian. Ini perilaku default.
+ *   - status 'pending_checkout' — sudah masuk checkout order dan menunggu
+ *     transfer. Hanya ikut bila dijalankan dengan --pending, dan ketika ikut,
+ *     checkout_orders.subtotal_amount serta final_amount ordernya WAJIB ikut
+ *     dihitung ulang; kalau tidak, nominal yang harus ditransfer bidder tidak
+ *     lagi sama dengan jumlah tagihannya.
  *
  * Pemakaian (default hanya melihat, tidak mengubah apa pun):
  *
- *   node backfill-admin-fee.js                 # laporan saja (dry run)
- *   node backfill-admin-fee.js --apply         # jalankan perbaikan
- *   node backfill-admin-fee.js --set-default   # isi admin_fee_tiers bila belum ada
+ *   node backfill-admin-fee.js                     # laporan saja (dry run)
+ *   node backfill-admin-fee.js --apply             # perbaiki yang masih di keranjang
+ *   node backfill-admin-fee.js --pending --apply   # ikut perbaiki pending_checkout
+ *   node backfill-admin-fee.js --set-default       # isi admin_fee_tiers bila belum ada
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -30,6 +38,7 @@ const prisma = new PrismaClient();
 
 const APPLY = process.argv.includes('--apply');
 const SET_DEFAULT = process.argv.includes('--set-default');
+const IKUT_PENDING = process.argv.includes('--pending');
 
 // Sama dengan nilai di apps/api/prisma/seed.ts — mengikuti Syarat & Ketentuan
 // untuk unit mobil: flat Rp 3.000.000 sampai Harga Terbentuk Rp 500 juta,
@@ -123,8 +132,9 @@ async function main() {
     orderBy: { created_at: 'asc' },
   });
 
-  const bisaDiperbaiki = [];
-  const perluKeputusan = [];
+  const diKeranjang = [];   // unpaid, belum masuk order — aman diubah sendirian
+  const pendingOrder = [];  // pending_checkout — ikut hanya dengan --pending
+  const janganSentuh = [];  // paid, expired, dan status lain
 
   for (const inv of invoices) {
     const hammerPrice = Number(inv.hammer_price);
@@ -137,8 +147,9 @@ async function main() {
     const totalBaru = Number(inv.total) - feeTersimpan + feeSeharusnya;
     const baris = { ...inv, hammerPrice, feeTersimpan, feeSeharusnya, totalBaru };
 
-    const masihDiKeranjang = inv.status === 'unpaid' && inv.order_id === null;
-    (masihDiKeranjang ? bisaDiperbaiki : perluKeputusan).push(baris);
+    if (inv.status === 'unpaid' && inv.order_id === null) diKeranjang.push(baris);
+    else if (inv.status === 'pending_checkout') pendingOrder.push(baris);
+    else janganSentuh.push(baris);
   }
 
   const cetak = (baris) => {
@@ -152,30 +163,82 @@ async function main() {
   };
 
   console.log(`Total tagihan diperiksa: ${invoices.length}`);
-  console.log(`\n=== Bisa diperbaiki otomatis (masih di keranjang): ${bisaDiperbaiki.length} ===`);
-  cetak(bisaDiperbaiki);
 
-  console.log(`\n=== Perlu keputusan manual (sudah masuk order / sudah dibayar): ${perluKeputusan.length} ===`);
-  cetak(perluKeputusan);
-  if (perluKeputusan.length > 0) {
-    console.log(
-      '\n  Tagihan di atas TIDAK disentuh skrip ini. Menaikkan nilainya akan membuat\n' +
-        '  checkout_orders dan pembayaran yang sudah diterima tidak lagi cocok.'
-    );
+  console.log(`\n=== Masih di keranjang, aman diperbaiki: ${diKeranjang.length} ===`);
+  cetak(diKeranjang);
+
+  console.log(`\n=== Menunggu transfer (pending_checkout): ${pendingOrder.length} ===`);
+  cetak(pendingOrder);
+  if (pendingOrder.length > 0 && !IKUT_PENDING) {
+    console.log('\n  Tidak ikut diubah. Tambahkan --pending kalau kelompok ini memang mau diperbaiki.');
   }
 
+  console.log(`\n=== Tidak pernah disentuh (sudah dibayar / hangus): ${janganSentuh.length} ===`);
+  cetak(janganSentuh);
+
+  const sasaran = IKUT_PENDING ? [...diKeranjang, ...pendingOrder] : diKeranjang;
+
+  // Order yang ikut terpengaruh harus dihitung ulang, kalau tidak nominal
+  // yang harus ditransfer bidder tidak lagi sama dengan jumlah tagihannya.
+  const orderIds = [...new Set(sasaran.map((b) => b.order_id).filter(Boolean))];
+  const orders = orderIds.length
+    ? await prisma.checkout_orders.findMany({
+        where: { id: { in: orderIds } },
+        include: { invoices: { select: { id: true, total: true } } },
+      })
+    : [];
+
+  const totalBaruPerInvoice = new Map(sasaran.map((b) => [b.id, b.totalBaru]));
+  const perbaikanOrder = [];
+  const orderBermasalah = [];
+
+  for (const o of orders) {
+    const subtotalBaru = o.invoices.reduce(
+      (jml, inv) => jml + (totalBaruPerInvoice.has(inv.id) ? totalBaruPerInvoice.get(inv.id) : Number(inv.total)),
+      0
+    );
+    const finalBaru = Math.max(0, subtotalBaru - Number(o.deposit_deduction));
+    const rincian = { id: o.id, subtotalLama: Number(o.subtotal_amount), subtotalBaru, finalLama: Number(o.final_amount), finalBaru };
+
+    // Order yang jatuh ke nol berarti seluruhnya tertutup jaminan — alurnya
+    // berbeda (checkout menandainya langsung 'paid'), jadi jangan ditebak.
+    if (finalBaru === 0 && Number(o.final_amount) > 0) orderBermasalah.push({ ...rincian, sebab: 'final_amount jatuh ke Rp 0' });
+    else if (o.transfer_proof_url) orderBermasalah.push({ ...rincian, sebab: 'bukti transfer sudah diunggah' });
+    else perbaikanOrder.push(rincian);
+  }
+
+  if (orders.length > 0) {
+    console.log(`\n=== Checkout order yang ikut dihitung ulang: ${perbaikanOrder.length} ===`);
+    for (const o of perbaikanOrder) {
+      console.log(
+        `  order ${o.id}\n      subtotal ${rupiah(o.subtotalLama)} → ${rupiah(o.subtotalBaru)} | yang harus ditransfer ${rupiah(o.finalLama)} → ${rupiah(o.finalBaru)}`
+      );
+    }
+  }
+
+  if (orderBermasalah.length > 0) {
+    console.log(`\n⚠️  ${orderBermasalah.length} order tidak bisa disentuh otomatis:`);
+    for (const o of orderBermasalah) {
+      console.log(`  order ${o.id} — ${o.sebab} (${rupiah(o.finalLama)} → ${rupiah(o.finalBaru)})`);
+    }
+    console.log('  Tangani manual; tagihan di dalamnya ikut dilewati.');
+  }
+
+  const orderDilewati = new Set(orderBermasalah.map((o) => o.id));
+  const akanDiubah = sasaran.filter((b) => !b.order_id || !orderDilewati.has(b.order_id));
+
   if (!APPLY) {
-    console.log('\n(dry run — belum ada yang diubah. Tambahkan --apply untuk menjalankan perbaikan.)');
+    console.log(`\n(dry run — belum ada yang diubah. ${akanDiubah.length} tagihan akan diperbaiki dengan --apply.)`);
     return;
   }
 
-  if (bisaDiperbaiki.length === 0) {
+  if (akanDiubah.length === 0) {
     console.log('\nTidak ada yang perlu diperbaiki.');
     return;
   }
 
-  await prisma.$transaction(
-    bisaDiperbaiki.flatMap((b) => [
+  await prisma.$transaction([
+    ...akanDiubah.flatMap((b) => [
       prisma.invoices.update({
         where: { id: b.id },
         data: {
@@ -195,10 +258,29 @@ async function main() {
           new_value: JSON.stringify({ admin_fee: b.feeSeharusnya, total: b.totalBaru }),
         },
       }),
-    ])
-  );
+    ]),
+    ...perbaikanOrder.flatMap((o) => [
+      prisma.checkout_orders.update({
+        where: { id: o.id },
+        data: { subtotal_amount: o.subtotalBaru, final_amount: o.finalBaru },
+      }),
+      prisma.audit_logs.create({
+        data: {
+          action: 'CHECKOUT_ORDER_ADMIN_FEE_BACKFILL',
+          resource_type: 'checkout_orders',
+          resource_id: o.id,
+          old_value: JSON.stringify({ subtotal_amount: o.subtotalLama, final_amount: o.finalLama }),
+          new_value: JSON.stringify({ subtotal_amount: o.subtotalBaru, final_amount: o.finalBaru }),
+        },
+      }),
+    ]),
+  ]);
 
-  console.log(`\n✅ ${bisaDiperbaiki.length} tagihan diperbarui dan dicatat di audit_logs.`);
+  console.log(
+    `\n✅ ${akanDiubah.length} tagihan` +
+      (perbaikanOrder.length ? ` dan ${perbaikanOrder.length} checkout order` : '') +
+      ' diperbarui, dicatat di audit_logs.'
+  );
 }
 
 main()
