@@ -411,9 +411,18 @@ export class BiddingService {
         where: { key: 'national_holidays' }
       });
       const holidayDates = holidaySetting?.value ? holidaySetting.value.split(',') : [];
-      
-      // Calculate 3 working days due date
-      const rawDueDate = calculateWorkingDaysDueDate(new Date(), 3, holidayDates);
+
+      // Tenggat pelunasan diatur admin di Pengaturan Platform, tidak lagi
+      // dipatok mati. Nilainya dalam hari KERJA — akhir pekan dan tanggal
+      // libur nasional dilewati. 3 dipakai kalau pengaturannya belum diisi,
+      // menyamai perilaku sebelumnya.
+      const dueDaysSetting = await prisma.platform_settings.findFirst({
+        where: { key: 'invoice_payment_due_days' }
+      });
+      const parsedDueDays = parseInt(dueDaysSetting?.value || '', 10);
+      const dueDays = Number.isFinite(parsedDueDays) && parsedDueDays > 0 ? parsedDueDays : 3;
+
+      const rawDueDate = calculateWorkingDaysDueDate(new Date(), dueDays, holidayDates);
       // Set to exactly 18:00:00 WIB (11:00:00 UTC)
       const dueDate = new Date(Date.UTC(
         rawDueDate.getUTCFullYear(),

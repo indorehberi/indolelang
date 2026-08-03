@@ -286,21 +286,42 @@ function ActiveLotCard({
           const lotCategory = lot.asset?.category?.toLowerCase() || "";
           const lotUnitType = lotCategory.includes("motor") ? "motor" : "mobil";
 
-          // Harus mengikuti aturan yang sama dengan validateBid di server, yang
-          // menerima deposit dengan unit_type cocok ATAU unit_type kosong
-          // (deposit umum, tidak dikhususkan untuk motor/mobil).
-          //
-          // Sebelumnya di sini dipakai kecocokan persis. Peserta yang memegang
-          // deposit umum yang sah tidak melihat tombol BID sama sekali — bukan
-          // pesan penolakan, tombolnya memang tidak dirender — padahal server
-          // akan menerima penawarannya. Dari sisi peserta itu terlihat seperti
-          // sistem yang rusak.
-          const activeNipl = list.some(
+          // Mengikuti aturan yang sama dengan validateBid di server: deposit
+          // dengan unit_type cocok ATAU kosong (deposit umum, tidak
+          // dikhususkan untuk motor/mobil).
+          const relevan = list.filter(
             (d: any) =>
               d.status === "paid" &&
               (d.unit_type === lotUnitType || d.unit_type == null || d.unit_type === "")
           );
-          setHasNipl(activeNipl);
+
+          // Paket unlimited yang belum diturunkan boleh menang tanpa batas
+          // hari itu, berapa pun kode yang tersisa.
+          const unlimitedBerlaku = relevan.some(
+            (d: any) =>
+              (d.package_type === "unlimited" || d.package_type === "999") &&
+              !d.unlimited_downgraded_at
+          );
+
+          // Selain itu, yang menentukan adalah NIPL yang MASIH BEBAS.
+          //
+          // Sebelumnya di sini hanya ditanyakan "punya deposit lunas?" —
+          // sehingga peserta yang NIPL-nya sudah terpakai habis tetap melihat
+          // tombol BID menyala dan ditolak server setiap kali menekan. Sejak
+          // jaminan disisihkan pada saat menang, kode berstatus 'active'
+          // adalah gambaran tepat dari kuota yang benar-benar tersisa.
+          const niplBebas = relevan.reduce(
+            (jumlah: number, d: any) =>
+              jumlah + (d.nipl_codes || []).filter((c: any) => c.status === "active").length,
+            0
+          );
+
+          // Deposit lama dari sebelum tabel nipl_codes ada tidak punya kode
+          // sama sekali. Jangan kunci tombolnya — biarkan server yang menilai,
+          // supaya peserta lama tidak kehilangan akses karena baris yang hilang.
+          const adaDepositTanpaKode = relevan.some((d: any) => (d.nipl_codes || []).length === 0);
+
+          setHasNipl(unlimitedBerlaku || niplBebas > 0 || adaDepositTanpaKode);
         }
       } catch(e) {}
     };

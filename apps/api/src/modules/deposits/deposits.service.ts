@@ -76,6 +76,11 @@ export class DepositsService {
       user: r.user,
       session: r.session,
       nipl_codes: r.nipl_codes,
+      // Dibutuhkan klien untuk membedakan paket unlimited yang MASIH berlaku
+      // hari ini (menang tanpa batas) dari yang sudah diturunkan jadi satuan
+      // (sisa kuotanya tinggal kode yang belum terpakai). Tanpa ini ruang
+      // lelang tidak bisa memutuskan kapan tombol BID harus dikunci.
+      unlimited_downgraded_at: r.unlimited_downgraded_at ? r.unlimited_downgraded_at.toISOString() : null,
     }));
 
     const totalPages = Math.ceil(total / perPage);

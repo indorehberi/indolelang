@@ -329,13 +329,16 @@ export class CheckoutService {
     const isMotor = inv.lot?.asset?.category?.toLowerCase().includes('motor');
     const unitType = isMotor ? 'motor' : 'mobil';
 
+    const kodeLama = await tx.nipl_codes.findFirst({ where: { invoice_id: inv.id } });
+
     const depositPengganti = await tx.deposits.create({
       data: {
         user_id: bidderId,
         amount: new Prisma.Decimal(deduction),
         unit_type: unitType,
+        // Kode unik deposit mengikuti kode NIPL yang sama, bukan disetel nol.
+        unique_code: kodeLama?.payment_unique_code ?? 0,
         package_type: '1',
-        unique_code: 0,
         is_manual: true,
         payment_method: 'nipl_refund_rejected_order',
         status: 'paid',
@@ -343,29 +346,23 @@ export class CheckoutService {
       },
     });
 
-    // Kode lama ditutup — nilainya sudah digantikan deposit pengganti di atas.
-    await tx.nipl_codes.updateMany({
-      where: { invoice_id: inv.id },
-      data: { status: 'refunded', invoice_id: null },
-    });
-
-    // Deposit pengganti diberi kode NIPL sendiri, lalu LANGSUNG disisihkan
-    // untuk tagihan yang sama.
-    //
-    // Tagihannya kembali ke keranjang, artinya unit itu masih terutang. Kalau
-    // jaminannya dilepas jadi NIPL bebas, peserta bisa memakainya memenangkan
-    // unit lain sementara unit ini menggantung tanpa jaminan — dan kalau
-    // tenggatnya lewat, tidak ada yang bisa dihanguskan.
-    await tx.nipl_codes.create({
-      data: {
-        deposit_id: depositPengganti.id,
-        code: `NIPL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-        unit_type: unitType,
-        payment_unique_code: 0,
-        status: 'reserved',
-        invoice_id: inv.id,
-      },
-    });
+    if (kodeLama) {
+      // Kode NIPL yang SAMA dipindahkan ke deposit pengganti, lalu tetap
+      // disisihkan untuk tagihan yang sama.
+      //
+      // Kode unik harus melekat seumur hidup NIPL-nya: itulah satu-satunya
+      // cara admin dan payment gateway mengenali pembayaran siapa yang masuk.
+      // Menerbitkan kode baru — apalagi dengan kode unik nol — memutus jejak
+      // itu dan membuat pembayaran berikutnya tidak bisa dicocokkan.
+      //
+      // Tetap 'reserved' karena tagihannya kembali ke keranjang: unitnya masih
+      // terutang, jadi jaminannya tidak boleh lepas jadi NIPL bebas yang bisa
+      // dipakai memenangkan unit lain.
+      await tx.nipl_codes.update({
+        where: { id: kodeLama.id },
+        data: { deposit_id: depositPengganti.id, status: 'reserved', invoice_id: inv.id },
+      });
+    }
 
     // Jaminan yang berpindah tanpa kabar adalah jaminan yang dianggap hilang.
     await tx.notifications.create({

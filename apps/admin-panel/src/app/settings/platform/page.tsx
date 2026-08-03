@@ -104,6 +104,8 @@ export default function PlatformSettingsPage() {
 
   // National Holidays Settings
   const [holidays, setHolidays] = useState<string[]>([]);
+  // Tenggat pelunasan dalam hari kerja. Sebelumnya dipatok mati 3 di kode.
+  const [dueDays, setDueDays] = useState<string>('3');
   const [isSavingHolidays, setIsSavingHolidays] = useState(false);
 
   // Social Media Settings
@@ -304,6 +306,8 @@ export default function PlatformSettingsPage() {
               setBidIncrement1(item.value);
             } else if (item.key === 'national_holidays') {
               setHolidays(item.value ? item.value.split(',') : []);
+            } else if (item.key === 'invoice_payment_due_days') {
+              setDueDays(item.value || '3');
             } else if (item.key === 'socmed_instagram') {
               setSocmedInstagram(item.value);
             } else if (item.key === 'socmed_facebook') {
@@ -911,8 +915,12 @@ export default function PlatformSettingsPage() {
     setIsSavingHolidays(true);
     try {
       const cleanHolidays = holidays.filter(h => h.trim() !== '');
+      const parsedDueDays = parseInt(dueDays, 10);
       const updates = [
-        { key: 'national_holidays', value: cleanHolidays.join(',') }
+        { key: 'national_holidays', value: cleanHolidays.join(',') },
+        // Dijaga tetap masuk akal: tenggat nol atau negatif akan membuat
+        // tagihan lewat tenggat pada detik yang sama ia terbit.
+        { key: 'invoice_payment_due_days', value: String(Number.isFinite(parsedDueDays) && parsedDueDays > 0 ? parsedDueDays : 3) },
       ];
       const { ok, failedKeys } = await saveSettings(updates);
       await fetchSettings();
@@ -1310,9 +1318,24 @@ export default function PlatformSettingsPage() {
             </button>
           </CollapsibleCard>
 
-          <CollapsibleCard className="mt-4" title="Hari Libur Nasional">
+          <CollapsibleCard className="mt-4" title="Batas Waktu Pelunasan &amp; Hari Libur Nasional">
+            <div className="mb-4">
+              <label className="form-label">Batas waktu pelunasan (hari kerja)</label>
+              <input
+                type="number"
+                min={1}
+                className="form-input"
+                style={{ maxWidth: '160px' }}
+                value={dueDays}
+                onChange={(e) => setDueDays(e.target.value)}
+              />
+              <p className="text-xs text-muted mt-1">
+                Berlaku untuk tagihan yang terbit setelah pengaturan ini disimpan. Tagihan yang sudah ada tetap memakai tenggat lamanya.
+              </p>
+            </div>
+
             <p className="text-xs text-muted mt-1 mb-3">
-              Tanggal libur nasional yang digunakan untuk menghitung batas waktu pelunasan lelang (3 hari kerja). Batas waktu pelunasan akan melompati hari Sabtu, Minggu, dan tanggal-tanggal yang terdaftar di bawah ini.
+              Tanggal libur nasional yang dilewati saat menghitung batas waktu pelunasan. Perhitungannya juga melompati hari Sabtu dan Minggu.
             </p>
 
             <div className="space-y-2 mb-4">
