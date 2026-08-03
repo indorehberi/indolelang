@@ -184,7 +184,7 @@ async function main() {
   const orders = orderIds.length
     ? await prisma.checkout_orders.findMany({
         where: { id: { in: orderIds } },
-        include: { invoices: { select: { id: true, total: true } } },
+        include: { invoices: { select: { id: true, total: true, status: true } } },
       })
     : [];
 
@@ -221,10 +221,23 @@ async function main() {
     // dengan angka hasil tebakan.
     const finalLamaMenurutRumus = hitungFinal(Number(o.subtotal_amount), o);
 
+    // Uang yang sudah diterima tidak boleh dicatat ulang dengan angka lain.
+    // final_amount adalah nominal yang ditagihkan dan sudah ditransfer; kalau
+    // ordernya bukan lagi 'unpaid', atau ada satu saja tagihan di dalamnya
+    // yang sudah 'paid', biarkan apa adanya dan serahkan ke manusia.
+    const tagihanSudahDibayar = o.invoices.filter((inv) => inv.status === 'paid');
+
     if (finalLamaMenurutRumus !== Number(o.final_amount)) {
       orderBermasalah.push({
         ...rincian,
         sebab: `rumus tidak cocok dengan data lama (final_amount tersimpan ${rupiah(Number(o.final_amount))}, menurut rumus ${rupiah(finalLamaMenurutRumus)})`,
+      });
+    } else if (o.status !== 'unpaid') {
+      orderBermasalah.push({ ...rincian, sebab: `status order '${o.status}', bukan 'unpaid'` });
+    } else if (tagihanSudahDibayar.length > 0) {
+      orderBermasalah.push({
+        ...rincian,
+        sebab: `memuat ${tagihanSudahDibayar.length} tagihan berstatus 'paid' — uangnya sudah diterima`,
       });
     } else if (o.transfer_proof_url) {
       orderBermasalah.push({ ...rincian, sebab: 'bukti transfer sudah diunggah' });
