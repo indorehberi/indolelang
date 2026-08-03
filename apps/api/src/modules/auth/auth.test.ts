@@ -3,6 +3,7 @@ import app from '../../app';
 import { prisma } from '../../config/database';
 import { redis } from '../../config/redis';
 import { Role, UserStatus } from '../../../../../packages/shared-types/src/enums';
+import { FEAT_WHATSAPP_OTP } from '../../lib/featureToggle';
 
 describe('Authentication Module Integration Tests', () => {
   const testPhone = '+628999999999';
@@ -11,6 +12,16 @@ describe('Authentication Module Integration Tests', () => {
   let userId: string;
 
   beforeAll(async () => {
+    // Berkas ini menguji alur verifikasi OTP, yang hanya berlaku ketika
+    // saluran WhatsApp menyala. Saluran itu kini mati secara bawaan — dan saat
+    // mati, pendaftaran sengaja langsung mengaktifkan akun supaya peserta baru
+    // tidak menggantung menunggu kode yang tidak akan pernah dikirim. Toggle
+    // dinyalakan di sini agar yang diuji tetap alur OTP-nya.
+    await prisma.platform_settings.deleteMany({ where: { key: FEAT_WHATSAPP_OTP } });
+    await prisma.platform_settings.create({
+      data: { tenant_id: 'default', key: FEAT_WHATSAPP_OTP, value: 'true', is_encrypted: false },
+    });
+
     // Connect to database and clear any existing test records
     await prisma.users.deleteMany({
       where: {
@@ -20,6 +31,10 @@ describe('Authentication Module Integration Tests', () => {
   });
 
   afterAll(async () => {
+    // Kembalikan saluran WhatsApp ke keadaan mati agar tidak bocor ke berkas
+    // uji lain yang berjalan setelah ini.
+    await prisma.platform_settings.deleteMany({ where: { key: FEAT_WHATSAPP_OTP } });
+
     // Cleanup database and connections
     await prisma.users.deleteMany({
       where: {

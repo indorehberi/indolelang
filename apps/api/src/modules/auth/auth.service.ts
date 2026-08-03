@@ -12,6 +12,7 @@ import { hashPassword, comparePassword } from '../../lib/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../lib/jwt';
 import { sendEmail } from '../../lib/email';
 import { sendWhatsAppOtp, sendWhatsAppNotification } from '../../lib/whatsapp';
+import { isFeatureEnabled, FEAT_WHATSAPP_OTP } from '../../lib/featureToggle';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
 import crypto from 'crypto';
@@ -53,6 +54,16 @@ export class AuthService {
 		// 3. Hash password
 		const passwordHash = await hashPassword(data.password);
 
+		// Status awal bergantung pada apakah OTP WhatsApp sedang dipakai.
+		//
+		// PENDING artinya "menunggu verifikasi". Kalau pengiriman OTP sedang
+		// dimatikan, tidak ada satu pun jalan bagi peserta untuk keluar dari
+		// keadaan itu — mereka akan menunggu kode yang tidak akan pernah
+		// dikirim, dan daftar admin dipenuhi akun yang seolah butuh tindakan
+		// padahal tidak ada yang bisa dilakukan. Karena itu saat OTP mati,
+		// akunnya langsung aktif.
+		const whatsappOtpAktif = await isFeatureEnabled(FEAT_WHATSAPP_OTP);
+
 		// 4. Default to Bidder role. If they want to be a provider, they can apply
 		// via /providers/apply from their Bidder Dashboard later.
 		const user = await prisma.users.create({
@@ -62,7 +73,7 @@ export class AuthService {
 				password_hash: passwordHash,
 				full_name: data.full_name,
 				role: Role.BIDDER,
-				status: UserStatus.PENDING, // Pending until OTP/verification is confirmed
+				status: whatsappOtpAktif ? UserStatus.PENDING : UserStatus.ACTIVE,
 			},
 		});
 
@@ -88,7 +99,7 @@ export class AuthService {
 		}
 
 		// 6. Generate and send WhatsApp OTP if phone number is provided
-		if (user.phone) {
+		if (whatsappOtpAktif && user.phone) {
 			const isProd = env.NODE_ENV === 'production';
 			const sendRealOtp = process.env.SEND_REAL_OTP === 'true';
 			const otpCode = isProd || sendRealOtp
@@ -485,6 +496,15 @@ const user = await prisma.users.findFirst({
 			}
 			return clean;
 		};
+
+		// Reset lewat WhatsApp hanya dilayani kalau salurannya memang menyala.
+		// Kalau tidak, permintaan diselesaikan tanpa mengirim apa pun — sama
+		// seperti perlakuan untuk nomor yang tidak terdaftar, supaya tidak ada
+		// cara menebak nomor mana yang ada di sistem.
+		if (sendTo === 'whatsapp' && !(await isFeatureEnabled(FEAT_WHATSAPP_OTP))) {
+			logger.info('Permintaan reset password lewat WhatsApp diabaikan: saluran WhatsApp sedang dimatikan');
+			return;
+		}
 
 		let user;
 

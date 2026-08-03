@@ -3,6 +3,16 @@ import { FeatureToggle, FEATURE_TOGGLE_DEFAULTS } from '@indo-lelang/shared-type
 import { logger } from './logger';
 
 /**
+ * Pengiriman OTP dan notifikasi lewat WhatsApp.
+ *
+ * Sengaja TIDAK didaftarkan di FEATURE_TOGGLE_DEFAULTS: kunci yang tidak
+ * dikenal jatuh ke `false` di bawah, jadi WhatsApp mati kecuali admin
+ * menyalakannya sendiri di Pengaturan Platform. Mematikan lewat ketiadaan
+ * lebih aman daripada lewat nilai bawaan yang bisa terlewat diubah.
+ */
+export const FEAT_WHATSAPP_OTP = 'feat_whatsapp_otp';
+
+/**
  * Check if a feature toggle is enabled.
  * If not set in the database, falls back to the default values defined in shared-types.
  */

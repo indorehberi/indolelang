@@ -4,6 +4,7 @@ import { ErrorCode } from '@indo-lelang/utils';
 import { sendEmail, sendEmailSafe } from '../../lib/email';
 import { logger } from '../../lib/logger';
 import { sendWhatsAppNotification } from '../../lib/whatsapp';
+import { isFeatureEnabled, FEAT_WHATSAPP_OTP } from '../../lib/featureToggle';
 
 export class CampaignsService {
   async listCampaigns(page: number, perPage: number) {
@@ -83,8 +84,16 @@ export class CampaignsService {
     sendEmail: boolean,
     sendWa: boolean
   ) {
+    // Dibaca sekali di luar perulangan, bukan per penerima: satu siaran bisa
+    // menyasar ratusan pengguna dan tidak perlu menanyakan pengaturan yang
+    // sama berulang kali.
+    const waAktif = await isFeatureEnabled(FEAT_WHATSAPP_OTP);
+    if (sendWa && !waAktif) {
+      logger.info({ campaignId }, 'Siaran WhatsApp dilewati: saluran WhatsApp sedang dimatikan');
+    }
+
     let sentCount = 0;
-    
+
     for (const user of users) {
       let emailSuccess = false;
       let waSuccess = false;
@@ -112,7 +121,7 @@ export class CampaignsService {
       }
 
       // Send WhatsApp (only if phone is registered)
-      if (sendWa && user.phone) {
+      if (sendWa && waAktif && user.phone) {
         try {
           const waMessage = `*${title}*\n\nHalo ${user.full_name},\n\n${message}`;
           waSuccess = await sendWhatsAppNotification(user.phone, waMessage);
