@@ -148,6 +148,19 @@ async function main() {
       value: '11.0', // PPN 11%
       is_encrypted: false,
     },
+    // Biaya administrasi yang ditagihkan ke pemenang lelang, mengikuti Syarat
+    // & Ketentuan untuk unit mobil: flat Rp 3.000.000 sampai Harga Terbentuk
+    // Rp 500 juta, lalu 0,6% di atasnya. Tanpa entri ini settleLot() akan
+    // menerbitkan tagihan dengan biaya administrasi Rp 0 tanpa terlihat.
+    {
+      tenant_id: 'default',
+      key: 'admin_fee_tiers',
+      value: JSON.stringify([
+        { max_price: 500000000, fee_type: 'flat', fee: 3000000 },
+        { max_price: null, fee_type: 'percentage', fee: 0.6 },
+      ]),
+      is_encrypted: false,
+    },
     {
       tenant_id: 'default',
       key: 'nipl_deposit_amount',

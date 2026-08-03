@@ -237,11 +237,15 @@ export class DocumentsService {
               <td style="border: none; text-align: right; font-weight: bold; width: 150px;">${this.formatRupiah(Number(invoice.hammer_price))}</td>
             </tr>
             <tr>
-              <td style="border: none; text-align: right; color: #718096;">Komisi Balai Lelang:</td>
-              <td style="border: none; text-align: right; font-weight: bold;">${this.formatRupiah(Number(invoice.commission))}</td>
+              <td style="border: none; text-align: right; color: #718096;">Biaya Administrasi:</td>
+              <td style="border: none; text-align: right; font-weight: bold;">${this.formatRupiah(Number(invoice.admin_fee ?? invoice.commission))}</td>
             </tr>
             <tr>
-              <td style="border: none; text-align: right; color: #718096;">PPN (11%):</td>
+              <td style="border: none; text-align: right; color: #718096;">Biaya PMK 41:</td>
+              <td style="border: none; text-align: right; font-weight: bold;">${this.formatRupiah(Number(invoice.pmk41_amount || 0))}</td>
+            </tr>
+            <tr>
+              <td style="border: none; text-align: right; color: #718096;">PPN:</td>
               <td style="border: none; text-align: right; font-weight: bold;">${this.formatRupiah(Number(invoice.tax))}</td>
             </tr>
             <tr style="font-size: 16px; border-top: 2px solid #cbd5e0;">
@@ -836,7 +840,7 @@ export class DocumentsService {
           <p>Dengan penawaran tertinggi sebagai berikut :</p>
           <table style="width: 100%; margin: 8px 0; font-weight: bold;">
             <tr><td style="width: 200px;">Harga Terbentuk Lelang</td><td>: ${this.formatRupiah(Number(invoice.hammer_price))}</td></tr>
-            <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.commission))}</td></tr>
+            <tr><td>Biaya Administrasi</td><td>: ${this.formatRupiah(Number(invoice.admin_fee ?? invoice.commission))}</td></tr>
             <tr><td>Biaya PMK</td><td>: ${this.formatRupiah(Number(invoice.pmk41_amount || 0))}</td></tr>
             <tr><td>Sisa Pelunasan</td><td>: ${this.formatRupiah(Number(invoice.total))}</td></tr>
           </table>

@@ -76,9 +76,12 @@ export default function PlatformSettingsPage() {
   const [providerFeeAmount, setProviderFeeAmount] = useState('0');
   const [providerPmk41ByProvider, setProviderPmk41ByProvider] = useState(false);
   const [isSavingProviderFee, setIsSavingProviderFee] = useState(false);
-  const [adminFeeTiers, setAdminFeeTiers] = useState<any[]>([
-    { max_price: null, fee_type: 'flat', fee: 5000000 }
-  ]);
+  // Sengaja kosong: nilai contoh di sini pernah membuat layar menampilkan
+  // tier Rp 5.000.000 padahal `admin_fee_tiers` belum pernah tersimpan di
+  // server — admin mengira biaya administrasi sudah diatur, sementara setiap
+  // tagihan pemenang terbit dengan biaya Rp 0. Yang tampil harus selalu sama
+  // dengan yang benar-benar dipakai backend.
+  const [adminFeeTiers, setAdminFeeTiers] = useState<any[]>([]);
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -685,6 +688,18 @@ export default function PlatformSettingsPage() {
   };
 
   const handleSaveAdminFeeSettings = async () => {
+    // Daftar tier kosong berarti setiap pemenang ditagih biaya administrasi
+    // Rp 0. Kalau memang itu yang dimaui, hapus lewat basis data — jangan
+    // sampai terjadi karena baris terakhir tidak sengaja terhapus.
+    if (adminFeeTiers.length === 0) {
+      toast.error('Isi minimal satu tier. Tanpa tier, biaya administrasi setiap pemenang menjadi Rp 0.');
+      return;
+    }
+    const invalidTier = adminFeeTiers.find((t) => !Number.isFinite(Number(t.fee)) || Number(t.fee) <= 0);
+    if (invalidTier) {
+      toast.error('Nominal / persentase fee setiap tier harus lebih besar dari 0.');
+      return;
+    }
     setIsSavingAdminFee(true);
     try {
       const updates = [
@@ -1228,7 +1243,14 @@ export default function PlatformSettingsPage() {
             <div className="alert alert-secondary text-xs mt-3 mb-3">
               Kosongkan batas harga maksimal pada baris terakhir untuk menetapkan fee tanpa batas atas (<i>Unlimited</i>).
             </div>
-            
+
+            {!loading && adminFeeTiers.length === 0 && (
+              <div className="alert alert-danger text-xs mb-3">
+                <strong>Belum ada tier yang tersimpan.</strong> Selama daftar ini kosong, setiap pemenang lelang
+                ditagih biaya administrasi <strong>Rp 0</strong>. Tambahkan tier lalu simpan.
+              </div>
+            )}
+
             <div className="table-responsive mb-3">
               <table className="table table-sm table-bordered">
                 <thead className="table-light">

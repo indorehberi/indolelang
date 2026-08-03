@@ -387,11 +387,25 @@ export class BiddingService {
             }
           }
         } catch (e) {
-          console.error("Gagal parse admin_fee_tiers", e);
+          logger.error(
+            { err: e, lotId, value: adminFeeTiersRaw },
+            'admin_fee_tiers tidak bisa dibaca; tagihan pemenang terbit tanpa biaya administrasi'
+          );
           adminFee = 0;
         }
       } else {
         adminFee = 0;
+      }
+
+      // Palu sudah diketok, jadi tagihan tetap harus terbit. Tetapi biaya
+      // administrasi Rp 0 hampir selalu berarti tier di Pengaturan Platform
+      // belum diisi — bukan keputusan bisnis. Dicatat di sini supaya
+      // ketahuan hari ini, bukan nanti saat rekonsiliasi.
+      if (adminFee <= 0) {
+        logger.warn(
+          { lotId, hammerPrice, adminFeeTiersConfigured: !!adminFeeTiersRaw },
+          'Biaya administrasi Rp 0 pada tagihan pemenang — periksa Tiered Admin Fee di Pengaturan Platform'
+        );
       }
 
       // PMK 41 fee (dari pengaturan) if not paid by provider
@@ -400,6 +414,10 @@ export class BiddingService {
         pmk41Amount = Math.round(hammerPrice * pmk41Rate);
       }
       
+      // `admin_fee` adalah satu-satunya sumber kebenaran biaya administrasi.
+      // Kolom `commission` warisan lama masih diisi nilai yang sama semata
+      // karena skema mewajibkannya (non-nullable) — jangan dijadikan acuan
+      // baca di tempat lain, cukup ikuti admin_fee.
       const commission = adminFee;
       const tax = 0;
       
@@ -540,7 +558,7 @@ export class BiddingService {
         sendEmailSafe({
           to: winnerUser.email,
           subject: `[Indo-Lelang] Selamat! Anda memenangkan Lot #${lot.lot_number}`,
-          text: `Halo ${winnerUser.full_name},\n\nSelamat! Anda telah memenangkan lelang untuk unit "${lot.asset.title}" dengan harga ketok palu sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}.\n\nTotal kewajiban pembayaran (termasuk komisi dan PPN) adalah ${formattedTotal}. Invoice pelunasan telah dibuat dan dapat Anda akses di dasbor keuangan Anda.\n\nHarap lakukan pelunasan dalam waktu 3 hari kerja.\n\nTerima kasih,\nTim Indo-Lelang`,
+          text: `Halo ${winnerUser.full_name},\n\nSelamat! Anda telah memenangkan lelang untuk unit "${lot.asset.title}" dengan harga ketok palu sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}.\n\nTotal kewajiban pembayaran (termasuk biaya administrasi dan PMK 41) adalah ${formattedTotal}. Invoice pelunasan telah dibuat dan dapat Anda akses di dasbor keuangan Anda.\n\nHarap lakukan pelunasan dalam waktu ${dueDays} hari kerja.\n\nTerima kasih,\nTim Indo-Lelang`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
               <h2 style="color: #2b6cb0; text-align: center;">Selamat! Anda Memenangkan Lelang 🏆</h2>
@@ -557,7 +575,7 @@ export class BiddingService {
                     <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(hammerPrice)}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 4px 0; color: #718096;">Admin Fee:</td>
+                    <td style="padding: 4px 0; color: #718096;">Biaya Administrasi:</td>
                     <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(adminFee)}</td>
                   </tr>
                   <tr>
@@ -565,7 +583,7 @@ export class BiddingService {
                     <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(pmk41Amount)}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 4px 0; color: #718096;">PPN (11%):</td>
+                    <td style="padding: 4px 0; color: #718096;">PPN:</td>
                     <td style="padding: 4px 0; font-weight: bold; text-align: right;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(tax)}</td>
                   </tr>
                   <tr style="border-top: 1px dashed #e2e8f0;">
