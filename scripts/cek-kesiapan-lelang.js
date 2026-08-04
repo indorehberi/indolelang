@@ -89,9 +89,25 @@ async function main() {
   else if (beku !== 5) INGAT(`Durasi tampil lot dibatalkan ${beku} detik, sedangkan overlay peserta terkunci 5 detik — akan ada selisih ${Math.abs(beku - 5)} detik`);
   else OK('Durasi tampil lot dibatalkan 5 detik, sama dengan layar peserta');
 
+  // Server mengunci kelipatan minimum di Rp 500.000 secara tetap
+  // (getMinIncrement di bidding.service.ts) dan TIDAK membaca bid_increment_1;
+  // setelan itu hanya menyetel tombol di layar peserta, yang juga memakai
+  // 500.000 bila setelannya kosong. Jadi kosong itu aman — yang berbahaya
+  // adalah mengisinya di BAWAH 500.000, karena setiap bid akan ditolak server.
+  const BATAS_SERVER = 500000;
   const increment = angka('bid_increment_1');
-  if (!increment || increment <= 0) GAGAL('bid_increment_1 belum diatur — kelipatan bid tidak jelas');
-  else OK(`Kelipatan bid ${rupiah(increment)}`);
+  if (!increment) {
+    OK(`Kelipatan bid ${rupiah(BATAS_SERVER)}`, 'bawaan, sama dengan batas minimum server');
+  } else if (increment < BATAS_SERVER) {
+    GAGAL(
+      `Kelipatan bid ${rupiah(increment)} lebih kecil dari batas minimum server ${rupiah(BATAS_SERVER)}`,
+      'setiap bid peserta akan ditolak dengan pesan "Penawaran minimal adalah Rp 500.000"'
+    );
+  } else if (increment > BATAS_SERVER) {
+    INGAT(`Kelipatan bid ${rupiah(increment)}, sedangkan batas minimum server ${rupiah(BATAS_SERVER)}`, 'bid tetap diterima, hanya lompatannya lebih besar');
+  } else {
+    OK(`Kelipatan bid ${rupiah(increment)}`);
+  }
 
   // ---------------------------------------------------------------- uang
   judul('NIPL dan biaya');
