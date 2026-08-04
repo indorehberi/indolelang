@@ -164,7 +164,8 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="btn btn-primary w-100"
+            className="btn btn-primary w-100 text-center"
+            style={{ textAlign: 'center' }}
             disabled={isLoading}
           >
             {isLoading ? 'Memproses...' : 'Masuk'}
