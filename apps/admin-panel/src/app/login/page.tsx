@@ -82,20 +82,20 @@ export default function LoginPage() {
     }
   };
 
-  // Demo login handler
-  const handleDemoLogin = () => {
-    // Set demo user data
-    const demoUser = {
-      id: 1,
-      email: 'admin@indo-lelang.com',
-      full_name: 'Demo Admin',
-      role: 'superadmin',
-    };
-    
-    localStorage.setItem('accessToken', 'demo-token-' + Date.now());
-    localStorage.setItem('user', JSON.stringify(demoUser));
-    router.replace('/dashboard');
-  };
+  // Tombol "Demo Login (Tanpa Backend)" sengaja DIHAPUS dan jangan
+  // dihidupkan lagi di halaman yang bisa diakses publik.
+  //
+  // Ia menulis token karangan beserta pengguna ber-role 'superadmin' ke
+  // localStorage, lalu masuk ke /dashboard. Penjaga dasbor hanya memeriksa
+  // KEBERADAAN kedua nilai itu dan tidak pernah memvalidasinya ke backend,
+  // sehingga siapa pun yang membuka /admin/login bisa masuk ke antarmuka
+  // admin sebagai superadmin tanpa kredensial apa pun. Permintaan data
+  // memang tetap ditolak 401 oleh API, tetapi kerangka dasbor, navigasi,
+  // dan apa pun yang dirender dari localStorage sudah telanjur terlihat.
+  //
+  // Kalau suatu saat butuh masuk cepat untuk pengembangan, gunakan akun
+  // sungguhan di basis data lokal — bukan jalan pintas yang ikut terbawa
+  // ke produksi.
 
   if (checkingAuth) {
     return (
@@ -166,31 +166,10 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary w-100"
             disabled={isLoading}
-            style={{ marginBottom: '0.75rem' }}
           >
-            {isLoading ? 'Memproses...' : 'Login'}
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-outline w-100"
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-          >
-            Demo Login (Tanpa Backend)
+            {isLoading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
-
-        <div className="separator" style={{ margin: '1.5rem 0' }} />
-
-        <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>
-          <p style={{ margin: 0 }}>
-            Untuk testing, gunakan <strong>Demo Login</strong>
-          </p>
-          <p style={{ margin: '0.5rem 0 0' }}>
-            Atau login dengan kredensial backend API
-          </p>
-        </div>
       </div>
     </div>
   );
