@@ -8,6 +8,7 @@ import { logger } from '../../lib/logger';
 import { paymentsService } from '../payments/payments.service';
 import { isUnlimitedPackage } from '../../lib/niplPackage';
 import { withLock } from '../../lib/mutex';
+import { notifyAdmins } from '../../lib/notifyAdmins';
 
 export interface BidSubmission {
   userId: string;
@@ -546,6 +547,25 @@ export class BiddingService {
 
       // Generate settlement record immediately (with 'unpaid' status) so it appears in the dashboard
       await paymentsService.createSettlementForInvoice(invoice.id);
+
+      // Admin perlu tahu ada tagihan baru pada saat unit terjual, bukan nanti
+      // saat tagihannya sudah lunas. Sebelumnya satu-satunya kabar ke staf
+      // adalah 'lot_sold_settlement' yang terbit SETELAH pemenang membayar —
+      // sehingga sepanjang masa tunggu pembayaran (tiga hari kerja) tidak ada
+      // yang memberi tahu admin bahwa ada tagihan yang harus dipantau, berapa
+      // nilainya, dan siapa yang harus menagihnya.
+      const formatRp = (n: number) =>
+        new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+      await notifyAdmins(
+        NotificationType.INVOICE_CREATED,
+        'Unit Terjual — Tagihan Diterbitkan',
+        `Unit "${lot.asset.title}" (Lot #${lot.lot_number}) terjual ${formatRp(hammerPrice)} kepada ` +
+          `${winnerUser?.full_name || 'pemenang'}. Tagihan pelunasan ${formatRp(total)} ` +
+          `(termasuk biaya administrasi ${formatRp(adminFee)}) jatuh tempo ` +
+          `${new Date(dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.`,
+        '/finance'
+      );
 
       if (winnerUser) {
         // Send email asynchronously

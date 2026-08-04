@@ -293,6 +293,37 @@ export class PaymentsService {
       });
     }
 
+    // Provider berhak tahu unitnya laku pada saat lakunya, bukan nanti ketika
+    // uangnya cair. Sebelumnya satu-satunya kabar yang ia terima adalah
+    // 'settlement_disbursed' — yang baru terbit setelah admin mentransfer,
+    // bisa berhari-hari kemudian. Di antara dua titik itu provider tidak punya
+    // cara tahu unitnya sudah terjual, apalagi berapa yang akan ia terima.
+    //
+    // Nilai bersih disebutkan apa adanya berikut potongannya, supaya tidak ada
+    // kejutan saat pencairan.
+    const formatRp = (n: number) =>
+      new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+    try {
+      await prisma.notifications.create({
+        data: {
+          user_id: provider.id,
+          type: 'lot_sold_provider',
+          title: 'Unit Anda Terjual',
+          body:
+            `Unit "${invoice.lot.asset.title}" terjual pada harga ${formatRp(hammerPrice)}. ` +
+            `Setelah dikurangi fee lelang ${formatRp(totalTerimaFeeLelang)}, ` +
+            `Anda akan menerima ${formatRp(netAmount)}. ` +
+            `Dana dicairkan setelah pemenang melunasi pembayarannya.`,
+          deep_link: '/provider/settlement',
+        },
+      });
+    } catch (err) {
+      // Kabar yang gagal terkirim tidak boleh membatalkan settlement yang sudah
+      // tercatat benar — uangnya jauh lebih penting daripada notifikasinya.
+      logger.error({ err, settlementId: settlement.id }, 'Gagal memberi tahu provider bahwa unitnya terjual');
+    }
+
     return settlement;
   }
 

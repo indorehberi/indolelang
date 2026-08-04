@@ -117,6 +117,21 @@ const hitungStatus = (arr) => arr.reduce((m, x) => ({ ...m, [x.status]: (m[x.sta
   await p.bidders.create({ data: { user_id: peserta.id, status: 'aktif' } });
   const sesiPeserta = await login(peserta.email, 'Uji123!');
 
+  // Provider dibuat sebagai akun TERSENDIRI, bukan memakai akun admin.
+  // Kalau keduanya orang yang sama, pemeriksaan "admin diberi tahu" dan
+  // "provider diberi tahu" jatuh ke baris notifikasi yang sama dan tidak
+  // membuktikan apa-apa.
+  const provider = await p.users.create({
+    data: {
+      email: `provider_${TAG}@t.test`, phone: '+628991234567', password_hash: hash,
+      full_name: 'Provider Keuangan', company_name: 'PT Uji Provider',
+      role: 'provider', status: 'active',
+    },
+  });
+  await p.providers.create({
+    data: { user_id: provider.id, status: 'aktif', company_name: 'PT Uji Provider' },
+  });
+
   // ---------------------------------------------------------------- tahap 1
   tahap(1, 'Peserta membeli NIPL (2 unit mobil)');
   const buat = await req('POST', '/deposits/create', sesiPeserta.token, {
@@ -170,7 +185,7 @@ const hitungStatus = (arr) => arr.reduce((m, x) => ({ ...m, [x.status]: (m[x.sta
   // ---------------------------------------------------------------- tahap 4
   tahap(4, 'Peserta memenangkan satu lot');
   const aset = await p.assets.create({
-    data: { provider_id: admin.user.id, category: 'mobil', title: `Unit ${TAG}`, base_price: 100_000_000, status: 'approved' },
+    data: { provider_id: provider.id, category: 'mobil', title: `Unit ${TAG}`, base_price: 100_000_000, status: 'approved' },
   });
   const lot = await p.lots.create({
     data: { session_id: sesi.id, asset_id: aset.id, lot_number: 1, starting_price: 100_000_000, status: 'active' },
@@ -200,6 +215,47 @@ const hitungStatus = (arr) => arr.reduce((m, x) => ({ ...m, [x.status]: (m[x.sta
   const settle = await p.settlements.findFirst({ where: { lot_id: lot.id } });
   periksa('Settlement provider ikut terbit', !!settle, 'tidak ada baris settlement');
   periksa(`Settlement berstatus 'unpaid' selama tagihan belum lunas (dapat '${settle?.status}')`, settle?.status === 'unpaid');
+
+  // --- Empat hal yang harus terjadi begitu sebuah unit terjual ---
+  //
+  // Bukan cuma datanya berubah: tiga pihak harus DIBERI TAHU. Peserta tahu ia
+  // menang dan berapa tagihannya, admin tahu ada tagihan baru yang harus
+  // ditunggu pembayarannya, dan provider tahu unitnya laku berikut berapa yang
+  // akan ia terima. Tanpa ini mereka harus menebak atau bertanya.
+  const notifPeserta = await p.notifications.findMany({ where: { user_id: peserta.id } });
+  periksa('Peserta diberi tahu bahwa ia menang',
+    notifPeserta.some((n) => n.type === 'bid_won'),
+    `notif peserta: ${JSON.stringify(notifPeserta.map((n) => n.type))}`);
+
+  const staf = await p.users.findMany({
+    where: { role: { in: ['admin', 'superadmin', 'operator', 'finance'] } },
+    select: { id: true },
+  });
+  // Disaring ke notifikasi yang benar-benar SOAL LOT INI. Sekadar menghitung
+  // "ada notifikasi baru" akan tertipu oleh sisa tahap sebelumnya — misalnya
+  // "Bukti Transfer NIPL Masuk" dari tahap 2 yang usianya juga masih muda.
+  const semuaNotifStaf = await p.notifications.findMany({
+    where: { user_id: { in: staf.map((s) => s.id) } },
+    orderBy: { created_at: 'desc' },
+  });
+  const notifAdmin = semuaNotifStaf.filter(
+    (n) => (n.body || '').includes(`Unit ${TAG}`) || (n.title || '').toLowerCase().includes('terjual')
+  );
+  periksa('Admin diberi tahu ada tagihan baru saat unit terjual',
+    notifAdmin.length > 0,
+    `notifikasi staf yang ada: ${semuaNotifStaf.map((n) => n.title).join(' | ') || '(kosong)'}`);
+  periksa(`Notifikasi admin menyebut jumlah tagihannya (${rp(inv.total)})`,
+    notifAdmin.some((n) => (n.body || '').includes(Number(inv.total).toLocaleString('id-ID'))),
+    notifAdmin.length ? `isi notif: ${notifAdmin.map((n) => n.title).join(' | ')}` : 'tidak ada notif admin');
+
+  const notifProvider = await p.notifications.findMany({ where: { user_id: provider.id } });
+  const netProvider = Number(settle?.net_amount || 0);
+  periksa('Provider diberi tahu unitnya terjual',
+    notifProvider.some((n) => /terjual|laku|menang/i.test(n.title || '') || /terjual/i.test(n.body || '')),
+    `notif provider: ${JSON.stringify(notifProvider.map((n) => n.type))}`);
+  periksa(`Notifikasi provider menyebut berapa yang akan ia terima (${rp(netProvider)})`,
+    notifProvider.some((n) => (n.body || '').includes(netProvider.toLocaleString('id-ID'))),
+    'provider tidak diberi tahu nilai yang akan diterima');
 
   const keranjang = await req('GET', '/checkout/cart', sesiPeserta.token);
   const semuaInv = (keranjang.data?.groups || []).flatMap((g) => g.invoices || []);
