@@ -20,6 +20,14 @@ export const getDepositsQuerySchema = z.object({
     page: z.string().transform((val) => parseInt(val, 10)).default('1'),
     per_page: z.string().transform((val) => parseInt(val, 10)).default('20'),
     session_id: z.string().uuid().optional(),
-    status: z.enum(['pending', 'paid', 'expired', 'refunded']).optional(),
+    // Harus memuat SEMUA status yang benar-benar ditulis ke tabel deposits.
+    // Sebelumnya empat nilai di sini menolak 'pending_approval' dan
+    // 'pending_refund' dengan 400, padahal keduanya persis antrean yang
+    // dipakai admin: peserta yang sudah mengunggah bukti transfer NIPL, dan
+    // yang menunggu pengembalian dana. Tombolnya ada di halaman Keuangan,
+    // tetapi tidak pernah bisa menampilkan apa pun.
+    status: z
+      .enum(['pending', 'pending_approval', 'paid', 'pending_refund', 'refunded', 'consumed', 'expired', 'forfeited'])
+      .optional(),
   }),
 });

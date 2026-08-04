@@ -505,13 +505,19 @@ export class CheckoutService {
 
        // 2. Update invoices — each unit's own nipl_deduction is persisted here
        // rather than only recording the aggregate on the order.
-       const invoiceStatus = Number(grandTotal) === 0 ? 'paid' : 'pending_checkout';
+       // Jaminan NIPL bisa menutup seluruh tagihan, dan saat itu tagihannya
+       // langsung lunas di sini tanpa lewat verifikasi admin. paid_at ikut
+       // diisi karena dasbor keuangan mengelompokkan pemasukan berdasarkan
+       // kolom itu dan melewati baris yang kosong.
+       const lunasSeketika = Number(grandTotal) === 0;
+       const invoiceStatus = lunasSeketika ? 'paid' : 'pending_checkout';
        await Promise.all(invoiceIds.map((id) =>
          tx.invoices.update({
            where: { id },
            data: {
              order_id: orderId,
              status: invoiceStatus,
+             ...(lunasSeketika ? { paid_at: new Date() } : {}),
              nipl_deduction: perInvoiceDeduction.get(id) || new Prisma.Decimal(0),
            },
          })
@@ -685,7 +691,12 @@ export class CheckoutService {
           if (isApproved) {
             await tx.invoices.update({
               where: { id: inv.id },
-              data: { status: 'paid' }
+              // paid_at wajib ikut terisi. Dasbor keuangan mengelompokkan
+              // pemasukan biaya administrasi berdasarkan kolom ini dan
+              // melewati baris yang kosong (lihat dashboard.controller),
+              // jadi tanpa ini setiap tagihan yang lunas hilang dari grafik
+              // pemasukan meski uangnya sudah diterima.
+              data: { status: 'paid', paid_at: new Date() }
             });
           } else {
             // Unit ini tidak disetujui: kembalikan jaminannya SEBELUM
