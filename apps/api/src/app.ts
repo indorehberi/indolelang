@@ -88,11 +88,27 @@ app.use(
 
 import path from 'path';
 
-// Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files statically.
+//
+// Nama berkasnya UUID acak dan tidak pernah ditimpa — sekali sebuah URL
+// terbit, isinya di URL itu tetap sama selamanya. Karena itu keduanya
+// disajikan sebagai aset abadi (immutable) berumur satu tahun.
+//
+// Sebelumnya express.static dan res.sendFile sama-sama memakai bawaan
+// `Cache-Control: public, max-age=0`, yang memaksa peramban memvalidasi ulang
+// SETIAP foto pada SETIAP kali halaman dibuka. Satu lot berisi tujuh foto,
+// satu katalog berisi puluhan lot — jadi ratusan permintaan bersyarat per
+// muat halaman, per bidder. Saat ruang lelang ramai (server satu inti, plus
+// soket dan bid berjalan bersamaan), sebagian permintaan itu mengantre lalu
+// gagal, dan fotonya putus di layar sebagian peserta — sementara peserta lain
+// yang cache-nya sudah terisi tetap melihatnya. `immutable` menghapus
+// revalidasi itu sepenuhnya setelah muat pertama.
+const CACHE_ASET_ABADI = { maxAge: '365d', immutable: true };
+
+app.use('/uploads', express.static('uploads', CACHE_ASET_ABADI));
 app.get('/api/uploads/*', (req, res) => {
   const file = (req.params as any)[0];
-  res.sendFile(path.resolve(process.cwd(), 'uploads', file));
+  res.sendFile(path.resolve(process.cwd(), 'uploads', file), CACHE_ASET_ABADI);
 });
 
 const apiPrefix = env.API_PREFIX || '/api/v1';
