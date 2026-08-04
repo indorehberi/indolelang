@@ -37,7 +37,7 @@ const SIMULATE_LOT = {
     cylinder: "1329",
     color: "Putih",
     odometer: "42.300",
-    bpkb_number: "L-08812934",
+    police_number: "B 1234 XYZ",
     stnk_date: "2026-11-14",
     stnk_tax_date: "2026-11-14",
     keur_date: null,
@@ -794,8 +794,8 @@ function ActiveLotCard({
                   <span className="font-medium text-slate-800">{lot.asset?.odometer || "-"}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No BPKB</span>
-                  <span className="font-medium text-slate-800">{lot.asset?.bpkb_number || "-"}</span>
+                  <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">No Polisi</span>
+                  <span className="font-medium text-slate-800">{lot.asset?.police_number || "-"}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Masa Berlaku STNK</span>
