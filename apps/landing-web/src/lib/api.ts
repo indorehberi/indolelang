@@ -5,6 +5,21 @@ if (typeof window !== 'undefined') {
       return await originalJson.call(this);
     } catch (e) {
       console.error("JSON parse error hijacked:", e);
+
+      // Balasan yang bukan JSON hampir selalu datang dari nginx, bukan dari
+      // aplikasi — dan pesan "respon tidak valid" tidak memberi tahu pengguna
+      // apa pun yang bisa mereka lakukan. Status 413 punya sebab yang jelas
+      // dan bisa ditindaklanjuti sendiri oleh pengguna, jadi dibedakan.
+      if (this.status === 413) {
+        return {
+          success: false,
+          error: {
+            code: "PAYLOAD_TOO_LARGE",
+            message: "Ukuran file terlalu besar. Silakan pakai foto yang lebih kecil (di bawah 5 MB) atau kurangi resolusinya."
+          }
+        };
+      }
+
       return {
         success: false,
         error: {
