@@ -35,6 +35,37 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost
 export const API_PREFIX = '/api/v1';
 
 /**
+ * Batas ukuran unggahan yang dilihat peserta.
+ *
+ * Harus SAMA dengan batas API (maxFileSize di apps/api/src/config/s3.ts), dan
+ * keduanya harus DI BAWAH client_max_body_size nginx (12m). Kalau nginx yang
+ * lebih dulu menolak, jawabannya berupa halaman HTML "413" yang tidak bisa
+ * dibaca aplikasi — peserta hanya melihat "respon tidak valid" tanpa tahu apa
+ * yang salah. Dengan urutan ini, penolakan selalu datang dari sisi yang bisa
+ * menjelaskan dirinya.
+ */
+export const MAX_UPLOAD_MB = 10;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+/**
+ * Periksa ukuran berkas SEBELUM dikirim. Mengembalikan pesan siap tampil bila
+ * terlalu besar, atau null bila aman.
+ *
+ * Diperiksa di sisi peserta supaya jawabannya seketika — tanpa ini, peserta
+ * di jaringan seluler menunggu unggahan berjalan sampai habis lebih dulu,
+ * baru ditolak.
+ */
+export function cekUkuranBerkas(file: File): string | null {
+  if (file.size <= MAX_UPLOAD_BYTES) return null;
+
+  const ukuranMb = (file.size / 1024 / 1024).toFixed(1).replace('.', ',');
+  return (
+    `Foto ini berukuran ${ukuranMb} MB, melebihi batas ${MAX_UPLOAD_MB} MB. ` +
+    `Coba potret ulang dengan resolusi lebih rendah, atau kecilkan fotonya lebih dulu.`
+  );
+}
+
+/**
  * If the build-time API URL was baked in as localhost (common when the same
  * image is built once and deployed to multiple hosts) but the page itself is
  * being viewed from a real domain, rewrite the host to match so requests

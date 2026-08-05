@@ -526,7 +526,7 @@ export default function RegisterProviderPage() {
                   <div className="space-y-1.5 text-on-surface-variant">
                     <span className="material-symbols-outlined text-3xl">photo_camera</span>
                     <span className="block font-bold text-body-sm">Ambil / Seret Foto KTP di sini</span>
-                    <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 5MB</span>
+                    <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 10MB</span>
                   </div>
                 )}
               </div>

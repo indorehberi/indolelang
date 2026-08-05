@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, cekUkuranBerkas } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
 
 export default function EkycUploadPage() {
@@ -224,6 +224,14 @@ export default function EkycUploadPage() {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       router.push("/login");
+      return;
+    }
+
+    // Diperiksa sebelum dikirim: peserta di jaringan seluler tidak perlu
+    // menunggu unggahan berjalan sampai habis hanya untuk ditolak.
+    const terlaluBesar = cekUkuranBerkas(file);
+    if (terlaluBesar) {
+      toast.error(terlaluBesar);
       return;
     }
 
@@ -507,7 +515,7 @@ export default function EkycUploadPage() {
                   <div className="space-y-1.5 text-on-surface-variant">
                     <span className="material-symbols-outlined text-3xl">photo_camera</span>
                     <span className="block font-bold text-body-sm">Ambil / Seret Foto KTP di sini</span>
-                    <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 5MB</span>
+                    <span className="block text-outline text-[10px] text-badge-text">Format JPG/PNG maks. 10MB</span>
                   </div>
                 )}
               </div>

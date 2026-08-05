@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiUrl, apiFetch } from "@/lib/api";
+import { apiUrl, apiFetch, cekUkuranBerkas } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import ResponsiveModal from "@/components/ui/ResponsiveModal";
 import PageSkeleton from "@/components/ui/PageSkeleton";
@@ -175,6 +175,12 @@ export default function BidderDeposit() {
     e.preventDefault();
     if (!proofFile) {
       toast.warning("Pilih file bukti transfer terlebih dahulu.");
+      return;
+    }
+
+    const terlaluBesar = cekUkuranBerkas(proofFile);
+    if (terlaluBesar) {
+      toast.error(terlaluBesar);
       return;
     }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, cekUkuranBerkas } from "@/lib/api";
 import BidderLayout from "../../../components/layout/BidderLayout";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { useToast } from "@/providers/ToastProvider";
@@ -109,7 +109,13 @@ export default function BidderProfile() {
 
   const handleNpwpUpload = async () => {
     if (!npwpFile) return;
-    
+
+    const terlaluBesar = cekUkuranBerkas(npwpFile);
+    if (terlaluBesar) {
+      toast.error(terlaluBesar);
+      return;
+    }
+
     setIsUploadingNpwp(true);
 
     const formData = new FormData();
