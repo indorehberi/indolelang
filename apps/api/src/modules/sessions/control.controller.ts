@@ -155,43 +155,81 @@ export class ControlController {
 
       logAdminAction(req, 'START_AUCTION_SESSION', 'auction_sessions', sessionId, session, updatedSession);
 
-      // Auto-activate the first pending lot (lowest lot_number)
+      // Auto-activate the first pending or cancelled lot (lowest lot_number)
       const firstLot = await prisma.lots.findFirst({
-        where: { session_id: sessionId, status: LotStatus.PENDING },
+        where: {
+          session_id: sessionId,
+          status: { in: [LotStatus.PENDING, LotStatus.CANCELLED] },
+        },
         orderBy: { lot_number: 'asc' },
         include: { asset: true },
       });
 
       if (firstLot) {
-        // Update lot status to active
-        const activatedLot = await prisma.lots.update({
-          where: { id: firstLot.id },
-          data: { status: LotStatus.ACTIVE },
-          include: { asset: true },
-        });
+        if (firstLot.status === LotStatus.CANCELLED) {
+          const settingsService = new SettingsService();
+          let freezeDurationSecs = 5;
+          try {
+            const setting = await settingsService.getSettingByKey('auction_lot_canceled_duration_secs');
+            if (setting && !isNaN(Number(setting.value))) freezeDurationSecs = Number(setting.value);
+          } catch (e) {}
 
-        // Fetch lot duration from settings
-        const settingsService = new SettingsService();
-        let lotDuration = 120;
-        try {
-          const durationSetting = await settingsService.getSettingByKey('auction_lot_duration_secs');
-          if (durationSetting && !isNaN(Number(durationSetting.value))) {
-            lotDuration = Number(durationSetting.value);
+          const ioServer = getSocketIo();
+          if (ioServer) {
+            ioServer.to(`session:${sessionId}`).emit('lot:start', {
+              lot_id: firstLot.id,
+              is_canceled: true,
+              freeze_duration_secs: freezeDurationSecs,
+              lot_data: firstLot,
+            });
           }
-        } catch (_) { /* use default */ }
-        if (lotDuration < 1) lotDuration = 120;
 
-        logger.info({ lotId: firstLot.id, lotDuration }, 'Auto-activating first lot on session start');
+          logAdminAction(req, 'AUTO_ACTIVATE_FIRST_CANCELLED_LOT', 'lots', firstLot.id, firstLot, firstLot);
 
-        // Start countdown via Socket.io
-        startActiveLot(activatedLot, lotDuration);
+          setTimeout(() => {
+            handleAutoNextAndSessionEnd(firstLot);
+          }, freezeDurationSecs * 1000);
 
-        logAdminAction(req, 'AUTO_ACTIVATE_FIRST_LOT', 'lots', firstLot.id, firstLot, activatedLot);
+          sendSuccess(
+            res,
+            { session: updatedSession, first_lot: firstLot },
+            'Sesi lelang dimulai. Lot pertama dibatalkan dan ditampilkan sementara.'
+          );
+        } else {
+          // Update lot status to active
+          const activatedLot = await prisma.lots.update({
+            where: { id: firstLot.id },
+            data: { status: LotStatus.ACTIVE },
+            include: { asset: true },
+          });
 
-        sendSuccess(res, { session: updatedSession, first_lot: activatedLot }, 'Sesi lelang dimulai. Lot pertama otomatis diaktifkan.');
+          // Fetch lot duration from settings
+          const settingsService = new SettingsService();
+          let lotDuration = 120;
+          try {
+            const durationSetting = await settingsService.getSettingByKey('auction_lot_duration_secs');
+            if (durationSetting && !isNaN(Number(durationSetting.value))) {
+              lotDuration = Number(durationSetting.value);
+            }
+          } catch (_) { /* use default */ }
+          if (lotDuration < 1) lotDuration = 120;
+
+          logger.info({ lotId: firstLot.id, lotDuration }, 'Auto-activating first lot on session start');
+
+          // Start countdown via Socket.io
+          startActiveLot(activatedLot, lotDuration);
+
+          logAdminAction(req, 'AUTO_ACTIVATE_FIRST_LOT', 'lots', firstLot.id, firstLot, activatedLot);
+
+          sendSuccess(
+            res,
+            { session: updatedSession, first_lot: activatedLot },
+            'Sesi lelang dimulai. Lot pertama otomatis diaktifkan.'
+          );
+        }
       } else {
-        // No pending lots — session started but nothing to activate
-        logger.warn({ sessionId }, 'Session started but no pending lots found to auto-activate');
+        // No pending or cancelled lots — session started but nothing to activate
+        logger.warn({ sessionId }, 'Session started but no pending or cancelled lots found to auto-activate');
         sendSuccess(res, { session: updatedSession, first_lot: null }, 'Sesi lelang dimulai, tetapi tidak ada lot yang tersedia untuk diaktifkan.');
       }
     } catch (error) {

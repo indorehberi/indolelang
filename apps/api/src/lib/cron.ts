@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../config/database';
 import { SessionStatus, LotStatus } from '@indo-lelang/shared-types';
-import { startActiveLot, closeActiveLot, activeLots } from './socket';
+import { startActiveLot, closeActiveLot, activeLots, getSocketIo, handleAutoNextAndSessionEnd } from './socket';
 import { logger } from './logger';
 import { paymentsService } from '../modules/payments/payments.service';
 import { UNLIMITED_PACKAGE_TYPE_FILTER } from './niplPackage';
@@ -52,30 +52,53 @@ export function initCronJobs() {
             data: { status: SessionStatus.LIVE }
           });
 
-          // Find the first pending lot
+          // Find the first pending or cancelled lot
           const firstLot = await prisma.lots.findFirst({
-            where: { session_id: session.id, status: LotStatus.PENDING },
+            where: {
+              session_id: session.id,
+              status: { in: [LotStatus.PENDING, LotStatus.CANCELLED] },
+            },
             orderBy: { lot_number: 'asc' },
             include: { asset: true }
           });
 
           if (firstLot) {
-            logger.info({ lotId: firstLot.id }, 'CRON: Auto-activating first lot in session');
-            
-            // Mark lot as active
-            const updatedLot = await prisma.lots.update({
-              where: { id: firstLot.id },
-              data: { status: LotStatus.ACTIVE },
-              include: { asset: true }
-            });
+            if (firstLot.status === LotStatus.CANCELLED) {
+              logger.info({ lotId: firstLot.id }, 'CRON: First lot in session is cancelled, emitting freeze and auto-nexting');
+              const durationStr = await getSetting('auction_lot_canceled_duration_secs', '5');
+              const freezeDurationSecs = parseInt(durationStr, 10) || 5;
 
-            // 120s matches the historical hardcoded lot duration — see
-            // startActiveLot in socket.ts for why that fallback matters.
-            const durationStr = await getSetting('auction_lot_duration_secs', '120');
-            startActiveLot(updatedLot, parseInt(durationStr, 10));
+              const ioServer = getSocketIo();
+              if (ioServer) {
+                ioServer.to(`session:${session.id}`).emit('lot:start', {
+                  lot_id: firstLot.id,
+                  is_canceled: true,
+                  freeze_duration_secs: freezeDurationSecs,
+                  lot_data: firstLot,
+                });
+              }
+
+              setTimeout(() => {
+                handleAutoNextAndSessionEnd(firstLot);
+              }, freezeDurationSecs * 1000);
+            } else {
+              logger.info({ lotId: firstLot.id }, 'CRON: Auto-activating first lot in session');
+              
+              // Mark lot as active
+              const updatedLot = await prisma.lots.update({
+                where: { id: firstLot.id },
+                data: { status: LotStatus.ACTIVE },
+                include: { asset: true }
+              });
+
+              // 120s matches the historical hardcoded lot duration — see
+              // startActiveLot in socket.ts for why that fallback matters.
+              const durationStr = await getSetting('auction_lot_duration_secs', '120');
+              startActiveLot(updatedLot, parseInt(durationStr, 10));
+            }
           } else {
             // No lots found, maybe just leave it live or close it
-            logger.warn({ sessionId: session.id }, 'CRON: Auto-started session has no pending lots');
+            logger.warn({ sessionId: session.id }, 'CRON: Auto-started session has no pending or cancelled lots');
           }
         }
       }

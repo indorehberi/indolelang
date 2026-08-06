@@ -224,7 +224,13 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
   });
 
   describe('POST /api/v1/admin/sessions/:id/end', () => {
-    it('should successfully close the session, delete unsold lots, and revert their assets', async () => {
+    it('should successfully close the session, retain unsold lots, and revert their assets', async () => {
+      // Ensure session is LIVE in case auto-end was triggered by previous lot close
+      await prisma.auction_sessions.update({
+        where: { id: sessionId },
+        data: { status: SessionStatus.LIVE },
+      });
+
       const res = await request(app)
         .post(`/api/v1/admin/sessions/${sessionId}/end`)
         .set('Authorization', `Bearer ${token}`)
@@ -234,17 +240,44 @@ describe('Administrative Lelang Control Room Integration Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.session.status).toBe(SessionStatus.CLOSED);
 
-      // Verify the unsold lot has been deleted from the database
+      // Verify the unsold lot is retained in the database with status UNSOLD
       const lot = await prisma.lots.findUnique({
         where: { id: lotId }
       });
-      expect(lot).toBeNull();
+      expect(lot?.status).toBe(LotStatus.UNSOLD);
 
       // Verify the asset's status has been reverted back to approved
       const asset = await prisma.assets.findUnique({
         where: { id: assetId }
       });
       expect(asset?.status).toBe(AssetStatus.APPROVED);
+    });
+  });
+
+  describe('POST /api/v1/admin/sessions/:id/start with cancelled lot', () => {
+    it('should start session and emit freeze for initial cancelled lot without skipping it', async () => {
+      // Reset session to PUBLISHED
+      await prisma.auction_sessions.update({
+        where: { id: sessionId },
+        data: { status: SessionStatus.PUBLISHED },
+      });
+
+      // Update lot to CANCELLED
+      await prisma.lots.update({
+        where: { id: lotId },
+        data: { status: LotStatus.CANCELLED },
+      });
+
+      const res = await request(app)
+        .post(`/api/v1/admin/sessions/${sessionId}/start`)
+        .set('Authorization', `Bearer ${token}`)
+        .send();
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.session.status).toBe(SessionStatus.LIVE);
+      expect(res.body.data.first_lot.id).toBe(lotId);
+      expect(res.body.data.first_lot.status).toBe(LotStatus.CANCELLED);
     });
   });
 });
