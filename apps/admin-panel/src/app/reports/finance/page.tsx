@@ -93,6 +93,7 @@ export default function FinanceReportPage() {
         'PPN': ppn,
         'PPH 23 (2%)': pph23,
         'Nominal Settlement': item.net_amount || 0,
+        'Rekening Tujuan': item.provider?.bank_account_no || '-',
       };
     });
 
@@ -178,16 +179,17 @@ export default function FinanceReportPage() {
                 <th>PPN</th>
                 <th>PPH 23 (2%)</th>
                 <th>Nominal Settlement</th>
+                <th>Rekening Tujuan</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={13} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={13} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -210,6 +212,7 @@ export default function FinanceReportPage() {
                       <td>{formatPrice(ppn)}</td>
                       <td>{formatPrice(pph23)}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
+                      <td>{item.provider?.bank_account_no || '-'}</td>
                     </tr>
                   );
                 })
