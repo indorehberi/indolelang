@@ -86,14 +86,12 @@ export default function ProviderSettlement() {
                   <th>No Polisi</th>
                   <th>Harga Terbentuk</th>
                   <th>PPN Pemenang (PMK 41)</th>
-                  <th>Fee Lelang (%)</th>
+                  <th>Fee Lelang</th>
                   <th>DPP</th>
                   <th>DPP Nilai Lain</th>
                   <th>PPN</th>
-                  <th>Total Invoice Fee Lelang</th>
                   <th>PPh 23</th>
-                  <th>Total Penerimaan Indo Lelang</th>
-                  <th>Pembayaran ke Provider</th>
+                  <th>Total Penerimaan</th>
                   <th>Rekening Tujuan</th>
                   <th>Waktu Transfer</th>
                   <th>Status</th>
@@ -101,12 +99,23 @@ export default function ProviderSettlement() {
               </thead>
               <tbody>
                 {saleSettlements.map((item) => {
-                  const bankInfo = profile ? `${profile.bank_name || '-'} - ${profile.bank_account_no || '-'}` : '-';
-                  // Total Invoice Fee Lelang (H) = DPP (E) + PPN (G) — matches
-                  // pembayaran_ke_provider.xlsx's H9 = E9+G9 identity; not a
-                  // separately stored field since it's algebraically derived.
-                  const totalInvoiceFeeLelang = item.fee_dpp + item.fee_ppn;
-                  const feeLelangPct = item.gross_amount > 0 ? (totalInvoiceFeeLelang / item.gross_amount) * 100 : 0;
+                  // Rekening tujuan: nomor DAN nama pemilik, supaya provider
+                  // bisa memastikan dana mengalir ke rekening yang benar.
+                  const noRekening = item.provider?.bank_account_no || profile?.bank_account_no || '-';
+                  const namaRekening = item.provider?.bank_account_name || profile?.bank_account_name || '';
+                  const namaBank = item.provider?.bank_name || profile?.bank_name || '';
+
+                  // Fee lelang yang benar-benar ditagihkan platform, berikut
+                  // persentasenya terhadap harga terbentuk. Sebelumnya kolom
+                  // ini hanya menampilkan persen tanpa nominal, dan nominalnya
+                  // berada di kolom terpisah ("Total Invoice Fee Lelang") yang
+                  // nilainya sama — jadi satu kolom saja.
+                  const feeLelang = item.fee_dpp + item.fee_ppn;
+                  const feeLelangPct = item.gross_amount > 0 ? (feeLelang / item.gross_amount) * 100 : 0;
+
+                  // PMK 41 hanya muncul di sini kalau PROVIDER yang menanggung
+                  // — dan kalau begitu, ia sebuah POTONGAN, bukan tambahan.
+                  const pmk41 = Number(item.pmk41_amount) || 0;
 
                   return (
                     <tr key={item.id}>
@@ -116,16 +125,23 @@ export default function ProviderSettlement() {
                       <td className="font-bold text-slate-800">{item.lot?.asset?.title || '-'}</td>
                       <td>{item.lot?.asset?.police_number || '-'}</td>
                       <td className="font-bold">{formatRupiah(item.gross_amount)}</td>
-                      <td className="text-green-600">+{formatRupiah(item.pmk41_amount)}</td>
-                      <td>{feeLelangPct.toFixed(2)}%</td>
+                      <td className={pmk41 > 0 ? 'text-red-600' : ''}>
+                        {pmk41 > 0 ? `-${formatRupiah(pmk41)}` : formatRupiah(0)}
+                      </td>
+                      <td className="text-red-600">
+                        -{formatRupiah(feeLelang)}
+                        <span className="block text-[10px] text-slate-500">{feeLelangPct.toFixed(2)}% dari harga terbentuk</span>
+                      </td>
                       <td>{formatRupiah(item.fee_dpp)}</td>
                       <td>{formatRupiah(item.fee_dpp_lain)}</td>
                       <td>{formatRupiah(item.fee_ppn)}</td>
-                      <td className="text-red-600">-{formatRupiah(totalInvoiceFeeLelang)}</td>
                       <td className="text-green-600">+{formatRupiah(item.fee_pph23)}</td>
-                      <td className="font-semibold text-slate-700">{formatRupiah(item.commission_deducted)}</td>
                       <td className="font-bold text-success" style={{ fontSize: '0.9rem' }}>{formatRupiah(item.net_amount)}</td>
-                      <td>{bankInfo}</td>
+                      <td>
+                        {noRekening}
+                        {namaRekening && <span className="block text-[10px] text-slate-500">a.n. {namaRekening}</span>}
+                        {namaBank && <span className="block text-[10px] text-slate-500">{namaBank}</span>}
+                      </td>
                       <td>{item.transferred_at ? new Date(item.transferred_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                       <td>
                         <span className={`badge-ui ${item.status === "processed" ? "success" : item.status === "unpaid" ? "danger" : "warning"}`}>

@@ -242,14 +242,24 @@ export class PaymentsService {
     const feePph23 = Math.round((totalInvoiceFeeLelang - feePpn) * pph23Pct);
     const totalTerimaFeeLelang = totalInvoiceFeeLelang - feePph23;
 
-    // Kept as-is per client confirmation: PMK41 is added, not subtracted,
-    // when a provider is configured to bear it themselves.
+    // PMK 41 ditanggung SALAH SATU pihak, tidak pernah keduanya:
+    //
+    //   pmk41_paid_by_provider = false -> pemenang yang membayar. Nilainya
+    //       ikut ditagihkan di invoice (lihat settleLot di bidding.service),
+    //       dan pencairan provider tidak terpengaruh.
+    //
+    //   pmk41_paid_by_provider = true  -> PROVIDER yang membayar. Pemenang
+    //       tidak ditagih, dan nilainya DIPOTONG dari pencairan provider.
+    //
+    // Sebelumnya nilai ini DITAMBAHKAN pada pencairan, sehingga provider yang
+    // disetel menanggung PMK 41 justru menerima lebih banyak dan platform yang
+    // menanggung bebannya — kebalikan dari maksud setelan itu.
     let pmk41 = 0;
     if (provider.pmk41_paid_by_provider) {
       pmk41 = Math.round(hammerPrice * pmk41Pct);
     }
 
-    const netAmount = hammerPrice - totalTerimaFeeLelang + pmk41;
+    const netAmount = hammerPrice - totalTerimaFeeLelang - pmk41;
 
     const settlement = await prisma.settlements.create({
       data: {
@@ -312,8 +322,9 @@ export class PaymentsService {
           title: 'Unit Anda Terjual',
           body:
             `Unit "${invoice.lot.asset.title}" terjual pada harga ${formatRp(hammerPrice)}. ` +
-            `Setelah dikurangi fee lelang ${formatRp(totalTerimaFeeLelang)}, ` +
-            `Anda akan menerima ${formatRp(netAmount)}. ` +
+            `Setelah dikurangi fee lelang ${formatRp(totalTerimaFeeLelang)}` +
+            (pmk41 > 0 ? ` dan PMK 41 ${formatRp(pmk41)}` : '') +
+            `, Anda akan menerima ${formatRp(netAmount)}. ` +
             `Dana dicairkan setelah pemenang melunasi pembayarannya.`,
           deep_link: '/provider/settlement',
         },
@@ -380,6 +391,14 @@ export class PaymentsService {
                   created_at: true,
                 },
               },
+              // Biaya administrasi hidup di invoice, bukan di settlement.
+              // Tanpa ini laporan keuangan tidak punya cara membaca angka yang
+              // BENAR-BENAR ditagihkan, dan sebelumnya halaman laporan
+              // mengarang sendiri lewat tabel yang dipatok mati di kode.
+              invoices: {
+                select: { admin_fee: true, total: true, pmk41_amount: true, status: true },
+                take: 1,
+              },
             },
           },
         },
@@ -410,10 +429,19 @@ export class PaymentsService {
           status: r.status,
           transferred_at: r.transferred_at ? r.transferred_at.toISOString() : undefined,
           created_at: r.created_at.toISOString(),
+          // Biaya administrasi yang BENAR-BENAR ditagihkan ke pemenang, dibaca
+          // dari invoice lot ini — bukan dihitung ulang oleh layar mana pun.
+          admin_fee: Number(r.lot?.invoices?.[0]?.admin_fee || 0),
           provider: {
             ...r.provider,
             full_name: txProfile?.full_name ?? r.provider.full_name,
             company_name: txProfile?.company_name ?? r.provider.company_name,
+            // Rekening tujuan diambil dari potret data saat transaksi dibuat,
+            // supaya riwayat pencairan tidak ikut berubah kalau provider
+            // mengganti rekeningnya belakangan.
+            bank_name: txProfile?.bank_name ?? null,
+            bank_account_no: txProfile?.bank_account_no ?? null,
+            bank_account_name: txProfile?.bank_account_name ?? null,
           },
           lot: r.lot,
         };

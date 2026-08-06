@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
-import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
 import { exportToExcel } from '../../../lib/excelExport';
@@ -17,9 +16,6 @@ export default function FinanceReportPage() {
   const [searchUnit, setSearchUnit] = useState('');
   const [feeAdminFilter, setFeeAdminFilter] = useState('');
   const [feeLelangFilter, setFeeLelangFilter] = useState('');
-  const [ppnStatusFilter, setPpnStatusFilter] = useState('');
-  const [pphStatusFilter, setPphStatusFilter] = useState('');
-  const [pgExpenseFilter, setPgExpenseFilter] = useState('');
 
   const fetchFinanceData = async () => {
     setLoading(true);
@@ -40,32 +36,28 @@ export default function FinanceReportPage() {
     fetchFinanceData();
   }, []);
 
-  const getBidderAdminFee = (hammerPrice: number) => {
-    if (hammerPrice <= 200000000) return 3500000;
-    if (hammerPrice <= 400000000) return 4000000;
-    if (hammerPrice <= 600000000) return 4500000;
-    return 6000000;
-  };
+  /**
+   * Biaya administrasi yang BENAR-BENAR ditagihkan ke pemenang, dibaca dari
+   * tagihannya lewat API pencairan.
+   *
+   * Sebelumnya halaman ini memakai tabel tarif yang dipatok mati di sini
+   * (Rp 3.500.000 sampai Rp 200 juta, dan seterusnya). Tabel itu tidak pernah
+   * membaca 'admin_fee_tiers' di Pengaturan Platform maupun angka yang
+   * tersimpan di tagihan — jadi laporan keuangan menampilkan angka karangan
+   * yang tidak ada hubungannya dengan uang yang sungguh-sungguh masuk.
+   */
+  const getBidderAdminFee = (item: any) => Number(item.admin_fee || 0);
 
   const filtered = items.filter((item) => {
     const unitTitle = item.lot?.asset?.title || '';
     const policeNum = item.lot?.asset?.police_number || '';
     const sessionTitle = item.lot?.session?.title || '';
-    const feeAdmin = getBidderAdminFee(item.gross_amount);
+    const feeAdmin = getBidderAdminFee(item);
     const feeLelang = item.commission_deducted;
-    const ppnStatus = item.status !== 'unpaid' ? 'Lunas' : 'Pending';
-    const pphStatus = item.status !== 'unpaid' ? 'Lunas' : 'Pending';
-    const pgExpense = item.status === 'processed' ? 3200 : 0; // gateway settlement payout fee
 
     if (searchUnit && !unitTitle.toLowerCase().includes(searchUnit.toLowerCase()) && !policeNum.toLowerCase().includes(searchUnit.toLowerCase()) && !sessionTitle.toLowerCase().includes(searchUnit.toLowerCase())) return false;
     if (feeAdminFilter && feeAdmin < Number(feeAdminFilter)) return false;
     if (feeLelangFilter && feeLelang < Number(feeLelangFilter)) return false;
-    if (ppnStatusFilter && ppnStatus !== ppnStatusFilter) return false;
-    if (pphStatusFilter && pphStatus !== pphStatusFilter) return false;
-    if (pgExpenseFilter) {
-      if (pgExpenseFilter === 'has_expense' && pgExpense === 0) return false;
-      if (pgExpenseFilter === 'free' && pgExpense > 0) return false;
-    }
     return true;
   });
 
@@ -86,9 +78,7 @@ export default function FinanceReportPage() {
       const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
       const ppn = item.fee_ppn || 0;
       const pph23 = item.fee_pph23 || 0;
-      const pmk41 = item.pmk41_amount || 0;
-      const pgExpense = item.status === 'processed' ? 3200 : 0;
-      const feeAdmin = getBidderAdminFee(item.gross_amount);
+      const feeAdmin = getBidderAdminFee(item);
 
       return {
         'No. Lot': item.lot?.lot_number ? `#${item.lot.lot_number}` : '-',
@@ -101,11 +91,7 @@ export default function FinanceReportPage() {
         'Pemasukan Fee Lelang': item.commission_deducted || 0,
         'DPP': dpp,
         'PPN': ppn,
-        'Status PPN': item.status !== 'unpaid' ? 'Lunas' : 'Pending',
         'PPH 23 (2%)': pph23,
-        'Status PPH 23': item.status !== 'unpaid' ? 'Lunas' : 'Pending',
-        'PPN Pemenang (PMK 41)': pmk41,
-        'Pengeluaran PG': pgExpense,
         'Nominal Settlement': item.net_amount || 0,
       };
     });
@@ -123,7 +109,7 @@ export default function FinanceReportPage() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h1 className="page-title">Laporan Keuangan Balai Lelang</h1>
-          <p className="page-subtitle">Rekapitulasi komisi, PPN Pemenang (PMK 41), PPh 23, dan nominal pencairan hasil lelang real-time.</p>
+          <p className="page-subtitle">Rekapitulasi biaya administrasi, fee lelang, pajak, dan nominal pencairan hasil lelang real-time.</p>
         </div>
         <button
           onClick={handleExport}
@@ -172,53 +158,12 @@ export default function FinanceReportPage() {
             />
           </div>
 
-          <div>
-            <label className="form-label font-semibold text-xs text-slate-500">Setoran PPN</label>
-            <select
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
-              value={ppnStatusFilter}
-              onChange={(e) => setPpnStatusFilter(e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              <option value="Lunas">Lunas</option>
-              <option value="Pending">Pending</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="form-label font-semibold text-xs text-slate-500">Setoran PPH 23</label>
-            <select
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
-              value={pphStatusFilter}
-              onChange={(e) => setPphStatusFilter(e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              <option value="Lunas">Lunas</option>
-              <option value="Pending">Pending</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="form-label font-semibold text-xs text-slate-500">Pengeluaran Gateway</label>
-            <select
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
-              value={pgExpenseFilter}
-              onChange={(e) => setPgExpenseFilter(e.target.value)}
-            >
-              <option value="">Semua</option>
-              <option value="has_expense">Ada Pengeluaran</option>
-              <option value="free">Bebas Biaya (Ditanggung User)</option>
-            </select>
-          </div>
         </div>
       </Card>
 
       <Card>
         <div className="table-wrapper" style={{ overflowX: 'auto' }}>
-          <table className="text-xs" style={{ width: '100%', minWidth: '1650px' }}>
+          <table className="text-xs" style={{ width: '100%', minWidth: '1200px' }}>
             <thead>
               <tr>
                 <th>Lot</th>
@@ -231,31 +176,25 @@ export default function FinanceReportPage() {
                 <th>Pemasukan Fee Lelang</th>
                 <th>DPP</th>
                 <th>PPN</th>
-                <th>Status PPN</th>
                 <th>PPH 23 (2%)</th>
-                <th>Status PPH 23</th>
-                <th>PPN Pemenang (PMK 41)</th>
-                <th>Pengeluaran PG</th>
                 <th>Nominal Settlement</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={16} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={12} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={16} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={12} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
                   const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
                   const ppn = item.fee_ppn || 0;
                   const pph23 = item.fee_pph23 || 0;
-                  const pmk41 = item.pmk41_amount || 0;
-                  const pgExpense = item.status === 'processed' ? 3200 : 0;
-                  const feeAdmin = getBidderAdminFee(item.gross_amount);
+                  const feeAdmin = getBidderAdminFee(item);
 
                   return (
                     <tr key={item.id}>
@@ -269,19 +208,7 @@ export default function FinanceReportPage() {
                       <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(item.commission_deducted)}</td>
                       <td>{formatPrice(dpp)}</td>
                       <td>{formatPrice(ppn)}</td>
-                      <td>
-                        <Badge variant={item.status !== 'unpaid' ? 'success' : 'warning'}>
-                          {item.status !== 'unpaid' ? 'Lunas' : 'Pending'}
-                        </Badge>
-                      </td>
                       <td>{formatPrice(pph23)}</td>
-                      <td>
-                        <Badge variant={item.status !== 'unpaid' ? 'success' : 'warning'}>
-                          {item.status !== 'unpaid' ? 'Lunas' : 'Pending'}
-                        </Badge>
-                      </td>
-                      <td>{formatPrice(pmk41)}</td>
-                      <td className="text-red-600">{pgExpense > 0 ? `-${formatPrice(pgExpense)}` : 'Rp 0'}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
                     </tr>
                   );

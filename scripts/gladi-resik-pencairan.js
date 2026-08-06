@@ -81,8 +81,10 @@ function hitungHarapan({ hammer, feeType, feeAmount, taxPct, dppLainMul, ppnPct,
   const ppn = Math.round(dppLain * (ppnPct / 100));
   const pph23 = Math.round((fee - ppn) * (pph23Pct / 100));
   const feeBersih = fee - pph23;
+  // PMK 41 ditanggung salah satu pihak saja. Kalau provider yang menanggung,
+  // nilainya DIPOTONG dari pencairannya (dan pemenang tidak ditagih).
   const pmk41 = pmk41OlehProvider ? Math.round(hammer * (pmk41Pct / 100)) : 0;
-  return { fee, dpp, dppLain, ppn, pph23, feeBersih, pmk41, net: hammer - feeBersih + pmk41 };
+  return { fee, dpp, dppLain, ppn, pph23, feeBersih, pmk41, net: hammer - feeBersih - pmk41 };
 }
 
 async function bersihkan() {
@@ -215,8 +217,11 @@ async function bersihkan() {
     console.log(`  Provider menerima   ${rp(diterimaProvider)}`);
     console.log(`  Platform menahan    ${rp(ditahanPlatform)}`);
 
+    // Platform menahan: biaya admin + fee lelang bersih + PMK 41 dari pihak
+    // mana pun yang menanggungnya (pemenang lewat tagihan, atau provider lewat
+    // potongan pencairan). Platform meneruskannya, bukan menanggungnya.
     const pmk41Tagihan = Number(inv.pmk41_amount);
-    const harapDitahan = Number(inv.admin_fee) + harap.feeBersih + pmk41Tagihan - harap.pmk41;
+    const harapDitahan = Number(inv.admin_fee) + harap.feeBersih + pmk41Tagihan + harap.pmk41;
     periksa('Uang utuh: bayar pemenang = terima provider + tahan platform',
       ditahanPlatform === harapDitahan,
       `platform menahan ${rp(ditahanPlatform)}, seharusnya ${rp(harapDitahan)}`);
