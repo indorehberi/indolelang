@@ -127,7 +127,8 @@ function ActiveLotCard({
     initialBidLogs?.[0]?.amount ?? Number(lot.starting_price)
   );
   const [timeLeft, setTimeLeft] = useState<number>(initialTimeLeft ?? 0);
-  const [hasNipl, setHasNipl] = useState<boolean>(true);
+  const [hasNipl, setHasNipl] = useState<boolean>(initialBidLogs !== undefined);
+  const [isLoadingNipl, setIsLoadingNipl] = useState<boolean>(initialBidLogs === undefined);
   const [bidLogs, setBidLogs] = useState<BidLog[]>(initialBidLogs ?? []);
   const [onlineCount, setOnlineCount] = useState<number>(initialBidLogs ? 9 : 1);
   const [hasUserBidded, setHasUserBidded] = useState(false);
@@ -322,11 +323,17 @@ function ActiveLotCard({
           const adaDepositTanpaKode = relevan.some((d: any) => (d.nipl_codes || []).length === 0);
 
           setHasNipl(unlimitedBerlaku || niplBebas > 0 || adaDepositTanpaKode);
+        } else {
+          setHasNipl(false);
         }
-      } catch(e) {}
+      } catch(e) {
+        setHasNipl(false);
+      } finally {
+        setIsLoadingNipl(false);
+      }
     };
     fetchNipl();
-  }, [lot.asset?.category, token]);
+  }, [lot.asset?.category, token, isMockLot]);
 
   const fetchBidLogs = useCallback(async () => {
     if (isMockLot) return;
@@ -581,19 +588,39 @@ function ActiveLotCard({
       <div className="card-header flex flex-col gap-2">
         <div className="flex justify-between items-center w-full">
           <span className="badge-ui danger animate-pulse">LIVE ACTIVE</span>
+          {/*
+            Sakelar ini dulu bisa digeser siapa saja, termasuk peserta yang
+            tidak punya NIPL. Begitu digeser ia menyala oranye — tampak seolah
+            penawaran sudah aktif — padahal tombol BID-nya sendiri tidak pernah
+            muncul untuk mereka, dan server pasti menolak. Peserta melaporkannya
+            sebagai "tombol BID aktif", lalu bingung karena setelah refresh
+            sakelarnya kembali abu-abu (nilainya memang tidak disimpan).
+            Sekarang dikunci selama NIPL belum terbukti ada.
+          */}
           <div className="flex items-center gap-2">
             <div className="flex flex-col text-right">
-              <span className="text-[10px] font-bold text-slate-800">Aktifkan Bidding</span>
+              <span className={`text-[10px] font-bold ${hasNipl ? "text-slate-800" : "text-slate-400"}`}>
+                Aktifkan Bidding
+              </span>
+              {!isLoadingNipl && !hasNipl && (
+                <span className="text-[9px] text-slate-400">Perlu NIPL aktif</span>
+              )}
             </div>
             <button
+              disabled={isLoadingNipl || !hasNipl}
+              title={!hasNipl ? "Anda belum memiliki NIPL aktif untuk jenis unit ini" : undefined}
               onClick={() => setIsBidEnabled(!isBidEnabled)}
-              className={`switch-toggle relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                isBidEnabled ? "bg-brand-orange" : "bg-slate-300"
+              className={`switch-toggle relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isLoadingNipl || !hasNipl
+                  ? "bg-slate-200 cursor-not-allowed opacity-60"
+                  : isBidEnabled
+                    ? "bg-brand-orange cursor-pointer"
+                    : "bg-slate-300 cursor-pointer"
               }`}
             >
               <span
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  isBidEnabled ? "translate-x-5" : "translate-x-0"
+                  isBidEnabled && hasNipl ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
@@ -660,7 +687,12 @@ function ActiveLotCard({
               </div>
             </div>
 
-            {hasNipl ? (
+            {isLoadingNipl ? (
+              <div className="mt-6 flex justify-center items-center py-4 text-slate-400">
+                <span className="material-symbols-outlined animate-spin mr-2">autorenew</span>
+                <span className="text-sm font-medium">Memeriksa status NIPL...</span>
+              </div>
+            ) : hasNipl ? (
               <div className="mt-6 space-y-4">
                 <button
                   disabled={bidCooldown || timeLeft <= 0 || !isBidEnabled || !isConnected || isStalled}
@@ -832,7 +864,7 @@ function ActiveLotCard({
       </div>
     </div>
 
-    {isSingleLot && hasNipl && (
+    {isSingleLot && !isLoadingNipl && hasNipl && (
       <div
         className={`fixed bottom-16 inset-x-0 lg:hidden px-4 py-3 flex justify-center items-center ${
           isBidEnabled ? "z-[60]" : "z-30"
