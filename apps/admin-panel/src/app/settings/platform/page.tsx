@@ -1097,7 +1097,7 @@ export default function PlatformSettingsPage() {
 
           <CollapsibleCard className="mt-4" title="Aturan Keuangan: Deposit Jaminan">
             <div className="form-group mt-3">
-              <label className="form-label">Deposit Jaminan NIPL Kendaraan (Rp) <span className="required">*</span></label>
+              <label className="form-label">Deposit Jaminan NIPL Unit (Rp) <span className="required">*</span></label>
               <input type="number" className="form-input" value={nipl} onChange={(e) => setNipl(e.target.value)} required />
             </div>
             <div className="form-group">

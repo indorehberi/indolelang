@@ -87,7 +87,7 @@ export default function AssetsApprovalPage() {
 
   
   const handleCancel = async (id: string) => {
-    if (!confirm('Apakah Anda yakin membatalkan persetujuan barang ini? Barang akan kembali ke status pending.')) return;
+    if (!confirm('Apakah Anda yakin membatalkan persetujuan unit ini? Unit akan kembali ke status pending.')) return;
     setProcessingId(id);
     setToast(null);
 
@@ -99,7 +99,7 @@ export default function AssetsApprovalPage() {
         throw new Error(data.error?.message || 'Gagal membatalkan persetujuan');
       }
 
-      setToast({ message: 'Persetujuan dibatalkan. Barang kembali ke Daftar Barang.', variant: 'success' });
+      setToast({ message: 'Persetujuan dibatalkan. Unit kembali ke Daftar Unit.', variant: 'success' });
       fetchApprovedAssets();
     } catch (err: any) {
       setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
@@ -109,7 +109,7 @@ export default function AssetsApprovalPage() {
   };
 
   const handleReject = async (id: string) => {
-    const reason = window.prompt('Masukkan alasan penolakan barang ini:');
+    const reason = window.prompt('Masukkan alasan penolakan unit ini:');
     if (reason === null) return;
     if (!reason.trim()) {
       setToast({ message: 'Alasan penolakan wajib diisi.', variant: 'warning' });
@@ -126,10 +126,10 @@ export default function AssetsApprovalPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Gagal menolak barang');
+        throw new Error(data.error?.message || 'Gagal menolak unit');
       }
 
-      setToast({ message: 'Barang ditolak dan dikeluarkan dari daftar approved. Provider telah diberi notifikasi.', variant: 'success' });
+      setToast({ message: 'Unit ditolak dan dikeluarkan dari daftar approved. Provider telah diberi notifikasi.', variant: 'success' });
       fetchApprovedAssets();
     } catch (err: any) {
       setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
@@ -147,7 +147,7 @@ export default function AssetsApprovalPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Approved Barang">
+    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Approved Unit">
       {toast && (
         <Toast
           message={toast.message}
@@ -158,8 +158,8 @@ export default function AssetsApprovalPage() {
 
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Daftar Approved Barang</h1>
-          <p className="page-subtitle">Daftar aset barang yang telah disetujui oleh Admin dan siap dimasukkan ke dalam Lot lelang.</p>
+          <h1 className="page-title">Daftar Approved Unit</h1>
+          <p className="page-subtitle">Daftar unit yang telah disetujui oleh Admin dan siap dimasukkan ke dalam Lot lelang.</p>
         </div>
         <div className="toolbar-right">
           <Button
@@ -170,7 +170,7 @@ export default function AssetsApprovalPage() {
                 const p = providers.find(pr => pr.id === a.provider_id);
                 return {
                   'No': index + 1,
-                  'Nama Barang Approved': a.title || '-',
+                  'Nama Unit Approved': a.title || '-',
                   'Kategori': a.category || '-',
                   'Mitra Provider': p ? (p.company_name || p.full_name) : (a.provider_id || '-'),
                   'Harga Dasar (Rp)': a.base_price ? Number(a.base_price) : 0,
@@ -178,11 +178,11 @@ export default function AssetsApprovalPage() {
                   'Tanggal Disetujui': a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-'
                 };
               });
-              const ok = exportToExcel(dataToExport, 'Daftar_Barang_Approved_IndoLelang', 'Approved Barang');
+              const ok = exportToExcel(dataToExport, 'Daftar_Unit_Approved_IndoLelang', 'Approved Unit');
               if (ok) {
-                setToast({ message: 'Berhasil mendownload Excel Approved Barang (.xlsx)', variant: 'success' });
+                setToast({ message: 'Berhasil mendownload Excel Approved Unit (.xlsx)', variant: 'success' });
               } else {
-                setToast({ message: 'Tidak ada data barang approved untuk di-export', variant: 'warning' });
+                setToast({ message: 'Tidak ada data unit approved untuk di-export', variant: 'warning' });
               }
             }}
             style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -196,7 +196,7 @@ export default function AssetsApprovalPage() {
       <Card className="mb-2">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Nama Barang</label>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Nama Unit</label>
             <input
               type="text"
               className="search-box"
@@ -292,7 +292,7 @@ export default function AssetsApprovalPage() {
             <thead>
               <tr>
                 <th>Tanggal Masuk</th>
-                <th>Nama Barang / Deskripsi</th>
+                <th>Nama Unit / Deskripsi</th>
                 <th>No. Polisi</th>
                 <th>Kategori</th>
                 <th>Taksiran Harga Dasar</th>

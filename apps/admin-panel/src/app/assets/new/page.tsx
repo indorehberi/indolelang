@@ -381,10 +381,10 @@ export default function NewAssetPage() {
       });
       
       if (!inspectRes.ok) {
-        throw new Error('Berhasil menambah barang, namun gagal menyimpan detail inspeksi');
+        throw new Error('Berhasil menambah unit, namun gagal menyimpan detail inspeksi');
       }
 
-      setToast({ message: 'Barang berhasil ditambahkan dan diinspeksi!', type: 'success' });
+      setToast({ message: 'Unit berhasil ditambahkan dan diinspeksi!', type: 'success' });
       setTimeout(() => {
         router.push('/assets');
       }, 1500);
@@ -396,7 +396,7 @@ export default function NewAssetPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbParent="Katalog Barang" breadcrumbCurrent="Tambah Barang Baru">
+    <DashboardLayout breadcrumbParent="Katalog Unit" breadcrumbCurrent="Tambah Unit Baru">
       {toast && (
         <div style={{
           position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
@@ -411,8 +411,8 @@ export default function NewAssetPage() {
 
       <div className="page-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">Tambah Barang Baru</h1>
-          <p className="page-subtitle">Form gabungan pendaftaran dan inspeksi barang oleh Admin.</p>
+          <h1 className="page-title">Tambah Unit Baru</h1>
+          <p className="page-subtitle">Form gabungan pendaftaran dan inspeksi unit oleh Admin.</p>
         </div>
         <Button variant="outline" onClick={() => router.push('/assets')}>
           Batal & Kembali
@@ -422,7 +422,7 @@ export default function NewAssetPage() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
         {/* Section 1: Data Dasar */}
-        <Card title="1. Data Dasar Barang">
+        <Card title="1. Data Dasar Unit">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <Field label="Provider Pemilik" required error={errors.provider_id}>
               <select className={`form-select ${errors.provider_id ? 'border-red-500' : ''}`} value={formData.provider_id} onChange={e => setFormData({ ...formData, provider_id: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}>
@@ -433,7 +433,7 @@ export default function NewAssetPage() {
               </select>
             </Field>
             
-            <Field label="Nama Barang (Judul)">
+            <Field label="Nama Unit (Judul)">
               <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Contoh: Toyota Avanza 1.5 G MT 2020" />
             </Field>
             
@@ -451,7 +451,7 @@ export default function NewAssetPage() {
             </Field>
           </div>
           
-          <Field label="Lokasi Kendaraan saat ini">
+          <Field label="Lokasi Unit saat ini">
             <input type="text" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Contoh: Pool Cilandak, Jakarta Selatan" />
           </Field>
 
@@ -516,8 +516,8 @@ export default function NewAssetPage() {
           </div>
         </Card>
 
-        {/* Section 3: Data & Verifikasi Kendaraan */}
-        <Card title="3. Spesifikasi Kendaraan">
+        {/* Section 3: Data & Verifikasi Unit */}
+        <Card title="3. Spesifikasi Unit">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
@@ -752,8 +752,8 @@ export default function NewAssetPage() {
           </div>
         </Card>
 
-        {/* Section 7: Foto Barang */}
-        <Card title="7. Foto Barang (Opsional)">
+        {/* Section 7: Foto Unit */}
+        <Card title="7. Foto Unit (Opsional)">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {PHOTO_FIELDS.map((pf) => (
               <div key={pf.key} style={{ border: '1px dashed #cbd5e1', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
@@ -783,7 +783,7 @@ export default function NewAssetPage() {
             Batal
           </Button>
           <Button variant="primary" type="submit" disabled={processing || uploadingDoc || uploadingPhoto !== null}>
-            {processing ? 'Menyimpan...' : '💾 Simpan Barang Baru'}
+            {processing ? 'Menyimpan...' : '💾 Simpan Unit Baru'}
           </Button>
         </div>
 

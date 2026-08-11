@@ -206,7 +206,7 @@ function SearchResultsContent() {
             <div style={{ display: 'flex', borderBottom: '2px solid var(--wf-border)', marginBottom: '1.5rem', overflowX: 'auto', gap: '0.5rem' }}>
               {(
                 [
-                  { type: 'assets', label: 'Barang', count: assets.length, icon: '🚗' },
+                  { type: 'assets', label: 'Unit', count: assets.length, icon: '🚗' },
                   { type: 'bidders', label: 'Bidder', count: bidders.length, icon: '👤' },
                   { type: 'providers', label: 'Provider', count: providers.length, icon: '🏢' },
                   { type: 'sessions', label: 'Sesi Lelang', count: sessions.length, icon: '🔨' },
@@ -253,7 +253,7 @@ function SearchResultsContent() {
               {activeTab === 'assets' && (
                 <div>
                   {assets.length === 0 ? (
-                    <EmptyState type="Barang" />
+                    <EmptyState type="Unit" />
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                       {assets.map((asset) => (
@@ -285,7 +285,7 @@ function SearchResultsContent() {
                                 {formatPrice(asset.base_price)}
                               </div>
                               <Button variant="primary" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>
-                                Kelola Barang ⚙️
+                                Kelola Unit ⚙️
                               </Button>
                             </div>
                           </div>

@@ -1288,7 +1288,7 @@ export default function FinanceManager({
               <thead>
                 <tr style={{ backgroundColor: '#f1f3f5', borderBottom: '2px solid #dee2e6' }}>
                   <th style={{ padding: '8px', textAlign: 'center', width: '50px' }}>Lunas</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Kendaraan / Lot</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Unit / Lot</th>
                   <th style={{ padding: '8px', textAlign: 'right' }}>Harga Terbentuk</th>
                   <th style={{ padding: '8px', textAlign: 'center' }}>Alokasi NIPL</th>
                 </tr>

@@ -13,7 +13,7 @@ import { exportToExcel } from '../../lib/excelExport';
 import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
 
 const ASSET_COLUMNS: ColumnOption[] = [
-  { key: 'title', label: 'Nama Barang', alwaysVisible: true },
+  { key: 'title', label: 'Nama Unit', alwaysVisible: true },
   { key: 'category', label: 'Kategori' },
   { key: 'provider', label: 'Provider' },
   { key: 'plate', label: 'No. Polisi' },
@@ -255,7 +255,7 @@ export default function AssetsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1rem' }}>
         {/* Kolom 1: Data Dasar */}
         <div>
-          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Data Dasar Barang</h4>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Data Dasar Unit</h4>
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Provider (Pemilik)</label>
             <select required value={formData.provider_id} onChange={(e) => setFormData({...formData, provider_id: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}>
@@ -276,7 +276,7 @@ export default function AssetsPage() {
             </select>
           </div>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Barang</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Unit</label>
             <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
           </div>
           <div style={{ marginBottom: '1rem' }}>
@@ -309,9 +309,9 @@ export default function AssetsPage() {
           </div>
         </div>
 
-        {/* Kolom 2: Spesifikasi Kendaraan */}
+        {/* Kolom 2: Spesifikasi Unit */}
         <div>
-          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Spesifikasi Barang</h4>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--wf-primary)', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Spesifikasi Unit</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div style={{ marginBottom: '0.5rem' }}>
@@ -610,11 +610,11 @@ export default function AssetsPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Barang">
+    <DashboardLayout breadcrumbParent="Katalog" breadcrumbCurrent="Daftar Unit">
       <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Katalog Barang</h1>
-          <p className="page-subtitle">Daftar semua unit aset barang yang didaftarkan.</p>
+          <h1 className="page-title">Katalog Unit</h1>
+          <p className="page-subtitle">Daftar semua unit aset yang didaftarkan.</p>
         </div>
         <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <Button
@@ -624,19 +624,19 @@ export default function AssetsPage() {
               const dataToExport = assets.map((a, index) => {
                 const row: Record<string, any> = {};
                 if (isVisible('no')) row['No'] = index + 1;
-                if (isVisible('title')) row['Nama Barang'] = a.title || '-';
+                if (isVisible('title')) row['Nama Unit'] = a.title || '-';
                 if (isVisible('category')) row['Kategori'] = CATEGORY_LABELS[a.category] || a.category;
                 if (isVisible('provider')) row['Mitra Provider'] = a.provider?.company_name || a.provider?.full_name || '-';
                 if (isVisible('price')) row['Harga Dasar (Rp)'] = a.base_price ? Number(a.base_price) : 0;
-                if (isVisible('status')) row['Status Barang'] = a.status === 'listed' ? 'Live/Listed' : a.status === 'approved' ? 'Approved' : a.status === 'inspected' ? 'Inspected' : a.status === 'sold' ? 'Terjual' : a.status === 'pending' ? 'Pending' : a.status;
+                if (isVisible('status')) row['Status Unit'] = a.status === 'listed' ? 'Live/Listed' : a.status === 'approved' ? 'Approved' : a.status === 'inspected' ? 'Inspected' : a.status === 'sold' ? 'Terjual' : a.status === 'pending' ? 'Pending' : a.status;
                 if (isVisible('created_at')) row['Tanggal Input'] = a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-';
                 return row;
               });
-              const ok = exportToExcel(dataToExport, 'Katalog_Barang_IndoLelang', 'Katalog Barang');
+              const ok = exportToExcel(dataToExport, 'Katalog_Unit_IndoLelang', 'Katalog Unit');
               if (ok) {
-                toast.success('Berhasil mendownload Excel Katalog Barang (.xlsx)');
+                toast.success('Berhasil mendownload Excel Katalog Unit (.xlsx)');
               } else {
-                toast.error('Tidak ada data barang untuk di-export');
+                toast.error('Tidak ada data unit untuk di-export');
               }
             }}
             style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -646,7 +646,7 @@ export default function AssetsPage() {
           </Button>
           {['admin', 'superadmin', 'inspector'].includes(userRole) && (
             <Button variant="primary" size="sm" onClick={() => router.push('/assets/new')}>
-              + Tambah Barang
+              + Tambah Unit
             </Button>
           )}
         </div>
@@ -656,7 +656,7 @@ export default function AssetsPage() {
       <Card className="mb-2">
         <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Nama Barang</label>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Nama Unit</label>
             <input
               type="text"
               className="search-box w-100"
@@ -779,7 +779,7 @@ export default function AssetsPage() {
           <table>
             <thead>
               <tr>
-                {isVisible('title') && <th>Nama Barang</th>}
+                {isVisible('title') && <th>Nama Unit</th>}
                 {isVisible('category') && <th>Kategori</th>}
                 {isVisible('provider') && <th>Provider</th>}
                 {isVisible('plate') && <th>No. Polisi</th>}
@@ -878,7 +878,7 @@ export default function AssetsPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ width: '90%', maxWidth: '900px' }}>
             <Card>
-              <h3 style={{ marginBottom: '1rem' }}>Edit Barang Barang (Inspeksi)</h3>
+              <h3 style={{ marginBottom: '1rem' }}>Edit Unit (Inspeksi)</h3>
             <form onSubmit={handleEdit}>
               {renderFormFields()}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

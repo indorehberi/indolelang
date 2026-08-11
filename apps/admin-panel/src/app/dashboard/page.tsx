@@ -50,7 +50,7 @@ const getQuickActions = (kycCount: number, assetCount: number) => [
     icon: '🔍',
   },
   {
-    title: 'Approval Pengajuan Barang',
+    title: 'Approval Pengajuan Unit',
     subtitle: `${assetCount} item baru dari provider`,
     href: '/assets/approval',
     icon: '✔️',

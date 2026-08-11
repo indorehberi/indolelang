@@ -417,7 +417,7 @@ export default function LotPlanningPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Nama Barang</th>
+                    <th>Nama Unit</th>
                     <th>Kategori</th>
                     <th>No Polisi</th>
                     <th>Harga Limit</th>

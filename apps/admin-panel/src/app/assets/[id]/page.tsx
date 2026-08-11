@@ -328,24 +328,24 @@ export default function AssetDetailPage() {
   }, [assetId, fetchData]);
 
   const handleApprove = async () => {
-    if (!confirm('Apakah Anda yakin menyetujui barang ini?')) return;
+    if (!confirm('Apakah Anda yakin menyetujui unit ini?')) return;
     try {
       const response = await apiFetch(`/admin/assets/${assetId}/approve`, { method: 'PUT' });
       if (response.ok) {
-        showToast('success', 'Barang disetujui');
+        showToast('success', 'Unit disetujui');
         setTimeout(() => fetchData(), 800);
-      } else showToast('error', 'Gagal menyetujui barang');
+      } else showToast('error', 'Gagal menyetujui unit');
     } catch (err) { console.error(err); }
   };
 
   const handleReject = async () => {
-    if (!confirm('Apakah Anda yakin menolak barang ini?')) return;
+    if (!confirm('Apakah Anda yakin menolak unit ini?')) return;
     try {
       const response = await apiFetch(`/admin/assets/${assetId}/reject`, { method: 'PUT' });
       if (response.ok) {
-        showToast('success', 'Barang ditolak');
+        showToast('success', 'Unit ditolak');
         setTimeout(() => fetchData(), 800);
-      } else showToast('error', 'Gagal menolak barang');
+      } else showToast('error', 'Gagal menolak unit');
     } catch (err) { console.error(err); }
   };
 
@@ -427,12 +427,12 @@ export default function AssetDetailPage() {
       });
 
       if (res.ok) {
-        showToast('success', 'Data barang berhasil disimpan');
+        showToast('success', 'Data unit berhasil disimpan');
         setEditMode(false);
         setTimeout(() => fetchData(), 500);
       } else {
         const errData = await res.json();
-        showToast('error', errData.error?.message || 'Gagal menyimpan data barang');
+        showToast('error', errData.error?.message || 'Gagal menyimpan data unit');
       }
     } catch {
       showToast('error', 'Koneksi ke server gagal');
@@ -502,7 +502,7 @@ export default function AssetDetailPage() {
     return (
       <DashboardLayout>
         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-          Memuat data barang...
+          Memuat data unit...
         </div>
       </DashboardLayout>
     );
@@ -512,7 +512,7 @@ export default function AssetDetailPage() {
     return (
       <DashboardLayout>
         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-          Barang tidak ditemukan.
+          Unit tidak ditemukan.
         </div>
       </DashboardLayout>
     );
@@ -540,10 +540,10 @@ export default function AssetDetailPage() {
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">{editMode ? '✏️ Edit Barang' : 'Detail Barang'}</h1>
+          <h1 className="page-title">{editMode ? '✏️ Edit Unit' : 'Detail Unit'}</h1>
           <p className="page-subtitle">
             <span style={{ cursor: 'pointer', color: 'var(--primary)' }} onClick={() => router.push('/assets')}>
-              Daftar Barang
+              Daftar Unit
             </span>{' '}
             &bull; {editMode ? 'Edit' : 'Detail'}
           </p>
@@ -619,20 +619,20 @@ export default function AssetDetailPage() {
                 <EditField label="Harga Dasar (Rp)" value={form.base_price} onChange={(v) => handleFormChange('base_price', v)} type="number" />
                 <EditField label="Status Pool" value={form.pool_status} onChange={(v) => handleFormChange('pool_status', v)} type="select" options={['in_pool', 'out_pool']} />
                 <EditField label="Deskripsi" value={form.description} onChange={(v) => handleFormChange('description', v)} type="textarea" />
-                <EditField label="Lokasi Kendaraan" value={form.notes} onChange={(v) => handleFormChange('notes', v)} type="textarea" />
+                <EditField label="Lokasi Unit" value={form.notes} onChange={(v) => handleFormChange('notes', v)} type="textarea" />
               </>
             ) : (
               <>
                 <InfoRow label="Harga Dasar" value={<strong style={{ color: 'var(--primary)' }}>{formatPrice(asset.base_price)}</strong>} />
                 <InfoRow label="Deskripsi" value={asset.description} />
-                <InfoRow label="Lokasi Kendaraan" value={asset.notes} />
+                <InfoRow label="Lokasi Unit" value={asset.notes} />
                 {asset.rejection_reason && <InfoRow label="Alasan Ditolak" value={<span style={{ color: 'var(--danger)' }}>{asset.rejection_reason}</span>} />}
               </>
             )}
           </Card>
 
-          {/* Spesifikasi Kendaraan */}
-          <Card title="Spesifikasi Kendaraan">
+          {/* Spesifikasi Unit */}
+          <Card title="Spesifikasi Unit">
             {editMode ? (
               <>
                 <EditField label="Merek" value={form.brand} onChange={(v) => { handleFormChange('brand', v); handleFormChange('model', ''); }} type="select" options={BRAND_OPTIONS} />
@@ -747,7 +747,7 @@ export default function AssetDetailPage() {
 
         {/* Right Column: Photo Management */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <Card title="Foto Kendaraan">
+          <Card title="Foto Unit">
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               Gunakan tombol ▲ / ▼ untuk mengatur urutan tampil foto. Klik <strong>Simpan Urutan</strong> untuk menyimpan perubahan.
             </p>

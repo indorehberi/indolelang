@@ -166,8 +166,8 @@ export default function AssetsInspectionPage() {
 
       const res = await apiFetch(`/admin/assets/${selectedAsset.id}/approve`, { method: 'PUT' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'Gagal menyetujui barang');
-      showToast('success', `Barang "${selectedAsset.title}" diinspeksi dan disetujui`);
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal menyetujui unit');
+      showToast('success', `Unit "${selectedAsset.title}" diinspeksi dan disetujui`);
       setShowModal(false);
       setSelectedAsset(null);
       fetchPendingAssets();
@@ -191,8 +191,8 @@ export default function AssetsInspectionPage() {
         body: JSON.stringify({ reason: rejectionReason.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'Gagal menolak barang');
-      showToast('success', 'Barang ditolak. Provider telah diberitahu.');
+      if (!res.ok) throw new Error(data.error?.message || 'Gagal menolak unit');
+      showToast('success', 'Unit ditolak. Provider telah diberitahu.');
       setShowModal(false);
       setSelectedAsset(null);
       fetchPendingAssets();
@@ -223,8 +223,8 @@ export default function AssetsInspectionPage() {
 
       <div className="page-header">
         <div>
-          <h1 className="page-title">Inspeksi Barang</h1>
-          <p className="page-subtitle">Lakukan inspeksi dan verifikasi kelayakan barang dari provider.</p>
+          <h1 className="page-title">Inspeksi Unit</h1>
+          <p className="page-subtitle">Lakukan inspeksi dan verifikasi kelayakan unit dari provider.</p>
         </div>
         <Button variant="outline" onClick={fetchPendingAssets} disabled={loading}>🔄 Refresh</Button>
       </div>
@@ -235,15 +235,15 @@ export default function AssetsInspectionPage() {
         ) : assets.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--wf-text-muted)' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
-            <div style={{ fontWeight: 600 }}>Tidak ada barang yang menunggu inspeksi</div>
-            <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Semua pengajuan barang sudah diproses.</div>
+            <div style={{ fontWeight: 600 }}>Tidak ada unit yang menunggu inspeksi</div>
+            <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Semua pengajuan unit sudah diproses.</div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Barang</th>
+                  <th>Unit</th>
                   <th>No. Polisi</th>
                   <th>Kategori</th>
                   <th>Provider</th>
@@ -280,7 +280,7 @@ export default function AssetsInspectionPage() {
           <div style={{ background: 'var(--wf-bg-primary, #fff)', borderRadius: '1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', width: '100%', maxWidth: '860px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--wf-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>📋 Formulir Inspeksi Barang</h2>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>📋 Formulir Inspeksi Unit</h2>
                 <p style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)', margin: '0.2rem 0 0' }}>{selectedAsset.title}</p>
               </div>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: 'var(--wf-text-muted)', padding: '0 0.25rem', lineHeight: 1 }}>×</button>
@@ -328,7 +328,7 @@ export default function AssetsInspectionPage() {
                 </div>
               </Card>
 
-              <Card title="2. Data Kendaraan (dari pengajuan)">
+              <Card title="2. Data Unit (dari pengajuan)">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                   <Field label="Kategori">
                     <input type="text" className="form-input" value={formData.category} disabled />
@@ -377,7 +377,7 @@ export default function AssetsInspectionPage() {
                 </div>
               </Card>
 
-              <Card title="4. Foto Fisik Barang">
+              <Card title="4. Foto Fisik Unit">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
                   {[
                     { key: 'photo_front', label: 'Depan' },
@@ -416,15 +416,15 @@ export default function AssetsInspectionPage() {
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Contoh: Foto mesin buram, nomor rangka tidak terbaca, kondisi tidak sesuai deskripsi..."
                   />
-                  <span className="form-hint">Kosongkan jika barang akan disetujui. Wajib diisi jika menekan tombol &ldquo;Tolak&rdquo;.</span>
+                  <span className="form-hint">Kosongkan jika unit akan disetujui. Wajib diisi jika menekan tombol &ldquo;Tolak&rdquo;.</span>
                 </div>
               </Card>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '1rem', borderTop: '1px solid var(--wf-border)' }}>
               <Button variant="outline" onClick={() => setShowModal(false)} disabled={processing}>Batal</Button>
-              <Button variant="danger" onClick={handleReject} disabled={processing}>{processing ? 'Memproses...' : '❌ Tolak Barang'}</Button>
-              <Button variant="primary" onClick={handleApprove} disabled={processing}>{processing ? 'Memproses...' : '✅ Setujui Barang'}</Button>
+              <Button variant="danger" onClick={handleReject} disabled={processing}>{processing ? 'Memproses...' : '❌ Tolak Unit'}</Button>
+              <Button variant="primary" onClick={handleApprove} disabled={processing}>{processing ? 'Memproses...' : '✅ Setujui Unit'}</Button>
             </div>
           </div>
         </div>

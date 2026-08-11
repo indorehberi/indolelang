@@ -237,7 +237,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         {/* Tabel Info Kendaraan */}
         <div className="-mx-4 border-y border-slate-300/80 overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
           <div className="bg-slate-800/90 px-3 py-1 text-[9px] font-bold uppercase tracking-wide border-b border-slate-700/90">
-            Info Kendaraan
+            Info Unit
           </div>
           <div className="grid grid-cols-3 divide-x divide-slate-700/90">
             {[
@@ -269,7 +269,7 @@ export default function LotCard({ lot }: { lot: LotCardData }) {
         {(lot.grade_engine || lot.grade_exterior || lot.grade_interior) && (
           <div className="-mx-4 border-y border-slate-300/80 overflow-hidden mb-3 bg-slate-900/95 text-white shadow-sm">
             <div className="bg-slate-800/90 px-3 py-1 text-[9px] font-bold uppercase tracking-wide border-b border-slate-700/90">
-              Grade Kendaraan
+              Grade Unit
             </div>
             <div className="grid grid-cols-3 divide-x divide-slate-700/90">
               {[

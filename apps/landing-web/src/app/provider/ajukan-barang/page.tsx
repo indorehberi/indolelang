@@ -938,7 +938,7 @@ function ProviderAjukanBarangContent() {
                           <tr className="bg-slate-50 border-b border-slate-200">
                             <th className="p-3 font-bold text-slate-700 w-12 text-center">No</th>
                             <th className="p-3 font-bold text-slate-700">No. Polisi</th>
-                            <th className="p-3 font-bold text-slate-700">Nama Kendaraan</th>
+                            <th className="p-3 font-bold text-slate-700">Nama Unit</th>
                             <th className="p-3 font-bold text-slate-700">Harga Dasar</th>
                             <th className="p-3 font-bold text-slate-700">Cabang</th>
                             <th className="p-3 font-bold text-slate-700">Status Pool</th>

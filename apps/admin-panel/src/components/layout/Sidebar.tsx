@@ -220,18 +220,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Katalog',
       items: [
-        { href: '/assets', icon: 'inventory_2', iconColor: '#6366f1', label: 'Daftar Barang' },
+        { href: '/assets', icon: 'inventory_2', iconColor: '#6366f1', label: 'Daftar Unit' },
         (userRole === 'inspector' || userRole === 'admin' || userRole === 'superadmin') && {
           href: '/assets/inspection',
           icon: 'policy',
           iconColor: '#ef4444',
-          label: 'Inspeksi Barang',
+          label: 'Inspeksi Unit',
         },
         (userRole !== 'inspector') && {
           href: '/assets/approval',
           icon: 'task_alt',
           iconColor: '#f97316',
-          label: 'Approved Barang',
+          label: 'Approved Unit',
           badge: assetCount,
           badgeTone: 'gold',
         },

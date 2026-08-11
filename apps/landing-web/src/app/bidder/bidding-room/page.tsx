@@ -77,7 +77,7 @@ function getDisplayAssetImages(lot: any) {
   if (explicitImages.length > 0) return explicitImages;
 
   const title = lot.asset?.title || "Lot Lelang";
-  const category = lot.asset?.category || "Kendaraan";
+  const category = lot.asset?.category || "Unit";
 
   return [
     buildAuctionFallbackImage(title, "#f67904", "#fff7ed"),
@@ -934,7 +934,7 @@ function ActiveLotCard({
                 </div>
               </div>
 
-              <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Kendaraan</h4>
+              <h4 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-100">Spesifikasi Unit</h4>
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
                 <div>
                   <span className="block text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Merk / Tipe</span>

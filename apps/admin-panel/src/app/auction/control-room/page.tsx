@@ -1214,7 +1214,7 @@ export default function ControlRoomPage() {
                     <th>Tgl Lelang</th>
                     <th>Jam Lelang</th>
                     <th>Lokasi</th>
-                    <th>Kendaraan</th>
+                    <th>Unit</th>
                     <th>Harga Limit</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -1431,7 +1431,7 @@ export default function ControlRoomPage() {
                 <thead>
                   <tr>
                     <th>Lot</th>
-                    <th>Kendaraan</th>
+                    <th>Unit</th>
                     <th>Harga Limit</th>
                     <th>Harga Terakhir (Hammer)</th>
                     <th>Pemenang</th>

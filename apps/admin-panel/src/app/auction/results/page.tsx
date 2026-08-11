@@ -287,7 +287,7 @@ export default function AuctionResultsPage() {
                 <th>Tgl Lelang</th>
                 <th>Jam Lelang</th>
                 <th>Lokasi</th>
-                <th>Kendaraan</th>
+                <th>Unit</th>
                 <th>No Polisi</th>
                 <th>No NIPL</th>
                 <th>Harga Limit</th>

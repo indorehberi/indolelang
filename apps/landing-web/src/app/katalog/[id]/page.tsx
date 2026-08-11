@@ -399,7 +399,7 @@ export default function DetailLotPage() {
               </h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between border-b border-slate-300/80 pb-2">
-                  <span className="text-slate-500">Lokasi Kendaraan</span>
+                  <span className="text-slate-500">Lokasi Unit</span>
                   <span className="font-bold text-slate-800 text-right max-w-[60%]">{vehicleLocation}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-300/80 pb-2">
