@@ -540,12 +540,45 @@ export class DocumentsService {
 
     await this.applyTransactionProfileSnapshot(invoice);
 
-    const setting = await prisma.platform_settings.findFirst({
-      where: { key: 'sj_petugas_lelang', tenant_id: 'default' }
+    const bastSettings = await prisma.platform_settings.findMany({
+      where: { key: { in: ['bast_pihak_pertama', 'bast_start_number', 'bast_last_number'] } }
     });
-    const petugasLelangName = setting?.value || invoice.lot.session.branch.pic_name || '..................';
+    const bastSettingMap: Record<string, string> = {};
+    bastSettings.forEach(s => bastSettingMap[s.key] = s.value);
 
-    const docNumber = await this.generateDocNumber(invoiceId, 'bast');
+    const pihakPertamaName = bastSettingMap['bast_pihak_pertama'] || invoice.lot.session.branch.pic_name || '..................';
+
+    let docNumber = '';
+    const bastStartVal = bastSettingMap['bast_start_number'];
+    const bastLastVal = bastSettingMap['bast_last_number'];
+
+    if (bastStartVal) {
+      if (bastStartVal !== bastLastVal) {
+        docNumber = bastStartVal;
+      } else {
+        docNumber = this.incrementDocNumber(bastLastVal);
+      }
+
+      const existingStart = await prisma.platform_settings.findFirst({
+        where: { key: 'bast_start_number', tenant_id: 'default' }
+      });
+      if (existingStart) {
+        await prisma.platform_settings.update({ where: { id: existingStart.id }, data: { value: docNumber } });
+      } else {
+        await prisma.platform_settings.create({ data: { key: 'bast_start_number', value: docNumber, tenant_id: 'default' } });
+      }
+
+      const existingLast = await prisma.platform_settings.findFirst({
+        where: { key: 'bast_last_number', tenant_id: 'default' }
+      });
+      if (existingLast) {
+        await prisma.platform_settings.update({ where: { id: existingLast.id }, data: { value: docNumber } });
+      } else {
+        await prisma.platform_settings.create({ data: { key: 'bast_last_number', value: docNumber, tenant_id: 'default' } });
+      }
+    } else {
+      docNumber = await this.generateDocNumber(invoiceId, 'bast');
+    }
     const qrHash = crypto
       .createHash('sha256')
       .update(`bast-${invoiceId}-${Date.now()}`)
@@ -589,7 +622,7 @@ export class DocumentsService {
         <div class="section">
           <div class="section-title">Pihak Pertama (Balai Lelang)</div>
           <div style="font-size: 12px;"><strong>Nama Instansi:</strong> ${invoice.lot.session.branch.name}</div>
-          <div style="font-size: 12px;"><strong>Penanggung Jawab:</strong> ${petugasLelangName}</div>
+          <div style="font-size: 12px;"><strong>Penanggung Jawab:</strong> ${pihakPertamaName}</div>
           <div style="font-size: 12px;"><strong>Alamat Cabang:</strong> ${invoice.lot.session.branch.address}</div>
         </div>
 
@@ -622,7 +655,7 @@ export class DocumentsService {
           <div class="sig-box">
             <div style="font-size: 12px;">PIHAK PERTAMA (Penyerah)</div>
             <div class="sig-line"></div>
-            <div style="font-weight: bold; font-size: 12px;">( ${petugasLelangName} )</div>
+            <div style="font-weight: bold; font-size: 12px;">( ${pihakPertamaName} )</div>
           </div>
         </div>
 

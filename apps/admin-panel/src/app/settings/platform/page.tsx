@@ -40,6 +40,12 @@ export default function PlatformSettingsPage() {
   const [sjStartNumber, setSjStartNumber] = useState('');
   const [sjLastNumber, setSjLastNumber] = useState('');
   const [isSavingSuratJalan, setIsSavingSuratJalan] = useState(false);
+
+  // BAST Settings
+  const [bastPihakPertama, setBastPihakPertama] = useState('');
+  const [bastStartNumber, setBastStartNumber] = useState('');
+  const [bastLastNumber, setBastLastNumber] = useState('');
+  const [isSavingBast, setIsSavingBast] = useState(false);
   
   // Auction Automation Settings
   // "Waktu pertama": initial countdown for a lot, and the value the clock
@@ -317,6 +323,12 @@ export default function PlatformSettingsPage() {
               setSjStartNumber(item.value);
             } else if (item.key === 'sj_last_number') {
               setSjLastNumber(item.value);
+            } else if (item.key === 'bast_pihak_pertama') {
+              setBastPihakPertama(item.value);
+            } else if (item.key === 'bast_start_number') {
+              setBastStartNumber(item.value);
+            } else if (item.key === 'bast_last_number') {
+              setBastLastNumber(item.value);
             } else if (item.key === 'bid_increment_1') {
               setBidIncrement1(item.value);
             } else if (item.key === 'national_holidays') {
@@ -637,6 +649,28 @@ export default function PlatformSettingsPage() {
       toast.error('Gagal menyimpan pengaturan Surat Jalan. Periksa koneksi Anda.');
     } finally {
       setIsSavingSuratJalan(false);
+    }
+  };
+
+  const handleSaveBastSettings = async () => {
+    setIsSavingBast(true);
+    try {
+      const updates: SettingUpdate[] = [
+        { key: 'bast_pihak_pertama', value: bastPihakPertama },
+        { key: 'bast_start_number', value: bastStartNumber },
+      ];
+
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan BAST berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan pengaturan BAST. Periksa koneksi Anda.');
+    } finally {
+      setIsSavingBast(false);
     }
   };
 
@@ -1149,6 +1183,48 @@ export default function PlatformSettingsPage() {
 
               <button className="btn btn-primary w-100 mt-2" onClick={handleSaveSuratJalanSettings} disabled={isSavingSuratJalan}>
                 {isSavingSuratJalan ? 'Menyimpan...' : 'Simpan Pengaturan Surat Jalan'}
+              </button>
+            </CollapsibleCard>
+
+            <CollapsibleCard className="mt-4" title="Pengaturan BAST">
+              <div className="alert alert-info mt-3 mb-4 text-xs">
+                Pengaturan ini digunakan untuk dokumen Berita Acara Serah Terima (BAST). Nama Pihak Pertama akan menggantikan nama PIC cabang pada blok tanda tangan penyerah. No. Awal BAST menentukan nomor urut dokumen BAST berikutnya.
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Nama Pihak Pertama (Penyerah)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={bastPihakPertama}
+                  onChange={(e) => setBastPihakPertama(e.target.value)}
+                  placeholder="Contoh: Ahmad Fauzi, S.H."
+                />
+                <p className="text-xs text-muted mt-1">
+                  Nama ini akan muncul sebagai Pihak Pertama (Penyerah) di BAST. Kosongkan untuk menggunakan nama PIC cabang.
+                </p>
+              </div>
+
+              <div className="form-group mt-3">
+                <label className="form-label">No. Awal Surat BAST</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={bastStartNumber}
+                  onChange={(e) => setBastStartNumber(e.target.value)}
+                  placeholder="Contoh: BAST-PUSAT-20240101-001"
+                />
+                <p className="text-xs text-muted mt-1">
+                  {bastLastNumber ? (
+                    <>No. BAST terakhir diterbitkan: <strong>{bastLastNumber}</strong>. Isian ini akan menjadi nomor awal penerbitan berikutnya.</>
+                  ) : (
+                    'Isian ini akan menjadi nomor awal penerbitan BAST berikutnya. Kosongkan untuk menggunakan format otomatis.'
+                  )}
+                </p>
+              </div>
+
+              <button className="btn btn-primary w-100 mt-2" onClick={handleSaveBastSettings} disabled={isSavingBast}>
+                {isSavingBast ? 'Menyimpan...' : 'Simpan Pengaturan BAST'}
               </button>
             </CollapsibleCard>
 
