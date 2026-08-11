@@ -91,6 +91,18 @@ export class DocumentsService {
     return `${typePrefix}-${branchPrefix}-${yyyymmdd}-${seq}`;
   }
 
+  incrementDocNumber(num: string): string {
+    const match = num.match(/(\d+)(?!.*\d)/);
+    if (!match) {
+      return num + '-1';
+    }
+    const digits = match[1];
+    const value = parseInt(digits, 10) + 1;
+    const padded = String(value).padStart(digits.length, '0');
+    const index = match.index!;
+    return num.substring(0, index) + padded + num.substring(index + digits.length);
+  }
+
   async applyTransactionProfileSnapshot(invoice: any): Promise<void> {
     if (!invoice || !invoice.id) return;
     const txProfile = await prisma.transaction_profiles.findUnique({
@@ -329,7 +341,55 @@ export class DocumentsService {
 
     await this.applyTransactionProfileSnapshot(invoice);
 
-    const docNumber = await this.generateDocNumber(invoiceId, 'surat_jalan');
+    const settings = await prisma.platform_settings.findMany({
+      where: { key: { in: ['sj_petugas_lelang', 'sj_start_number', 'sj_last_number'] } }
+    });
+    const settingMap: Record<string, string> = {};
+    settings.forEach(s => settingMap[s.key] = s.value);
+
+    const petugasLelangName = settingMap['sj_petugas_lelang'] || invoice.lot.session.branch.pic_name || '..................';
+
+    let docNumber = '';
+    const sjStartVal = settingMap['sj_start_number'];
+    const sjLastVal = settingMap['sj_last_number'];
+
+    if (sjStartVal) {
+      if (sjStartVal !== sjLastVal) {
+        docNumber = sjStartVal;
+      } else {
+        docNumber = this.incrementDocNumber(sjLastVal);
+      }
+      
+      const existingStart = await prisma.platform_settings.findFirst({
+        where: { key: 'sj_start_number', tenant_id: 'default' }
+      });
+      if (existingStart) {
+        await prisma.platform_settings.update({
+          where: { id: existingStart.id },
+          data: { value: docNumber }
+        });
+      } else {
+        await prisma.platform_settings.create({
+          data: { key: 'sj_start_number', value: docNumber, tenant_id: 'default' }
+        });
+      }
+
+      const existingLast = await prisma.platform_settings.findFirst({
+        where: { key: 'sj_last_number', tenant_id: 'default' }
+      });
+      if (existingLast) {
+        await prisma.platform_settings.update({
+          where: { id: existingLast.id },
+          data: { value: docNumber }
+        });
+      } else {
+        await prisma.platform_settings.create({
+          data: { key: 'sj_last_number', value: docNumber, tenant_id: 'default' }
+        });
+      }
+    } else {
+      docNumber = await this.generateDocNumber(invoiceId, 'surat_jalan');
+    }
     const qrHash = crypto
       .createHash('sha256')
       .update(`surat-jalan-${invoiceId}-${Date.now()}`)
@@ -409,7 +469,7 @@ export class DocumentsService {
           <div class="sig-box">
             <div>Petugas Balai Lelang,</div>
             <div class="sig-line"></div>
-            <div style="font-weight: bold;">( ${invoice.lot.session.branch.pic_name} )</div>
+            <div style="font-weight: bold;">( ${petugasLelangName} )</div>
           </div>
         </div>
 
@@ -480,6 +540,11 @@ export class DocumentsService {
 
     await this.applyTransactionProfileSnapshot(invoice);
 
+    const setting = await prisma.platform_settings.findFirst({
+      where: { key: 'sj_petugas_lelang', tenant_id: 'default' }
+    });
+    const petugasLelangName = setting?.value || invoice.lot.session.branch.pic_name || '..................';
+
     const docNumber = await this.generateDocNumber(invoiceId, 'bast');
     const qrHash = crypto
       .createHash('sha256')
@@ -524,7 +589,7 @@ export class DocumentsService {
         <div class="section">
           <div class="section-title">Pihak Pertama (Balai Lelang)</div>
           <div style="font-size: 12px;"><strong>Nama Instansi:</strong> ${invoice.lot.session.branch.name}</div>
-          <div style="font-size: 12px;"><strong>Penanggung Jawab:</strong> ${invoice.lot.session.branch.pic_name}</div>
+          <div style="font-size: 12px;"><strong>Penanggung Jawab:</strong> ${petugasLelangName}</div>
           <div style="font-size: 12px;"><strong>Alamat Cabang:</strong> ${invoice.lot.session.branch.address}</div>
         </div>
 
@@ -557,7 +622,7 @@ export class DocumentsService {
           <div class="sig-box">
             <div style="font-size: 12px;">PIHAK PERTAMA (Penyerah)</div>
             <div class="sig-line"></div>
-            <div style="font-weight: bold; font-size: 12px;">( ${invoice.lot.session.branch.pic_name} )</div>
+            <div style="font-weight: bold; font-size: 12px;">( ${petugasLelangName} )</div>
           </div>
         </div>
 

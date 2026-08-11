@@ -34,6 +34,12 @@ export default function PlatformSettingsPage() {
   const [pejabatPenjual, setPejabatPenjual] = useState('');
   const [pejabatLelang, setPejabatLelang] = useState('');
   const [isSavingBapl, setIsSavingBapl] = useState(false);
+
+  // Surat Jalan Settings
+  const [sjPetugasLelang, setSjPetugasLelang] = useState('');
+  const [sjStartNumber, setSjStartNumber] = useState('');
+  const [sjLastNumber, setSjLastNumber] = useState('');
+  const [isSavingSuratJalan, setIsSavingSuratJalan] = useState(false);
   
   // Auction Automation Settings
   // "Waktu pertama": initial countdown for a lot, and the value the clock
@@ -305,6 +311,12 @@ export default function PlatformSettingsPage() {
               setPejabatPenjual(item.value);
             } else if (item.key === 'bapl_pejabat_lelang') {
               setPejabatLelang(item.value);
+            } else if (item.key === 'sj_petugas_lelang') {
+              setSjPetugasLelang(item.value);
+            } else if (item.key === 'sj_start_number') {
+              setSjStartNumber(item.value);
+            } else if (item.key === 'sj_last_number') {
+              setSjLastNumber(item.value);
             } else if (item.key === 'bid_increment_1') {
               setBidIncrement1(item.value);
             } else if (item.key === 'national_holidays') {
@@ -603,6 +615,28 @@ export default function PlatformSettingsPage() {
       toast.error('Gagal menyimpan pengaturan Pejabat BAPL. Periksa koneksi Anda.');
     } finally {
       setIsSavingBapl(false);
+    }
+  };
+
+  const handleSaveSuratJalanSettings = async () => {
+    setIsSavingSuratJalan(true);
+    try {
+      const updates: SettingUpdate[] = [
+        { key: 'sj_petugas_lelang', value: sjPetugasLelang },
+        { key: 'sj_start_number', value: sjStartNumber },
+      ];
+
+      const { ok, failedKeys } = await saveSettings(updates);
+      await fetchSettings();
+      if (ok) {
+        toast.success('Pengaturan Surat Jalan berhasil disimpan!');
+      } else {
+        toast.error(`Sebagian pengaturan gagal disimpan: ${failedKeys.join(', ')}`);
+      }
+    } catch (e) {
+      toast.error('Gagal menyimpan pengaturan Surat Jalan. Periksa koneksi Anda.');
+    } finally {
+      setIsSavingSuratJalan(false);
     }
   };
 
@@ -1074,9 +1108,51 @@ export default function PlatformSettingsPage() {
              <button className="btn btn-primary w-100 mt-2" onClick={handleSaveBaplSettings} disabled={isSavingBapl}>
                {isSavingBapl ? 'Menyimpan...' : 'Simpan Pengaturan BAPL'}
              </button>
-           </CollapsibleCard>
+            </CollapsibleCard>
 
-           <CollapsibleCard className="mt-4" title="Pengaturan Bidding Room">
+            <CollapsibleCard className="mt-4" title="Pengaturan Surat Jalan">
+              <div className="alert alert-info mt-3 mb-4 text-xs">
+                Pengaturan ini digunakan untuk dokumen Surat Jalan dan BAST. Nama Petugas Lelang akan menggantikan nama PIC cabang pada blok tanda tangan. No. Awal Surat Jalan menentukan nomor urut dokumen Surat Jalan berikutnya.
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Nama Petugas Lelang</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sjPetugasLelang}
+                  onChange={(e) => setSjPetugasLelang(e.target.value)}
+                  placeholder="Contoh: Ahmad Fauzi, S.H."
+                />
+                <p className="text-xs text-muted mt-1">
+                  Nama ini akan muncul di blok tanda tangan Surat Jalan dan BAST. Kosongkan untuk menggunakan nama PIC cabang.
+                </p>
+              </div>
+
+              <div className="form-group mt-3">
+                <label className="form-label">No. Awal Surat Jalan</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sjStartNumber}
+                  onChange={(e) => setSjStartNumber(e.target.value)}
+                  placeholder="Contoh: SJ-PUSAT-20240101-001"
+                />
+                <p className="text-xs text-muted mt-1">
+                  {sjLastNumber ? (
+                    <>No. Surat Jalan terakhir diterbitkan: <strong>{sjLastNumber}</strong>. Isian ini akan menjadi nomor awal penerbitan berikutnya.</>
+                  ) : (
+                    'Isian ini akan menjadi nomor awal penerbitan Surat Jalan berikutnya. Kosongkan untuk menggunakan format otomatis.'
+                  )}
+                </p>
+              </div>
+
+              <button className="btn btn-primary w-100 mt-2" onClick={handleSaveSuratJalanSettings} disabled={isSavingSuratJalan}>
+                {isSavingSuratJalan ? 'Menyimpan...' : 'Simpan Pengaturan Surat Jalan'}
+              </button>
+            </CollapsibleCard>
+
+            <CollapsibleCard className="mt-4" title="Pengaturan Bidding Room">
              <div className="alert alert-info mt-3 mb-4 text-xs">
                Parameter yang digunakan pada layar Bidding Bidder (kelipatan bid dan countdown awal).
              </div>
