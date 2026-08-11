@@ -327,9 +327,16 @@ export class PaymentsController {
         return Number.isNaN(d.getTime()) ? undefined : d;
       };
 
+      const category = req.query.category as string | undefined;
+      const month = req.query.month ? parseInt(req.query.month as string, 10) : undefined;
+      const year = req.query.year ? parseInt(req.query.year as string, 10) : undefined;
+
       const entries = await paymentsService.getIncomeLedger(
         parseDate(req.query.from),
-        parseDate(req.query.to)
+        parseDate(req.query.to),
+        category,
+        month,
+        year
       );
 
       sendSuccess(res, entries, 'Daftar pemasukan berhasil dimuat');

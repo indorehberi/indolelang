@@ -23,29 +23,32 @@ function parseFractionSetting(value: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-export type IncomeCategory = 'deposit' | 'biaya_admin' | 'fee_lelang';
+export type IncomeCategory = 'fee_admin_bidder' | 'fee_lelang_provider' | 'deposit_hangus' | 'deposit' | 'biaya_admin' | 'fee_lelang';
 
 export interface IncomeEntry {
+  id?: string;
   date: Date;
   category: IncomeCategory;
   description: string;
   amount: number;
+  unique_code?: number;
 }
 
 export class PaymentsService {
   /**
    * Flat ledger of everything the platform earned, newest first, for the
-   * admin "Pemasukan" list. Three sources are merged:
-   *
-   *  - deposit     — NIPL jaminan actually received (status 'paid'/'active').
-   *  - biaya_admin — the admin fee line of each settled invoice.
-   *  - fee_lelang  — the platform's cut of each settlement, which for a
-   *                  forfeiture is its half of the lapsed NIPL rather than a
-   *                  commission on a hammer price.
-   *
-   * Read-only and computed on the fly; nothing here writes or caches.
+   * admin "Pemasukan" list.
+   *  - fee_admin_bidder    — Biaya admin dari bidder yang menang lelang (Invoice paid).
+   *  - fee_lelang_provider — Fee lelang dari provider (Komisi platform dari settlement).
+   *  - deposit_hangus      — Deposit yang hangus (50% Admin + Kode Unik yang menyertainya).
    */
-  async getIncomeLedger(from?: Date, to?: Date): Promise<IncomeEntry[]> {
+  async getIncomeLedger(
+    from?: Date,
+    to?: Date,
+    category?: string,
+    month?: number,
+    year?: number
+  ): Promise<IncomeEntry[]> {
     const withinRange = <T extends string>(field: T) =>
       from || to
         ? { [field]: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } }
@@ -54,10 +57,10 @@ export class PaymentsService {
     const [deposits, invoices, settlements] = await Promise.all([
       prisma.deposits.findMany({
         where: {
-          status: { in: ['paid', 'active'] },
+          status: { in: ['paid', 'active', 'forfeited'] },
           ...withinRange('created_at'),
         },
-        select: { amount: true, created_at: true, unit_type: true, package_type: true },
+        select: { id: true, amount: true, unique_code: true, status: true, created_at: true, unit_type: true, package_type: true },
         orderBy: { created_at: 'desc' },
       }),
       prisma.invoices.findMany({
@@ -67,6 +70,7 @@ export class PaymentsService {
           ...withinRange('created_at'),
         },
         select: {
+          id: true,
           admin_fee: true,
           created_at: true,
           lot: { select: { lot_number: true, asset: { select: { title: true } } } },
@@ -76,6 +80,7 @@ export class PaymentsService {
       prisma.settlements.findMany({
         where: withinRange('created_at'),
         select: {
+          id: true,
           commission_deducted: true,
           nipl_forfeiture_amount: true,
           net_amount: true,
@@ -89,53 +94,86 @@ export class PaymentsService {
 
     const entries: IncomeEntry[] = [];
 
-    for (const d of deposits) {
-      const unit = d.unit_type ? ` ${d.unit_type}` : '';
-      // package_type stores how many NIPL slots were bought, not a package
-      // name — except for the unlimited spellings, which must not be printed
-      // as a slot count ('999' would read as "999 NIPL").
-      const pkg = d.package_type
-        ? isUnlimitedPackage(d.package_type)
-          ? ' — Unlimited'
-          : ` — ${d.package_type} NIPL`
-        : '';
-      entries.push({
-        date: d.created_at,
-        category: 'deposit',
-        description: `Deposit NIPL${unit}${pkg}`,
-        amount: Number(d.amount),
-      });
-    }
-
+    // 1. Invoices -> Fee Admin dari Bidder yang Menang Lelang
     for (const inv of invoices) {
       const unitLabel = inv.lot?.asset?.title || `Lot ${inv.lot?.lot_number ?? '-'}`;
       entries.push({
+        id: inv.id,
         date: inv.created_at,
-        category: 'biaya_admin',
-        description: `Biaya admin — ${unitLabel}`,
+        category: 'fee_admin_bidder',
+        description: `Fee admin bidder — ${unitLabel}`,
         amount: Number(inv.admin_fee),
       });
     }
 
+    // 2. Settlements -> Fee Lelang Provider / Deposit Hangus (Forfeiture)
     for (const s of settlements) {
       const unitLabel = s.lot?.asset?.title || `Lot ${s.lot?.lot_number ?? '-'}`;
-      // On a forfeiture the platform keeps the other half of the NIPL; the
-      // provider's half is what net_amount holds.
-      const amount = s.is_forfeiture
-        ? Number(s.nipl_forfeiture_amount || 0) - Number(s.net_amount || 0)
-        : Number(s.commission_deducted || 0);
-      if (amount <= 0) continue;
-      entries.push({
-        date: s.created_at,
-        category: 'fee_lelang',
-        description: s.is_forfeiture
-          ? `Bagian NIPL hangus — ${unitLabel}`
-          : `Fee lelang — ${unitLabel}`,
-        amount,
+      if (s.is_forfeiture) {
+        const totalNipl = Number(s.nipl_forfeiture_amount || 0);
+        const providerHalf = Number(s.net_amount || 0);
+        const adminShare = totalNipl - providerHalf;
+        if (adminShare > 0) {
+          entries.push({
+            id: s.id,
+            date: s.created_at,
+            category: 'deposit_hangus',
+            description: `Deposit hangus (50% Admin) — ${unitLabel}`,
+            amount: adminShare,
+          });
+        }
+      } else {
+        const comm = Number(s.commission_deducted || 0);
+        if (comm > 0) {
+          entries.push({
+            id: s.id,
+            date: s.created_at,
+            category: 'fee_lelang_provider',
+            description: `Fee lelang provider — ${unitLabel}`,
+            amount: comm,
+          });
+        }
+      }
+    }
+
+    // 3. Forfeited Deposits -> Deposit Hangus (50% Admin + Kode Unik)
+    for (const d of deposits) {
+      if (d.status === 'forfeited') {
+        const totalAmount = Number(d.amount);
+        const uniqueCode = Number(d.unique_code || 0);
+        const baseAmount = totalAmount - uniqueCode;
+        const adminHalfPlusCode = Math.floor(baseAmount / 2) + uniqueCode;
+        entries.push({
+          id: d.id,
+          date: d.created_at,
+          category: 'deposit_hangus',
+          description: `Deposit hangus (50% Admin + Kode Unik Rp ${uniqueCode.toLocaleString('id-ID')}) — Ref: ${d.id.slice(0, 8)}`,
+          amount: adminHalfPlusCode,
+          unique_code: uniqueCode,
+        });
+      }
+    }
+
+    // Filter by Category, Month, Year if requested
+    let filtered = entries;
+    if (category) {
+      filtered = filtered.filter(e => {
+        if (category === 'fee_admin_bidder') return e.category === 'fee_admin_bidder' || e.category === 'biaya_admin';
+        if (category === 'fee_lelang_provider') return e.category === 'fee_lelang_provider' || e.category === 'fee_lelang';
+        if (category === 'deposit_hangus') return e.category === 'deposit_hangus';
+        return e.category === category;
       });
     }
 
-    return entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+    if (month) {
+      filtered = filtered.filter(e => e.date.getMonth() + 1 === Number(month));
+    }
+
+    if (year) {
+      filtered = filtered.filter(e => e.date.getFullYear() === Number(year));
+    }
+
+    return filtered.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
   /**

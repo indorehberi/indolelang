@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '../layout/DashboardLayout';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -103,10 +104,11 @@ interface Settlement {
 export default function FinanceManager({
   initialTab = 'deposits',
 }: {
-    initialTab: 'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements';
+    initialTab: 'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements' | 'income';
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements'>(initialTab);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'deposits' | 'invoices' | 'checkout_orders' | 'refunds' | 'settlements' | 'income'>(initialTab);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [checkoutOrders, setCheckoutOrders] = useState<any[]>([]);
@@ -540,6 +542,7 @@ export default function FinanceManager({
           onClick={() => {
             setActiveTab('refunds');
             setLoading(true);
+            router.push('/finance/refunds');
           }}
           className={`btn btn-sm ${activeTab === 'refunds' ? 'btn-primary' : 'btn-outline'}`}
           style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, whiteSpace: 'nowrap' }}
@@ -548,13 +551,12 @@ export default function FinanceManager({
         </button>
         <button
           onClick={() => {
-            setActiveTab('settlements');
-            setLoading(true);
+            router.push('/finance/income');
           }}
-          className={`btn btn-sm ${activeTab === 'settlements' ? 'btn-primary' : 'btn-outline'}`}
+          className={`btn btn-sm ${activeTab === 'income' ? 'btn-primary' : 'btn-outline'}`}
           style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, whiteSpace: 'nowrap' }}
         >
-          🏦 Pencairan Mitra (Settlements)
+          💰 Pemasukan Platform
         </button>
       </div>
 
