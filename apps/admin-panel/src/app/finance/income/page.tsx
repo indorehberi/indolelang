@@ -71,17 +71,19 @@ const MONTH_OPTIONS = [
   { value: '12', label: 'Desember' },
 ];
 
+const getTodayString = () => new Date().toISOString().split('T')[0];
+
 export default function IncomePage() {
   const router = useRouter();
   const toast = useToast();
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [monthFilter, setMonthFilter] = useState<string>('');
+  // Filters with order: Tahun, Bulan, Tanggal (Default: Hari Ini), Jenis Pemasukan
   const [yearFilter, setYearFilter] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [monthFilter, setMonthFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<string>(getTodayString());
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
 
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('income_ledger_list', INCOME_COLUMNS);
 
@@ -116,6 +118,7 @@ export default function IncomePage() {
     fetchIncome();
   }, [fetchIncome]);
 
+  // Dynamic KPI Card Calculations based on active filter entries
   const totalAll = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   const totalBy = (cat: string) =>
@@ -145,6 +148,38 @@ export default function IncomePage() {
     }
   };
 
+  const handleYearChange = (val: string) => {
+    setYearFilter(val);
+    if (val && dateFilter) setDateFilter(''); // Clear specific date to filter by year
+  };
+
+  const handleMonthChange = (val: string) => {
+    setMonthFilter(val);
+    if (val && dateFilter) setDateFilter(''); // Clear specific date to filter by month
+  };
+
+  const handleDateChange = (val: string) => {
+    setDateFilter(val);
+    if (val) {
+      setMonthFilter('');
+      setYearFilter('');
+    }
+  };
+
+  const handleResetFilters = () => {
+    setDateFilter(getTodayString());
+    setMonthFilter('');
+    setYearFilter('');
+    setCategoryFilter('');
+  };
+
+  const handleShowAllDates = () => {
+    setDateFilter('');
+    setMonthFilter('');
+    setYearFilter('');
+    setCategoryFilter('');
+  };
+
   const currentYear = new Date().getFullYear();
   const yearOptions = [
     { value: '', label: 'Semua Tahun' },
@@ -153,6 +188,8 @@ export default function IncomePage() {
       label: String(currentYear - i),
     })),
   ];
+
+  const isFilterActive = dateFilter !== getTodayString() || monthFilter !== '' || yearFilter !== '' || categoryFilter !== '';
 
   return (
     <DashboardLayout breadcrumbParent="Keuangan" breadcrumbCurrent="Pemasukan">
@@ -221,28 +258,28 @@ export default function IncomePage() {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
+      {/* Dynamic Status / KPI Cards (Updates instantly with filter selection) */}
       <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-        <div className="kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Total Pemasukan Platform</div>
-          <div className="kpi-value" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{formatRupiah(totalAll)}</div>
+        <div className="kpi-card" style={{ borderLeft: '4px solid #10b981', backgroundColor: '#F0FDF4' }}>
+          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#047857', fontWeight: 600 }}>Total Pemasukan (Filter Aktif)</div>
+          <div className="kpi-value" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#047857' }}>{formatRupiah(totalAll)}</div>
         </div>
-        <div className="kpi-card gold" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Fee Admin (Bidder Pemenang)</div>
-          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#d97706' }}>{formatRupiah(totalBy('fee_admin_bidder'))}</div>
+        <div className="kpi-card gold" style={{ borderLeft: '4px solid #f59e0b', backgroundColor: '#FFFBEB' }}>
+          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#B45309', fontWeight: 600 }}>Fee Admin (Bidder Pemenang)</div>
+          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#B45309' }}>{formatRupiah(totalBy('fee_admin_bidder'))}</div>
         </div>
-        <div className="kpi-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Fee Lelang (Provider)</div>
-          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#2563eb' }}>{formatRupiah(totalBy('fee_lelang_provider'))}</div>
+        <div className="kpi-card" style={{ borderLeft: '4px solid #3b82f6', backgroundColor: '#EFF6FF' }}>
+          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#1D4ED8', fontWeight: 600 }}>Fee Lelang (Provider)</div>
+          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1D4ED8' }}>{formatRupiah(totalBy('fee_lelang_provider'))}</div>
         </div>
-        <div className="kpi-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Deposit Hangus (50% + Kode Unik)</div>
-          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#dc2626' }}>{formatRupiah(totalBy('deposit_hangus'))}</div>
+        <div className="kpi-card" style={{ borderLeft: '4px solid #ef4444', backgroundColor: '#FEF2F2' }}>
+          <div className="kpi-label" style={{ fontSize: '0.8rem', color: '#B91C1C', fontWeight: 600 }}>Deposit Hangus (50% + Kode Unik)</div>
+          <div className="kpi-value" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#B91C1C' }}>{formatRupiah(totalBy('deposit_hangus'))}</div>
         </div>
       </div>
 
       <Card>
-        {/* Filters */}
+        {/* Filters in exact order: Tahun, Bulan, Tanggal (Default: Hari Ini), Jenis Pemasukan */}
         <div
           style={{
             display: 'flex',
@@ -254,8 +291,53 @@ export default function IncomePage() {
             borderBottom: '1px solid #f1f5f9',
           }}
         >
+          {/* 1. Tahun */}
+          <div className="form-group mb-0" style={{ minWidth: '130px' }}>
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>1. Tahun</label>
+            <select
+              className="form-input"
+              value={yearFilter}
+              onChange={(e) => handleYearChange(e.target.value)}
+              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            >
+              {yearOptions.map((y) => (
+                <option key={y.value} value={y.value}>{y.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Bulan */}
+          <div className="form-group mb-0" style={{ minWidth: '140px' }}>
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>2. Bulan</label>
+            <select
+              className="form-input"
+              value={monthFilter}
+              onChange={(e) => handleMonthChange(e.target.value)}
+              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            >
+              {MONTH_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Tanggal (Default: Hari Ini) */}
+          <div className="form-group mb-0" style={{ minWidth: '150px' }}>
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>
+              3. Tanggal {dateFilter === getTodayString() && <span style={{ color: '#10b981', fontWeight: 700 }}>(Hari Ini)</span>}
+            </label>
+            <input
+              type="date"
+              className="form-input"
+              value={dateFilter}
+              onChange={(e) => handleDateChange(e.target.value)}
+              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            />
+          </div>
+
+          {/* 4. Jenis Pemasukan */}
           <div className="form-group mb-0" style={{ minWidth: '180px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Jenis Pemasukan</label>
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>4. Jenis Pemasukan</label>
             <select
               className="form-input"
               value={categoryFilter}
@@ -269,60 +351,39 @@ export default function IncomePage() {
             </select>
           </div>
 
-          <div className="form-group mb-0" style={{ minWidth: '140px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Spesifik Tanggal</label>
-            <input
-              type="date"
-              className="form-input"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '1.25rem' }}>
+            {!dateFilter && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => setDateFilter(getTodayString())}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
+              >
+                📅 Hari Ini
+              </button>
+            )}
+            {dateFilter && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={handleShowAllDates}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
+              >
+                🌐 Semua Tanggal
+              </button>
+            )}
+            {isFilterActive && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={handleResetFilters}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
+              >
+                🔄 Reset Default
+              </button>
+            )}
           </div>
-
-          <div className="form-group mb-0" style={{ minWidth: '140px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Bulan</label>
-            <select
-              className="form-input"
-              value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            >
-              {MONTH_OPTIONS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group mb-0" style={{ minWidth: '130px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Tahun</label>
-            <select
-              className="form-input"
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            >
-              {yearOptions.map((y) => (
-                <option key={y.value} value={y.value}>{y.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {(dateFilter || monthFilter || yearFilter || categoryFilter) && (
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => {
-                setDateFilter('');
-                setMonthFilter('');
-                setYearFilter('');
-                setCategoryFilter('');
-              }}
-              style={{ marginTop: '1.25rem', padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-            >
-              Reset Filter
-            </button>
-          )}
         </div>
 
         {/* Income Table */}
