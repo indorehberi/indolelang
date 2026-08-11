@@ -7,6 +7,15 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Link from 'next/link';
 import { apiUrl, apiFetch } from '../../lib/api';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
+
+const SESSION_COLUMNS: ColumnOption[] = [
+  { key: 'title', label: 'Judul Sesi', alwaysVisible: true },
+  { key: 'scheduled_at', label: 'Jadwal Pelaksanaan' },
+  { key: 'branch', label: 'Cabang Penyelenggara' },
+  { key: 'status', label: 'Status Sesi' },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
 
 interface Branch {
   id: string;
@@ -34,6 +43,7 @@ interface Session {
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('session_list', SESSION_COLUMNS);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -364,6 +374,12 @@ export default function SessionsPage() {
               ))}
             </select>
           </div>
+          <ColumnPicker
+            columns={SESSION_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="session_list"
+          />
         </div>
       </Card>
 
@@ -372,104 +388,114 @@ export default function SessionsPage() {
           <table>
             <thead>
               <tr>
-                <th>Judul Sesi</th>
-                <th>Jadwal Pelaksanaan</th>
-                <th>Cabang Penyelenggara</th>
-                <th>Status Sesi</th>
-                <th>Aksi</th>
+                {isVisible('title') && <th>Judul Sesi</th>}
+                {isVisible('scheduled_at') && <th>Jadwal Pelaksanaan</th>}
+                {isVisible('branch') && <th>Cabang Penyelenggara</th>}
+                {isVisible('status') && <th>Status Sesi</th>}
+                {isVisible('actions') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center">Memuat daftar sesi...</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Memuat daftar sesi...</td>
                 </tr>
               ) : sessions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted">Tidak ada sesi lelang ditemukan.</td>
+                  <td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada sesi lelang ditemukan.</td>
                 </tr>
               ) : (
                 sessions.map((session) => (
                   <tr key={session.id}>
-                    <td>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <strong>{session.title}</strong>
-                          {(session as any).is_exclusive && (
-                            <Badge variant="danger">Exclusive</Badge>
+                    {isVisible('title') && (
+                      <td>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <strong>{session.title}</strong>
+                            {(session as any).is_exclusive && (
+                              <Badge variant="danger">Exclusive</Badge>
+                            )}
+                          </div>
+                          {session.description && (
+                            <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
+                              {session.description}
+                            </div>
                           )}
                         </div>
-                        {session.description && (
-                          <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
-                            {session.description}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div>
-                        <strong>
-                          {new Date(session.scheduled_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </strong>
-                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                          Pukul{' '}
-                          {new Date(session.scheduled_at).toLocaleTimeString('id-ID', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZoneName: 'short',
-                          })}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {session.branch ? (
+                      </td>
+                    )}
+                    {isVisible('scheduled_at') && (
+                      <td>
                         <div>
-                          <strong>{session.branch.name}</strong>
+                          <strong>
+                            {new Date(session.scheduled_at).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </strong>
                           <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            📍 {session.branch.city}
+                            Pukul{' '}
+                            {new Date(session.scheduled_at).toLocaleTimeString('id-ID', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZoneName: 'short',
+                            })}
                           </div>
                         </div>
-                      ) : (
-                        <span className="text-muted">Cabang Utama</span>
-                      )}
-                    </td>
-                    <td>{getStatusBadge(session.status)}</td>
-                    <td>
-                      <div className="d-flex gap-1">
-                        {session.status === 'live' ? (
-                          <Link href={`/auction/control-room?id=${session.id}`}>
-                            <Button variant="danger" size="sm">Enter Room</Button>
-                          </Link>
+                      </td>
+                    )}
+                    {isVisible('branch') && (
+                      <td>
+                        {session.branch ? (
+                          <div>
+                            <strong>{session.branch.name}</strong>
+                            <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                              📍 {session.branch.city}
+                            </div>
+                          </div>
                         ) : (
-                          <Link href={`/lots/planning?session_id=${session.id}`}>
-                            <Button variant="outline" size="sm">Manage Lots</Button>
-                          </Link>
+                          <span className="text-muted">Cabang Utama</span>
                         )}
-                        {(session as any).is_exclusive && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedExclusiveSession(session);
-                              setShowRegistrantsModal(true);
-                              fetchRegistrants(session.id);
-                            }}
-                          >
-                            Pendaftar
+                      </td>
+                    )}
+                    {isVisible('status') && <td>{getStatusBadge(session.status)}</td>}
+                    {isVisible('actions') && (
+                      <td>
+                        <div className="d-flex gap-1">
+                          {session.status === 'live' ? (
+                            <Link href={`/auction/control-room?id=${session.id}`}>
+                              <Button variant="danger" size="sm">Enter Room</Button>
+                            </Link>
+                          ) : (
+                            <Link href={`/lots/planning?session_id=${session.id}`}>
+                              <Button variant="outline" size="sm">Manage Lots</Button>
+                            </Link>
+                          )}
+                          {(session as any).is_exclusive && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedExclusiveSession(session);
+                                setShowRegistrantsModal(true);
+                                fetchRegistrants(session.id);
+                              }}
+                            >
+                              Pendaftar
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(session)}>
+                            Edit
                           </Button>
-                        )}
-                        <Button variant="outline" size="sm" onClick={() => handleOpenEdit(session)}>
-                          Edit
-                        </Button>
-                        <Button variant="danger" size="sm" onClick={() => handleDelete(session.id, session.title)}>
-                          Hapus
-                        </Button>
-                      </div>
-                    </td>
+                          {session.status === 'draft' && (
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(session.id, session.title)}>
+                              Hapus
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

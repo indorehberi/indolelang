@@ -139,6 +139,7 @@ function ActiveLotCard({
     initialStartCountdown !== undefined ? initialStartCountdown : 3
   );
   const [currentImageIdx, setCurrentImageIdx] = useState<number>(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
   const [isCancelledOverlay, setIsCancelledOverlay] = useState(false);
   const [cancelCountdown, setCancelCountdown] = useState(5);
   const cancelIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -185,6 +186,17 @@ function ActiveLotCard({
 
 
   const displayImages = getDisplayAssetImages(lot);
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsLightboxOpen(false);
+      if (e.key === "ArrowLeft") setCurrentImageIdx((prev) => (prev > 0 ? prev - 1 : displayImages.length - 1));
+      if (e.key === "ArrowRight") setCurrentImageIdx((prev) => (prev < displayImages.length - 1 ? prev + 1 : 0));
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isLightboxOpen, displayImages.length]);
 
   const playBeep = () => {
     try {
@@ -757,37 +769,142 @@ function ActiveLotCard({
 
         <div className="w-full md:w-1/2 flex flex-col gap-4">
           <div className="bg-white rounded-3xl border border-slate-200 flex-1 overflow-hidden shadow-sm">
-            <div className="relative h-[280px] bg-slate-900">
+            <div className="relative h-[320px] bg-slate-900 group">
               <img
                 src={getImageUrl(displayImages[currentImageIdx])}
                 alt={`${lot.asset?.title} - foto utama`}
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full cursor-pointer"
+                onClick={() => setIsLightboxOpen(true)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
-              <div className="absolute top-4 left-4 rounded-full bg-primary px-3 py-1 text-[10px] uppercase tracking-[0.25em] font-black text-white shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/20 to-transparent pointer-events-none" />
+              <div className="absolute top-4 left-4 rounded-full bg-primary px-3 py-1 text-[10px] uppercase tracking-[0.25em] font-black text-white shadow-lg pointer-events-none">
                 Live Room
               </div>
-              <div className="absolute top-4 right-4 rounded-full bg-white/90 px-3 py-1 text-[10px] uppercase tracking-[0.25em] font-black text-slate-800 shadow-lg">
+              <div className="absolute top-4 right-4 rounded-full bg-white/90 px-3 py-1 text-[10px] uppercase tracking-[0.25em] font-black text-slate-800 shadow-lg pointer-events-none">
                 Penawaran Aktif
               </div>
-              <div className="absolute bottom-4 left-4 right-4">
-                <div className="text-[10px] uppercase tracking-[0.28em] text-slate-200">Unit yang dilelang</div>
-                <div className="text-xl font-black text-white mt-1">{lot.asset?.title || "Lot Lelang"}</div>
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-slate-200">Unit yang dilelang</div>
+                  <div className="text-xl font-black text-white mt-1">{lot.asset?.title || "Lot Lelang"}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="flex items-center gap-1.5 bg-black/60 hover:bg-black/90 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 shadow-md transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">zoom_in</span>
+                  <span>Perbesar</span>
+                </button>
               </div>
             </div>
 
             {displayImages.length > 1 && (
-              <div className="flex gap-2 px-4 pt-4">
-                {displayImages.map((img: string, idx: number) => (
+              <div className="px-4 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Foto Tambahan ({displayImages.length})
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">Klik foto untuk perbesar</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent snap-x">
+                  {displayImages.map((img: string, idx: number) => (
+                    <button
+                      key={`${img}-${idx}`}
+                      type="button"
+                      onClick={() => {
+                        setCurrentImageIdx(idx);
+                        setIsLightboxOpen(true);
+                      }}
+                      className={`relative shrink-0 h-20 w-28 overflow-hidden rounded-2xl border-2 transition-all group snap-start cursor-pointer ${
+                        currentImageIdx === idx
+                          ? "border-primary ring-2 ring-primary/40 shadow-md scale-[1.02]"
+                          : "border-slate-200 opacity-75 hover:opacity-100 hover:border-slate-300"
+                      }`}
+                    >
+                      <img src={getImageUrl(img)} alt={`Foto ${idx + 1}`} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 text-lg transition-opacity">zoom_in</span>
+                      </div>
+                      {currentImageIdx === idx && (
+                        <div className="absolute top-1 right-1 bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
+                          Aktif
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Lightbox Fullscreen */}
+            {isLightboxOpen && (
+              <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200">
+                {/* Header Lightbox */}
+                <div className="flex items-center justify-between text-white z-10">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">{lot.asset?.title || "Foto Unit Lelang"}</h3>
+                    <p className="text-xs text-slate-300">
+                      Foto {currentImageIdx + 1} dari {displayImages.length}
+                    </p>
+                  </div>
                   <button
-                    key={`${img}-${idx}`}
                     type="button"
-                    onClick={() => setCurrentImageIdx(idx)}
-                    className={`h-16 w-24 overflow-hidden rounded-xl border ${currentImageIdx === idx ? "border-primary" : "border-slate-200"}`}
+                    onClick={() => setIsLightboxOpen(false)}
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
                   >
-                    <img src={getImageUrl(img)} alt={`Foto ${idx + 1}`} className="h-full w-full object-cover" />
+                    <span className="material-symbols-outlined text-xl">close</span>
                   </button>
-                ))}
+                </div>
+
+                {/* Main Lightbox Image & Nav Controls */}
+                <div className="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
+                  {displayImages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentImageIdx((prev) => (prev > 0 ? prev - 1 : displayImages.length - 1))}
+                      className="absolute left-2 sm:left-4 z-10 w-12 h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer"
+                      aria-label="Foto Sebelumnya"
+                    >
+                      <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                    </button>
+                  )}
+
+                  <img
+                    src={getImageUrl(displayImages[currentImageIdx])}
+                    alt={`${lot.asset?.title} - Foto Fullscreen`}
+                    className="max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300"
+                  />
+
+                  {displayImages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentImageIdx((prev) => (prev < displayImages.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-2 sm:right-4 z-10 w-12 h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer"
+                      aria-label="Foto Selanjutnya"
+                    >
+                      <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Bottom Strip Thumbnails in Lightbox */}
+                {displayImages.length > 1 && (
+                  <div className="flex gap-2 justify-center overflow-x-auto py-2 z-10 max-w-xl mx-auto">
+                    {displayImages.map((img: string, idx: number) => (
+                      <button
+                        key={`lightbox-${img}-${idx}`}
+                        type="button"
+                        onClick={() => setCurrentImageIdx(idx)}
+                        className={`h-14 w-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                          currentImageIdx === idx ? "border-primary ring-2 ring-primary/50 opacity-100 scale-105" : "border-slate-700 opacity-50 hover:opacity-80"
+                        }`}
+                      >
+                        <img src={getImageUrl(img)} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             

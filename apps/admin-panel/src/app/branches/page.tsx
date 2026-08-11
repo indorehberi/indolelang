@@ -9,6 +9,17 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
 import { apiFetch } from '../../lib/api';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
+
+const BRANCH_COLUMNS: ColumnOption[] = [
+  { key: 'name', label: 'Nama Cabang', alwaysVisible: true },
+  { key: 'city', label: 'Kota' },
+  { key: 'address', label: 'Alamat Lengkap' },
+  { key: 'phone', label: 'Nomor Telepon' },
+  { key: 'pic', label: 'Kepala Cabang (PIC)' },
+  { key: 'status', label: 'Status' },
+  { key: 'actions', label: 'Tindakan', alwaysVisible: true },
+];
 
 interface Branch {
   id: string;
@@ -24,6 +35,7 @@ interface Branch {
 export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('branch_list', BRANCH_COLUMNS);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -162,7 +174,13 @@ export default function BranchesPage() {
           <h1 className="page-title">Manajemen Kantor Cabang</h1>
           <p className="page-subtitle">Daftar lokasi fisik kantor operasional dan titik penyerahan/pengambilan unit lelang.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <ColumnPicker
+            columns={BRANCH_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="branch_list"
+          />
           <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
             + Tambah Cabang
           </Button>
@@ -174,36 +192,39 @@ export default function BranchesPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Cabang</th>
-                <th>Kota</th>
-                <th>Alamat Lengkap</th>
-                <th>Nomor Telepon</th>
-                <th>Kepala Cabang (PIC)</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'center' }}>Tindakan</th>
+                {isVisible('name') && <th>Nama Cabang</th>}
+                {isVisible('city') && <th>Kota</th>}
+                {isVisible('address') && <th>Alamat Lengkap</th>}
+                {isVisible('phone') && <th>Nomor Telepon</th>}
+                {isVisible('pic') && <th>Kepala Cabang (PIC)</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('actions') && <th style={{ textAlign: 'center' }}>Tindakan</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center">Memuat data cabang...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data cabang...</td></tr>
               ) : branches.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-muted">Tidak ada cabang terdaftar.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada cabang terdaftar.</td></tr>
               ) : (
                 branches.map((br) => (
                   <tr key={br.id}>
-                    <td><strong>{br.name}</strong></td>
-                    <td>{br.city}</td>
-                    <td style={{ maxWidth: '300px', whiteSpace: 'normal', fontSize: '0.85rem' }}>{br.address}</td>
-                    <td>{br.phone}</td>
-                    <td>{br.pic_name}</td>
-                    <td>
-                      {br.is_active ? (
-                        <Badge variant="success">Aktif</Badge>
-                      ) : (
-                        <Badge variant="danger">Tutup</Badge>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
+                    {isVisible('name') && <td><strong>{br.name}</strong></td>}
+                    {isVisible('city') && <td>{br.city}</td>}
+                    {isVisible('address') && <td style={{ maxWidth: '300px', whiteSpace: 'normal', fontSize: '0.85rem' }}>{br.address}</td>}
+                    {isVisible('phone') && <td>{br.phone}</td>}
+                    {isVisible('pic') && <td>{br.pic_name}</td>}
+                    {isVisible('status') && (
+                      <td>
+                        {br.is_active ? (
+                          <Badge variant="success">Aktif</Badge>
+                        ) : (
+                          <Badge variant="danger">Nonaktif</Badge>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('actions') && (
+                      <td style={{ textAlign: 'center' }}>
                       <div className="d-flex gap-1 justify-content-center">
                         <button 
                           className="btn btn-xs btn-outline"
@@ -229,6 +250,7 @@ export default function BranchesPage() {
                         </button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

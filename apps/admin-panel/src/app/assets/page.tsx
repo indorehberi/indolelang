@@ -10,6 +10,18 @@ import { apiFetch } from '../../lib/api';
 import { AssetCategory } from '@indo-lelang/shared-types';
 import { useToast } from '../../providers/ToastProvider';
 import { exportToExcel } from '../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
+
+const ASSET_COLUMNS: ColumnOption[] = [
+  { key: 'title', label: 'Nama Barang', alwaysVisible: true },
+  { key: 'category', label: 'Kategori' },
+  { key: 'provider', label: 'Provider' },
+  { key: 'plate', label: 'No. Polisi' },
+  { key: 'price', label: 'Harga Dasar' },
+  { key: 'status', label: 'Status' },
+  { key: 'created_at', label: 'Tanggal Masuk' },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
 
 const CATEGORY_LABELS: Record<string, string> = {
   [AssetCategory.MOBIL]: '🚗 Mobil Penumpang',
@@ -64,6 +76,7 @@ export default function AssetsPage() {
   const [poolFilter, setPoolFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('asset_list', ASSET_COLUMNS);
   
   const [userRole, setUserRole] = useState<string>('');
 
@@ -749,6 +762,14 @@ export default function AssetsPage() {
               onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
+          <div style={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
+            <ColumnPicker
+              columns={ASSET_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="asset_list"
+            />
+          </div>
         </div>
       </Card>
 
@@ -757,78 +778,90 @@ export default function AssetsPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Barang</th>
-                <th>Kategori</th>
-                <th>Provider</th>
-                <th>No. Polisi</th>
-                <th>Harga Dasar</th>
-                <th>Status</th>
-                <th>Tanggal Masuk</th>
-                <th>Aksi</th>
+                {isVisible('title') && <th>Nama Barang</th>}
+                {isVisible('category') && <th>Kategori</th>}
+                {isVisible('provider') && <th>Provider</th>}
+                {isVisible('plate') && <th>No. Polisi</th>}
+                {isVisible('price') && <th>Harga Dasar</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('created_at') && <th>Tanggal Masuk</th>}
+                {isVisible('actions') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center">Memuat daftar barang...</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Memuat daftar barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
+                  <td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada unit barang ditemukan.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
                   <tr key={asset.id}>
-                    <td>
-                      <div>
-                        <strong>{asset.title}</strong>
-                        <div className="text-muted" style={{ fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
-                          {asset.description || 'Tidak ada deskripsi.'}
+                    {isVisible('title') && (
+                      <td>
+                        <div>
+                          <strong>{asset.title}</strong>
+                          <div className="text-muted" style={{ fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                            {asset.description || 'Tidak ada deskripsi.'}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ textTransform: 'capitalize' }}>
-                        {asset.category.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>
-                      {asset.provider?.company_name || asset.provider?.full_name || 'Admin'}
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>
-                    <td>
-                      <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
-                    </td>
-                    <td>{getStatusBadge(asset.status)}</td>
-                    <td>
-                      {new Date(asset.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td>
-                      <div className="d-flex gap-1 flex-wrap">
-                        {['admin', 'superadmin'].includes(userRole) && (
-                          <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
-                        )}
-                        {['admin', 'superadmin'].includes(userRole) && (
-                          <Button variant="primary" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>Edit</Button>
-                        )}
-                        {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.status === 'pending' && (
-                          <Button variant="primary" size="sm" onClick={() => router.push(`/assets/inspection?open=${asset.id}`)}>Inspeksi</Button>
-                        )}
-                        {userRole === 'inspector' && (
-                          <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>Edit</Button>
-                        )}
-                        {['inspector', 'provider'].includes(userRole) && ['rejected', 'returned'].includes(asset.status) && (
-                          <Button variant="primary" size="sm" onClick={() => handleReviewUlang(asset.id)}>Ajukan</Button>
-                        )}
-                        {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.created_by_admin && (
-                          <Button variant="danger" size="sm" onClick={() => handleDelete(asset.id)}>Delete</Button>
-                        )}
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {isVisible('category') && (
+                      <td>
+                        <span style={{ textTransform: 'capitalize' }}>
+                          {asset.category.replace('_', ' ')}
+                        </span>
+                      </td>
+                    )}
+                    {isVisible('provider') && (
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {asset.provider?.company_name || asset.provider?.full_name || 'Admin'}
+                      </td>
+                    )}
+                    {isVisible('plate') && <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>}
+                    {isVisible('price') && (
+                      <td>
+                        <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
+                      </td>
+                    )}
+                    {isVisible('status') && <td>{getStatusBadge(asset.status)}</td>}
+                    {isVisible('created_at') && (
+                      <td>
+                        {new Date(asset.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                    )}
+                    {isVisible('actions') && (
+                      <td>
+                        <div className="d-flex gap-1 flex-wrap">
+                          {['admin', 'superadmin'].includes(userRole) && (
+                            <Button variant="outline" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>View</Button>
+                          )}
+                          {['admin', 'superadmin'].includes(userRole) && (
+                            <Button variant="primary" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>Edit</Button>
+                          )}
+                          {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.status === 'pending' && (
+                            <Button variant="primary" size="sm" onClick={() => router.push(`/assets/inspection?open=${asset.id}`)}>Inspeksi</Button>
+                          )}
+                          {userRole === 'inspector' && (
+                            <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>Edit</Button>
+                          )}
+                          {['inspector', 'provider'].includes(userRole) && ['rejected', 'returned'].includes(asset.status) && (
+                            <Button variant="primary" size="sm" onClick={() => handleReviewUlang(asset.id)}>Ajukan</Button>
+                          )}
+                          {['admin', 'superadmin', 'inspector'].includes(userRole) && asset.created_by_admin && (
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(asset.id)}>Delete</Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

@@ -8,6 +8,17 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const PROVIDER_COLUMNS: ColumnOption[] = [
+  { key: 'full_name', label: 'Nama Perwakilan', alwaysVisible: true },
+  { key: 'company_name', label: 'Nama Perusahaan' },
+  { key: 'contact', label: 'Kontak & Email' },
+  { key: 'npwp', label: 'NPWP' },
+  { key: 'status', label: 'Status' },
+  { key: 'submitted_at', label: 'Tanggal Ajukan' },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
 
 interface Provider {
   id: string; // providers table row id
@@ -63,6 +74,7 @@ export default function ProviderUsersPage() {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [search, setSearch] = useState('');
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('provider_list', PROVIDER_COLUMNS);
 
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -321,6 +333,12 @@ export default function ProviderUsersPage() {
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
             Export XLSX
           </Button>
+          <ColumnPicker
+            columns={PROVIDER_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="provider_list"
+          />
           <Button variant="primary" size="sm" onClick={() => router.push('/users/provider/new')}>
             + Tambah Provider
           </Button>
@@ -332,34 +350,37 @@ export default function ProviderUsersPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Perwakilan</th>
-                <th>Nama Perusahaan</th>
-                <th>Kontak &amp; Email</th>
-                <th>NPWP</th>
-                <th>Status</th>
-                <th>Tanggal Ajukan</th>
-                <th>Aksi</th>
+                {isVisible('full_name') && <th>Nama Perwakilan</th>}
+                {isVisible('company_name') && <th>Nama Perusahaan</th>}
+                {isVisible('contact') && <th>Kontak &amp; Email</th>}
+                {isVisible('npwp') && <th>NPWP</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('submitted_at') && <th>Tanggal Ajukan</th>}
+                {isVisible('actions') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-6">Memuat data provider...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center py-6">Memuat data provider...</td></tr>
               ) : providers.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-6 text-muted">Tidak ada provider ditemukan.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center py-6 text-muted">Tidak ada provider ditemukan.</td></tr>
               ) : (
                 providers.map((prov) => (
                   <tr key={prov.id}>
-                    <td><strong>{prov.user?.full_name}</strong></td>
-                    <td>{prov.company_name || '-'}</td>
-                    <td>
-                      <div>{prov.user?.email}</div>
-                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>{prov.user?.phone || '-'}</div>
-                    </td>
-                    <td><code style={{ fontSize: '0.85rem' }}>{prov.npwp || '-'}</code></td>
-                    <td>{getStatusBadge(prov.status)}</td>
-                    <td>{new Date(prov.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                    <td>
-                      <div className="d-flex gap-1">
+                    {isVisible('full_name') && <td><strong>{prov.user?.full_name}</strong></td>}
+                    {isVisible('company_name') && <td>{prov.company_name || '-'}</td>}
+                    {isVisible('contact') && (
+                      <td>
+                        <div>{prov.user?.email}</div>
+                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>{prov.user?.phone || '-'}</div>
+                      </td>
+                    )}
+                    {isVisible('npwp') && <td><code style={{ fontSize: '0.85rem' }}>{prov.npwp || '-'}</code></td>}
+                    {isVisible('status') && <td>{getStatusBadge(prov.status)}</td>}
+                    {isVisible('submitted_at') && <td>{new Date(prov.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>}
+                    {isVisible('actions') && (
+                      <td>
+                        <div className="d-flex gap-1">
                         <Button variant="outline" size="sm" onClick={() => {
                           setSelectedProvider(prov);
                           setShowViewModal(true);
@@ -397,6 +418,7 @@ export default function ProviderUsersPage() {
                         </Button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

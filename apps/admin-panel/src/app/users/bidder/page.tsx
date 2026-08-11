@@ -9,6 +9,17 @@ import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
 import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const BIDDER_COLUMNS: ColumnOption[] = [
+  { key: 'full_name', label: 'Nama Lengkap', alwaysVisible: true },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Nomor Telepon' },
+  { key: 'nipl', label: 'NIPL Aktif' },
+  { key: 'status', label: 'Status' },
+  { key: 'submitted_at', label: 'Tanggal Ajukan' },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
 
 interface Bidder {
   id: string; // bidders table row id
@@ -76,6 +87,7 @@ export default function BidderListPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [search, setSearch] = useState('');
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('bidder_list', BIDDER_COLUMNS);
 
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -320,6 +332,12 @@ export default function BidderListPage() {
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
             Export XLSX
           </Button>
+          <ColumnPicker
+            columns={BIDDER_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="bidder_list"
+          />
           <Button variant="primary" size="sm" onClick={() => router.push('/users/bidder/new')}>
             + Tambah Bidder
           </Button>
@@ -331,52 +349,55 @@ export default function BidderListPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Lengkap</th>
-                <th>Email</th>
-                <th>Nomor Telepon</th>
-                <th>NIPL Aktif</th>
-                <th>Status</th>
-                <th>Tanggal Ajukan</th>
-                <th>Aksi</th>
+                {isVisible('full_name') && <th>Nama Lengkap</th>}
+                {isVisible('email') && <th>Email</th>}
+                {isVisible('phone') && <th>Nomor Telepon</th>}
+                {isVisible('nipl') && <th>NIPL Aktif</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('submitted_at') && <th>Tanggal Ajukan</th>}
+                {isVisible('actions') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center">Memuat data...</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Memuat data...</td>
                 </tr>
               ) : bidders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center">Tidak ada bidder ditemukan.</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Tidak ada bidder ditemukan.</td>
                 </tr>
               ) : (
                 bidders.map((bidder) => (
                   <tr key={bidder.id}>
-                    <td><strong>{bidder.user?.full_name}</strong></td>
-                    <td>{bidder.user?.email}</td>
-                    <td>{bidder.user?.phone || '-'}</td>
-                    <td>
-                      <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
-                        {bidder.is_unlimited_mobil && bidder.is_unlimited_motor
-                          ? 'Unlimited'
-                          : bidder.is_unlimited_mobil
-                          ? 'Unlimited Mobil'
-                          : bidder.is_unlimited_motor
-                          ? 'Unlimited Motor'
-                          : `${bidder.active_nipl_count || 0} NIPL`}
-                      </Badge>
-                      {((bidder.nipl_mobil || 0) > 0 || (bidder.nipl_motor || 0) > 0) && (
-                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>
-                          {(bidder.nipl_mobil || 0) > 0 && <span>Mobil: {bidder.is_unlimited_mobil ? 'Unlimited' : bidder.nipl_mobil}</span>}
-                          {(bidder.nipl_mobil || 0) > 0 && (bidder.nipl_motor || 0) > 0 && <span> · </span>}
-                          {(bidder.nipl_motor || 0) > 0 && <span>Motor: {bidder.is_unlimited_motor ? 'Unlimited' : bidder.nipl_motor}</span>}
-                        </div>
-                      )}
-                    </td>
-                    <td>{getStatusBadge(bidder.status)}</td>
-                    <td>{bidder.submitted_at.split('T')[0]}</td>
-                    <td>
-                      <div className="d-flex gap-1" style={{ display: 'flex', gap: '0.5rem' }}>
+                    {isVisible('full_name') && <td><strong>{bidder.user?.full_name}</strong></td>}
+                    {isVisible('email') && <td>{bidder.user?.email}</td>}
+                    {isVisible('phone') && <td>{bidder.user?.phone || '-'}</td>}
+                    {isVisible('nipl') && (
+                      <td>
+                        <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
+                          {bidder.is_unlimited_mobil && bidder.is_unlimited_motor
+                            ? 'Unlimited'
+                            : bidder.is_unlimited_mobil
+                            ? 'Unlimited Mobil'
+                            : bidder.is_unlimited_motor
+                            ? 'Unlimited Motor'
+                            : `${bidder.active_nipl_count || 0} NIPL`}
+                        </Badge>
+                        {((bidder.nipl_mobil || 0) > 0 || (bidder.nipl_motor || 0) > 0) && (
+                          <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>
+                            {(bidder.nipl_mobil || 0) > 0 && <span>Mobil: {bidder.is_unlimited_mobil ? 'Unlimited' : bidder.nipl_mobil}</span>}
+                            {(bidder.nipl_mobil || 0) > 0 && (bidder.nipl_motor || 0) > 0 && <span> · </span>}
+                            {(bidder.nipl_motor || 0) > 0 && <span>Motor: {bidder.is_unlimited_motor ? 'Unlimited' : bidder.nipl_motor}</span>}
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('status') && <td>{getStatusBadge(bidder.status)}</td>}
+                    {isVisible('submitted_at') && <td>{bidder.submitted_at.split('T')[0]}</td>}
+                    {isVisible('actions') && (
+                      <td>
+                        <div className="d-flex gap-1" style={{ display: 'flex', gap: '0.5rem' }}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -447,6 +468,7 @@ export default function BidderListPage() {
                         </Button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

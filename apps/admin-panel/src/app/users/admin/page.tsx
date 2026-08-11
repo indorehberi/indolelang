@@ -6,6 +6,17 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const ADMIN_COLUMNS: ColumnOption[] = [
+  { key: 'full_name', label: 'Nama Lengkap', alwaysVisible: true },
+  { key: 'contact', label: 'Kontak & Email' },
+  { key: 'role', label: 'Tingkat Akses (Role)' },
+  { key: 'branch', label: 'Penugasan Cabang' },
+  { key: 'status', label: 'Status Akun' },
+  { key: 'created_at', label: 'Tanggal Gabung' },
+  { key: 'actions', label: 'Tindakan', alwaysVisible: true },
+];
 
 interface Staff {
   id: string;
@@ -24,6 +35,7 @@ export default function AdminStaffPage() {
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('admin_staff_list', ADMIN_COLUMNS);
 
   React.useEffect(() => {
     const fetchStaff = async () => {
@@ -56,14 +68,6 @@ export default function AdminStaffPage() {
       default:
         return <Badge variant="default">{role}</Badge>;
     }
-  };
-
-  const getStatusBadge = (status: Staff['status']) => {
-    return status === 'active' ? (
-      <Badge variant="success">Aktif</Badge>
-    ) : (
-      <Badge variant="danger">Nonaktif</Badge>
-    );
   };
 
   const uniqueBranches = Array.from(new Set(staffList.map((s) => s.branch_name).filter(Boolean)));
@@ -119,6 +123,12 @@ export default function AdminStaffPage() {
               ))}
             </select>
           </div>
+          <ColumnPicker
+            columns={ADMIN_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="admin_staff_list"
+          />
         </div>
       </Card>
 
@@ -127,38 +137,48 @@ export default function AdminStaffPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Lengkap</th>
-                <th>Kontak & Email</th>
-                <th>Tingkat Akses (Role)</th>
-                <th>Penugasan Cabang</th>
-                <th>Status Akun</th>
-                <th>Tanggal Gabung</th>
-                <th style={{ textAlign: 'center' }}>Tindakan</th>
+                {isVisible('full_name') && <th>Nama Lengkap</th>}
+                {isVisible('contact') && <th>Kontak & Email</th>}
+                {isVisible('role') && <th>Tingkat Akses (Role)</th>}
+                {isVisible('branch') && <th>Penugasan Cabang</th>}
+                {isVisible('status') && <th>Status Akun</th>}
+                {isVisible('created_at') && <th>Tanggal Gabung</th>}
+                {isVisible('actions') && <th style={{ textAlign: 'center' }}>Tindakan</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center">Memuat data staf...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data staf...</td></tr>
               ) : filteredStaff.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-muted">Tidak ada akun staf ditemukan.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada akun staf ditemukan.</td></tr>
               ) : (
                 filteredStaff.map((staff) => (
                   <tr key={staff.id}>
-                    <td><strong>{staff.full_name}</strong></td>
-                    <td>
-                      <div>{staff.email}</div>
-                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>{staff.phone}</div>
-                    </td>
-                    <td>{getRoleBadge(staff.role)}</td>
-                    <td>{staff.branch_name}</td>
-                    <td>{getStatusBadge(staff.status)}</td>
-                    <td>{new Date(staff.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                    <td style={{ textAlign: 'center' }}>
+                    {isVisible('full_name') && <td><strong>{staff.full_name}</strong></td>}
+                    {isVisible('contact') && (
+                      <td>
+                        <div>{staff.email}</div>
+                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>{staff.phone}</div>
+                      </td>
+                    )}
+                    {isVisible('role') && <td>{getRoleBadge(staff.role)}</td>}
+                    {isVisible('branch') && <td>{staff.branch_name}</td>}
+                    {isVisible('status') && (
+                      <td>
+                        <Badge variant={staff.status === 'active' ? 'success' : 'danger'}>
+                          {staff.status === 'active' ? 'Aktif' : 'Disuspen'}
+                        </Badge>
+                      </td>
+                    )}
+                    {isVisible('created_at') && <td>{new Date(staff.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>}
+                    {isVisible('actions') && (
+                      <td style={{ textAlign: 'center' }}>
                       <div className="d-flex gap-1 justify-content-center">
                         <button className="btn btn-xs btn-outline">Ubah Hak</button>
                         <button className="btn btn-xs btn-danger">Deaktivasi</button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

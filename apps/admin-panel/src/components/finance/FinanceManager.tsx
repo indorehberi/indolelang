@@ -7,6 +7,18 @@ import Badge from '../ui/Badge';
 import { apiFetch } from '../../lib/api';
 import { useToast } from '../../providers/ToastProvider';
 import { exportToExcel } from '../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../ui/ColumnPicker';
+
+const DEPOSIT_COLUMNS: ColumnOption[] = [
+  { key: 'created_at', label: 'Waktu Transaksi' },
+  { key: 'bidder', label: 'Bidder', alwaysVisible: true },
+  { key: 'nipl_code', label: 'No NIPL' },
+  { key: 'amount', label: 'Jumlah Jaminan' },
+  { key: 'va_number', label: 'Virtual Account (VA)' },
+  { key: 'status', label: 'Status Pembayaran' },
+  { key: 'paid_at', label: 'Waktu Lunas' },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
 
 interface Deposit {
   id: string;
@@ -101,7 +113,8 @@ export default function FinanceManager({
   const [refundQueue, setRefundQueue] = useState<Deposit[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('finance_deposit_list', DEPOSIT_COLUMNS);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('');
   const [settlementStatusFilter, setSettlementStatusFilter] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -401,6 +414,28 @@ export default function FinanceManager({
     if (activeTab === 'settlements') fetchSettlements();
   }, [activeTab, statusFilter, invoiceStatusFilter, settlementStatusFilter]);
 
+  const handleExport = () => {
+    const dataToExport = deposits.map((d, index) => ({
+      'No': index + 1,
+      'Waktu Transaksi': d.created_at ? new Date(d.created_at).toLocaleString('id-ID') : '-',
+      'Nama Bidder': d.user?.full_name || '-',
+      'Email': d.user?.email || '-',
+      'No. HP': d.user?.phone || '-',
+      'Bank VA': d.va_bank || d.user?.bank_name || '-',
+      'No. NIPL / VA': d.va_number || '-',
+      'Jumlah Jaminan (Rp)': d.amount ? Number(d.amount) : 0,
+      'Metode Pembayaran': d.payment_method || 'Virtual Account',
+      'Status Deposit': d.status === 'paid' ? 'Lunas' : d.status === 'pending' ? 'Pending' : d.status === 'pending_approval' ? 'Menunggu Approval' : d.status === 'pending_refund' ? 'Menunggu Refund' : d.status === 'refunded' ? 'Refunded' : d.status === 'expired' ? 'Expired' : d.status,
+      'Waktu Dibayar': d.paid_at ? new Date(d.paid_at).toLocaleString('id-ID') : '-'
+    }));
+    const ok = exportToExcel(dataToExport, 'Monitoring_Deposit_NIPL_IndoLelang', 'Deposit NIPL');
+    if (ok) {
+      toast.success('Berhasil mendownload Excel Monitoring Deposit NIPL (.xlsx)');
+    } else {
+      toast.error('Tidak ada data deposit NIPL untuk di-export');
+    }
+  };
+
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -531,34 +566,16 @@ export default function FinanceManager({
               <p className="page-subtitle">Daftar transaksi Virtual Account (VA) untuk pembelian Nomor Induk Peserta Lelang (NIPL).</p>
             </div>
             <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button
-                onClick={() => {
-                  const dataToExport = deposits.map((d, index) => ({
-                    'No': index + 1,
-                    'Waktu Transaksi': d.created_at ? new Date(d.created_at).toLocaleString('id-ID') : '-',
-                    'Nama Bidder': d.user?.full_name || '-',
-                    'Email': d.user?.email || '-',
-                    'No. HP': d.user?.phone || '-',
-                    'Bank VA': d.va_bank || d.user?.bank_name || '-',
-                    'No. NIPL / VA': d.va_number || '-',
-                    'Jumlah Jaminan (Rp)': d.amount ? Number(d.amount) : 0,
-                    'Metode Pembayaran': d.payment_method || 'Virtual Account',
-                    'Status Deposit': d.status === 'paid' ? 'Lunas' : d.status === 'pending' ? 'Pending' : d.status === 'pending_approval' ? 'Menunggu Approval' : d.status === 'pending_refund' ? 'Menunggu Refund' : d.status === 'refunded' ? 'Refunded' : d.status === 'expired' ? 'Expired' : d.status,
-                    'Waktu Dibayar': d.paid_at ? new Date(d.paid_at).toLocaleString('id-ID') : '-'
-                  }));
-                  const ok = exportToExcel(dataToExport, 'Monitoring_Deposit_NIPL_IndoLelang', 'Deposit NIPL');
-                  if (ok) {
-                    toast.success('Berhasil mendownload Excel Monitoring Deposit NIPL (.xlsx)');
-                  } else {
-                    toast.error('Tidak ada data deposit NIPL untuk di-export');
-                  }
-                }}
-                className="btn btn-outline btn-sm"
-                style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-              >
+              <button onClick={handleExport} className="btn btn-outline btn-sm d-flex align-items-center gap-1">
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
                 Export XLSX
               </button>
+              <ColumnPicker
+                columns={DEPOSIT_COLUMNS}
+                visibleKeys={visibleKeys}
+                onChange={setVisibleKeys}
+                tableId="finance_deposit_list"
+              />
               <div className="filter-group d-flex gap-1" style={{ flexWrap: 'wrap' }}>
                 <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
                 <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
@@ -576,92 +593,88 @@ export default function FinanceManager({
               <table>
                 <thead>
                   <tr>
-                    <th>Waktu Transaksi</th>
-                    <th>Bidder</th>
-                    <th>No NIPL</th>
-                    <th>Jumlah Jaminan</th>
-                    <th>Virtual Account (VA)</th>
-                    <th>Status Pembayaran</th>
-                    <th>Waktu Lunas</th>
-                    <th style={{ textAlign: 'center' }}>Aksi</th>
+                    {isVisible('created_at') && <th>Waktu Transaksi</th>}
+                    {isVisible('bidder') && <th>Bidder</th>}
+                    {isVisible('nipl_code') && <th>No NIPL</th>}
+                    {isVisible('amount') && <th>Jumlah Jaminan</th>}
+                    {isVisible('va_number') && <th>Virtual Account (VA)</th>}
+                    {isVisible('status') && <th>Status Pembayaran</th>}
+                    {isVisible('paid_at') && <th>Waktu Lunas</th>}
+                    {isVisible('actions') && <th style={{ textAlign: 'center' }}>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={8} className="text-center">Memuat data transaksi deposit...</td></tr>
+                    <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data transaksi deposit...</td></tr>
                   ) : deposits.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
+                    <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
                   ) : (
                     deposits.map((deposit) => (
                       <tr key={deposit.id}>
-                        <td>{new Date(deposit.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td>
-                          {deposit.user ? (
-                            <div>
-                              <strong>{deposit.user.full_name}</strong>
-                              <div className="text-muted" style={{ fontSize: '0.8rem' }}>{deposit.user.email}</div>
+                        {isVisible('created_at') && <td>{new Date(deposit.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>}
+                        {isVisible('bidder') && (
+                          <td>
+                            {deposit.user ? (
+                              <div>
+                                <strong>{deposit.user.full_name}</strong>
+                                <div className="text-muted" style={{ fontSize: '0.8rem' }}>{deposit.user.email}</div>
+                              </div>
+                            ) : (
+                              <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
+                            )}
+                          </td>
+                        )}
+                        {isVisible('nipl_code') && (
+                          <td>
+                            {deposit.user_id ? (
+                              <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                NIPL-{deposit.user_id.substring(0, 8).toUpperCase()}
+                              </code>
+                            ) : '-'}
+                          </td>
+                        )}
+                        {isVisible('amount') && <td><strong className="text-primary">{formatRupiah(deposit.amount)}</strong></td>}
+                        {isVisible('va_number') && (
+                          <td>
+                            {deposit.va_number ? (
+                              <div>
+                                <span style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem' }} className="badge badge-outline">{deposit.va_bank}</span>
+                                <span style={{ marginLeft: '6px', fontFamily: 'monospace', fontWeight: '600' }}>{deposit.va_number}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        )}
+                        {isVisible('status') && <td>{getStatusBadge(deposit.status)}</td>}
+                        {isVisible('paid_at') && <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>}
+                        {isVisible('actions') && (
+                          <td style={{ textAlign: 'center' }}>
+                            <div className="d-flex flex-column gap-1">
+                              {(deposit as any).transfer_proof_url && (
+                                <a 
+                                  href={(deposit as any).transfer_proof_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="btn btn-xs btn-outline"
+                                  style={{ color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}
+                                >
+                                  📄 Bukti TF
+                                </a>
+                              )}
+                              {(deposit.status === 'pending' || deposit.status === 'pending_approval') && (
+                                <button onClick={() => handleMarkPaid(deposit.id)} className="btn btn-xs btn-success">
+                                  Setujui (Paid)
+                                </button>
+                              )}
+                              {deposit.status === 'pending_refund' && (
+                                <button onClick={() => handleMarkRefunded(deposit.id)} className="btn btn-xs btn-warning">
+                                  Tandai Refunded
+                                </button>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
-                          )}
-                        </td>
-                        <td>
-                          {deposit.user_id ? (
-                            <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                              NIPL-{deposit.user_id.substring(0, 8).toUpperCase()}
-                            </code>
-                          ) : '-'}
-                        </td>
-                        <td><strong className="text-primary">{formatRupiah(deposit.amount)}</strong></td>
-                        <td>
-                          {deposit.va_number ? (
-                            <div>
-                              <span style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem' }} className="badge badge-outline">{deposit.va_bank}</span>
-                              <span style={{ marginLeft: '6px', fontFamily: 'monospace', fontWeight: '600' }}>{deposit.va_number}</span>
-                            </div>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                        <td>{getStatusBadge(deposit.status)}</td>
-                        <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div className="d-flex flex-column gap-1">
-                            {(deposit as any).transfer_proof_url && (
-                              <a 
-                                href={(deposit as any).transfer_proof_url} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="btn btn-xs btn-outline-primary"
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}
-                              >
-                                📄 Lihat Bukti
-                              </a>
-                            )}
-                            {(deposit.status === 'pending' || deposit.status === 'pending_approval') && deposit.payment_method === 'manual_transfer' && (
-                              <button
-                                onClick={() => handleMarkPaid(deposit.id)}
-                                className="btn btn-xs btn-success"
-                                disabled={processingId !== null}
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                                title="Tandai Paid untuk deposit manual"
-                              >
-                                {processingId === deposit.id ? 'Memproses...' : '✓ Setujui (Paid)'}
-                              </button>
-                            )}
-                            {deposit.status === 'pending_refund' && (
-                              <button
-                                onClick={() => handleMarkRefunded(deposit.id)}
-                                className="btn btn-xs btn-warning"
-                                disabled={processingId !== null}
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '600' }}
-                                title="Tandai sebagai Refunded"
-                              >
-                                {processingId === deposit.id ? 'Memproses...' : '💸 Tandai Refunded'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
