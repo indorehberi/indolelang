@@ -1,19 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
 import Toast from '../../../components/ui/Toast';
 import { apiFetch, getImageUrl } from '../../../lib/api';
+
+interface UserOption {
+  id: string;
+  full_name: string;
+  email: string;
+}
 
 export default function TambahTestimoniPage() {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
 
   const [formData, setFormData] = useState({
     user_id: '',
@@ -22,6 +32,35 @@ export default function TambahTestimoniPage() {
     image_url: '',
     status: 'approved',
   });
+
+  // Fetch users for dropdown
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await apiFetch('/admin/users?per_page=200&role=bidder');
+        const data = await res.json();
+        if (data.success) {
+          setUsers(data.data.map((u: any) => ({ id: u.id, full_name: u.full_name, email: u.email })));
+        }
+      } catch {
+        // silently ignore
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter(
+    (u) =>
+      u.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const handleSelectUser = (u: UserOption) => {
+    setSelectedUser(u);
+    setFormData((prev) => ({ ...prev, user_id: u.id }));
+    setUserSearch(u.full_name);
+    setShowDropdown(false);
+  };
 
   const handleImageUpload = async (file: File) => {
     if (!file) return;
@@ -64,7 +103,11 @@ export default function TambahTestimoniPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.user_id || !formData.rating || !formData.content) {
+    if (!formData.user_id) {
+      setToast({ message: 'Mohon pilih pengguna dari daftar', variant: 'danger' });
+      return;
+    }
+    if (!formData.rating || !formData.content) {
       setToast({ message: 'Mohon isi semua bidang yang diwajibkan', variant: 'danger' });
       return;
     }
@@ -75,8 +118,11 @@ export default function TambahTestimoniPage() {
       const response = await apiFetch('/admin/testimonials', {
         method: 'POST',
         body: JSON.stringify({
-          ...formData,
-          rating: parseInt(formData.rating, 10)
+          user_id: formData.user_id,
+          rating: parseInt(formData.rating, 10),
+          content: formData.content,
+          image_url: formData.image_url || null,
+          status: formData.status,
         }),
       });
 
@@ -105,18 +151,74 @@ export default function TambahTestimoniPage() {
 
       <Card>
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <Input
-              label="User ID (UUID)"
+          {/* User Picker */}
+          <div className="mb-3" style={{ position: 'relative' }}>
+            <label className="form-label" style={{ fontWeight: 'bold' }}>
+              Pengguna <span className="text-danger">*</span>
+            </label>
+            <input
               type="text"
-              required
-              placeholder="Masukkan UUID pengguna"
-              value={formData.user_id}
-              onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+              className="form-input"
+              placeholder="Cari nama atau email bidder..."
+              value={userSearch}
+              onChange={(e) => {
+                setUserSearch(e.target.value);
+                setSelectedUser(null);
+                setFormData(prev => ({ ...prev, user_id: '' }));
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+              autoComplete="off"
             />
-            <small className="text-muted">Testimoni harus dikaitkan dengan akun pengguna yang ada.</small>
+            {selectedUser && (
+              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                ✓ Dipilih: <strong>{selectedUser.full_name}</strong> ({selectedUser.email})
+              </small>
+            )}
+            {!selectedUser && (
+              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                Ketik nama atau email bidder untuk mencari, lalu pilih dari daftar.
+              </small>
+            )}
+            {showDropdown && userSearch.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: '#fff',
+                border: '1px solid var(--wf-border)',
+                borderRadius: 'var(--radius)',
+                zIndex: 100,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}>
+                {filteredUsers.length === 0 ? (
+                  <div style={{ padding: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>Tidak ada hasil.</div>
+                ) : (
+                  filteredUsers.slice(0, 20).map(u => (
+                    <div
+                      key={u.id}
+                      style={{
+                        padding: '0.6rem 0.75rem',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--wf-border)',
+                        fontSize: '0.875rem',
+                      }}
+                      onMouseDown={() => handleSelectUser(u)}
+                    >
+                      <strong>{u.full_name}</strong>
+                      <span style={{ marginLeft: '0.5rem', color: '#64748b' }}>{u.email}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
           
+          {/* Rating */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>Rating</label>
             <select
@@ -140,6 +242,7 @@ export default function TambahTestimoniPage() {
             </select>
           </div>
 
+          {/* Content */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>
               Konten Testimoni <span className="text-danger">*</span>
@@ -161,6 +264,7 @@ export default function TambahTestimoniPage() {
             />
           </div>
 
+          {/* Photo Upload */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>Foto Pengguna (Opsional)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
@@ -191,6 +295,7 @@ export default function TambahTestimoniPage() {
             </div>
           </div>
 
+          {/* Status */}
           <div className="mb-4">
             <label className="form-label" style={{ fontWeight: 'bold' }}>Status</label>
             <select
@@ -215,7 +320,7 @@ export default function TambahTestimoniPage() {
             <Button type="button" variant="outline" onClick={() => router.push('/testimoni')} disabled={adding}>
               Batal
             </Button>
-            <Button type="submit" variant="primary" disabled={adding}>
+            <Button type="submit" variant="primary" disabled={adding || uploadingImage}>
               {adding ? 'Menyimpan...' : 'Simpan Testimoni'}
             </Button>
           </div>

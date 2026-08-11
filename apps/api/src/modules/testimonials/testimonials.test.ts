@@ -191,6 +191,26 @@ describe('Testimonials Module Integration Tests', () => {
     });
   });
 
+  describe('PUT /api/v1/admin/testimonials/:id', () => {
+    it('should successfully update testimonial details (admin only)', async () => {
+      if (!testimonialId) return;
+
+      const res = await request(app)
+        .put(`/api/v1/admin/testimonials/${testimonialId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          rating: 4,
+          content: 'Layanan pelelangan yang diperbarui dan tetap sangat profesional!',
+          status: 'approved'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.rating).toBe(4);
+      expect(res.body.data.content).toBe('Layanan pelelangan yang diperbarui dan tetap sangat profesional!');
+    });
+  });
+
   describe('DELETE /api/v1/admin/testimonials/:id', () => {
     it('should soft delete the testimonial', async () => {
       if (!testimonialId) return;
