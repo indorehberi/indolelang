@@ -197,45 +197,57 @@ export default function BranchesPage() {
           <h1 className="page-title">Manajemen Kantor Cabang</h1>
           <p className="page-subtitle">Daftar lokasi fisik kantor operasional dan titik penyerahan/pengambilan unit lelang.</p>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-            />
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-            Export XLSX
-          </Button>
-          <ColumnPicker
-            columns={BRANCH_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="branch_list"
-          />
+        <div className="toolbar-right">
           <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
             + Tambah Cabang
           </Button>
         </div>
       </div>
+
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </Button>
+            <ColumnPicker
+              columns={BRANCH_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="branch_list"
+            />
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">

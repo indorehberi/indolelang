@@ -304,89 +304,110 @@ export default function BidderListPage() {
           <h1 className="page-title">Daftar Bidder</h1>
           <p className="page-subtitle">Hanya menampilkan pengguna yang mengajukan diri sebagai bidder.</p>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-            />
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-            />
-          </div>
-          <select
-            className="search-box"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-          >
-            <option value="">Semua Status</option>
-            <option value="antri">Menunggu Verifikasi (Antri)</option>
-            <option value="aktif">Aktif</option>
-            <option value="ditolak">Ditolak</option>
-            <option value="nonaktif">Nonaktif</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Cari nama/email/telepon..."
-            className="search-box"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const dataToExport = bidders.map((b, index) => {
-                const row: Record<string, any> = {};
-                if (isVisible('no')) row['No'] = index + 1;
-                if (isVisible('name')) row['Nama Lengkap'] = b.user?.full_name || '-';
-                if (isVisible('email')) row['Email'] = b.user?.email || '-';
-                if (isVisible('phone')) row['No. Telepon'] = b.user?.phone || '-';
-                if (isVisible('nik')) row['NIK / KTP'] = b.kyc?.nik || '-';
-                if (isVisible('npwp')) row['NPWP'] = b.user?.npwp || (b as any).npwp || '-';
-                if (isVisible('status')) row['Status Bidder'] = b.status === 'aktif' ? 'Aktif' : b.status === 'antri' ? 'Menunggu Verifikasi' : b.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
-                if (isVisible('kyc')) row['Status KYC'] = b.kyc?.status || 'Belum Verifikasi';
-                if (isVisible('nipl_mobil')) row['NIPL Mobil'] = b.is_unlimited_mobil ? 'Unlimited' : (b.nipl_mobil || 0);
-                if (isVisible('nipl_motor')) row['NIPL Motor'] = b.is_unlimited_motor ? 'Unlimited' : (b.nipl_motor || 0);
-                if (isVisible('occupation')) row['Pekerjaan'] = b.user?.occupation || (b as any).occupation || '-';
-                if (isVisible('address')) row['Alamat'] = b.user?.address || (b as any).address || '-';
-                if (isVisible('bank')) row['Bank & Rekening'] = b.user?.bank_account_no ? `${b.user.bank_name || ''} ${b.user.bank_account_no} a/n ${b.user.bank_account_name || ''}` : '-';
-                if (isVisible('created_at')) row['Tanggal Terdaftar'] = b.submitted_at ? new Date(b.submitted_at).toLocaleDateString('id-ID') : '-';
-                return row;
-              });
-              const ok = exportToExcel(dataToExport, 'Daftar_Bidder_IndoLelang', 'Daftar Bidder');
-              if (ok) {
-                toast.success('Berhasil mendownload Excel Daftar Bidder (.xlsx)');
-              } else {
-                toast.error('Tidak ada data bidder untuk di-export');
-              }
-            }}
-            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-            Export XLSX
-          </Button>
-          <ColumnPicker
-            columns={BIDDER_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="bidder_list"
-          />
+        <div className="toolbar-right">
           <Button variant="primary" size="sm" onClick={() => router.push('/users/bidder/new')}>
             + Tambah Bidder
           </Button>
         </div>
       </div>
+
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Bidder</label>
+            <input
+              type="text"
+              placeholder="Cari nama/email/telepon..."
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Bidder</label>
+            <select
+              className="form-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="">Semua Status</option>
+              <option value="antri">Menunggu Verifikasi (Antri)</option>
+              <option value="aktif">Aktif</option>
+              <option value="ditolak">Ditolak</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const dataToExport = bidders.map((b, index) => {
+                  const row: Record<string, any> = {};
+                  if (isVisible('no')) row['No'] = index + 1;
+                  if (isVisible('name')) row['Nama Lengkap'] = b.user?.full_name || '-';
+                  if (isVisible('email')) row['Email'] = b.user?.email || '-';
+                  if (isVisible('phone')) row['No. Telepon'] = b.user?.phone || '-';
+                  if (isVisible('nik')) row['NIK / KTP'] = b.kyc?.nik || '-';
+                  if (isVisible('npwp')) row['NPWP'] = b.user?.npwp || (b as any).npwp || '-';
+                  if (isVisible('status')) row['Status Bidder'] = b.status === 'aktif' ? 'Aktif' : b.status === 'antri' ? 'Menunggu Verifikasi' : b.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
+                  if (isVisible('kyc')) row['Status KYC'] = b.kyc?.status || 'Belum Verifikasi';
+                  if (isVisible('nipl_mobil')) row['NIPL Mobil'] = b.is_unlimited_mobil ? 'Unlimited' : (b.nipl_mobil || 0);
+                  if (isVisible('nipl_motor')) row['NIPL Motor'] = b.is_unlimited_motor ? 'Unlimited' : (b.nipl_motor || 0);
+                  if (isVisible('occupation')) row['Pekerjaan'] = b.user?.occupation || (b as any).occupation || '-';
+                  if (isVisible('address')) row['Alamat'] = b.user?.address || (b as any).address || '-';
+                  if (isVisible('bank')) row['Bank & Rekening'] = b.user?.bank_account_no ? `${b.user.bank_name || ''} ${b.user.bank_account_no} a/n ${b.user.bank_account_name || ''}` : '-';
+                  if (isVisible('created_at')) row['Tanggal Terdaftar'] = b.submitted_at ? new Date(b.submitted_at).toLocaleDateString('id-ID') : '-';
+                  return row;
+                });
+                const ok = exportToExcel(dataToExport, 'Daftar_Bidder_IndoLelang', 'Daftar Bidder');
+                if (ok) {
+                  toast.success('Berhasil mendownload Excel Daftar Bidder (.xlsx)');
+                } else {
+                  toast.error('Tidak ada data bidder untuk di-export');
+                }
+              }}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </Button>
+            <ColumnPicker
+              columns={BIDDER_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="bidder_list"
+            />
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">

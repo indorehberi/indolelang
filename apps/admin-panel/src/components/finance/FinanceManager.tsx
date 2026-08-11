@@ -627,46 +627,65 @@ export default function FinanceManager({
               <h1 className="page-title">Monitoring Deposit Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar transaksi Virtual Account (VA) untuk pembelian Nomor Induk Peserta Lelang (NIPL).</p>
             </div>
-            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
+          </div>
+
+          {/* Filter Card */}
+          <Card className="mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Deposit</label>
+                <select
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">Semua Status</option>
+                  <option value="paid">Lunas</option>
+                  <option value="pending">Pending</option>
+                  <option value="pending_approval">Menunggu Approval</option>
+                  <option value="pending_refund">Menunggu Refund</option>
+                  <option value="refunded">Refunded</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
                 <input
                   type="date"
-                  className="search-box"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                 />
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
                 <input
                   type="date"
-                  className="search-box"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                 />
               </div>
-              <button onClick={handleExport} className="btn btn-outline btn-sm d-flex align-items-center gap-1">
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-                Export XLSX
-              </button>
-              <ColumnPicker
-                columns={DEPOSIT_COLUMNS}
-                visibleKeys={visibleKeys}
-                onChange={setVisibleKeys}
-                tableId="finance_deposit_list"
-              />
-              <div className="filter-group d-flex gap-1" style={{ flexWrap: 'wrap' }}>
-                <button onClick={() => setStatusFilter('')} className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
-                <button onClick={() => setStatusFilter('paid')} className={`btn btn-sm ${statusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
-                <button onClick={() => setStatusFilter('pending')} className={`btn btn-sm ${statusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending</button>
-                <button onClick={() => setStatusFilter('pending_approval')} className={`btn btn-sm ${statusFilter === 'pending_approval' ? 'btn-warning' : 'btn-outline'}`}>Menunggu Approval</button>
-                <button onClick={() => setStatusFilter('pending_refund')} className={`btn btn-sm ${statusFilter === 'pending_refund' ? 'btn-warning' : 'btn-outline'}`}>Menunggu Refund</button>
-                <button onClick={() => setStatusFilter('refunded')} className={`btn btn-sm ${statusFilter === 'refunded' ? 'btn-info' : 'btn-outline'}`}>Refunded</button>
-                <button onClick={() => setStatusFilter('expired')} className={`btn btn-sm ${statusFilter === 'expired' ? 'btn-danger' : 'btn-outline'}`}>Expired</button>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+                <button onClick={handleExport} className="btn btn-outline btn-sm d-flex align-items-center gap-1" style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+                  Export XLSX
+                </button>
+                <ColumnPicker
+                  columns={DEPOSIT_COLUMNS}
+                  visibleKeys={visibleKeys}
+                  onChange={setVisibleKeys}
+                  tableId="finance_deposit_list"
+                />
               </div>
             </div>
-          </div>
+          </Card>
 
           <Card>
             <div className="table-wrapper">
@@ -826,14 +845,48 @@ export default function FinanceManager({
               <h1 className="page-title">Monitoring Invoice & Dokumen Resmi</h1>
               <p className="page-subtitle">Daftar invoice pelunasan pemenang lelang beserta menu cetak/unduh PDF dokumen resmi.</p>
             </div>
-            <div className="toolbar-right">
-              <div className="filter-group d-flex gap-1">
-                <button onClick={() => setInvoiceStatusFilter('')} className={`btn btn-sm ${invoiceStatusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
-                <button onClick={() => setInvoiceStatusFilter('paid')} className={`btn btn-sm ${invoiceStatusFilter === 'paid' ? 'btn-success' : 'btn-outline'}`}>Lunas</button>
-                <button onClick={() => setInvoiceStatusFilter('unpaid')} className={`btn btn-sm ${invoiceStatusFilter === 'unpaid' ? 'btn-danger' : 'btn-outline'}`}>Belum Lunas</button>
+          </div>
+
+          {/* Filter Card */}
+          <Card className="mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Invoice</label>
+                <select
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+                  value={invoiceStatusFilter}
+                  onChange={(e) => setInvoiceStatusFilter(e.target.value)}
+                >
+                  <option value="">Semua Status</option>
+                  <option value="paid">Lunas</option>
+                  <option value="unpaid">Belum Lunas</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
               </div>
             </div>
-          </div>
+          </Card>
 
           <Card>
             <div className="table-wrapper">
@@ -915,6 +968,33 @@ export default function FinanceManager({
               <p className="page-subtitle">Daftar checkout pelunasan pemenang lelang dan verifikasi bukti pembayaran.</p>
             </div>
           </div>
+
+          {/* Filter Card */}
+          <Card className="mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+            </div>
+          </Card>
 
           <Card>
             <div className="table-wrapper">
@@ -1011,41 +1091,51 @@ export default function FinanceManager({
               <h1 className="page-title">Antrean Pengembalian Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar deposit jaminan bidder yang kalah lelang dan harus dikembalikan (Refund) secara manual.</p>
             </div>
-            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
+          </div>
+
+          {/* Filter Card */}
+          <Card className="mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
                 <input
                   type="date"
-                  className="search-box"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-                />
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
-                <input
-                  type="date"
-                  className="search-box"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                 />
               </div>
-              <button
-                onClick={handleRefundExport}
-                className="btn btn-outline btn-sm d-flex align-items-center gap-1"
-                style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-                Export XLSX
-              </button>
-              <ColumnPicker
-                columns={REFUND_COLUMNS}
-                visibleKeys={refundVisibleKeys}
-                onChange={setRefundVisibleKeys}
-                tableId="refund_queue_list"
-              />
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+                <button
+                  onClick={handleRefundExport}
+                  className="btn btn-outline btn-sm d-flex align-items-center gap-1"
+                  style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+                  Export XLSX
+                </button>
+                <ColumnPicker
+                  columns={REFUND_COLUMNS}
+                  visibleKeys={refundVisibleKeys}
+                  onChange={setRefundVisibleKeys}
+                  tableId="refund_queue_list"
+                />
+              </div>
             </div>
-          </div>
+          </Card>
 
           <Card>
             <div className="table-wrapper">
@@ -1184,15 +1274,49 @@ export default function FinanceManager({
               <h1 className="page-title">Pencairan Dana Settlement Mitra (Provider)</h1>
               <p className="page-subtitle">Daftar bagi hasil unit lelang sold ke rekening provider setelah dipotong komisi lelang.</p>
             </div>
-            <div className="toolbar-right">
-              <div className="filter-group d-flex gap-1">
-                <button onClick={() => setSettlementStatusFilter('')} className={`btn btn-sm ${settlementStatusFilter === '' ? 'btn-primary' : 'btn-outline'}`}>Semua</button>
-                <button onClick={() => setSettlementStatusFilter('unpaid')} className={`btn btn-sm ${settlementStatusFilter === 'unpaid' ? 'btn-danger' : 'btn-outline'}`}>Menunggu Pembeli</button>
-                <button onClick={() => setSettlementStatusFilter('pending')} className={`btn btn-sm ${settlementStatusFilter === 'pending' ? 'btn-warning' : 'btn-outline'}`}>Pending Cair</button>
-                <button onClick={() => setSettlementStatusFilter('processed')} className={`btn btn-sm ${settlementStatusFilter === 'processed' ? 'btn-success' : 'btn-outline'}`}>Selesai</button>
+          </div>
+
+          {/* Filter Card */}
+          <Card className="mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Pencairan</label>
+                <select
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+                  value={settlementStatusFilter}
+                  onChange={(e) => setSettlementStatusFilter(e.target.value)}
+                >
+                  <option value="">Semua Status</option>
+                  <option value="unpaid">Menunggu Pembeli</option>
+                  <option value="pending">Pending Cair</option>
+                  <option value="processed">Selesai</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+                <input
+                  type="date"
+                  className="form-select"
+                  style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
               </div>
             </div>
-          </div>
+          </Card>
 
           <Card>
             <div className="table-wrapper">

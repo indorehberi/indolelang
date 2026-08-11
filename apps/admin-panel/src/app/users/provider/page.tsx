@@ -287,87 +287,108 @@ export default function ProviderUsersPage() {
           <h1 className="page-title">Manajemen Mitra Provider Aset</h1>
           <p className="page-subtitle">Hanya menampilkan pengguna yang mengajukan diri sebagai provider.</p>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{ padding: '0.45rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', fontSize: '0.85rem' }}
-            />
-            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
-            <input
-              type="date"
-              className="search-box"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ padding: '0.45rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', fontSize: '0.85rem' }}
-            />
-          </div>
-          <select
-            className="search-box"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '0.45rem 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
-          >
-            <option value="">Semua Status</option>
-            <option value="antri">Menunggu Verifikasi (Antri)</option>
-            <option value="aktif">Aktif</option>
-            <option value="ditolak">Ditolak</option>
-            <option value="nonaktif">Nonaktif</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Cari nama perusahaan/email..."
-            className="search-box"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const dataToExport = providers.map((p, index) => {
-                const row: Record<string, any> = {};
-                if (isVisible('no')) row['No'] = index + 1;
-                if (isVisible('company')) row['Nama Perusahaan'] = p.company_name || p.user?.full_name || '-';
-                if (isVisible('name')) row['Nama Kontak'] = p.user?.full_name || '-';
-                if (isVisible('email')) row['Email'] = p.user?.email || '-';
-                if (isVisible('phone')) row['No. Telepon'] = p.user?.phone || '-';
-                if (isVisible('npwp')) row['NPWP'] = p.npwp || '-';
-                if (isVisible('commission')) row['Tipe Komisi'] = p.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Fixed Nominal (Rp)';
-                if (isVisible('commission')) row['Besar Komisi'] = p.provider_fee_amount ? Number(p.provider_fee_amount).toLocaleString('id-ID') : '0';
-                if (isVisible('pmk41')) row['PMK 41 Dibayarkan Provider'] = p.pmk41_paid_by_provider ? 'Ya' : 'Tidak';
-                if (isVisible('status')) row['Status Provider'] = p.status === 'aktif' ? 'Aktif' : p.status === 'antri' ? 'Menunggu Verifikasi' : p.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
-                if (isVisible('kyc')) row['Status KYC'] = p.kyc?.status || 'Belum Verifikasi';
-                if (isVisible('created_at')) row['Tanggal Terdaftar'] = p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('id-ID') : '-';
-                return row;
-              });
-              const ok = exportToExcel(dataToExport, 'Daftar_Provider_IndoLelang', 'Daftar Provider');
-              if (ok) {
-                showToast('success', 'Berhasil mendownload Excel Daftar Provider (.xlsx)');
-              } else {
-                showToast('error', 'Tidak ada data provider untuk di-export');
-              }
-            }}
-            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-            Export XLSX
-          </Button>
-          <ColumnPicker
-            columns={PROVIDER_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="provider_list"
-          />
+        <div className="toolbar-right">
           <Button variant="primary" size="sm" onClick={() => router.push('/users/provider/new')}>
             + Tambah Provider
           </Button>
         </div>
       </div>
+
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Provider</label>
+            <input
+              type="text"
+              placeholder="Cari nama perusahaan/email..."
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Provider</label>
+            <select
+              className="form-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="">Semua Status</option>
+              <option value="antri">Menunggu Verifikasi (Antri)</option>
+              <option value="aktif">Aktif</option>
+              <option value="ditolak">Ditolak</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const dataToExport = providers.map((p, index) => {
+                  const row: Record<string, any> = {};
+                  if (isVisible('no')) row['No'] = index + 1;
+                  if (isVisible('company')) row['Nama Perusahaan'] = p.company_name || p.user?.full_name || '-';
+                  if (isVisible('name')) row['Nama Kontak'] = p.user?.full_name || '-';
+                  if (isVisible('email')) row['Email'] = p.user?.email || '-';
+                  if (isVisible('phone')) row['No. Telepon'] = p.user?.phone || '-';
+                  if (isVisible('npwp')) row['NPWP'] = p.npwp || '-';
+                  if (isVisible('commission')) row['Tipe Komisi'] = p.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Fixed Nominal (Rp)';
+                  if (isVisible('commission')) row['Besar Komisi'] = p.provider_fee_amount ? Number(p.provider_fee_amount).toLocaleString('id-ID') : '0';
+                  if (isVisible('pmk41')) row['PMK 41 Dibayarkan Provider'] = p.pmk41_paid_by_provider ? 'Ya' : 'Tidak';
+                  if (isVisible('status')) row['Status Provider'] = p.status === 'aktif' ? 'Aktif' : p.status === 'antri' ? 'Menunggu Verifikasi' : p.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
+                  if (isVisible('kyc')) row['Status KYC'] = p.kyc?.status || 'Belum Verifikasi';
+                  if (isVisible('created_at')) row['Tanggal Terdaftar'] = p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('id-ID') : '-';
+                  return row;
+                });
+                const ok = exportToExcel(dataToExport, 'Daftar_Provider_IndoLelang', 'Daftar Provider');
+                if (ok) {
+                  showToast('success', 'Berhasil mendownload Excel Daftar Provider (.xlsx)');
+                } else {
+                  showToast('error', 'Tidak ada data provider untuk di-export');
+                }
+              }}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </Button>
+            <ColumnPicker
+              columns={PROVIDER_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="provider_list"
+            />
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="table-wrapper">

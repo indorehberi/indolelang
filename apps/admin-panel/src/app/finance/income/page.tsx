@@ -233,29 +233,12 @@ export default function IncomePage() {
         </button>
       </div>
 
-      <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+      <div className="toolbar">
         <div className="toolbar-left">
-          <h1 className="page-title">Pemasukan Platform</h1>
+          <h1 className="page-title">Pemasukan Platform (Ledger Pendapatan)</h1>
           <p className="page-subtitle">
             Ringkasan pendapatan resmi platform dari Fee Admin Bidder, Fee Lelang Provider, dan Deposit Hangus (50% Admin + Kode Unik).
           </p>
-        </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-            Export XLSX
-          </Button>
-          <ColumnPicker
-            columns={INCOME_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="income_ledger_list"
-          />
         </div>
       </div>
 
@@ -279,27 +262,17 @@ export default function IncomePage() {
         </div>
       </div>
 
-      <Card>
-        {/* Filters in exact order: Tahun, Bulan, Tanggal (Default: Hari Ini), Jenis Pemasukan */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.85rem',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            marginBottom: '1.25rem',
-            paddingBottom: '1rem',
-            borderBottom: '1px solid #f1f5f9',
-          }}
-        >
+      {/* Filter Card */}
+      <Card className="mb-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           {/* 1. Tahun */}
-          <div className="form-group mb-0" style={{ minWidth: '130px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>1. Tahun</label>
+          <div>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>1. Tahun</label>
             <select
-              className="form-input"
+              className="form-select"
               value={yearFilter}
               onChange={(e) => handleYearChange(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
             >
               {yearOptions.map((y) => (
                 <option key={y.value} value={y.value}>{y.label}</option>
@@ -308,13 +281,13 @@ export default function IncomePage() {
           </div>
 
           {/* 2. Bulan */}
-          <div className="form-group mb-0" style={{ minWidth: '140px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>2. Bulan</label>
+          <div>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>2. Bulan</label>
             <select
-              className="form-input"
+              className="form-select"
               value={monthFilter}
               onChange={(e) => handleMonthChange(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
             >
               {MONTH_OPTIONS.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -323,27 +296,27 @@ export default function IncomePage() {
           </div>
 
           {/* 3. Tanggal (Default: Hari Ini) */}
-          <div className="form-group mb-0" style={{ minWidth: '150px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>
+          <div>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
               3. Tanggal {dateFilter === getTodayString() && <span style={{ color: '#10b981', fontWeight: 700 }}>(Hari Ini)</span>}
             </label>
             <input
               type="date"
-              className="form-input"
+              className="form-select"
               value={dateFilter}
               onChange={(e) => handleDateChange(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
             />
           </div>
 
           {/* 4. Jenis Pemasukan */}
-          <div className="form-group mb-0" style={{ minWidth: '180px' }}>
-            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>4. Jenis Pemasukan</label>
+          <div>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 600 }}>4. Jenis Pemasukan</label>
             <select
-              className="form-input"
+              className="form-select"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
             >
               <option value="">Semua Jenis Pemasukan</option>
               <option value="fee_admin_bidder">Fee Admin Bidder (Menang Lelang)</option>
@@ -352,8 +325,7 @@ export default function IncomePage() {
             </select>
           </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '6px', marginTop: '1.25rem' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto' }}>
             {!dateFilter && (
               <button
                 type="button"
@@ -381,12 +353,29 @@ export default function IncomePage() {
                 onClick={handleResetFilters}
                 style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
               >
-                🔄 Reset Default
+                🔄 Reset
               </button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </Button>
+            <ColumnPicker
+              columns={INCOME_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="income_ledger_list"
+            />
           </div>
         </div>
+      </Card>
 
+      <Card>
         {/* Income Table */}
         <div className="table-wrapper">
           <table>

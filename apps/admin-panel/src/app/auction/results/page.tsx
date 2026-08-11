@@ -149,42 +149,11 @@ export default function AuctionResultsPage() {
           <h1 className="page-title">Rekapitulasi Hasil Lelang</h1>
           <p className="page-subtitle">Daftar laporan hasil penutupan lot lelang, rincian unit terjual (sold) dan tidak laku (unsold).</p>
         </div>
-        <div className="toolbar-right">
-          <button
-            onClick={() => {
-              const dataToExport = filteredLots.map((l, index) => ({
-                'No': index + 1,
-                'No. Lot': l.lot_number || '-',
-                'Nama Unit': l.asset?.title || '-',
-                'Kategori': l.asset?.category || '-',
-                'Mitra Provider': l.asset?.provider?.company_name || l.asset?.provider?.full_name || '-',
-                'Harga Dasar (Rp)': l.starting_price ? Number(l.starting_price) : 0,
-                'Harga Terbentuk (Hammer Price Rp)': l.status === 'sold' ? Number(l.hammer_price || l.current_price || 0) : 0,
-                'Status Hasil': l.status === 'sold' ? 'TERJUAL (Sold)' : 'TIDAK LAKU (Unsold)',
-                'Pemenang': l.winner?.full_name || '-',
-                'Email Pemenang': l.winner?.email || '-',
-                'No. HP Pemenang': l.winner?.phone || '-',
-                'Status Pelunasan': l.invoices && l.invoices.length > 0 ? (l.invoices[0].status === 'paid' ? 'Lunas' : 'Belum Lunas') : 'Belum Invoice'
-              }));
-              const ok = exportToExcel(dataToExport, 'Hasil_Sesi_Lelang_IndoLelang', 'Hasil Sesi');
-              if (ok) {
-                toast.success('Berhasil mendownload Excel Hasil Sesi (.xlsx)');
-              } else {
-                toast.error('Tidak ada data hasil sesi untuk di-export');
-              }
-            }}
-            className="btn btn-outline btn-sm"
-            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
-            Export XLSX
-          </button>
-        </div>
       </div>
 
       {/* Filter Card */}
       <Card className="mb-2">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Bidder Pemenang</label>
             <input
@@ -239,6 +208,22 @@ export default function AuctionResultsPage() {
           </div>
 
           <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status</label>
+            <select
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">Semua Status</option>
+              <option value="sold">Terjual (Sold)</option>
+              <option value="unsold">Tidak Laku (Unsold)</option>
+              <option value="paid">Sudah Terbayar</option>
+              <option value="unpaid">Belum Terbayar</option>
+            </select>
+          </div>
+
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
             <input
               type="date"
@@ -260,20 +245,36 @@ export default function AuctionResultsPage() {
             />
           </div>
 
-          <div>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status</label>
-            <select
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+          <div style={{ marginLeft: 'auto' }}>
+            <button
+              onClick={() => {
+                const dataToExport = filteredLots.map((l, index) => ({
+                  'No': index + 1,
+                  'No. Lot': l.lot_number || '-',
+                  'Nama Unit': l.asset?.title || '-',
+                  'Kategori': l.asset?.category || '-',
+                  'Mitra Provider': l.asset?.provider?.company_name || l.asset?.provider?.full_name || '-',
+                  'Harga Dasar (Rp)': l.starting_price ? Number(l.starting_price) : 0,
+                  'Harga Terbentuk (Hammer Price Rp)': l.status === 'sold' ? Number(l.hammer_price || l.current_price || 0) : 0,
+                  'Status Hasil': l.status === 'sold' ? 'TERJUAL (Sold)' : 'TIDAK LAKU (Unsold)',
+                  'Pemenang': l.winner?.full_name || '-',
+                  'Email Pemenang': l.winner?.email || '-',
+                  'No. HP Pemenang': l.winner?.phone || '-',
+                  'Status Pelunasan': l.invoices && l.invoices.length > 0 ? (l.invoices[0].status === 'paid' ? 'Lunas' : 'Belum Lunas') : 'Belum Invoice'
+                }));
+                const ok = exportToExcel(dataToExport, 'Hasil_Sesi_Lelang_IndoLelang', 'Hasil Sesi');
+                if (ok) {
+                  toast.success('Berhasil mendownload Excel Hasil Sesi (.xlsx)');
+                } else {
+                  toast.error('Tidak ada data hasil sesi untuk di-export');
+                }
+              }}
+              className="btn btn-outline btn-sm"
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              <option value="">Semua Status</option>
-              <option value="sold">Terjual (Sold)</option>
-              <option value="unsold">Tidak Laku (Unsold)</option>
-              <option value="paid">Sudah Terbayar</option>
-              <option value="unpaid">Belum Terbayar</option>
-            </select>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </button>
           </div>
         </div>
       </Card>

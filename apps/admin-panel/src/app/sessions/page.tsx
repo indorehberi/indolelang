@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import Link from 'next/link';
 import { apiUrl, apiFetch } from '../../lib/api';
 import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
+import { exportToExcel } from '../../lib/excelExport';
 
 const SESSION_COLUMNS: ColumnOption[] = [
   { key: 'title', label: 'Judul Sesi', alwaysVisible: true },
@@ -310,8 +311,8 @@ export default function SessionsPage() {
 
       {/* Filters Card */}
       <Card className="mb-2">
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '250px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cari Sesi Lelang</label>
             <input
               type="text"
@@ -323,7 +324,7 @@ export default function SessionsPage() {
             />
           </div>
 
-          <div style={{ width: '200px' }}>
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Status Sesi</label>
             <select
               className="form-select"
@@ -339,29 +340,7 @@ export default function SessionsPage() {
             </select>
           </div>
 
-          <div style={{ width: '180px' }}>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
-            <input
-              type="date"
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div style={{ width: '180px' }}>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
-            <input
-              type="date"
-              className="form-select"
-              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-
-          <div style={{ width: '180px' }}>
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tipe Sesi</label>
             <select
               className="form-select"
@@ -375,7 +354,7 @@ export default function SessionsPage() {
             </select>
           </div>
 
-          <div style={{ width: '200px' }}>
+          <div>
             <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Cabang</label>
             <select
               className="form-select"
@@ -389,12 +368,62 @@ export default function SessionsPage() {
               ))}
             </select>
           </div>
-          <ColumnPicker
-            columns={SESSION_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="session_list"
-          />
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const dataToExport = sessions.map((s, index) => {
+                  const row: Record<string, any> = {};
+                  if (isVisible('title')) row['No'] = index + 1;
+                  if (isVisible('title')) row['Judul Sesi Lelang'] = s.title;
+                  if (isVisible('branch')) row['Cabang'] = s.branch?.name || 'Pusat';
+                  if (isVisible('scheduled_at')) row['Tanggal & Jam Sesi'] = new Date(s.scheduled_at).toLocaleString('id-ID');
+                  if (isVisible('status')) row['Status Sesi'] = s.status;
+                  return row;
+                });
+                const ok = exportToExcel(dataToExport, 'Daftar_Sesi_Lelang_IndoLelang', 'Sesi Lelang');
+                if (ok) {
+                  showToast('success', 'Berhasil mendownload Excel Daftar Sesi Lelang (.xlsx)');
+                } else {
+                  showToast('error', 'Tidak ada data sesi untuk di-export');
+                }
+              }}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+              Export XLSX
+            </Button>
+            <ColumnPicker
+              columns={SESSION_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="session_list"
+            />
+          </div>
         </div>
       </Card>
 
