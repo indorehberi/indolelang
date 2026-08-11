@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, cekUkuranBerkas } from "@/lib/api";
 import { useToast } from "@/providers/ToastProvider";
 
 export default function RegisterProviderPage() {
@@ -162,6 +162,14 @@ export default function RegisterProviderPage() {
       const response = await fetch(capturedImage);
       const blob = await response.blob();
       const file = new File([blob], "selfie_captured.jpg", { type: "image/jpeg" });
+      
+      const terlaluBesar = cekUkuranBerkas(file);
+      if (terlaluBesar) {
+        toast.error(terlaluBesar);
+        setUploadingSelfie(false);
+        return;
+      }
+
       setSelfieFile(file);
       
       // Upload blob
@@ -188,6 +196,12 @@ export default function RegisterProviderPage() {
   };
 
   const handleFileUpload = async (file: File, type: "ktp" | "selfie") => {
+    const terlaluBesar = cekUkuranBerkas(file);
+    if (terlaluBesar) {
+      toast.error(terlaluBesar);
+      return;
+    }
+
     const isKtp = type === "ktp";
     if (isKtp) {
       setUploadingKtp(true);

@@ -9,14 +9,14 @@ export const adminCreateTestimonialBody = z.object({
   user_id: z.string().uuid('User ID harus berupa UUID'),
   rating: z.number().int('Rating harus berupa bilangan bulat').min(1, 'Rating minimal 1 bintang').max(5, 'Rating maksimal 5 bintang'),
   content: z.string().min(10, 'Testimoni minimal 10 karakter').max(500, 'Testimoni maksimal 500 karakter'),
-  image_url: z.string().url('URL gambar tidak valid').optional().nullable(),
+  image_url: z.string().optional().nullable(),
   status: z.enum(['pending', 'approved', 'rejected']).optional(),
 });
 
 export const adminUpdateTestimonialBody = z.object({
   rating: z.number().int().min(1).max(5).optional(),
   content: z.string().min(10).max(500).optional(),
-  image_url: z.string().url().optional().nullable(),
+  image_url: z.string().optional().nullable(),
   status: z.enum(['pending', 'approved', 'rejected']).optional(),
 });
 

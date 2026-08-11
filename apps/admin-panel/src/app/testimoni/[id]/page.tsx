@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Toast from '../../../components/ui/Toast';
-import { apiFetch } from '../../../lib/api';
+import { apiFetch, getImageUrl } from '../../../lib/api';
 
 export default function EditTestimoniPage() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export default function EditTestimoniPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     rating: '5',
@@ -25,6 +26,45 @@ export default function EditTestimoniPage() {
     status: 'pending',
     userName: '',
   });
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+
+    // Check size limit: 10MB
+    const limit = 10 * 1024 * 1024;
+    if (file.size > limit) {
+      setToast({
+        message: `Ukuran file foto (${(file.size / 1024 / 1024).toFixed(1)} MB) melebihi batas maksimal 10 MB.`,
+        variant: 'danger'
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    setToast(null);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      
+      const res = await apiFetch('/upload/single', {
+        method: 'POST',
+        body: uploadData,
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        setFormData(prev => ({ ...prev, image_url: resData.data.url }));
+        setToast({ message: 'Foto berhasil diunggah.', variant: 'success' });
+      } else {
+        setToast({ message: resData.error?.message || 'Gagal mengunggah foto.', variant: 'danger' });
+      }
+    } catch (err) {
+      setToast({ message: 'Koneksi gagal saat mengunggah foto.', variant: 'danger' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTestimoni = async () => {
@@ -156,14 +196,33 @@ export default function EditTestimoniPage() {
             </div>
 
             <div className="mb-3">
-              <Input
-                label="URL Foto (Opsional)"
-                type="text"
-                placeholder="https://example.com/photo.jpg"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              />
-              <small className="text-muted">Ganti URL foto pengguna jika perlu.</small>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>Foto Pengguna (Opsional)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                {formData.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img 
+                    src={getImageUrl(formData.image_url)} 
+                    alt="Preview" 
+                    style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--wf-border)' }} 
+                  />
+                )}
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingImage}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                    className="form-control"
+                    style={{ padding: '0.375rem 0.75rem', width: '100%' }}
+                  />
+                  <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                    Format JPG/PNG/WEBP, ukuran maksimal 10MB.
+                  </small>
+                </div>
+              </div>
             </div>
 
             <div className="mb-4">

@@ -34,8 +34,15 @@ export default function NewBidderPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'ktp' | 'selfie') => {
     if (e.target.files && e.target.files[0]) {
-      if (type === 'ktp') setKtpFile(e.target.files[0]);
-      if (type === 'selfie') setSelfieFile(e.target.files[0]);
+      const file = e.target.files[0];
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        showToast('error', `Ukuran file ${type.toUpperCase()} (${(file.size / 1024 / 1024).toFixed(1)} MB) melebihi batas maksimal 10 MB.`);
+        e.target.value = ''; // Clear selection
+        return;
+      }
+      if (type === 'ktp') setKtpFile(file);
+      if (type === 'selfie') setSelfieFile(file);
     }
   };
 
@@ -43,7 +50,7 @@ export default function NewBidderPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await apiFetch('/upload', {
+      const res = await apiFetch('/upload/single', {
         method: 'POST',
         body: formData
       });
@@ -284,6 +291,7 @@ export default function NewBidderPage() {
                 style={{ paddingTop: '0.45rem', cursor: 'pointer' }}
                 onChange={(e) => handleFileChange(e, 'ktp')}
               />
+              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>Format JPG/PNG, ukuran maksimal 10MB.</small>
               {ktpFile && <small style={{ color: '#10b981', display: 'block', marginTop: '0.25rem' }}>✓ File terpilih: {ktpFile.name}</small>}
             </div>
             <div className="form-group">
@@ -295,6 +303,7 @@ export default function NewBidderPage() {
                 style={{ paddingTop: '0.45rem', cursor: 'pointer' }}
                 onChange={(e) => handleFileChange(e, 'selfie')}
               />
+              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>Format JPG/PNG, ukuran maksimal 10MB.</small>
               {selfieFile && <small style={{ color: '#10b981', display: 'block', marginTop: '0.25rem' }}>✓ File terpilih: {selfieFile.name}</small>}
             </div>
           </Card>
