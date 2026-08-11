@@ -25,6 +25,20 @@ const DEPOSIT_COLUMNS: ColumnOption[] = [
   { key: 'actions', label: 'Aksi', alwaysVisible: true },
 ];
 
+const REFUND_COLUMNS: ColumnOption[] = [
+  { key: 'no', label: 'No', alwaysVisible: true },
+  { key: 'created_at', label: 'Waktu Pengajuan', defaultVisible: true },
+  { key: 'bidder', label: 'Bidder', alwaysVisible: true },
+  { key: 'nipl_name', label: 'Nama NIPL', defaultVisible: true },
+  { key: 'address', label: 'Alamat', defaultVisible: true },
+  { key: 'amount', label: 'Nominal Refund', alwaysVisible: true },
+  { key: 'bank_account_no', label: 'No Rek', defaultVisible: true },
+  { key: 'bank_account_name', label: 'Nama Rek', defaultVisible: true },
+  { key: 'nipl_code', label: 'No NIPL / Kode', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'actions', label: 'Aksi / Tindakan', alwaysVisible: true },
+];
+
 interface Deposit {
   id: string;
   user_id: string;
@@ -126,6 +140,7 @@ export default function FinanceManager({
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('finance_deposit_list', DEPOSIT_COLUMNS);
+  const { visibleKeys: refundVisibleKeys, setVisibleKeys: setRefundVisibleKeys, isVisible: isRefundVisible } = useColumnVisibility('refund_queue_list', REFUND_COLUMNS);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('');
   const [settlementStatusFilter, setSettlementStatusFilter] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -937,10 +952,18 @@ export default function FinanceManager({
 
       {activeTab === 'refunds' && (
         <>
-          <div className="toolbar">
+          <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div className="toolbar-left">
               <h1 className="page-title">Antrean Pengembalian Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar deposit jaminan bidder yang kalah lelang dan harus dikembalikan (Refund) secara manual.</p>
+            </div>
+            <div className="toolbar-right">
+              <ColumnPicker
+                columns={REFUND_COLUMNS}
+                visibleKeys={refundVisibleKeys}
+                onChange={setRefundVisibleKeys}
+                tableId="refund_queue_list"
+              />
             </div>
           </div>
 
@@ -949,71 +972,123 @@ export default function FinanceManager({
               <table>
                 <thead>
                   <tr>
-                    <th>Waktu Minta</th>
-                    <th>Bidder</th>
-                    <th>Sesi Lelang</th>
-                    <th>Uang Jaminan</th>
-                    <th>Metode VA Awal</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center', width: '200px' }}>Tindakan</th>
+                    {isRefundVisible('no') && <th style={{ width: '45px' }}>No</th>}
+                    {isRefundVisible('created_at') && <th>Waktu Pengajuan</th>}
+                    {isRefundVisible('bidder') && <th>Bidder</th>}
+                    {isRefundVisible('nipl_name') && <th>Nama NIPL</th>}
+                    {isRefundVisible('address') && <th>Alamat</th>}
+                    {isRefundVisible('amount') && <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>}
+                    {isRefundVisible('bank_account_no') && <th>No Rek</th>}
+                    {isRefundVisible('bank_account_name') && <th>Nama Rek</th>}
+                    {isRefundVisible('nipl_code') && <th>No NIPL / Kode</th>}
+                    {isRefundVisible('status') && <th>Status</th>}
+                    {isRefundVisible('actions') && <th style={{ textAlign: 'center', width: '200px' }}>Tindakan</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} className="text-center">Memuat antrean refund...</td></tr>
+                    <tr><td colSpan={refundVisibleKeys.length} className="text-center">Memuat antrean refund...</td></tr>
                   ) : refundQueue.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center text-muted">Tidak ada antrean refund NIPL saat ini.</td></tr>
+                    <tr><td colSpan={refundVisibleKeys.length} className="text-center text-muted">Tidak ada antrean refund NIPL saat ini.</td></tr>
                   ) : (
-                    refundQueue.map((refund) => (
-                      <tr key={refund.id}>
-                        <td>{new Date(refund.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td>
-                          {refund.user ? (
-                            <div>
-                              <strong>{refund.user.full_name}</strong>
-                              <div className="text-muted" style={{ fontSize: '0.8rem' }}>{refund.user.email}</div>
-                            </div>
-                          ) : (
-                            <span className="text-muted">User ID: {refund.user_id.substring(0, 8)}...</span>
+                    refundQueue.map((refund, index) => {
+                      const niplName = refund.session?.title 
+                        ? refund.session.title 
+                        : refund.unit_type 
+                          ? `NIPL ${refund.unit_type.toUpperCase()} ${refund.package_type ? `(${refund.package_type})` : ''}` 
+                          : 'NIPL Lelang';
+                      return (
+                        <tr key={refund.id}>
+                          {isRefundVisible('no') && <td>{index + 1}</td>}
+                          {isRefundVisible('created_at') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {new Date(refund.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </td>
                           )}
-                        </td>
-                        <td>{refund.session?.title || (refund.session_id ? 'Sesi ID: ' + refund.session_id.substring(0, 8) : 'Lintas Sesi')}</td>
-                        <td><strong className="text-primary">{formatRupiah(refund.amount)}</strong></td>
-                        <td>
-                          {refund.va_number ? (
-                            <div>
-                              <span style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem' }} className="badge badge-outline">{refund.va_bank}</span>
-                              <span style={{ marginLeft: '6px', fontFamily: 'monospace' }}>{refund.va_number}</span>
-                            </div>
-                          ) : refund.payment_method === 'manual_transfer' ? (
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#d97706' }}>TRANSFER MANUAL</div>
-                              {refund.user?.bank_name ? (
-                                <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>
-                                  <strong>{refund.user.bank_name}</strong> - {refund.user.bank_account_no}
-                                  <br/>a/n {refund.user.bank_account_name || refund.user.full_name}
+                          {isRefundVisible('bidder') && (
+                            <td>
+                              {refund.user ? (
+                                <div>
+                                  <strong>{refund.user.full_name}</strong>
+                                  <div className="text-muted" style={{ fontSize: '0.78rem' }}>{refund.user.email}</div>
                                 </div>
                               ) : (
-                                <div style={{ fontSize: '0.75rem', color: 'red' }}>Rekening Bidder Belum Diisi</div>
+                                <span className="text-muted">User ID: {refund.user_id.substring(0, 8)}...</span>
                               )}
-                            </div>
-                          ) : (
-                            <span className="text-muted">-</span>
+                            </td>
                           )}
-                        </td>
-                        <td>{getStatusBadge(refund.status)}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button
-                            onClick={() => handleApproveRefund(refund.id)}
-                            className="btn btn-xs btn-success"
-                            disabled={processingId !== null}
-                            style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '600' }}
-                          >
-                            {processingId === refund.id ? 'Memproses...' : refund.payment_method === 'manual_transfer' ? '✓ Telah Direfund' : '✓ Setujui Refund'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                          {isRefundVisible('nipl_name') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              <span className="badge badge-outline" style={{ color: '#0284c7', borderColor: '#bae6fd', backgroundColor: '#f0f9ff' }}>
+                                {niplName}
+                              </span>
+                            </td>
+                          )}
+                          {isRefundVisible('address') && (
+                            <td style={{ fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'normal' }}>
+                              {refund.user?.address || <span className="text-muted">-</span>}
+                            </td>
+                          )}
+                          {isRefundVisible('amount') && (
+                            <td style={{ textAlign: 'right' }}>
+                              <strong className="text-primary">{formatRupiah(refund.amount)}</strong>
+                            </td>
+                          )}
+                          {isRefundVisible('bank_account_no') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {refund.user?.bank_account_no ? (
+                                <code style={{ fontFamily: 'monospace', fontWeight: 600, backgroundColor: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
+                                  {refund.user.bank_account_no}
+                                </code>
+                              ) : refund.va_number ? (
+                                <div>
+                                  <span className="badge badge-outline" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>{refund.va_bank}</span>
+                                  <code style={{ marginLeft: '4px', fontFamily: 'monospace' }}>{refund.va_number}</code>
+                                </div>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          )}
+                          {isRefundVisible('bank_account_name') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {refund.user?.bank_account_name ? (
+                                <div>
+                                  <strong>{refund.user.bank_account_name}</strong>
+                                  {refund.user.bank_name && (
+                                    <div className="text-muted" style={{ fontSize: '0.78rem' }}>{refund.user.bank_name}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          )}
+                          {isRefundVisible('nipl_code') && (
+                            <td>
+                              {refund.user_id ? (
+                                <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                  NIPL-{refund.user_id.substring(0, 8).toUpperCase()}
+                                </code>
+                              ) : '-'}
+                            </td>
+                          )}
+                          {isRefundVisible('status') && <td>{getStatusBadge(refund.status)}</td>}
+                          {isRefundVisible('actions') && (
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                onClick={() => handleApproveRefund(refund.id)}
+                                className="btn btn-xs btn-success"
+                                disabled={processingId !== null}
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                {processingId === refund.id ? 'Memproses...' : refund.payment_method === 'manual_transfer' ? '✓ Telah Direfund' : '✓ Setujui Refund'}
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
