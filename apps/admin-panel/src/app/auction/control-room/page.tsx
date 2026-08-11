@@ -38,6 +38,7 @@ interface Lot {
   asset: {
     title: string;
     category: string;
+    police_number?: string;
     base_price: number;
     images?: any;
     photo_front?: string;
@@ -1068,7 +1069,12 @@ export default function ControlRoomPage() {
                 >
                   <div>
                     <span className="text-muted" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Lot #{activeLot.lot_number}</span>
-                    <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0' }}>{activeLot.asset.title}</h2>
+                    <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0 0.1rem 0' }}>{activeLot.asset.title}</h2>
+                    {activeLot.asset.police_number && (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.4rem' }}>
+                        No. Polisi: <span style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', color: '#0f172a' }}>{activeLot.asset.police_number}</span>
+                      </div>
+                    )}
                     <span style={{ fontSize: '0.85rem' }} className="badge badge-outline">{activeLot.asset.category.toUpperCase()}</span>
                   </div>
 
@@ -1238,6 +1244,11 @@ export default function ControlRoomPage() {
                       </td>
                       <td>
                         <strong>{lot.asset.title}</strong>
+                        {lot.asset.police_number && (
+                          <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600', marginTop: '2px' }}>
+                            No. Polisi: <span style={{ backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '3px', border: '1px solid #cbd5e1' }}>{lot.asset.police_number}</span>
+                          </div>
+                        )}
                       </td>
                       <td>{formatRupiah(lot.starting_price)}</td>
                       <td>{getLotStatusBadge(lot.status)}</td>

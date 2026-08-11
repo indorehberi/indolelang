@@ -638,9 +638,17 @@ function ActiveLotCard({
             </button>
           </div>
         </div>
-        <span className="font-bold text-lg text-[#f67904]">
-          LOT #{lot.lot_number} &bull; {lot.asset?.title}
-        </span>
+        <div className="flex flex-col">
+          <span className="font-bold text-lg text-[#f67904]">
+            LOT #{lot.lot_number} &bull; {lot.asset?.title}
+          </span>
+          {lot.asset?.police_number && (
+            <span className="text-xs font-bold text-slate-700 mt-0.5 flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-slate-500">directions_car</span>
+              No. Polisi: <span className="bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-slate-900 font-extrabold">{lot.asset.police_number}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {!isConnected && (
@@ -787,6 +795,12 @@ function ActiveLotCard({
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.28em] text-slate-200">Unit yang dilelang</div>
                   <div className="text-xl font-black text-white mt-1">{lot.asset?.title || "Lot Lelang"}</div>
+                  {lot.asset?.police_number && (
+                    <div className="text-xs font-bold text-amber-300 mt-1 flex items-center gap-1">
+                      <span>No. Polisi:</span>
+                      <span className="bg-black/60 backdrop-blur-sm border border-amber-400/40 px-2 py-0.5 rounded text-white font-extrabold">{lot.asset.police_number}</span>
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
