@@ -243,13 +243,13 @@ export default function AssetsInspectionPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Unit</th>
-                  <th>No. Polisi</th>
-                  <th>Kategori</th>
-                  <th>Provider</th>
-                  <th>Harga Dasar</th>
-                  <th>Tanggal Masuk</th>
-                  <th style={{ textAlign: 'right' }}>Aksi</th>
+                  <th style={{ color: '#fff' }}>Unit</th>
+                  <th style={{ color: '#fff' }}>No. Polisi</th>
+                  <th style={{ color: '#fff' }}>Kategori</th>
+                  <th style={{ color: '#fff' }}>Provider</th>
+                  <th style={{ color: '#fff' }}>Harga Dasar</th>
+                  <th style={{ color: '#fff' }}>Tanggal Masuk</th>
+                  <th style={{ color: '#fff', textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>

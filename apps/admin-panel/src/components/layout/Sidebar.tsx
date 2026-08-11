@@ -180,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return pathname === '/' || pathname === route;
     }
     
-    if (route === '/assets' && pathname.startsWith('/assets/approval')) {
+    if (route === '/assets' && (pathname.startsWith('/assets/approval') || pathname.startsWith('/assets/inspection'))) {
       return false;
     }
 
