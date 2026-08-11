@@ -500,17 +500,18 @@ model blog_posts {
 }
 
 model testimonials {
-  id         String    @id @default(uuid())
-  user_id    String
-  rating     Int
-  content    String
-  image_url  String?
-  status     String    @default("pending")
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  id           String    @id @default(uuid())
+  user_id      String?
+  display_name String?
+  rating       Int
+  content      String
+  image_url    String?
+  status       String    @default("pending")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
 
-  user users @relation(fields: [user_id], references: [id])
+  user users? @relation(fields: [user_id], references: [id])
 }
 
 model campaigns {

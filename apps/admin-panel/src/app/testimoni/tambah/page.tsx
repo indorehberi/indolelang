@@ -1,18 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
+import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 import { apiFetch, getImageUrl } from '../../../lib/api';
-
-interface UserOption {
-  id: string;
-  full_name: string;
-  email: string;
-}
 
 export default function TambahTestimoniPage() {
   const router = useRouter();
@@ -20,52 +15,17 @@ export default function TambahTestimoniPage() {
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [userSearch, setUserSearch] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
-
   const [formData, setFormData] = useState({
-    user_id: '',
+    display_name: '',
     rating: '5',
     content: '',
     image_url: '',
     status: 'approved',
   });
 
-  // Fetch users for dropdown
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await apiFetch('/admin/users?per_page=200&role=bidder');
-        const data = await res.json();
-        if (data.success) {
-          setUsers(data.data.map((u: any) => ({ id: u.id, full_name: u.full_name, email: u.email })));
-        }
-      } catch {
-        // silently ignore
-      }
-    };
-    fetchUsers();
-  }, []);
-
-  const filteredUsers = users.filter(
-    (u) =>
-      u.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase())
-  );
-
-  const handleSelectUser = (u: UserOption) => {
-    setSelectedUser(u);
-    setFormData((prev) => ({ ...prev, user_id: u.id }));
-    setUserSearch(u.full_name);
-    setShowDropdown(false);
-  };
-
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
-    // Check size limit: 10MB
     const limit = 10 * 1024 * 1024;
     if (file.size > limit) {
       setToast({
@@ -81,7 +41,7 @@ export default function TambahTestimoniPage() {
     try {
       const uploadData = new FormData();
       uploadData.append('file', file);
-      
+
       const res = await apiFetch('/upload/single', {
         method: 'POST',
         body: uploadData,
@@ -94,7 +54,7 @@ export default function TambahTestimoniPage() {
       } else {
         setToast({ message: resData.error?.message || 'Gagal mengunggah foto.', variant: 'danger' });
       }
-    } catch (err) {
+    } catch {
       setToast({ message: 'Koneksi gagal saat mengunggah foto.', variant: 'danger' });
     } finally {
       setUploadingImage(false);
@@ -103,12 +63,12 @@ export default function TambahTestimoniPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.user_id) {
-      setToast({ message: 'Mohon pilih pengguna dari daftar', variant: 'danger' });
+    if (!formData.display_name.trim()) {
+      setToast({ message: 'Nama pengguna wajib diisi', variant: 'danger' });
       return;
     }
-    if (!formData.rating || !formData.content) {
-      setToast({ message: 'Mohon isi semua bidang yang diwajibkan', variant: 'danger' });
+    if (!formData.content.trim()) {
+      setToast({ message: 'Konten testimoni wajib diisi', variant: 'danger' });
       return;
     }
 
@@ -118,9 +78,9 @@ export default function TambahTestimoniPage() {
       const response = await apiFetch('/admin/testimonials', {
         method: 'POST',
         body: JSON.stringify({
-          user_id: formData.user_id,
+          display_name: formData.display_name.trim(),
           rating: parseInt(formData.rating, 10),
-          content: formData.content,
+          content: formData.content.trim(),
           image_url: formData.image_url || null,
           status: formData.status,
         }),
@@ -151,73 +111,19 @@ export default function TambahTestimoniPage() {
 
       <Card>
         <form onSubmit={handleSubmit}>
-          {/* User Picker */}
-          <div className="mb-3" style={{ position: 'relative' }}>
-            <label className="form-label" style={{ fontWeight: 'bold' }}>
-              Pengguna <span className="text-danger">*</span>
-            </label>
-            <input
+          {/* Nama Pengguna */}
+          <div className="mb-3">
+            <Input
+              label="Nama Pengguna *"
               type="text"
-              className="form-input"
-              placeholder="Cari nama atau email bidder..."
-              value={userSearch}
-              onChange={(e) => {
-                setUserSearch(e.target.value);
-                setSelectedUser(null);
-                setFormData(prev => ({ ...prev, user_id: '' }));
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-              autoComplete="off"
+              required
+              placeholder="Masukkan nama pengguna"
+              value={formData.display_name}
+              onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
             />
-            {selectedUser && (
-              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
-                ✓ Dipilih: <strong>{selectedUser.full_name}</strong> ({selectedUser.email})
-              </small>
-            )}
-            {!selectedUser && (
-              <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
-                Ketik nama atau email bidder untuk mencari, lalu pilih dari daftar.
-              </small>
-            )}
-            {showDropdown && userSearch.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                background: '#fff',
-                border: '1px solid var(--wf-border)',
-                borderRadius: 'var(--radius)',
-                zIndex: 100,
-                maxHeight: '200px',
-                overflowY: 'auto',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}>
-                {filteredUsers.length === 0 ? (
-                  <div style={{ padding: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>Tidak ada hasil.</div>
-                ) : (
-                  filteredUsers.slice(0, 20).map(u => (
-                    <div
-                      key={u.id}
-                      style={{
-                        padding: '0.6rem 0.75rem',
-                        cursor: 'pointer',
-                        borderBottom: '1px solid var(--wf-border)',
-                        fontSize: '0.875rem',
-                      }}
-                      onMouseDown={() => handleSelectUser(u)}
-                    >
-                      <strong>{u.full_name}</strong>
-                      <span style={{ marginLeft: '0.5rem', color: '#64748b' }}>{u.email}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            <small className="text-muted">Nama yang akan ditampilkan di website publik.</small>
           </div>
-          
+
           {/* Rating */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>Rating</label>
@@ -242,7 +148,7 @@ export default function TambahTestimoniPage() {
             </select>
           </div>
 
-          {/* Content */}
+          {/* Konten */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>
               Konten Testimoni <span className="text-danger">*</span>
@@ -264,16 +170,16 @@ export default function TambahTestimoniPage() {
             />
           </div>
 
-          {/* Photo Upload */}
+          {/* Foto */}
           <div className="mb-3">
             <label className="form-label" style={{ fontWeight: 'bold' }}>Foto Pengguna (Opsional)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
               {formData.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img 
-                  src={getImageUrl(formData.image_url)} 
-                  alt="Preview" 
-                  style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--wf-border)' }} 
+                <img
+                  src={getImageUrl(formData.image_url)}
+                  alt="Preview"
+                  style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--wf-border)' }}
                 />
               )}
               <div style={{ flex: 1 }}>

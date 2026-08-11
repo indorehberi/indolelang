@@ -15,6 +15,7 @@ interface Testimonial {
   content: string;
   status: string;
   created_at: string;
+  display_name?: string | null;
   user?: {
     full_name: string;
   };
@@ -101,7 +102,7 @@ export default function TestimoniListPage() {
               ) : (
                 testimonials.map((testimoni) => (
                   <tr key={testimoni.id}>
-                    <td><strong>{testimoni.user?.full_name || 'Tidak diketahui'}</strong></td>
+                    <td><strong>{testimoni.display_name || testimoni.user?.full_name || 'Tidak diketahui'}</strong></td>
                     <td>
                       <span className="material-symbols-outlined filled text-warning" style={{ fontSize: '1rem', color: '#f59e0b' }}>
                         star

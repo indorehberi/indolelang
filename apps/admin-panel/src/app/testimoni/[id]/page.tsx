@@ -24,7 +24,7 @@ export default function EditTestimoniPage() {
     content: '',
     image_url: '',
     status: 'pending',
-    userName: '',
+    display_name: '',
   });
 
   const handleImageUpload = async (file: File) => {
@@ -79,7 +79,7 @@ export default function EditTestimoniPage() {
             content: testimoni.content,
             image_url: testimoni.image_url || '',
             status: testimoni.status,
-            userName: testimoni.user?.full_name || 'User tidak diketahui'
+            display_name: testimoni.display_name || testimoni.user?.full_name || ''
           });
         } else {
           setToast({ message: data.error?.message || 'Gagal memuat testimoni', variant: 'danger' });
@@ -96,6 +96,10 @@ export default function EditTestimoniPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.display_name.trim()) {
+      setToast({ message: 'Nama pengguna wajib diisi', variant: 'danger' });
+      return;
+    }
     if (!formData.rating || !formData.content) {
       setToast({ message: 'Mohon isi semua bidang yang diwajibkan', variant: 'danger' });
       return;
@@ -107,6 +111,7 @@ export default function EditTestimoniPage() {
       const response = await apiFetch(`/admin/testimonials/${id}`, {
         method: 'PUT',
         body: JSON.stringify({
+          display_name: formData.display_name.trim(),
           rating: parseInt(formData.rating, 10),
           content: formData.content,
           image_url: formData.image_url,
@@ -144,12 +149,14 @@ export default function EditTestimoniPage() {
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <Input
-                label="Pengguna"
+                label="Nama Pengguna *"
                 type="text"
-                value={formData.userName}
-                disabled
+                required
+                placeholder="Masukkan nama pengguna"
+                value={formData.display_name}
+                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               />
-              <small className="text-muted">Nama pengguna tidak dapat diubah.</small>
+              <small className="text-muted">Nama yang akan ditampilkan di website publik.</small>
             </div>
             
             <div className="mb-3">

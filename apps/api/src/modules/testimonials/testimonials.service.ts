@@ -200,20 +200,24 @@ export class TestimonialsService {
   }
 
   /**
-   * Admin: Create a new testimonial on behalf of user
+   * Admin: Create a new testimonial — user_id is optional, display_name can be any string
    */
-  async createTestimonialAdmin(data: { user_id: string; rating: number; content: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
-    const user = await prisma.users.findUnique({ where: { id: data.user_id } });
-    if (!user) {
-      throw new AppError(404, ErrorCode.NOT_FOUND, 'User tidak ditemukan');
+  async createTestimonialAdmin(data: { user_id?: string | null; display_name?: string | null; rating: number; content: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
+    // Validate user if user_id is provided
+    if (data.user_id) {
+      const user = await prisma.users.findUnique({ where: { id: data.user_id } });
+      if (!user) {
+        throw new AppError(404, ErrorCode.NOT_FOUND, 'User tidak ditemukan');
+      }
     }
 
     const testimonial = await prisma.testimonials.create({
       data: {
-        user_id: data.user_id,
+        user_id: data.user_id ?? null,
+        display_name: data.display_name ?? null,
         rating: data.rating,
         content: data.content,
-        image_url: data.image_url,
+        image_url: data.image_url ?? null,
         status: data.status || 'approved',
       },
       include: {
@@ -233,7 +237,7 @@ export class TestimonialsService {
   /**
    * Admin: Update an existing testimonial
    */
-  async updateTestimonialAdmin(id: string, data: { rating?: number; content?: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
+  async updateTestimonialAdmin(id: string, data: { display_name?: string | null; rating?: number; content?: string; image_url?: string | null; status?: 'pending' | 'approved' | 'rejected' }) {
     const testimonial = await prisma.testimonials.findFirst({
       where: { id, deleted_at: null },
     });
