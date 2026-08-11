@@ -99,6 +99,7 @@ export default function BidderListPage() {
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('terbaru');
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('bidder_list', BIDDER_COLUMNS);
 
   // Modal states
@@ -364,6 +365,21 @@ export default function BidderListPage() {
             />
           </div>
 
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Urutkan</label>
+            <select
+              className="form-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="terbaru">Terbaru</option>
+              <option value="terlama">Terlama</option>
+              <option value="az">Nama A–Z</option>
+              <option value="za">Nama Z–A</option>
+            </select>
+          </div>
+
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
             <Button
               variant="outline"
@@ -438,7 +454,12 @@ export default function BidderListPage() {
                   <td colSpan={visibleKeys.length} className="text-center">Tidak ada bidder ditemukan.</td>
                 </tr>
               ) : (
-                bidders.map((bidder) => (
+                [...bidders].sort((a, b) => {
+                  if (sortBy === 'az') return (a.user?.full_name || '').localeCompare(b.user?.full_name || '', 'id');
+                  if (sortBy === 'za') return (b.user?.full_name || '').localeCompare(a.user?.full_name || '', 'id');
+                  if (sortBy === 'terlama') return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
+                  return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime(); // terbaru
+                }).map((bidder) => (
                   <tr key={bidder.id}>
                     {isVisible('full_name') && <td><strong>{bidder.user?.full_name || '-'}</strong></td>}
                     {isVisible('email') && <td>{bidder.user?.email || '-'}</td>}

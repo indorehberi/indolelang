@@ -76,6 +76,7 @@ export default function ProviderUsersPage() {
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('terbaru');
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('provider_list', PROVIDER_COLUMNS);
 
   // Modal states
@@ -347,6 +348,21 @@ export default function ProviderUsersPage() {
             />
           </div>
 
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Urutkan</label>
+            <select
+              className="form-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="terbaru">Terbaru</option>
+              <option value="terlama">Terlama</option>
+              <option value="az">Nama A–Z</option>
+              <option value="za">Nama Z–A</option>
+            </select>
+          </div>
+
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
             <Button
               variant="outline"
@@ -410,7 +426,12 @@ export default function ProviderUsersPage() {
               ) : providers.length === 0 ? (
                 <tr><td colSpan={visibleKeys.length} className="text-center py-6 text-muted">Tidak ada provider ditemukan.</td></tr>
               ) : (
-                providers.map((prov) => (
+                [...providers].sort((a, b) => {
+                  if (sortBy === 'az') return (a.user?.full_name || a.company_name || '').localeCompare(b.user?.full_name || b.company_name || '', 'id');
+                  if (sortBy === 'za') return (b.user?.full_name || b.company_name || '').localeCompare(a.user?.full_name || a.company_name || '', 'id');
+                  if (sortBy === 'terlama') return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
+                  return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime(); // terbaru
+                }).map((prov) => (
                   <tr key={prov.id}>
                     {isVisible('full_name') && <td><strong>{prov.user?.full_name}</strong></td>}
                     {isVisible('company_name') && <td>{prov.company_name || '-'}</td>}
