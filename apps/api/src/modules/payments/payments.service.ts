@@ -383,7 +383,9 @@ export class PaymentsService {
     page: number,
     perPage: number,
     status?: string,
-    providerId?: string
+    providerId?: string,
+    from?: Date,
+    to?: Date
   ): Promise<{ settlements: any[]; meta: any }> {
     const where: Prisma.settlementsWhereInput = {};
     if (status) {
@@ -391,6 +393,16 @@ export class PaymentsService {
     }
     if (providerId) {
       where.provider_id = providerId;
+    }
+    if (from || to) {
+      where.created_at = {};
+      if (from) (where.created_at as any).gte = from;
+      if (to) {
+        // Include the entire 'to' day
+        const toEnd = new Date(to);
+        toEnd.setHours(23, 59, 59, 999);
+        (where.created_at as any).lte = toEnd;
+      }
     }
 
     const skip = (page - 1) * perPage;
@@ -437,11 +449,26 @@ export class PaymentsService {
                 select: { admin_fee: true, total: true, pmk41_amount: true, status: true },
                 take: 1,
               },
+              // Pemenang lelang: ambil bid pemenang di lot ini
+              bids: {
+                where: { is_winning: true },
+                select: {
+                  id: true,
+                  bidder: {
+                    select: {
+                      id: true,
+                      full_name: true,
+                      email: true,
+                    },
+                  },
+                },
+                take: 1,
+              },
             },
           },
         },
       }),
-    ]);
+    ]) as [number, any[]];
 
     const recordIds = records.map(r => r.id);
     const txProfiles = await prisma.transaction_profiles.findMany({
@@ -482,6 +509,7 @@ export class PaymentsService {
             bank_account_name: txProfile?.bank_account_name ?? null,
           },
           lot: r.lot,
+          winner: r.lot?.bids?.[0]?.bidder ?? null,
         };
       }),
       meta: {

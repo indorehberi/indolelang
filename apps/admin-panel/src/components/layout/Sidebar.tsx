@@ -258,7 +258,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { href: '/finance/deposits', icon: 'account_balance_wallet', iconColor: '#10b981', label: 'Deposit' },
         { href: '/finance/invoices', icon: 'payments', iconColor: '#34d399', label: 'Pelunasan' },
-        showSettlement && { href: '/finance/settlements', icon: 'paid', iconColor: '#059669', label: 'Pencairan' },
+        { href: '/finance/pencairan', icon: 'price_check', iconColor: '#059669', label: 'Pencairan' },
+        showSettlement && { href: '/finance/settlements', icon: 'paid', iconColor: '#059669', label: 'Transfer Provider' },
         { href: '/finance/refunds', icon: 'currency_exchange', iconColor: '#f59e0b', label: 'Refund' },
         { href: '/finance/income', icon: 'savings', iconColor: '#22c55e', label: 'Pemasukan' },
       ].filter(Boolean) as NavItem[],

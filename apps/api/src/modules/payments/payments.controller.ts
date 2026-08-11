@@ -351,6 +351,12 @@ export class PaymentsController {
       const perPage = parseInt(req.query.per_page as string || '20', 10);
       const { status } = req.query as any;
 
+      const parseDate = (raw: unknown): Date | undefined => {
+        if (typeof raw !== 'string' || !raw) return undefined;
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? undefined : d;
+      };
+
       let providerId: string | undefined;
       if (req.user!.role === Role.PROVIDER) {
         providerId = req.user!.id;
@@ -362,7 +368,9 @@ export class PaymentsController {
         page,
         perPage,
         status,
-        providerId
+        providerId,
+        parseDate(req.query.from),
+        parseDate(req.query.to),
       );
 
       sendSuccess(res, settlements, 'Daftar settlement berhasil dimuat', meta);
