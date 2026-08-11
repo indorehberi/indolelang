@@ -96,6 +96,10 @@ export default function AuctionResultsPage() {
       if (!police.includes(query)) return false;
     }
     return true;
+  }).sort((a, b) => {
+    const dateA = a.session?.scheduled_at ? new Date(a.session.scheduled_at).getTime() : 0;
+    const dateB = b.session?.scheduled_at ? new Date(b.session.scheduled_at).getTime() : 0;
+    return dateB - dateA;
   });
 
   const handleDownloadBapl = async (invoiceId: string) => {
