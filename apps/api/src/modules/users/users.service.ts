@@ -531,15 +531,22 @@ export class UsersService {
         status: data.status ?? user.status,
         company_name: data.company_name !== undefined ? data.company_name : user.company_name,
         npwp: data.npwp !== undefined ? data.npwp : user.npwp,
-        provider_status: data.provider_status !== undefined ? data.provider_status : user.provider_status,
+        address: data.address !== undefined ? data.address : user.address,
+        occupation: data.occupation !== undefined ? data.occupation : user.occupation,
+        bank_name: data.bank_name !== undefined ? data.bank_name : user.bank_name,
+        bank_account_no: data.bank_account_no !== undefined ? data.bank_account_no : user.bank_account_no,
+        bank_account_name: data.bank_account_name !== undefined ? data.bank_account_name : user.bank_account_name,
       },
     });
 
     // Sync fields that live in both users and providers tables
-    // This ensures the provider list page (which reads providers table) reflects the changes
     const providerUpdateData: Record<string, unknown> = {};
     if (data.company_name !== undefined) providerUpdateData.company_name = data.company_name;
     if (data.npwp !== undefined) providerUpdateData.npwp = data.npwp;
+    if (data.address !== undefined) providerUpdateData.address = data.address;
+    if (data.bank_name !== undefined) providerUpdateData.bank_name = data.bank_name;
+    if (data.bank_account_no !== undefined) providerUpdateData.bank_account_no = data.bank_account_no;
+    if (data.bank_account_name !== undefined) providerUpdateData.bank_account_name = data.bank_account_name;
     if (data.provider_fee_type !== undefined) providerUpdateData.provider_fee_type = data.provider_fee_type;
     if (data.provider_fee_amount !== undefined) providerUpdateData.provider_fee_amount = Number(data.provider_fee_amount);
     if (data.pmk41_paid_by_provider !== undefined) providerUpdateData.pmk41_paid_by_provider = data.pmk41_paid_by_provider;
@@ -548,6 +555,28 @@ export class UsersService {
       await prisma.providers.updateMany({
         where: { user_id: id },
         data: providerUpdateData,
+      });
+    }
+
+    // Sync fields that live in both users and bidders tables
+    const bidderUpdateData: Record<string, unknown> = {};
+    if (data.address !== undefined) bidderUpdateData.address = data.address;
+    if (data.occupation !== undefined) bidderUpdateData.occupation = data.occupation;
+    if (data.bank_name !== undefined) bidderUpdateData.bank_name = data.bank_name;
+    if (data.bank_account_no !== undefined) bidderUpdateData.bank_account_no = data.bank_account_no;
+    if (data.bank_account_name !== undefined) bidderUpdateData.bank_account_name = data.bank_account_name;
+    if (Object.keys(bidderUpdateData).length > 0) {
+      await prisma.bidders.updateMany({
+        where: { user_id: id },
+        data: bidderUpdateData,
+      });
+    }
+
+    // Sync NIK to kyc_documents table
+    if (data.nik !== undefined) {
+      await prisma.kyc_documents.updateMany({
+        where: { user_id: id },
+        data: { nik: data.nik },
       });
     }
 

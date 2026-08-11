@@ -83,6 +83,7 @@ export const adminUpdateUserInfoSchema = z.object({
     status: z.nativeEnum(UserStatus).optional(),
     company_name: z.string().optional(),
     npwp: z.string().optional(),
+    nik: z.string().optional(),
     provider_status: z.enum(['pending', 'approved', 'rejected']).optional(),
     provider_fee_type: z.enum(['percentage', 'flat']).optional(),
     provider_fee_amount: z.string().optional().or(z.number().optional()),

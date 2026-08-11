@@ -51,6 +51,11 @@ interface Bidder {
     phone: string | null;
     npwp?: string;
     npwp_url?: string;
+    address?: string;
+    occupation?: string;
+    bank_name?: string;
+    bank_account_no?: string;
+    bank_account_name?: string;
   };
 }
 
@@ -97,7 +102,18 @@ export default function BidderListPage() {
   const [showNiplModal, setShowNiplModal] = useState(false);
   const [selectedBidder, setSelectedBidder] = useState<Bidder | null>(null);
 
-  const [formData, setFormData] = useState({ full_name: '', email: '', phone: '' });
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    nik: '',
+    npwp: '',
+    occupation: '',
+    address: '',
+    bank_name: '',
+    bank_account_no: '',
+    bank_account_name: '',
+  });
   const [niplFormData, setNiplFormData] = useState({ mobil_count: 0, motor_count: 0 });
   const [niplSaving, setNiplSaving] = useState(false);
 
@@ -429,6 +445,13 @@ export default function BidderListPage() {
                               full_name: bidder.user?.full_name || '',
                               email: bidder.user?.email || '',
                               phone: bidder.user?.phone || '',
+                              nik: bidder.kyc?.nik || '',
+                              npwp: bidder.user?.npwp || '',
+                              occupation: bidder.occupation || bidder.user?.occupation || '',
+                              address: bidder.address || bidder.user?.address || '',
+                              bank_name: bidder.bank_name || bidder.user?.bank_name || '',
+                              bank_account_no: bidder.bank_account_no || bidder.user?.bank_account_no || '',
+                              bank_account_name: bidder.bank_account_name || bidder.user?.bank_account_name || '',
                             });
                             setShowEditModal(true);
                           }}
@@ -477,30 +500,82 @@ export default function BidderListPage() {
         </div>
       </Card>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL — Lengkap Semua Data Bidder */}
       {showEditModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <Card>
-            <h3 style={{ marginBottom: '1rem' }}>Edit Bidder</h3>
-            <form onSubmit={handleEdit}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nama Lengkap</label>
-                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1.5rem' }}>
+          <div style={{ maxWidth: '750px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <Card>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+                <h3 style={{ margin: 0, color: '#1E293B', fontSize: '1.25rem' }}>Edit Data Lengkap Bidder</h3>
+                <span className="text-muted" style={{ fontSize: '0.85rem' }}>ID: {selectedBidder?.id}</span>
               </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Nomor Telepon</label>
-                <input required type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Batal</Button>
-                <Button variant="primary" type="submit">Simpan</Button>
-              </div>
-            </form>
-          </Card>
+              <form onSubmit={handleEdit}>
+                {/* Section 1: Akun & Identitas */}
+                <h4 style={{ fontSize: '0.9rem', color: '#1B4F72', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
+                  1. Data Akun & Identitas Utama
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nama Lengkap *</label>
+                    <input required type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Email *</label>
+                    <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nomor Telepon / WA *</label>
+                    <input required type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>NIK (Nomor KTP)</label>
+                    <input type="text" placeholder="16 digit NIK" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nomor NPWP</label>
+                    <input type="text" placeholder="No. NPWP" value={formData.npwp} onChange={(e) => setFormData({ ...formData, npwp: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Pekerjaan</label>
+                    <input type="text" placeholder="Karyawan, Wiraswasta, dll" value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                </div>
+
+                {/* Section 2: Alamat */}
+                <h4 style={{ fontSize: '0.9rem', color: '#1B4F72', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
+                  2. Alamat Domisili
+                </h4>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Alamat Lengkap (Sesuai KTP)</label>
+                  <textarea rows={2} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                </div>
+
+                {/* Section 3: Rekening Bank */}
+                <h4 style={{ fontSize: '0.9rem', color: '#1B4F72', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
+                  3. Informasi Rekening Bank (Tujuan Refund/Pengembalian Deposit)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nama Bank</label>
+                    <input type="text" placeholder="BCA, Mandiri, BNI, dll" value={formData.bank_name} onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nomor Rekening</label>
+                    <input type="text" placeholder="1234567890" value={formData.bank_account_no} onChange={(e) => setFormData({ ...formData, bank_account_no: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: '#334155' }}>Nama Pemilik Rekening</label>
+                    <input type="text" placeholder="Sesuai Buku Tabungan" value={formData.bank_account_name} onChange={(e) => setFormData({ ...formData, bank_account_name: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                  <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Batal</Button>
+                  <Button variant="primary" type="submit">Simpan Perubahan</Button>
+                </div>
+              </form>
+            </Card>
+          </div>
         </div>
       )}
 
