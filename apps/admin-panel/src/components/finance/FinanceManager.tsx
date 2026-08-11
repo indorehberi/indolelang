@@ -441,24 +441,49 @@ export default function FinanceManager({
   }, [activeTab, statusFilter, invoiceStatusFilter, settlementStatusFilter]);
 
   const handleExport = () => {
-    const dataToExport = deposits.map((d, index) => ({
-      'No': index + 1,
-      'Waktu Transaksi': d.created_at ? new Date(d.created_at).toLocaleString('id-ID') : '-',
-      'Nama Bidder': d.user?.full_name || '-',
-      'Email': d.user?.email || '-',
-      'No. HP': d.user?.phone || '-',
-      'Bank VA': d.va_bank || d.user?.bank_name || '-',
-      'No. NIPL / VA': d.va_number || '-',
-      'Jumlah Jaminan (Rp)': d.amount ? Number(d.amount) : 0,
-      'Metode Pembayaran': d.payment_method || 'Virtual Account',
-      'Status Deposit': d.status === 'paid' ? 'Lunas' : d.status === 'pending' ? 'Pending' : d.status === 'pending_approval' ? 'Menunggu Approval' : d.status === 'pending_refund' ? 'Menunggu Refund' : d.status === 'refunded' ? 'Refunded' : d.status === 'expired' ? 'Expired' : d.status,
-      'Waktu Dibayar': d.paid_at ? new Date(d.paid_at).toLocaleString('id-ID') : '-'
-    }));
+    const dataToExport = deposits.map((d, index) => {
+      const row: Record<string, any> = {};
+      if (isVisible('no')) row['No'] = index + 1;
+      if (isVisible('created_at')) row['Waktu Transaksi'] = d.created_at ? new Date(d.created_at).toLocaleString('id-ID') : '-';
+      if (isVisible('bidder')) row['Bidder'] = d.user ? `${d.user.full_name} (${d.user.email})` : d.user_id;
+      if (isVisible('nipl_name')) row['Nama NIPL'] = d.session?.title || (d.unit_type ? `NIPL ${d.unit_type.toUpperCase()}` : 'NIPL Lelang');
+      if (isVisible('address')) row['Alamat'] = d.user?.address || '-';
+      if (isVisible('amount')) row['Nominal (Rp)'] = d.amount ? Number(d.amount) : 0;
+      if (isVisible('bank_account_no')) row['No Rek'] = d.user?.bank_account_no || d.va_number || '-';
+      if (isVisible('bank_account_name')) row['Nama Rek'] = d.user?.bank_account_name ? `${d.user.bank_account_name} (${d.user.bank_name || ''})` : '-';
+      if (isVisible('nipl_code')) row['No NIPL / Kode'] = `NIPL-${d.user_id.substring(0, 8).toUpperCase()}`;
+      if (isVisible('status')) row['Status Pembayaran'] = d.status === 'paid' ? 'Lunas' : d.status === 'pending' ? 'Pending' : d.status === 'pending_approval' ? 'Menunggu Approval' : d.status === 'pending_refund' ? 'Menunggu Refund' : d.status === 'refunded' ? 'Refunded' : d.status === 'expired' ? 'Expired' : d.status;
+      if (isVisible('paid_at')) row['Waktu Lunas'] = d.paid_at ? new Date(d.paid_at).toLocaleString('id-ID') : '-';
+      return row;
+    });
     const ok = exportToExcel(dataToExport, 'Monitoring_Deposit_NIPL_IndoLelang', 'Deposit NIPL');
     if (ok) {
       toast.success('Berhasil mendownload Excel Monitoring Deposit NIPL (.xlsx)');
     } else {
       toast.error('Tidak ada data deposit NIPL untuk di-export');
+    }
+  };
+
+  const handleRefundExport = () => {
+    const dataToExport = refundQueue.map((r, index) => {
+      const row: Record<string, any> = {};
+      if (isRefundVisible('no')) row['No'] = index + 1;
+      if (isRefundVisible('created_at')) row['Waktu Pengajuan'] = r.created_at ? new Date(r.created_at).toLocaleString('id-ID') : '-';
+      if (isRefundVisible('bidder')) row['Bidder'] = r.user ? `${r.user.full_name} (${r.user.email})` : r.user_id;
+      if (isRefundVisible('nipl_name')) row['Nama NIPL'] = r.session?.title || (r.unit_type ? `NIPL ${r.unit_type.toUpperCase()}` : 'NIPL Lelang');
+      if (isRefundVisible('address')) row['Alamat'] = r.user?.address || '-';
+      if (isRefundVisible('amount')) row['Nominal Refund (Rp)'] = r.amount ? Number(r.amount) : 0;
+      if (isRefundVisible('bank_account_no')) row['No Rek'] = r.user?.bank_account_no || r.va_number || '-';
+      if (isRefundVisible('bank_account_name')) row['Nama Rek'] = r.user?.bank_account_name ? `${r.user.bank_account_name} (${r.user.bank_name || ''})` : '-';
+      if (isRefundVisible('nipl_code')) row['No NIPL / Kode'] = `NIPL-${r.user_id.substring(0, 8).toUpperCase()}`;
+      if (isRefundVisible('status')) row['Status'] = r.status;
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Antrean_Refund_NIPL_IndoLelang', 'Antrean Refund');
+    if (ok) {
+      toast.success('Berhasil mendownload Excel Antrean Refund NIPL (.xlsx)');
+    } else {
+      toast.error('Tidak ada data refund NIPL untuk di-export');
     }
   };
 
@@ -957,7 +982,15 @@ export default function FinanceManager({
               <h1 className="page-title">Antrean Pengembalian Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar deposit jaminan bidder yang kalah lelang dan harus dikembalikan (Refund) secara manual.</p>
             </div>
-            <div className="toolbar-right">
+            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={handleRefundExport}
+                className="btn btn-outline btn-sm d-flex align-items-center gap-1"
+                style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+                Export XLSX
+              </button>
               <ColumnPicker
                 columns={REFUND_COLUMNS}
                 visibleKeys={refundVisibleKeys}

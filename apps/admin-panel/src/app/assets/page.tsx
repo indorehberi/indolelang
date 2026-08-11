@@ -621,16 +621,17 @@ export default function AssetsPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              const dataToExport = assets.map((a, index) => ({
-                'No': index + 1,
-                'Nama Barang': a.title || '-',
-                'Kategori': CATEGORY_LABELS[a.category] || a.category,
-                'Mitra Provider': a.provider?.company_name || a.provider?.full_name || '-',
-                'Harga Dasar (Rp)': a.base_price ? Number(a.base_price) : 0,
-                'Status Barang': a.status === 'listed' ? 'Live/Listed' : a.status === 'approved' ? 'Approved' : a.status === 'inspected' ? 'Inspected' : a.status === 'sold' ? 'Terjual' : a.status === 'pending' ? 'Pending' : a.status,
-                'Dibuat Oleh Admin': a.created_by_admin ? 'Ya' : 'Tidak',
-                'Tanggal Input': a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-'
-              }));
+              const dataToExport = assets.map((a, index) => {
+                const row: Record<string, any> = {};
+                if (isVisible('no')) row['No'] = index + 1;
+                if (isVisible('title')) row['Nama Barang'] = a.title || '-';
+                if (isVisible('category')) row['Kategori'] = CATEGORY_LABELS[a.category] || a.category;
+                if (isVisible('provider')) row['Mitra Provider'] = a.provider?.company_name || a.provider?.full_name || '-';
+                if (isVisible('price')) row['Harga Dasar (Rp)'] = a.base_price ? Number(a.base_price) : 0;
+                if (isVisible('status')) row['Status Barang'] = a.status === 'listed' ? 'Live/Listed' : a.status === 'approved' ? 'Approved' : a.status === 'inspected' ? 'Inspected' : a.status === 'sold' ? 'Terjual' : a.status === 'pending' ? 'Pending' : a.status;
+                if (isVisible('created_at')) row['Tanggal Input'] = a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-';
+                return row;
+              });
               const ok = exportToExcel(dataToExport, 'Katalog_Barang_IndoLelang', 'Katalog Barang');
               if (ok) {
                 toast.success('Berhasil mendownload Excel Katalog Barang (.xlsx)');

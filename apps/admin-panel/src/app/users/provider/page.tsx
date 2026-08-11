@@ -307,20 +307,22 @@ export default function ProviderUsersPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              const dataToExport = providers.map((p, index) => ({
-                'No': index + 1,
-                'Nama Perusahaan': p.company_name || p.user?.full_name || '-',
-                'Nama Kontak': p.user?.full_name || '-',
-                'Email': p.user?.email || '-',
-                'No. Telepon': p.user?.phone || '-',
-                'NPWP': p.npwp || '-',
-                'Tipe Komisi': p.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Fixed Nominal (Rp)',
-                'Besar Komisi': p.provider_fee_amount ? Number(p.provider_fee_amount).toLocaleString('id-ID') : '0',
-                'PMK 41 Dibayarkan Provider': p.pmk41_paid_by_provider ? 'Ya' : 'Tidak',
-                'Status Provider': p.status === 'aktif' ? 'Aktif' : p.status === 'antri' ? 'Menunggu Verifikasi' : p.status === 'ditolak' ? 'Ditolak' : 'Nonaktif',
-                'Status KYC': p.kyc?.status || 'Belum Verifikasi',
-                'Tanggal Terdaftar': p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('id-ID') : '-'
-              }));
+              const dataToExport = providers.map((p, index) => {
+                const row: Record<string, any> = {};
+                if (isVisible('no')) row['No'] = index + 1;
+                if (isVisible('company')) row['Nama Perusahaan'] = p.company_name || p.user?.full_name || '-';
+                if (isVisible('name')) row['Nama Kontak'] = p.user?.full_name || '-';
+                if (isVisible('email')) row['Email'] = p.user?.email || '-';
+                if (isVisible('phone')) row['No. Telepon'] = p.user?.phone || '-';
+                if (isVisible('npwp')) row['NPWP'] = p.npwp || '-';
+                if (isVisible('commission')) row['Tipe Komisi'] = p.provider_fee_type === 'percentage' ? 'Persentase (%)' : 'Fixed Nominal (Rp)';
+                if (isVisible('commission')) row['Besar Komisi'] = p.provider_fee_amount ? Number(p.provider_fee_amount).toLocaleString('id-ID') : '0';
+                if (isVisible('pmk41')) row['PMK 41 Dibayarkan Provider'] = p.pmk41_paid_by_provider ? 'Ya' : 'Tidak';
+                if (isVisible('status')) row['Status Provider'] = p.status === 'aktif' ? 'Aktif' : p.status === 'antri' ? 'Menunggu Verifikasi' : p.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
+                if (isVisible('kyc')) row['Status KYC'] = p.kyc?.status || 'Belum Verifikasi';
+                if (isVisible('created_at')) row['Tanggal Terdaftar'] = p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('id-ID') : '-';
+                return row;
+              });
               const ok = exportToExcel(dataToExport, 'Daftar_Provider_IndoLelang', 'Daftar Provider');
               if (ok) {
                 showToast('success', 'Berhasil mendownload Excel Daftar Provider (.xlsx)');

@@ -324,23 +324,24 @@ export default function BidderListPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              const dataToExport = bidders.map((b, index) => ({
-                'No': index + 1,
-                'Nama Lengkap': b.user?.full_name || '-',
-                'Email': b.user?.email || '-',
-                'No. Telepon': b.user?.phone || '-',
-                'NIK / KTP': b.kyc?.nik || '-',
-                'Status Bidder': b.status === 'aktif' ? 'Aktif' : b.status === 'antri' ? 'Menunggu Verifikasi' : b.status === 'ditolak' ? 'Ditolak' : 'Nonaktif',
-                'Status KYC': b.kyc?.status || 'Belum Verifikasi',
-                'NIPL Mobil': b.is_unlimited_mobil ? 'Unlimited' : (b.nipl_mobil || 0),
-                'NIPL Motor': b.is_unlimited_motor ? 'Unlimited' : (b.nipl_motor || 0),
-                'Pekerjaan': b.occupation || '-',
-                'Alamat': b.address || '-',
-                'Bank': b.bank_name || '-',
-                'No. Rekening': b.bank_account_no || '-',
-                'Atas Nama Rekening': b.bank_account_name || '-',
-                'Tanggal Terdaftar': b.submitted_at ? new Date(b.submitted_at).toLocaleDateString('id-ID') : '-'
-              }));
+              const dataToExport = bidders.map((b, index) => {
+                const row: Record<string, any> = {};
+                if (isVisible('no')) row['No'] = index + 1;
+                if (isVisible('name')) row['Nama Lengkap'] = b.user?.full_name || '-';
+                if (isVisible('email')) row['Email'] = b.user?.email || '-';
+                if (isVisible('phone')) row['No. Telepon'] = b.user?.phone || '-';
+                if (isVisible('nik')) row['NIK / KTP'] = b.kyc?.nik || '-';
+                if (isVisible('npwp')) row['NPWP'] = b.user?.npwp || (b as any).npwp || '-';
+                if (isVisible('status')) row['Status Bidder'] = b.status === 'aktif' ? 'Aktif' : b.status === 'antri' ? 'Menunggu Verifikasi' : b.status === 'ditolak' ? 'Ditolak' : 'Nonaktif';
+                if (isVisible('kyc')) row['Status KYC'] = b.kyc?.status || 'Belum Verifikasi';
+                if (isVisible('nipl_mobil')) row['NIPL Mobil'] = b.is_unlimited_mobil ? 'Unlimited' : (b.nipl_mobil || 0);
+                if (isVisible('nipl_motor')) row['NIPL Motor'] = b.is_unlimited_motor ? 'Unlimited' : (b.nipl_motor || 0);
+                if (isVisible('occupation')) row['Pekerjaan'] = b.user?.occupation || (b as any).occupation || '-';
+                if (isVisible('address')) row['Alamat'] = b.user?.address || (b as any).address || '-';
+                if (isVisible('bank')) row['Bank & Rekening'] = b.user?.bank_account_no ? `${b.user.bank_name || ''} ${b.user.bank_account_no} a/n ${b.user.bank_account_name || ''}` : '-';
+                if (isVisible('created_at')) row['Tanggal Terdaftar'] = b.submitted_at ? new Date(b.submitted_at).toLocaleDateString('id-ID') : '-';
+                return row;
+              });
               const ok = exportToExcel(dataToExport, 'Daftar_Bidder_IndoLelang', 'Daftar Bidder');
               if (ok) {
                 toast.success('Berhasil mendownload Excel Daftar Bidder (.xlsx)');

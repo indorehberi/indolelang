@@ -132,14 +132,15 @@ export default function IncomePage() {
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   const handleExport = () => {
-    const dataToExport = entries.map((entry, index) => ({
-      No: index + 1,
-      Tanggal: new Date(entry.date).toLocaleString('id-ID'),
-      'Jenis Pemasukan': CATEGORY_LABEL[entry.category] || entry.category,
-      'Rincian Catatan': entry.description,
-      'Kode Unik': entry.unique_code ? `Rp ${entry.unique_code.toLocaleString('id-ID')}` : '-',
-      'Jumlah (Rp)': entry.amount,
-    }));
+    const dataToExport = entries.map((entry, index) => {
+      const row: Record<string, any> = {};
+      if (isVisible('no')) row['No'] = index + 1;
+      if (isVisible('date')) row['Tanggal'] = new Date(entry.date).toLocaleString('id-ID');
+      if (isVisible('category')) row['Jenis Pemasukan'] = CATEGORY_LABEL[entry.category] || entry.category;
+      if (isVisible('description')) row['Rincian Catatan'] = entry.description;
+      if (isVisible('amount')) row['Jumlah (Rp)'] = entry.amount;
+      return row;
+    });
     const ok = exportToExcel(dataToExport, 'Pemasukan_Platform_IndoLelang', 'Daftar Pemasukan');
     if (ok) {
       toast.success('Berhasil mendownload laporan Excel Pemasukan (.xlsx)');

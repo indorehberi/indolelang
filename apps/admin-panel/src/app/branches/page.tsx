@@ -9,6 +9,7 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
 import { apiFetch } from '../../lib/api';
+import { exportToExcel } from '../../lib/excelExport';
 import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
 
 const BRANCH_COLUMNS: ColumnOption[] = [
@@ -167,6 +168,26 @@ export default function BranchesPage() {
     }
   };
 
+  const handleExport = () => {
+    const dataToExport = branches.map((br, index) => {
+      const row: Record<string, any> = {};
+      row['No'] = index + 1;
+      if (isVisible('name')) row['Nama Cabang'] = br.name;
+      if (isVisible('city')) row['Kota'] = br.city;
+      if (isVisible('address')) row['Alamat Lengkap'] = br.address;
+      if (isVisible('phone')) row['Nomor Telepon'] = br.phone;
+      if (isVisible('pic')) row['Kepala Cabang (PIC)'] = br.pic_name;
+      if (isVisible('status')) row['Status'] = br.is_active ? 'Aktif' : 'Nonaktif';
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Daftar_Cabang_IndoLelang', 'Daftar Cabang');
+    if (ok) {
+      setToast({ message: 'Berhasil mendownload Excel Daftar Cabang (.xlsx)', variant: 'success' });
+    } else {
+      setToast({ message: 'Tidak ada data cabang untuk di-export', variant: 'danger' });
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengaturan" breadcrumbCurrent="Manajemen Cabang">
       <div className="toolbar">
@@ -175,6 +196,15 @@ export default function BranchesPage() {
           <p className="page-subtitle">Daftar lokasi fisik kantor operasional dan titik penyerahan/pengambilan unit lelang.</p>
         </div>
         <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
+            Export XLSX
+          </Button>
           <ColumnPicker
             columns={BRANCH_COLUMNS}
             visibleKeys={visibleKeys}
