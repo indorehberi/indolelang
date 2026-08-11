@@ -15,6 +15,11 @@ const BIDDER_COLUMNS: ColumnOption[] = [
   { key: 'full_name', label: 'Nama Lengkap', alwaysVisible: true },
   { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Nomor Telepon' },
+  { key: 'nik', label: 'NIK (No. KTP)', defaultVisible: true },
+  { key: 'npwp', label: 'NPWP', defaultVisible: true },
+  { key: 'occupation', label: 'Pekerjaan', defaultVisible: false },
+  { key: 'address', label: 'Alamat Lengkap', defaultVisible: false },
+  { key: 'bank', label: 'Rekening Bank', defaultVisible: false },
   { key: 'nipl', label: 'NIPL Aktif' },
   { key: 'status', label: 'Status' },
   { key: 'submitted_at', label: 'Tanggal Ajukan' },
@@ -368,6 +373,11 @@ export default function BidderListPage() {
                 {isVisible('full_name') && <th>Nama Lengkap</th>}
                 {isVisible('email') && <th>Email</th>}
                 {isVisible('phone') && <th>Nomor Telepon</th>}
+                {isVisible('nik') && <th>NIK</th>}
+                {isVisible('npwp') && <th>NPWP</th>}
+                {isVisible('occupation') && <th>Pekerjaan</th>}
+                {isVisible('address') && <th>Alamat Lengkap</th>}
+                {isVisible('bank') && <th>Rekening Bank</th>}
                 {isVisible('nipl') && <th>NIPL Aktif</th>}
                 {isVisible('status') && <th>Status</th>}
                 {isVisible('submitted_at') && <th>Tanggal Ajukan</th>}
@@ -386,9 +396,25 @@ export default function BidderListPage() {
               ) : (
                 bidders.map((bidder) => (
                   <tr key={bidder.id}>
-                    {isVisible('full_name') && <td><strong>{bidder.user?.full_name}</strong></td>}
-                    {isVisible('email') && <td>{bidder.user?.email}</td>}
+                    {isVisible('full_name') && <td><strong>{bidder.user?.full_name || '-'}</strong></td>}
+                    {isVisible('email') && <td>{bidder.user?.email || '-'}</td>}
                     {isVisible('phone') && <td>{bidder.user?.phone || '-'}</td>}
+                    {isVisible('nik') && <td>{bidder.kyc?.nik || '-'}</td>}
+                    {isVisible('npwp') && <td>{bidder.user?.npwp || '-'}</td>}
+                    {isVisible('occupation') && <td>{bidder.occupation || bidder.user?.occupation || '-'}</td>}
+                    {isVisible('address') && <td style={{ maxWidth: '250px', whiteSpace: 'normal', fontSize: '0.85rem' }}>{bidder.address || bidder.user?.address || '-'}</td>}
+                    {isVisible('bank') && (
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {(bidder.bank_name || bidder.user?.bank_name) ? (
+                          <div>
+                            <div><strong>{bidder.bank_name || bidder.user?.bank_name}</strong>: {bidder.bank_account_no || bidder.user?.bank_account_no || '-'}</div>
+                            <div style={{ color: '#64748B', fontSize: '0.75rem' }}>a/n {bidder.bank_account_name || bidder.user?.bank_account_name || '-'}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                    )}
                     {isVisible('nipl') && (
                       <td>
                         <Badge variant={(bidder.active_nipl_count || 0) > 0 ? 'success' : 'default'}>
