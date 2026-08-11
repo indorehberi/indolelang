@@ -337,9 +337,9 @@ export default function NewAssetPage() {
         engine_number: formData.engine_number,
 
         // Masa Berlaku Dokumen
-        stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,
-        stnk_tax_date: formData.stnk_tax_date ? new Date(formData.stnk_tax_date).toISOString() : undefined,
-        keur_date: formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined,
+        stnk_date: formData.stnk_date === 'N/A' ? 'N/A' : (formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined),
+        stnk_tax_date: formData.stnk_tax_date === 'N/A' ? 'N/A' : (formData.stnk_tax_date ? new Date(formData.stnk_tax_date).toISOString() : undefined),
+        keur_date: formData.keur_date === 'N/A' ? 'N/A' : (formData.keur_date ? new Date(formData.keur_date).toISOString() : undefined),
 
         // Docs
         doc_stnk: formData.doc_stnk,
@@ -715,13 +715,67 @@ export default function NewAssetPage() {
         <Card title="5. Masa Berlaku Dokumen">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <Field label="Masa Berlaku STNK">
-              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.stnk_date} onChange={e => setFormData({ ...formData, stnk_date: e.target.value })} />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', opacity: formData.stnk_date === 'N/A' ? 0.4 : 1 }}
+                  value={formData.stnk_date === 'N/A' ? '' : formData.stnk_date}
+                  disabled={formData.stnk_date === 'N/A'}
+                  onChange={e => setFormData({ ...formData, stnk_date: e.target.value })}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.stnk_date === 'N/A'}
+                    onChange={e => setFormData({ ...formData, stnk_date: e.target.checked ? 'N/A' : '' })}
+                    style={{ width: '14px', height: '14px' }}
+                  />
+                  N/A
+                </label>
+              </div>
             </Field>
             <Field label="Masa Berlaku Pajak">
-              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.stnk_tax_date} onChange={e => setFormData({ ...formData, stnk_tax_date: e.target.value })} />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', opacity: formData.stnk_tax_date === 'N/A' ? 0.4 : 1 }}
+                  value={formData.stnk_tax_date === 'N/A' ? '' : formData.stnk_tax_date}
+                  disabled={formData.stnk_tax_date === 'N/A'}
+                  onChange={e => setFormData({ ...formData, stnk_tax_date: e.target.value })}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.stnk_tax_date === 'N/A'}
+                    onChange={e => setFormData({ ...formData, stnk_tax_date: e.target.checked ? 'N/A' : '' })}
+                    style={{ width: '14px', height: '14px' }}
+                  />
+                  N/A
+                </label>
+              </div>
             </Field>
             <Field label="Masa Berlaku KEUR">
-              <input type="date" className="form-input" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }} value={formData.keur_date} onChange={e => setFormData({ ...formData, keur_date: e.target.value })} />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', opacity: formData.keur_date === 'N/A' ? 0.4 : 1 }}
+                  value={formData.keur_date === 'N/A' ? '' : formData.keur_date}
+                  disabled={formData.keur_date === 'N/A'}
+                  onChange={e => setFormData({ ...formData, keur_date: e.target.value })}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.keur_date === 'N/A'}
+                    onChange={e => setFormData({ ...formData, keur_date: e.target.checked ? 'N/A' : '' })}
+                    style={{ width: '14px', height: '14px' }}
+                  />
+                  N/A
+                </label>
+              </div>
             </Field>
           </div>
         </Card>

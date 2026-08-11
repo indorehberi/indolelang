@@ -228,10 +228,10 @@ model assets {
   is_recommended Boolean? @default(false)
   engine_number  String?
 
-  // Data Dokumen (Tanggal)
-  stnk_date     DateTime?
-  stnk_tax_date DateTime?
-  keur_date     DateTime?
+  // Data Dokumen (Tanggal atau N/A)
+  stnk_date     String?
+  stnk_tax_date String?
+  keur_date     String?
 
   // Data Dokumen (Status: Ada/Tidak Ada)
   doc_stnk     Boolean? @default(false)

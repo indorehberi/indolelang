@@ -170,12 +170,24 @@ const EditField = ({
       <span style={{ color: 'var(--text-secondary)', minWidth: '160px', fontWeight: 600 }}>{label}</span>
       <div style={{ flex: 1, position: 'relative' }}>
         {type === 'date' ? (
-          <input
-            type="date"
-            style={inputStyle}
-            value={value ? String(value).slice(0, 10) : ''}
-            onChange={(e) => onChange(e.target.value)}
-          />
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="date"
+              style={{ ...inputStyle, flex: 1, opacity: String(value) === 'N/A' ? 0.4 : 1 }}
+              value={String(value) === 'N/A' ? '' : (value ? String(value).slice(0, 10) : '')}
+              disabled={String(value) === 'N/A'}
+              onChange={(e) => onChange(e.target.value)}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.8rem', color: '#64748b', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={String(value) === 'N/A'}
+                onChange={(e) => onChange(e.target.checked ? 'N/A' : '')}
+                style={{ width: '14px', height: '14px' }}
+              />
+              N/A
+            </label>
+          </div>
         ) : type === 'textarea' ? (
           <textarea
             rows={3}
@@ -409,9 +421,9 @@ export default function AssetDetailPage() {
         grade_interior: form.grade_interior,
         grade_exterior: form.grade_exterior,
         grade_engine: form.grade_engine,
-        stnk_date: form.stnk_date ? new Date(form.stnk_date).toISOString() : undefined,
-        stnk_tax_date: form.stnk_tax_date ? new Date(form.stnk_tax_date).toISOString() : undefined,
-        keur_date: form.keur_date ? new Date(form.keur_date).toISOString() : undefined,
+        stnk_date: form.stnk_date === 'N/A' ? 'N/A' : (form.stnk_date ? new Date(form.stnk_date).toISOString() : undefined),
+        stnk_tax_date: form.stnk_tax_date === 'N/A' ? 'N/A' : (form.stnk_tax_date ? new Date(form.stnk_tax_date).toISOString() : undefined),
+        keur_date: form.keur_date === 'N/A' ? 'N/A' : (form.keur_date ? new Date(form.keur_date).toISOString() : undefined),
       };
 
       // Remove undefined/null keys — fields the DB stored as null (never
@@ -736,9 +748,9 @@ export default function AssetDetailPage() {
                   })}
                 </div>
                 <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  {asset.stnk_date && <span>STNK: {formatDate(asset.stnk_date)}</span>}
-                  {asset.stnk_tax_date && <span>Pajak STNK: {formatDate(asset.stnk_tax_date)}</span>}
-                  {asset.keur_date && <span>KEUR: {formatDate(asset.keur_date)}</span>}
+                  {asset.stnk_date && <span>STNK: {asset.stnk_date === 'N/A' ? 'N/A' : formatDate(asset.stnk_date)}</span>}
+                  {asset.stnk_tax_date && <span>Pajak STNK: {asset.stnk_tax_date === 'N/A' ? 'N/A' : formatDate(asset.stnk_tax_date)}</span>}
+                  {asset.keur_date && <span>KEUR: {asset.keur_date === 'N/A' ? 'N/A' : formatDate(asset.keur_date)}</span>}
                 </div>
               </>
             )}

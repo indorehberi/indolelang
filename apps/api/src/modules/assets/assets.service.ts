@@ -164,9 +164,9 @@ export class AssetsService {
         engine_number: data.engine_number || null,
         created_by_admin: data.created_by_admin || false,
         
-        stnk_date: data.stnk_date ? new Date(data.stnk_date) : null,
-        stnk_tax_date: data.stnk_tax_date ? new Date(data.stnk_tax_date) : null,
-        keur_date: data.keur_date ? new Date(data.keur_date) : null,
+        stnk_date: data.stnk_date === 'N/A' ? 'N/A' : (data.stnk_date ? new Date(data.stnk_date).toISOString() : null),
+        stnk_tax_date: data.stnk_tax_date === 'N/A' ? 'N/A' : (data.stnk_tax_date ? new Date(data.stnk_tax_date).toISOString() : null),
+        keur_date: data.keur_date === 'N/A' ? 'N/A' : (data.keur_date ? new Date(data.keur_date).toISOString() : null),
         
         doc_stnk: data.doc_stnk === true || data.doc_stnk === 'true' ? true : false,
         doc_bpkb: data.doc_bpkb === true || data.doc_bpkb === 'true' ? true : false,
@@ -297,9 +297,9 @@ export class AssetsService {
         is_recommended: data.is_recommended !== undefined ? (data.is_recommended === true || data.is_recommended === 'true') : undefined,
         engine_number: data.engine_number ?? undefined,
         
-        stnk_date: data.stnk_date ? new Date(data.stnk_date) : undefined,
-        stnk_tax_date: data.stnk_tax_date ? new Date(data.stnk_tax_date) : undefined,
-        keur_date: data.keur_date ? new Date(data.keur_date) : undefined,
+        stnk_date: data.stnk_date === undefined ? undefined : (data.stnk_date === 'N/A' ? 'N/A' : (data.stnk_date ? new Date(data.stnk_date).toISOString() : null)),
+        stnk_tax_date: data.stnk_tax_date === undefined ? undefined : (data.stnk_tax_date === 'N/A' ? 'N/A' : (data.stnk_tax_date ? new Date(data.stnk_tax_date).toISOString() : null)),
+        keur_date: data.keur_date === undefined ? undefined : (data.keur_date === 'N/A' ? 'N/A' : (data.keur_date ? new Date(data.keur_date).toISOString() : null)),
         
         doc_stnk: data.doc_stnk !== undefined ? (data.doc_stnk === true || data.doc_stnk === 'true') : undefined,
         doc_bpkb: data.doc_bpkb !== undefined ? (data.doc_bpkb === true || data.doc_bpkb === 'true') : undefined,
