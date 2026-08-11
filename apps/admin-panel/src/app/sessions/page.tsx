@@ -47,6 +47,8 @@ export default function SessionsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   
@@ -175,6 +177,8 @@ export default function SessionsPage() {
       if (branchFilter) query += `&branch_id=${branchFilter}`;
       if (typeFilter) query += `&is_exclusive=${typeFilter === 'exclusive'}`;
       if (dateFilter) query += `&date=${dateFilter}`;
+      if (dateFrom) query += `&start_date=${dateFrom}`;
+      if (dateTo) query += `&end_date=${dateTo}`;
 
       const response = await apiFetch(`/sessions${query}`);
       const data = await response.json();
@@ -192,7 +196,7 @@ export default function SessionsPage() {
 
   useEffect(() => {
     fetchSessions();
-  }, [statusFilter, search, branchFilter, typeFilter, dateFilter]);
+  }, [statusFilter, search, branchFilter, typeFilter, dateFilter, dateFrom, dateTo]);
 
   const handleOpenEdit = (session: Session) => {
     setSelectedSession(session);
@@ -336,13 +340,24 @@ export default function SessionsPage() {
           </div>
 
           <div style={{ width: '180px' }}>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tanggal</label>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
             <input
               type="date"
               className="form-select"
               style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div style={{ width: '180px' }}>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="form-select"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
 

@@ -97,6 +97,8 @@ export default function BidderListPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('bidder_list', BIDDER_COLUMNS);
 
   // Modal states
@@ -128,6 +130,8 @@ export default function BidderListPage() {
       let query = `/admin/bidders?per_page=200`;
       if (filterStatus) query += `&status=${filterStatus}`;
       if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (startDate) query += `&start_date=${startDate}`;
+      if (endDate) query += `&end_date=${endDate}`;
 
       const response = await apiFetch(query);
       const data = await response.json();
@@ -142,7 +146,7 @@ export default function BidderListPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, search]);
+  }, [filterStatus, search, startDate, endDate]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -300,7 +304,25 @@ export default function BidderListPage() {
           <h1 className="page-title">Daftar Bidder</h1>
           <p className="page-subtitle">Hanya menampilkan pengguna yang mengajukan diri sebagai bidder.</p>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px' }}>
+        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
+            <input
+              type="date"
+              className="search-box"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+            />
+            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
+            <input
+              type="date"
+              className="search-box"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+            />
+          </div>
           <select
             className="search-box"
             value={filterStatus}

@@ -18,6 +18,8 @@ export default function AuctionResultsPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchBidder, setSearchBidder] = useState('');
   const [searchPolice, setSearchPolice] = useState('');
@@ -68,6 +70,12 @@ export default function AuctionResultsPage() {
     if (dateFilter) {
       const scheduledDate = lot.session?.scheduled_at?.split('T')[0];
       if (scheduledDate !== dateFilter) return false;
+    }
+    if (dateFrom && lot.session?.scheduled_at) {
+      if (new Date(lot.session.scheduled_at) < new Date(`${dateFrom}T00:00:00`)) return false;
+    }
+    if (dateTo && lot.session?.scheduled_at) {
+      if (new Date(lot.session.scheduled_at) > new Date(`${dateTo}T23:59:59`)) return false;
     }
     if (statusFilter === 'sold' || statusFilter === 'unsold') {
       if (lot.status !== statusFilter) return false;
@@ -231,13 +239,24 @@ export default function AuctionResultsPage() {
           </div>
 
           <div>
-            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Tanggal</label>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Dari Tanggal</label>
             <input
               type="date"
               className="search-box"
               style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: '600', fontSize: '0.85rem' }}>Sampai Tanggal</label>
+            <input
+              type="date"
+              className="search-box"
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
 

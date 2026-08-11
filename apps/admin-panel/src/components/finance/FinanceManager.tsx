@@ -139,6 +139,8 @@ export default function FinanceManager({
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('finance_deposit_list', DEPOSIT_COLUMNS);
   const { visibleKeys: refundVisibleKeys, setVisibleKeys: setRefundVisibleKeys, isVisible: isRefundVisible } = useColumnVisibility('refund_queue_list', REFUND_COLUMNS);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('');
@@ -156,6 +158,8 @@ export default function FinanceManager({
     try {
       let query = `?page=1&per_page=50`;
       if (statusFilter) query += `&status=${statusFilter}`;
+      if (dateFrom) query += `&start_date=${dateFrom}`;
+      if (dateTo) query += `&end_date=${dateTo}`;
 
       const response = await apiFetch(`/deposits${query}`);
       const data = await response.json();
@@ -176,6 +180,8 @@ export default function FinanceManager({
     try {
       let query = `?page=1&per_page=50`;
       if (invoiceStatusFilter) query += `&status=${invoiceStatusFilter}`;
+      if (dateFrom) query += `&start_date=${dateFrom}`;
+      if (dateTo) query += `&end_date=${dateTo}`;
 
       const response = await apiFetch(`/documents/invoices${query}`);
       const data = await response.json();
@@ -211,7 +217,10 @@ export default function FinanceManager({
   const fetchRefundQueue = async () => {
     setLoading(true);
     try {
-      const response = await apiFetch(`/payments/deposits/refund-queue?page=1&per_page=50`);
+      let query = `?page=1&per_page=50`;
+      if (dateFrom) query += `&start_date=${dateFrom}`;
+      if (dateTo) query += `&end_date=${dateTo}`;
+      const response = await apiFetch(`/payments/deposits/refund-queue${query}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setRefundQueue(data.data);
@@ -230,6 +239,8 @@ export default function FinanceManager({
     try {
       let query = `?page=1&per_page=50`;
       if (settlementStatusFilter) query += `&status=${settlementStatusFilter}`;
+      if (dateFrom) query += `&start_date=${dateFrom}`;
+      if (dateTo) query += `&end_date=${dateTo}`;
 
       const response = await apiFetch(`/payments/settlements${query}`);
       const data = await response.json();
@@ -438,7 +449,7 @@ export default function FinanceManager({
     if (activeTab === 'checkout_orders') fetchCheckoutOrders();
     if (activeTab === 'refunds') fetchRefundQueue();
     if (activeTab === 'settlements') fetchSettlements();
-  }, [activeTab, statusFilter, invoiceStatusFilter, settlementStatusFilter]);
+  }, [activeTab, statusFilter, invoiceStatusFilter, settlementStatusFilter, dateFrom, dateTo]);
 
   const handleExport = () => {
     const dataToExport = deposits.map((d, index) => {
@@ -616,7 +627,25 @@ export default function FinanceManager({
               <h1 className="page-title">Monitoring Deposit Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar transaksi Virtual Account (VA) untuk pembelian Nomor Induk Peserta Lelang (NIPL).</p>
             </div>
-            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
+                <input
+                  type="date"
+                  className="search-box"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                />
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
+                <input
+                  type="date"
+                  className="search-box"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                />
+              </div>
               <button onClick={handleExport} className="btn btn-outline btn-sm d-flex align-items-center gap-1">
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
                 Export XLSX
@@ -982,7 +1011,25 @@ export default function FinanceManager({
               <h1 className="page-title">Antrean Pengembalian Jaminan NIPL</h1>
               <p className="page-subtitle">Daftar deposit jaminan bidder yang kalah lelang dan harus dikembalikan (Refund) secara manual.</p>
             </div>
-            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Dari:</span>
+                <input
+                  type="date"
+                  className="search-box"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                />
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginLeft: '4px' }}>s.d.:</span>
+                <input
+                  type="date"
+                  className="search-box"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                />
+              </div>
               <button
                 onClick={handleRefundExport}
                 className="btn btn-outline btn-sm d-flex align-items-center gap-1"
