@@ -47,6 +47,10 @@ export class DepositsService {
               full_name: true,
               email: true,
               phone: true,
+              address: true,
+              bank_name: true,
+              bank_account_no: true,
+              bank_account_name: true,
             },
           },
           session: {

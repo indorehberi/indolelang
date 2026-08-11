@@ -11,31 +11,39 @@ import { exportToExcel } from '../../lib/excelExport';
 import ColumnPicker, { useColumnVisibility, ColumnOption } from '../ui/ColumnPicker';
 
 const DEPOSIT_COLUMNS: ColumnOption[] = [
-  { key: 'created_at', label: 'Waktu Transaksi' },
+  { key: 'no', label: 'No', alwaysVisible: true },
+  { key: 'created_at', label: 'Waktu Transaksi', defaultVisible: true },
   { key: 'bidder', label: 'Bidder', alwaysVisible: true },
-  { key: 'nipl_code', label: 'No NIPL' },
-  { key: 'amount', label: 'Jumlah Jaminan' },
-  { key: 'va_number', label: 'Virtual Account (VA)' },
-  { key: 'status', label: 'Status Pembayaran' },
-  { key: 'paid_at', label: 'Waktu Lunas' },
+  { key: 'nipl_name', label: 'Nama NIPL', defaultVisible: true },
+  { key: 'address', label: 'Alamat', defaultVisible: true },
+  { key: 'amount', label: 'Nominal', alwaysVisible: true },
+  { key: 'bank_account_no', label: 'No Rek', defaultVisible: true },
+  { key: 'bank_account_name', label: 'Nama Rek', defaultVisible: true },
+  { key: 'nipl_code', label: 'No NIPL / Kode', defaultVisible: true },
+  { key: 'status', label: 'Status Pembayaran', defaultVisible: true },
+  { key: 'paid_at', label: 'Waktu Lunas', defaultVisible: false },
   { key: 'actions', label: 'Aksi', alwaysVisible: true },
 ];
 
 interface Deposit {
   id: string;
   user_id: string;
-  session_id: string;
+  session_id?: string;
   amount: number;
+  unit_type?: string;
+  package_type?: string;
   va_number?: string;
   va_bank?: string;
   payment_method?: string;
-  status: 'pending' | 'pending_approval' | 'paid' | 'expired' | 'refunded' | 'pending_refund';
+  transfer_proof_url?: string;
+  status: 'pending' | 'pending_approval' | 'paid' | 'expired' | 'refunded' | 'pending_refund' | 'forfeited';
   paid_at?: string;
   created_at: string;
   user?: {
     full_name: string;
     email: string;
     phone: string;
+    address?: string;
     bank_name?: string;
     bank_account_no?: string;
     bank_account_name?: string;
@@ -43,6 +51,7 @@ interface Deposit {
   session?: {
     title: string;
   };
+  nipl_codes?: any[];
 }
 
 interface Invoice {
@@ -595,11 +604,15 @@ export default function FinanceManager({
               <table>
                 <thead>
                   <tr>
+                    {isVisible('no') && <th style={{ width: '45px' }}>No</th>}
                     {isVisible('created_at') && <th>Waktu Transaksi</th>}
                     {isVisible('bidder') && <th>Bidder</th>}
-                    {isVisible('nipl_code') && <th>No NIPL</th>}
-                    {isVisible('amount') && <th>Jumlah Jaminan</th>}
-                    {isVisible('va_number') && <th>Virtual Account (VA)</th>}
+                    {isVisible('nipl_name') && <th>Nama NIPL</th>}
+                    {isVisible('address') && <th>Alamat</th>}
+                    {isVisible('amount') && <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>}
+                    {isVisible('bank_account_no') && <th>No Rek</th>}
+                    {isVisible('bank_account_name') && <th>Nama Rek</th>}
+                    {isVisible('nipl_code') && <th>No NIPL / Kode</th>}
                     {isVisible('status') && <th>Status Pembayaran</th>}
                     {isVisible('paid_at') && <th>Waktu Lunas</th>}
                     {isVisible('actions') && <th style={{ textAlign: 'center' }}>Aksi</th>}
@@ -611,74 +624,124 @@ export default function FinanceManager({
                   ) : deposits.length === 0 ? (
                     <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada transaksi deposit ditemukan.</td></tr>
                   ) : (
-                    deposits.map((deposit) => (
-                      <tr key={deposit.id}>
-                        {isVisible('created_at') && <td>{new Date(deposit.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>}
-                        {isVisible('bidder') && (
-                          <td>
-                            {deposit.user ? (
-                              <div>
-                                <strong>{deposit.user.full_name}</strong>
-                                <div className="text-muted" style={{ fontSize: '0.8rem' }}>{deposit.user.email}</div>
+                    deposits.map((deposit, index) => {
+                      const niplName = deposit.session?.title 
+                        ? deposit.session.title 
+                        : deposit.unit_type 
+                          ? `NIPL ${deposit.unit_type.toUpperCase()} ${deposit.package_type ? `(${deposit.package_type})` : ''}` 
+                          : 'NIPL Lelang';
+                      return (
+                        <tr key={deposit.id}>
+                          {isVisible('no') && <td>{index + 1}</td>}
+                          {isVisible('created_at') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {new Date(deposit.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                          )}
+                          {isVisible('bidder') && (
+                            <td>
+                              {deposit.user ? (
+                                <div>
+                                  <strong>{deposit.user.full_name}</strong>
+                                  <div className="text-muted" style={{ fontSize: '0.78rem' }}>{deposit.user.email}</div>
+                                </div>
+                              ) : (
+                                <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
+                              )}
+                            </td>
+                          )}
+                          {isVisible('nipl_name') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              <span className="badge badge-outline" style={{ color: '#0284c7', borderColor: '#bae6fd', backgroundColor: '#f0f9ff' }}>
+                                {niplName}
+                              </span>
+                            </td>
+                          )}
+                          {isVisible('address') && (
+                            <td style={{ fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'normal' }}>
+                              {deposit.user?.address || <span className="text-muted">-</span>}
+                            </td>
+                          )}
+                          {isVisible('amount') && (
+                            <td style={{ textAlign: 'right' }}>
+                              <strong className="text-primary">{formatRupiah(deposit.amount)}</strong>
+                            </td>
+                          )}
+                          {isVisible('bank_account_no') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {deposit.user?.bank_account_no ? (
+                                <code style={{ fontFamily: 'monospace', fontWeight: 600, backgroundColor: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
+                                  {deposit.user.bank_account_no}
+                                </code>
+                              ) : deposit.va_number ? (
+                                <div>
+                                  <span className="badge badge-outline" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>{deposit.va_bank}</span>
+                                  <code style={{ marginLeft: '4px', fontFamily: 'monospace' }}>{deposit.va_number}</code>
+                                </div>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          )}
+                          {isVisible('bank_account_name') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {deposit.user?.bank_account_name ? (
+                                <div>
+                                  <strong>{deposit.user.bank_account_name}</strong>
+                                  {deposit.user.bank_name && (
+                                    <div className="text-muted" style={{ fontSize: '0.78rem' }}>{deposit.user.bank_name}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          )}
+                          {isVisible('nipl_code') && (
+                            <td>
+                              {deposit.user_id ? (
+                                <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                  NIPL-{deposit.user_id.substring(0, 8).toUpperCase()}
+                                </code>
+                              ) : '-'}
+                            </td>
+                          )}
+                          {isVisible('status') && <td>{getStatusBadge(deposit.status)}</td>}
+                          {isVisible('paid_at') && (
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}
+                            </td>
+                          )}
+                          {isVisible('actions') && (
+                            <td style={{ textAlign: 'center' }}>
+                              <div className="d-flex flex-column gap-1">
+                                {(deposit as any).transfer_proof_url && (
+                                  <a 
+                                    href={(deposit as any).transfer_proof_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="btn btn-xs btn-outline"
+                                    style={{ color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}
+                                  >
+                                    📄 Bukti TF
+                                  </a>
+                                )}
+                                {(deposit.status === 'pending' || deposit.status === 'pending_approval') && (
+                                  <button onClick={() => handleMarkPaid(deposit.id)} className="btn btn-xs btn-success">
+                                    Setujui (Paid)
+                                  </button>
+                                )}
+                                {deposit.status === 'pending_refund' && (
+                                  <button onClick={() => handleMarkRefunded(deposit.id)} className="btn btn-xs btn-warning">
+                                    Tandai Refunded
+                                  </button>
+                                )}
                               </div>
-                            ) : (
-                              <span className="text-muted">User ID: {deposit.user_id.substring(0, 8)}...</span>
-                            )}
-                          </td>
-                        )}
-                        {isVisible('nipl_code') && (
-                          <td>
-                            {deposit.user_id ? (
-                              <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                NIPL-{deposit.user_id.substring(0, 8).toUpperCase()}
-                              </code>
-                            ) : '-'}
-                          </td>
-                        )}
-                        {isVisible('amount') && <td><strong className="text-primary">{formatRupiah(deposit.amount)}</strong></td>}
-                        {isVisible('va_number') && (
-                          <td>
-                            {deposit.va_number ? (
-                              <div>
-                                <span style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem' }} className="badge badge-outline">{deposit.va_bank}</span>
-                                <span style={{ marginLeft: '6px', fontFamily: 'monospace', fontWeight: '600' }}>{deposit.va_number}</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                        )}
-                        {isVisible('status') && <td>{getStatusBadge(deposit.status)}</td>}
-                        {isVisible('paid_at') && <td>{deposit.paid_at ? new Date(deposit.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">-</span>}</td>}
-                        {isVisible('actions') && (
-                          <td style={{ textAlign: 'center' }}>
-                            <div className="d-flex flex-column gap-1">
-                              {(deposit as any).transfer_proof_url && (
-                                <a 
-                                  href={(deposit as any).transfer_proof_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="btn btn-xs btn-outline"
-                                  style={{ color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}
-                                >
-                                  📄 Bukti TF
-                                </a>
-                              )}
-                              {(deposit.status === 'pending' || deposit.status === 'pending_approval') && (
-                                <button onClick={() => handleMarkPaid(deposit.id)} className="btn btn-xs btn-success">
-                                  Setujui (Paid)
-                                </button>
-                              )}
-                              {deposit.status === 'pending_refund' && (
-                                <button onClick={() => handleMarkRefunded(deposit.id)} className="btn btn-xs btn-warning">
-                                  Tandai Refunded
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
