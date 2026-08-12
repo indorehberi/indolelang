@@ -19,6 +19,7 @@ interface DisbursementRow {
   gross_amount: number;
   commission_deducted: number;
   net_amount: number;
+  pmk41_amount: number;
   status: string;
   created_at: string;
   transferred_at?: string;
@@ -127,7 +128,9 @@ export default function PencairanPage() {
       'No Polisi': item.lot?.asset?.police_number || '-',
       'Provider': item.provider?.company_name || item.provider?.full_name || '-',
       'Harga Terbentuk': item.gross_amount,
-      'Total Pencairan': item.net_amount,
+      'Potongan Fee Lelang': item.commission_deducted,
+      'Potongan PMK 41': item.pmk41_amount || 0,
+      'Total Pembayaran ke Provider': item.net_amount,
       'Status': item.status === 'processed' ? 'Sudah Ditransfer' : 'Siap Transfer',
       'Pemenang': item.winner?.full_name || '-',
       'No Rek': item.provider?.bank_account_no || '-',
@@ -172,7 +175,7 @@ export default function PencairanPage() {
           <div style={{ fontSize: '0.78rem', color: '#888' }}>nilai transaksi</div>
         </div>
         <div style={{ background: 'white', border: '1px solid var(--wf-border)', borderRadius: '10px', padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.78rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Pencairan</div>
+          <div style={{ fontSize: '0.78rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Pembayaran ke Provider</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#059669' }}>{formatRupiah(totalPencairan)}</div>
           <div style={{ fontSize: '0.78rem', color: '#888' }}>net ke provider</div>
         </div>
@@ -243,7 +246,7 @@ export default function PencairanPage() {
                 <th>No Polisi</th>
                 <th>Provider</th>
                 <th>Harga Terbentuk</th>
-                <th>Total Pencairan</th>
+                <th>Total Pembayaran ke Provider</th>
                 <th>Status</th>
                 <th>Pemenang</th>
                 <th>No Rek</th>
@@ -292,8 +295,15 @@ export default function PencairanPage() {
                     <td style={{ fontWeight: 700, color: '#059669' }}>
                       {formatRupiah(row.net_amount)}
                       <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
-                        Potongan: {formatRupiah(row.commission_deducted)}
+                        Potongan Fee Lelang: {formatRupiah(row.commission_deducted)}
                       </div>
+                      {/* PMK 41 hanya memotong pencairan kalau PROVIDER yang
+                          menanggung — lihat provider/settlement/page.tsx */}
+                      {Number(row.pmk41_amount) > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
+                          Potongan PMK 41: {formatRupiah(row.pmk41_amount)}
+                        </div>
+                      )}
                     </td>
                     <td>
                       {row.status === 'processed' ? (
@@ -336,7 +346,7 @@ export default function PencairanPage() {
           }}>
             <span><strong>{totalUnit}</strong> unit</span>
             <span>Total Harga Terbentuk: <strong style={{ color: '#1e40af' }}>{formatRupiah(totalHargaTerbentuk)}</strong></span>
-            <span>Total Pencairan: <strong style={{ color: '#059669' }}>{formatRupiah(totalPencairan)}</strong></span>
+            <span>Total Pembayaran ke Provider: <strong style={{ color: '#059669' }}>{formatRupiah(totalPencairan)}</strong></span>
           </div>
         )}
       </Card>

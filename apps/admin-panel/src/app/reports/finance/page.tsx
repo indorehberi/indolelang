@@ -105,10 +105,16 @@ export default function FinanceReportPage() {
     }
 
     const dataToExport = filtered.map((item) => {
-      const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
+      const dpp = Number(item.fee_dpp) || 0;
+      const dppLain = Number(item.fee_dpp_lain) || 0;
       const ppn = item.fee_ppn || 0;
       const pph23 = item.fee_pph23 || 0;
       const feeAdmin = getBidderAdminFee(item);
+      // PMK 41 hanya berupa potongan dari pencairan provider kalau PROVIDER
+      // yang menanggung (lihat provider/settlement/page.tsx) — kalau pemenang
+      // yang menanggung, sudah lunas lewat tagihan pemenang dan tidak
+      // memotong pencairan provider, jadi tidak dihitung di sini.
+      const pmk41 = Number(item.pmk41_amount) || 0;
 
       return {
         'No. Lot': item.lot?.lot_number ? `#${item.lot.lot_number}` : '-',
@@ -117,9 +123,11 @@ export default function FinanceReportPage() {
         'No. Polisi': item.lot?.asset?.police_number || '-',
         'Unit Aset': item.lot?.asset?.title ? `${item.lot.asset.title} (${item.lot.asset.year || '-'})` : '-',
         'Harga Terbentuk (GMV)': item.gross_amount || 0,
+        'PPN Pemenang (PMK 41)': pmk41,
         'Pemasukan Fee Admin': feeAdmin,
         'Pemasukan Fee Lelang': item.commission_deducted || 0,
         'DPP': dpp,
+        'DPP Nilai Lain': dppLain,
         'PPN': ppn,
         'PPH 23 (2%)': pph23,
         'Nominal Settlement': item.net_amount || 0,
@@ -276,9 +284,11 @@ export default function FinanceReportPage() {
                 <th>No. Polisi</th>
                 <th>Unit Aset</th>
                 <th>Harga Terbentuk (GMV)</th>
+                <th>PPN Pemenang (PMK 41)</th>
                 <th>Pemasukan Fee Admin</th>
                 <th>Pemasukan Fee Lelang</th>
                 <th>DPP</th>
+                <th>DPP Nilai Lain</th>
                 <th>PPN</th>
                 <th>PPH 23 (2%)</th>
                 <th>Nominal Settlement</th>
@@ -290,18 +300,24 @@ export default function FinanceReportPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={15} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={17} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={17} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
-                  const dpp = item.fee_dpp || (item.gross_amount - item.commission_deducted);
+                  const dpp = Number(item.fee_dpp) || 0;
+                  const dppLain = Number(item.fee_dpp_lain) || 0;
                   const ppn = item.fee_ppn || 0;
                   const pph23 = item.fee_pph23 || 0;
                   const feeAdmin = getBidderAdminFee(item);
+                  // PMK 41 hanya berupa potongan dari pencairan provider kalau
+                  // PROVIDER yang menanggung (lihat provider/settlement/page.tsx)
+                  // — kalau pemenang yang menanggung, sudah lunas lewat tagihan
+                  // pemenang dan tidak memotong pencairan provider.
+                  const pmk41 = Number(item.pmk41_amount) || 0;
 
                   return (
                     <tr key={item.id}>
@@ -311,9 +327,11 @@ export default function FinanceReportPage() {
                       <td><span className="badge-ui secondary" style={{ fontWeight: 600 }}>{item.lot?.asset?.police_number || '-'}</span></td>
                       <td><strong>{item.lot?.asset?.title || '-'}</strong> ({item.lot?.asset?.year || '-'})</td>
                       <td style={{ fontWeight: '600' }}>{formatPrice(item.gross_amount)}</td>
+                      <td className={pmk41 > 0 ? 'text-danger' : ''}>{pmk41 > 0 ? `-${formatPrice(pmk41)}` : formatPrice(0)}</td>
                       <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(feeAdmin)}</td>
                       <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(item.commission_deducted)}</td>
                       <td>{formatPrice(dpp)}</td>
+                      <td>{formatPrice(dppLain)}</td>
                       <td>{formatPrice(ppn)}</td>
                       <td>{formatPrice(pph23)}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
