@@ -79,6 +79,12 @@ export default function FinanceReportPage() {
   const getBidderAdminFee = (item: any) => Number(item.admin_fee || 0);
 
   const filtered = items.filter((item) => {
+    // Settlement forfeiture (setengah NIPL hangus, lihat createForfeitureSettlement
+    // di payments.service.ts) tidak punya GMV/fee lelang/pajak sama sekali — kalau
+    // ikut masuk sini, semua kolom itu tampil 0 walau baris punya net_amount.
+    // Laporan ini soal penjualan lot, jadi baris forfeiture tidak relevan di sini.
+    if (item.is_forfeiture) return false;
+
     const unitTitle = item.lot?.asset?.title || '';
     const policeNum = item.lot?.asset?.police_number || '';
     const sessionTitle = item.lot?.session?.title || '';
@@ -115,6 +121,8 @@ export default function FinanceReportPage() {
       // yang menanggung, sudah lunas lewat tagihan pemenang dan tidak
       // memotong pencairan provider, jadi tidak dihitung di sini.
       const pmk41 = Number(item.pmk41_amount) || 0;
+      // H = E + G: total tagihan fee lelang sebelum dipotong PPh 23.
+      const totalInvoiceFeeLelang = dpp + ppn;
 
       return {
         'No. Lot': item.lot?.lot_number ? `#${item.lot.lot_number}` : '-',
@@ -129,8 +137,11 @@ export default function FinanceReportPage() {
         'DPP': dpp,
         'DPP Nilai Lain': dppLain,
         'PPN': ppn,
+        'Total Invoice Fee Lelang': totalInvoiceFeeLelang,
         'PPH 23 (2%)': pph23,
+        'Total Penerimaan Indo Lelang': item.commission_deducted || 0,
         'Nominal Settlement': item.net_amount || 0,
+        'Pembayaran ke Provider': item.net_amount || 0,
         'Provider': item.provider?.company_name || item.provider?.full_name || '-',
         'Pemenang': item.winner?.full_name || '-',
         'Rekening Tujuan': item.provider?.bank_account_no || '-',
@@ -290,8 +301,11 @@ export default function FinanceReportPage() {
                 <th>DPP</th>
                 <th>DPP Nilai Lain</th>
                 <th>PPN</th>
+                <th>Total Invoice Fee Lelang</th>
                 <th>PPH 23 (2%)</th>
+                <th>Total Penerimaan Indo Lelang</th>
                 <th>Nominal Settlement</th>
+                <th>Pembayaran ke Provider</th>
                 <th>Provider</th>
                 <th>Pemenang</th>
                 <th>Rekening Tujuan</th>
@@ -300,11 +314,11 @@ export default function FinanceReportPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={17} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={20} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={17} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={20} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -318,6 +332,8 @@ export default function FinanceReportPage() {
                   // — kalau pemenang yang menanggung, sudah lunas lewat tagihan
                   // pemenang dan tidak memotong pencairan provider.
                   const pmk41 = Number(item.pmk41_amount) || 0;
+                  // H = E + G: total tagihan fee lelang sebelum dipotong PPh 23.
+                  const totalInvoiceFeeLelang = dpp + ppn;
 
                   return (
                     <tr key={item.id}>
@@ -333,7 +349,10 @@ export default function FinanceReportPage() {
                       <td>{formatPrice(dpp)}</td>
                       <td>{formatPrice(dppLain)}</td>
                       <td>{formatPrice(ppn)}</td>
+                      <td>{formatPrice(totalInvoiceFeeLelang)}</td>
                       <td>{formatPrice(pph23)}</td>
+                      <td>{formatPrice(item.commission_deducted)}</td>
+                      <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
                       <td><strong>{item.provider?.company_name || item.provider?.full_name || '-'}</strong></td>
                       <td>

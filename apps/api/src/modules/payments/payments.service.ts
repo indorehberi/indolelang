@@ -502,6 +502,11 @@ export class PaymentsService {
           fee_ppn: Number(r.fee_ppn || 0),
           fee_pph23: Number(r.fee_pph23 || 0),
           pmk41_amount: Number(r.pmk41_amount || 0),
+          // Settlement forfeiture (setengah NIPL hangus) tidak punya rincian
+          // GMV/fee/pajak — tanpa field ini, layar yang memfilternya
+          // (Pencairan, Laporan Keuangan) tidak bisa membedakannya dari
+          // settlement penjualan biasa dan menampilkannya sebagai baris nol.
+          is_forfeiture: r.is_forfeiture,
           status: r.status,
           transferred_at: r.transferred_at ? r.transferred_at.toISOString() : undefined,
           created_at: r.created_at.toISOString(),
