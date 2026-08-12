@@ -9,7 +9,7 @@ import { apiFetch } from '../../../../lib/api';
 
 const ROLES = [
   { value: 'superadmin', label: 'Superadmin' },
-  { value: 'admin', label: 'Admin Keuangan' },
+  { value: 'admin', label: 'Admin Cabang' },
   { value: 'operator', label: 'Operator Lelang' },
   { value: 'inspector', label: 'Inspector' },
 ];
