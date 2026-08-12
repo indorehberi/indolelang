@@ -371,6 +371,7 @@ export class PaymentsController {
         providerId,
         parseDate(req.query.from),
         parseDate(req.query.to),
+        req.query.winner_id as string || undefined
       );
 
       sendSuccess(res, settlements, 'Daftar settlement berhasil dimuat', meta);

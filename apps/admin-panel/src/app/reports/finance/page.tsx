@@ -16,11 +16,41 @@ export default function FinanceReportPage() {
   const [searchUnit, setSearchUnit] = useState('');
   const [feeAdminFilter, setFeeAdminFilter] = useState('');
   const [feeLelangFilter, setFeeLelangFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [bidderFilter, setBidderFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const [providers, setProviders] = useState<any[]>([]);
+  const [bidders, setBidders] = useState<any[]>([]);
+
+  // Fetch providers and bidders list on mount
+  useEffect(() => {
+    apiFetch('/admin/users?role=provider&per_page=200')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setProviders(data.data || []);
+      })
+      .catch(() => {});
+
+    apiFetch('/admin/users?role=bidder&per_page=200')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setBidders(data.data || []);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchFinanceData = async () => {
     setLoading(true);
     try {
-      const response = await apiFetch('/payments/settlements?per_page=100');
+      const params = new URLSearchParams({ per_page: '500' });
+      if (providerFilter) params.append('provider_id', providerFilter);
+      if (bidderFilter) params.append('winner_id', bidderFilter);
+      if (fromDate) params.append('from', fromDate);
+      if (toDate) params.append('to', toDate);
+
+      const response = await apiFetch(`/payments/settlements?${params.toString()}`);
       const data = await response.json();
       if (response.ok && data.success) {
         setItems(data.data || []);
@@ -34,7 +64,7 @@ export default function FinanceReportPage() {
 
   useEffect(() => {
     fetchFinanceData();
-  }, []);
+  }, [providerFilter, bidderFilter, fromDate, toDate]);
 
   /**
    * Biaya administrasi yang BENAR-BENAR ditagihkan ke pemenang, dibaca dari
@@ -93,6 +123,8 @@ export default function FinanceReportPage() {
         'PPN': ppn,
         'PPH 23 (2%)': pph23,
         'Nominal Settlement': item.net_amount || 0,
+        'Provider': item.provider?.company_name || item.provider?.full_name || '-',
+        'Pemenang': item.winner?.full_name || '-',
         'Rekening Tujuan': item.provider?.bank_account_no || '-',
       };
     });
@@ -122,7 +154,7 @@ export default function FinanceReportPage() {
 
       {/* Filter Card */}
       <Card className="mb-2">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
           <div>
             <label className="form-label font-semibold text-xs text-slate-500">Cari Unit / Sesi / No. Polisi</label>
             <input
@@ -131,6 +163,58 @@ export default function FinanceReportPage() {
               placeholder="Masukkan unit/sesi..."
               value={searchUnit}
               onChange={(e) => setSearchUnit(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Provider</label>
+            <select
+              className="form-select"
+              value={providerFilter}
+              onChange={(e) => setProviderFilter(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="">Semua Provider</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.company_name || p.full_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Pemenang (Bidder)</label>
+            <select
+              className="form-select"
+              value={bidderFilter}
+              onChange={(e) => setBidderFilter(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)', background: 'white' }}
+            >
+              <option value="">Semua Pemenang</option>
+              {bidders.map((b) => (
+                <option key={b.id} value={b.id}>{b.full_name} ({b.email})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Dari Tanggal</label>
+            <input
+              type="date"
+              className="search-box"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
+            />
+          </div>
+
+          <div>
+            <label className="form-label font-semibold text-xs text-slate-500">Sampai Tanggal</label>
+            <input
+              type="date"
+              className="search-box"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
               style={{ width: '100%', height: '36px', padding: '0 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--wf-border)' }}
             />
           </div>
@@ -159,6 +243,25 @@ export default function FinanceReportPage() {
             />
           </div>
 
+          {(searchUnit || providerFilter || bidderFilter || fromDate || toDate || feeAdminFilter || feeLelangFilter) && (
+            <div>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => {
+                  setSearchUnit('');
+                  setProviderFilter('');
+                  setBidderFilter('');
+                  setFromDate('');
+                  setToDate('');
+                  setFeeAdminFilter('');
+                  setFeeLelangFilter('');
+                }}
+                style={{ width: '100%', height: '36px' }}
+              >
+                Reset Filter
+              </button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -179,17 +282,19 @@ export default function FinanceReportPage() {
                 <th>PPN</th>
                 <th>PPH 23 (2%)</th>
                 <th>Nominal Settlement</th>
+                <th>Provider</th>
+                <th>Pemenang</th>
                 <th>Rekening Tujuan</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={13} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={15} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={15} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -212,6 +317,15 @@ export default function FinanceReportPage() {
                       <td>{formatPrice(ppn)}</td>
                       <td>{formatPrice(pph23)}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
+                      <td><strong>{item.provider?.company_name || item.provider?.full_name || '-'}</strong></td>
+                      <td>
+                        {item.winner ? (
+                          <>
+                            <strong>{item.winner.full_name}</strong>
+                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>{item.winner.email}</div>
+                          </>
+                        ) : '-'}
+                      </td>
                       <td>{item.provider?.bank_account_no || '-'}</td>
                     </tr>
                   );

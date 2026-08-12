@@ -385,7 +385,8 @@ export class PaymentsService {
     status?: string,
     providerId?: string,
     from?: Date,
-    to?: Date
+    to?: Date,
+    winnerId?: string
   ): Promise<{ settlements: any[]; meta: any }> {
     const where: Prisma.settlementsWhereInput = {};
     if (status) {
@@ -393,6 +394,16 @@ export class PaymentsService {
     }
     if (providerId) {
       where.provider_id = providerId;
+    }
+    if (winnerId) {
+      where.lot = {
+        bids: {
+          some: {
+            bidder_id: winnerId,
+            is_winning: true,
+          },
+        },
+      };
     }
     if (from || to) {
       where.created_at = {};

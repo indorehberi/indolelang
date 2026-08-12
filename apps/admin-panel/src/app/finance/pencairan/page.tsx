@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
+import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { exportToExcel } from '../../../lib/excelExport';
 import { useToast } from '../../../providers/ToastProvider';
@@ -70,7 +71,7 @@ export default function PencairanPage() {
   const fetchRows = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ per_page: '500', status: 'processed' });
+      const params = new URLSearchParams({ per_page: '500' });
       if (providerFilter) params.set('provider_id', providerFilter);
       if (fromDate) params.set('from', fromDate);
       if (toDate) params.set('to', toDate);
@@ -78,9 +79,9 @@ export default function PencairanPage() {
       const res = await apiFetch(`/payments/settlements?${params.toString()}`);
       const data = await res.json();
       if (res.ok && data.success) {
-        // Hanya tampilkan settlement normal (bukan forfeiture) yang sudah diproses
+        // Tampilkan settlement normal (bukan forfeiture) yang berstatus pending atau processed
         const settled: DisbursementRow[] = (data.data || []).filter(
-          (r: DisbursementRow) => !r.is_forfeiture
+          (r: DisbursementRow) => !r.is_forfeiture && (r.status === 'pending' || r.status === 'processed')
         );
         setRows(settled);
       } else {
@@ -127,6 +128,7 @@ export default function PencairanPage() {
       'Provider': item.provider?.company_name || item.provider?.full_name || '-',
       'Harga Terbentuk': item.gross_amount,
       'Total Pencairan': item.net_amount,
+      'Status': item.status === 'processed' ? 'Sudah Ditransfer' : 'Siap Transfer',
       'Pemenang': item.winner?.full_name || '-',
       'No Rek': item.provider?.bank_account_no || '-',
       'Nama Rekening': item.provider?.bank_account_name || '-',
@@ -242,6 +244,7 @@ export default function PencairanPage() {
                 <th>Provider</th>
                 <th>Harga Terbentuk</th>
                 <th>Total Pencairan</th>
+                <th>Status</th>
                 <th>Pemenang</th>
                 <th>No Rek</th>
                 <th>Nama Rekening</th>
@@ -249,9 +252,9 @@ export default function PencairanPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} className="text-center" style={{ padding: '2rem' }}>Memuat data pencairan...</td></tr>
+                <tr><td colSpan={12} className="text-center" style={{ padding: '2rem' }}>Memuat data pencairan...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={11} className="text-center text-muted" style={{ padding: '2rem' }}>
+                <tr><td colSpan={12} className="text-center text-muted" style={{ padding: '2rem' }}>
                   Tidak ada data pencairan ditemukan{providerFilter || fromDate || toDate ? ' untuk filter yang dipilih.' : '.'}
                 </td></tr>
               ) : (
@@ -291,6 +294,13 @@ export default function PencairanPage() {
                       <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
                         Potongan: {formatRupiah(row.commission_deducted)}
                       </div>
+                    </td>
+                    <td>
+                      {row.status === 'processed' ? (
+                        <Badge variant="success">Sudah Ditransfer</Badge>
+                      ) : (
+                        <Badge variant="warning">Siap Transfer</Badge>
+                      )}
                     </td>
                     <td>
                       {row.winner ? (
