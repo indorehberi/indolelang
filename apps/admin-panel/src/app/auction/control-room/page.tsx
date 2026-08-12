@@ -8,6 +8,9 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 import { apiFetch, wsBaseUrl, refreshAccessToken, getAuthToken, getImageUrl } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 interface Session {
   id: string;
@@ -76,7 +79,25 @@ interface BidLog {
   time: string;
 }
 
+const QUEUE_COLUMNS: ColumnOption[] = [
+  { key: 'lot', label: 'Lot', alwaysVisible: true },
+  { key: 'tanggal', label: 'Tgl Lelang', defaultVisible: true },
+  { key: 'jam', label: 'Jam Lelang', defaultVisible: true },
+  { key: 'lokasi', label: 'Lokasi', defaultVisible: true },
+  { key: 'unit', label: 'Unit', defaultVisible: true },
+  { key: 'harga_limit', label: 'Harga Limit', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
 
+const ARCHIVE_COLUMNS: ColumnOption[] = [
+  { key: 'lot', label: 'Lot', alwaysVisible: true },
+  { key: 'unit', label: 'Unit', defaultVisible: true },
+  { key: 'harga_limit', label: 'Harga Limit', defaultVisible: true },
+  { key: 'harga_hammer', label: 'Harga Terakhir (Hammer)', defaultVisible: true },
+  { key: 'pemenang', label: 'Pemenang', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+];
 
 export default function ControlRoomPage() {
   const [activeTab, setActiveTab] = useState<'live' | 'arsip'>('live');
@@ -134,6 +155,10 @@ export default function ControlRoomPage() {
   
   const [bidLogs, setBidLogs] = useState<BidLog[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+
+  const exportToast = useToast();
+  const { visibleKeys: queueVisibleKeys, setVisibleKeys: setQueueVisibleKeys, isVisible: isQueueVisible } = useColumnVisibility('control_room_queue_list', QUEUE_COLUMNS);
+  const { visibleKeys: archiveVisibleKeys, setVisibleKeys: setArchiveVisibleKeys, isVisible: isArchiveVisible } = useColumnVisibility('control_room_archive_list', ARCHIVE_COLUMNS);
 
   const [cancelledLotOverlay, setCancelledLotOverlay] = useState<{ lot_number: number; title: string } | null>(null);
   const [cancelCountdown, setCancelCountdown] = useState(5);
@@ -850,6 +875,74 @@ export default function ControlRoomPage() {
     }).format(val);
   };
 
+  const handleExportQueue = () => {
+    if (!lots || lots.length === 0) {
+      exportToast.error('Tidak ada data lot untuk di-export');
+      return;
+    }
+    const dataToExport = lots.map((lot) => {
+      const row: Record<string, any> = {};
+      if (isQueueVisible('lot')) row['Lot'] = lot.lot_number;
+      if (isQueueVisible('tanggal')) {
+        row['Tgl Lelang'] = lot.session
+          ? new Date((lot as any).session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+          : '-';
+      }
+      if (isQueueVisible('jam')) {
+        row['Jam Lelang'] = lot.session
+          ? new Date((lot as any).session.scheduled_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+          : '-';
+      }
+      if (isQueueVisible('lokasi')) {
+        row['Lokasi'] = (lot as any).session?.branch
+          ? `${(lot as any).session.branch.name}, ${(lot as any).session.branch.city}`
+          : '-';
+      }
+      if (isQueueVisible('unit')) {
+        row['Unit'] = lot.asset.title + (lot.asset.police_number ? ` (No. Polisi: ${lot.asset.police_number})` : '');
+      }
+      if (isQueueVisible('harga_limit')) row['Harga Limit'] = lot.starting_price;
+      if (isQueueVisible('status')) row['Status'] = lot.status;
+      if (isQueueVisible('aksi')) {
+        row['Aksi'] = lot.status === 'active'
+          ? 'Sedang Berjalan'
+          : (lot.status === 'pending' || lot.status === 'cancelled')
+            ? 'Menunggu'
+            : 'Selesai';
+      }
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Antrean_Lot_Lelang', 'Antrean Lot');
+    if (ok) {
+      exportToast.success('Berhasil mendownload laporan Excel Antrean Lot (.xlsx)');
+    } else {
+      exportToast.error('Tidak ada data lot untuk di-export');
+    }
+  };
+
+  const handleExportArchive = () => {
+    if (!lots || lots.length === 0) {
+      exportToast.error('Tidak ada data arsip untuk di-export');
+      return;
+    }
+    const dataToExport = lots.map((lot) => {
+      const row: Record<string, any> = {};
+      if (isArchiveVisible('lot')) row['Lot'] = lot.lot_number;
+      if (isArchiveVisible('unit')) row['Unit'] = lot.asset.title;
+      if (isArchiveVisible('harga_limit')) row['Harga Limit'] = lot.starting_price;
+      if (isArchiveVisible('harga_hammer')) row['Harga Terakhir (Hammer)'] = lot.hammer_price ?? '-';
+      if (isArchiveVisible('pemenang')) row['Pemenang'] = lot.winner_id ? `Pemenang ID: ${lot.winner_id}` : '-';
+      if (isArchiveVisible('status')) row['Status'] = lot.status;
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Arsip_Sesi_Lelang', 'Arsip Sesi');
+    if (ok) {
+      exportToast.success('Berhasil mendownload laporan Excel Arsip Sesi (.xlsx)');
+    } else {
+      exportToast.error('Tidak ada data arsip untuk di-export');
+    }
+  };
+
   const getLotStatusBadge = (status: Lot['status']) => {
     switch (status) {
       case 'sold':
@@ -1205,89 +1298,121 @@ export default function ControlRoomPage() {
           </Card>
 
           {/* LOT LIST QUEUE */}
-          <Card title="Antrean Lot Lelang Sesi Ini">
+          <Card
+            title="Antrean Lot Lelang Sesi Ini"
+            headerActions={
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportQueue}
+                  style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  📥 Export Excel
+                </Button>
+                <ColumnPicker
+                  columns={QUEUE_COLUMNS}
+                  visibleKeys={queueVisibleKeys}
+                  onChange={setQueueVisibleKeys}
+                  tableId="control_room_queue_list"
+                />
+              </div>
+            }
+          >
             <div className="table-wrapper">
               <table>
                 <thead>
                   <tr>
-                    <th>Lot</th>
-                    <th>Tgl Lelang</th>
-                    <th>Jam Lelang</th>
-                    <th>Lokasi</th>
-                    <th>Unit</th>
-                    <th>Harga Limit</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
+                    {isQueueVisible('lot') && <th>Lot</th>}
+                    {isQueueVisible('tanggal') && <th>Tgl Lelang</th>}
+                    {isQueueVisible('jam') && <th>Jam Lelang</th>}
+                    {isQueueVisible('lokasi') && <th>Lokasi</th>}
+                    {isQueueVisible('unit') && <th>Unit</th>}
+                    {isQueueVisible('harga_limit') && <th>Harga Limit</th>}
+                    {isQueueVisible('status') && <th>Status</th>}
+                    {isQueueVisible('aksi') && <th>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {lots.map((lot) => (
                     <tr key={lot.id} className={lot.status === 'active' ? 'bg-light-red' : ''}>
-                      <td>
-                        <strong>#{lot.lot_number}</strong>
-                      </td>
-                      <td>
-                        {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        }) : '-'}
-                      </td>
-                      <td>
-                        {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleTimeString('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : '-'}
-                      </td>
-                      <td>
-                        {(lot as any).session?.branch ? `${(lot as any).session.branch.name}, ${(lot as any).session.branch.city}` : '-'}
-                      </td>
-                      <td>
-                        <strong>{lot.asset.title}</strong>
-                        {lot.asset.police_number && (
-                          <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600', marginTop: '2px' }}>
-                            No. Polisi: <span style={{ backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '3px', border: '1px solid #cbd5e1' }}>{lot.asset.police_number}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td>{formatRupiah(lot.starting_price)}</td>
-                      <td>{getLotStatusBadge(lot.status)}</td>
-                      <td>
-                        {(lot.status === 'pending' || lot.status === 'cancelled') && (
-                          <Button
-                            variant={lot.status === 'cancelled' ? 'outline' : 'primary'}
-                            size="sm"
-                            disabled={!!activeLot || processingId === lot.id || sessionDetails?.status !== 'live'}
-                            onClick={() => handleActivateLot(lot.id)}
-                          >
-                            {lot.status === 'cancelled' ? 'Lanjut (Batal)' : 'Lot Berikutnya'}
-                          </Button>
-                        )}
-                        {lot.status === 'active' && (
-                          <div className="d-flex gap-1">
+                      {isQueueVisible('lot') && (
+                        <td>
+                          <strong>#{lot.lot_number}</strong>
+                        </td>
+                      )}
+                      {isQueueVisible('tanggal') && (
+                        <td>
+                          {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          }) : '-'}
+                        </td>
+                      )}
+                      {isQueueVisible('jam') && (
+                        <td>
+                          {lot.session ? new Date((lot as any).session.scheduled_at).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-'}
+                        </td>
+                      )}
+                      {isQueueVisible('lokasi') && (
+                        <td>
+                          {(lot as any).session?.branch ? `${(lot as any).session.branch.name}, ${(lot as any).session.branch.city}` : '-'}
+                        </td>
+                      )}
+                      {isQueueVisible('unit') && (
+                        <td>
+                          <strong>{lot.asset.title}</strong>
+                          {lot.asset.police_number && (
+                            <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600', marginTop: '2px' }}>
+                              No. Polisi: <span style={{ backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '3px', border: '1px solid #cbd5e1' }}>{lot.asset.police_number}</span>
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {isQueueVisible('harga_limit') && <td>{formatRupiah(lot.starting_price)}</td>}
+                      {isQueueVisible('status') && <td>{getLotStatusBadge(lot.status)}</td>}
+                      {isQueueVisible('aksi') && (
+                        <td>
+                          {(lot.status === 'pending' || lot.status === 'cancelled') && (
                             <Button
-                              variant="danger"
+                              variant={lot.status === 'cancelled' ? 'outline' : 'primary'}
                               size="sm"
-                              disabled={processingId === lot.id}
-                              onClick={() => handleCloseLot(lot.id)}
+                              disabled={!!activeLot || processingId === lot.id || sessionDetails?.status !== 'live'}
+                              onClick={() => handleActivateLot(lot.id)}
                             >
-                              Ketok Palu
+                              {lot.status === 'cancelled' ? 'Lanjut (Batal)' : 'Lot Berikutnya'}
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={processingId === lot.id}
-                              onClick={() => handleCancelLot(lot.id)}
-                              style={{ borderColor: 'var(--wf-danger)', color: 'var(--wf-danger)' }}
-                            >
-                              Batal
-                            </Button>
-                          </div>
-                        )}
-                        {lot.status !== 'pending' && lot.status !== 'cancelled' && lot.status !== 'active' && (
-                          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Selesai</span>
-                        )}
-                      </td>
+                          )}
+                          {lot.status === 'active' && (
+                            <div className="d-flex gap-1">
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                disabled={processingId === lot.id}
+                                onClick={() => handleCloseLot(lot.id)}
+                              >
+                                Ketok Palu
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={processingId === lot.id}
+                                onClick={() => handleCancelLot(lot.id)}
+                                style={{ borderColor: 'var(--wf-danger)', color: 'var(--wf-danger)' }}
+                              >
+                                Batal
+                              </Button>
+                            </div>
+                          )}
+                          {lot.status !== 'pending' && lot.status !== 'cancelled' && lot.status !== 'active' && (
+                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>Selesai</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -1418,7 +1543,29 @@ export default function ControlRoomPage() {
       </div>
     </>
   ) : (
-        <Card title={`Arsip Sesi: ${sessionDetails?.title || '-'}`}>
+        <Card
+          title={`Arsip Sesi: ${sessionDetails?.title || '-'}`}
+          headerActions={
+            sessionDetails?.status === 'closed' ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportArchive}
+                  style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  📥 Export Excel
+                </Button>
+                <ColumnPicker
+                  columns={ARCHIVE_COLUMNS}
+                  visibleKeys={archiveVisibleKeys}
+                  onChange={setArchiveVisibleKeys}
+                  tableId="control_room_archive_list"
+                />
+              </div>
+            ) : undefined
+          }
+        >
           {sessionDetails?.status !== 'closed' ? (
             <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--wf-text-light)' }}>
               <span style={{ fontSize: '3rem' }}>📂</span>
@@ -1430,28 +1577,28 @@ export default function ControlRoomPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Lot</th>
-                    <th>Unit</th>
-                    <th>Harga Limit</th>
-                    <th>Harga Terakhir (Hammer)</th>
-                    <th>Pemenang</th>
-                    <th>Status</th>
+                    {isArchiveVisible('lot') && <th>Lot</th>}
+                    {isArchiveVisible('unit') && <th>Unit</th>}
+                    {isArchiveVisible('harga_limit') && <th>Harga Limit</th>}
+                    {isArchiveVisible('harga_hammer') && <th>Harga Terakhir (Hammer)</th>}
+                    {isArchiveVisible('pemenang') && <th>Pemenang</th>}
+                    {isArchiveVisible('status') && <th>Status</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {lots.map((lot) => (
                     <tr key={lot.id}>
-                      <td><strong>#{lot.lot_number}</strong></td>
-                      <td>{lot.asset.title}</td>
-                      <td>{formatRupiah(lot.starting_price)}</td>
-                      <td>{lot.hammer_price ? formatRupiah(lot.hammer_price) : '-'}</td>
-                      <td>{lot.winner_id ? 'Pemenang ID: ' + lot.winner_id : '-'}</td>
-                      <td>{getLotStatusBadge(lot.status)}</td>
+                      {isArchiveVisible('lot') && <td><strong>#{lot.lot_number}</strong></td>}
+                      {isArchiveVisible('unit') && <td>{lot.asset.title}</td>}
+                      {isArchiveVisible('harga_limit') && <td>{formatRupiah(lot.starting_price)}</td>}
+                      {isArchiveVisible('harga_hammer') && <td>{lot.hammer_price ? formatRupiah(lot.hammer_price) : '-'}</td>}
+                      {isArchiveVisible('pemenang') && <td>{lot.winner_id ? 'Pemenang ID: ' + lot.winner_id : '-'}</td>}
+                      {isArchiveVisible('status') && <td>{getLotStatusBadge(lot.status)}</td>}
                     </tr>
                   ))}
                   {lots.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '1rem' }}>Tidak ada lot dalam sesi ini.</td>
+                      <td colSpan={archiveVisibleKeys.length} style={{ textAlign: 'center', padding: '1rem' }}>Tidak ada lot dalam sesi ini.</td>
                     </tr>
                   )}
                 </tbody>

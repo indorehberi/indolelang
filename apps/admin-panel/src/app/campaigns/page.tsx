@@ -6,6 +6,18 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import { apiFetch } from '../../lib/api';
+import { useToast } from '../../providers/ToastProvider';
+import { exportToExcel } from '../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
+
+const CAMPAIGN_COLUMNS: ColumnOption[] = [
+  { key: 'sent_at', label: 'Tanggal Kirim', defaultVisible: true },
+  { key: 'title', label: 'Judul Informasi', alwaysVisible: true },
+  { key: 'message', label: 'Isi Informasi', defaultVisible: true },
+  { key: 'target_role', label: 'Target Penerima', defaultVisible: true },
+  { key: 'sent_count', label: 'Total Penerima', defaultVisible: true },
+  { key: 'status', label: 'Status', alwaysVisible: true },
+];
 
 interface Campaign {
   id: string;
@@ -19,6 +31,8 @@ interface Campaign {
 }
 
 export default function CampaignsPage() {
+  const toast = useToast();
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('campaigns_list', CAMPAIGN_COLUMNS);
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,6 +116,36 @@ export default function CampaignsPage() {
     return <Badge variant="default">{role}</Badge>;
   };
 
+  const getTargetLabel = (role: string) => {
+    if (role === 'all') return 'Semua Pengguna';
+    if (role === 'bidder') return 'Bidder Saja';
+    if (role === 'provider') return 'Provider Saja';
+    return role;
+  };
+
+  const handleExport = () => {
+    const dataToExport = campaigns.map((c) => {
+      const row: Record<string, any> = {};
+      if (isVisible('sent_at')) row['Tanggal Kirim'] = c.sent_at ? new Date(c.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+      if (isVisible('title')) row['Judul Informasi'] = c.title;
+      if (isVisible('message')) row['Isi Informasi'] = c.message;
+      if (isVisible('target_role')) row['Target Penerima'] = getTargetLabel(c.target_role);
+      if (isVisible('sent_count')) row['Total Penerima'] = c.sent_count;
+      if (isVisible('status')) row['Status'] = c.status === 'sent' ? 'Terkirim' : 'Draft';
+      return row;
+    });
+    if (dataToExport.length === 0) {
+      toast.error('Tidak ada data broadcast untuk di-export');
+      return;
+    }
+    const ok = exportToExcel(dataToExport, 'Broadcast_Informasi', 'Daftar Broadcast');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Broadcast (.xlsx)');
+    } else {
+      toast.error('Tidak ada data broadcast untuk di-export');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Komunikasi" breadcrumbCurrent="Broadcast">
       <div className="toolbar">
@@ -109,7 +153,14 @@ export default function CampaignsPage() {
           <h1 className="page-title">Broadcast Informasi</h1>
           <p className="page-subtitle">Kirim informasi massal ke dashboard kelompok pengguna secara riil.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className="btn btn-primary btn-sm" onClick={handleExport}>📥 Export Excel</button>
+          <ColumnPicker
+            columns={CAMPAIGN_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="campaigns_list"
+          />
           <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>+ Buat Broadcast Baru</button>
         </div>
       </div>
@@ -119,28 +170,28 @@ export default function CampaignsPage() {
           <table>
             <thead>
               <tr>
-                <th>Tanggal Kirim</th>
-                <th>Judul Informasi</th>
-                <th>Isi Informasi</th>
-                <th>Target Penerima</th>
-                <th style={{ textAlign: 'center' }}>Total Penerima</th>
-                <th>Status</th>
+                {isVisible('sent_at') && <th>Tanggal Kirim</th>}
+                {isVisible('title') && <th>Judul Informasi</th>}
+                {isVisible('message') && <th>Isi Informasi</th>}
+                {isVisible('target_role') && <th>Target Penerima</th>}
+                {isVisible('sent_count') && <th style={{ textAlign: 'center' }}>Total Penerima</th>}
+                {isVisible('status') && <th>Status</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center">Memuat data broadcast...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data broadcast...</td></tr>
               ) : campaigns.length === 0 ? (
-                <tr><td colSpan={6} className="text-center text-muted">Belum ada broadcast informasi dikirim.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Belum ada broadcast informasi dikirim.</td></tr>
               ) : (
                 campaigns.map(c => (
                   <tr key={c.id}>
-                    <td>{c.sent_at ? new Date(c.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                    <td className="font-medium text-slate-800">{c.title}</td>
-                    <td><div className="truncate w-64 text-sm text-slate-500">{c.message.length > 50 ? c.message.substring(0, 50) + '...' : c.message}</div></td>
-                    <td>{getTargetBadge(c.target_role)}</td>
-                    <td className="text-center font-bold text-slate-700">{c.sent_count}</td>
-                    <td>{getStatusBadge(c.status)}</td>
+                    {isVisible('sent_at') && <td>{c.sent_at ? new Date(c.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>}
+                    {isVisible('title') && <td className="font-medium text-slate-800">{c.title}</td>}
+                    {isVisible('message') && <td><div className="truncate w-64 text-sm text-slate-500">{c.message.length > 50 ? c.message.substring(0, 50) + '...' : c.message}</div></td>}
+                    {isVisible('target_role') && <td>{getTargetBadge(c.target_role)}</td>}
+                    {isVisible('sent_count') && <td className="text-center font-bold text-slate-700">{c.sent_count}</td>}
+                    {isVisible('status') && <td>{getStatusBadge(c.status)}</td>}
                   </tr>
                 ))
               )}

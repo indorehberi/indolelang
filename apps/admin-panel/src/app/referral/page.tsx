@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import { exportToExcel } from '../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
 
 interface ReferralUser {
   id: string;
@@ -16,6 +18,14 @@ interface ReferralUser {
   joined_at: string;
 }
 
+const REFERRAL_COLUMNS: ColumnOption[] = [
+  { key: 'user', label: 'Pengguna', alwaysVisible: true },
+  { key: 'referral_code', label: 'Kode Referral', defaultVisible: true },
+  { key: 'referrals_count', label: 'Referral Berhasil', defaultVisible: true },
+  { key: 'total_reward', label: 'Total Reward', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+];
+
 import { apiFetch } from '../../lib/api';
 
 export default function ReferralPage() {
@@ -27,6 +37,8 @@ export default function ReferralPage() {
   
   const [referrals, setReferrals] = useState<ReferralUser[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('referral_list', REFERRAL_COLUMNS);
 
   React.useEffect(() => {
     fetchReferrals();
@@ -91,6 +103,31 @@ export default function ReferralPage() {
       showToast('error', 'Koneksi gagal saat menyimpan konfigurasi');
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  const handleExport = () => {
+    const dataToExport = filtered.map((r) => {
+      const row: Record<string, any> = {};
+      if (isVisible('user')) {
+        row['Nama'] = r.name;
+        row['Email'] = r.email;
+      }
+      if (isVisible('referral_code')) row['Kode Referral'] = r.referral_code;
+      if (isVisible('referrals_count')) row['Referral Berhasil'] = r.referrals_count;
+      if (isVisible('total_reward')) row['Total Reward'] = r.total_reward;
+      if (isVisible('status')) row['Status'] = r.status === 'active' ? 'Aktif' : 'Tidak Aktif';
+      return row;
+    });
+    if (dataToExport.length === 0) {
+      showToast('error', 'Tidak ada data referral untuk di-export');
+      return;
+    }
+    const ok = exportToExcel(dataToExport, 'Program_Referral', 'Daftar Referral');
+    if (ok) {
+      showToast('success', 'Berhasil mendownload laporan Excel Referral (.xlsx)');
+    } else {
+      showToast('error', 'Tidak ada data referral untuk di-export');
     }
   };
 
@@ -215,7 +252,7 @@ export default function ReferralPage() {
 
         {/* Referral table */}
         <Card title="Daftar Pengguna Referral">
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               type="text"
               className="form-input"
@@ -234,65 +271,97 @@ export default function ReferralPage() {
               <option value="active">Aktif</option>
               <option value="inactive">Tidak Aktif</option>
             </select>
+            <button
+              type="button"
+              onClick={handleExport}
+              style={{
+                padding: '0.5rem 0.875rem',
+                borderRadius: '0.5rem',
+                background: '#107c41',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+              }}
+            >
+              📥 Export Excel
+            </button>
+            <ColumnPicker
+              columns={REFERRAL_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="referral_list"
+            />
           </div>
 
           <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
-                  <th>Pengguna</th>
-                  <th>Kode Referral</th>
-                  <th>Referral Berhasil</th>
-                  <th>Total Reward</th>
-                  <th>Status</th>
+                  {isVisible('user') && <th>Pengguna</th>}
+                  {isVisible('referral_code') && <th>Kode Referral</th>}
+                  {isVisible('referrals_count') && <th>Referral Berhasil</th>}
+                  {isVisible('total_reward') && <th>Total Reward</th>}
+                  {isVisible('status') && <th>Status</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} className="text-center">Memuat data...</td></tr>
+                  <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center text-muted">Tidak ada data referral.</td></tr>
+                  <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada data referral.</td></tr>
                 ) : (
                   filtered.map((r) => (
                     <tr key={r.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.email}</div>
-                    </td>
-                    <td>
-                      <code
-                        style={{
-                          background: 'var(--bg-secondary)',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '0.375rem',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          color: 'var(--primary)',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        {r.referral_code}
-                      </code>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '1rem',
-                          color: r.referrals_count > 0 ? 'var(--primary)' : 'var(--text-secondary)',
-                        }}
-                      >
-                        {r.referrals_count}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 700, color: r.total_reward > 0 ? '#22c55e' : 'var(--text-secondary)' }}>
-                      {formatPrice(r.total_reward)}
-                    </td>
-                    <td>
-                      <Badge variant={r.status === 'active' ? 'success' : 'warning'}>
-                        {r.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
-                      </Badge>
-                    </td>
+                    {isVisible('user') && (
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.email}</div>
+                      </td>
+                    )}
+                    {isVisible('referral_code') && (
+                      <td>
+                        <code
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '0.375rem',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            color: 'var(--primary)',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          {r.referral_code}
+                        </code>
+                      </td>
+                    )}
+                    {isVisible('referrals_count') && (
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '1rem',
+                            color: r.referrals_count > 0 ? 'var(--primary)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {r.referrals_count}
+                        </span>
+                      </td>
+                    )}
+                    {isVisible('total_reward') && (
+                      <td style={{ fontWeight: 700, color: r.total_reward > 0 ? '#22c55e' : 'var(--text-secondary)' }}>
+                        {formatPrice(r.total_reward)}
+                      </td>
+                    )}
+                    {isVisible('status') && (
+                      <td>
+                        <Badge variant={r.status === 'active' ? 'success' : 'warning'}>
+                          {r.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                        </Badge>
+                      </td>
+                    )}
                   </tr>
                 )))}
               </tbody>

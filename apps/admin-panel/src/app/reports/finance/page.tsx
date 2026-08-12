@@ -6,6 +6,29 @@ import Card from '../../../components/ui/Card';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
 import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const FINANCE_COLUMNS: ColumnOption[] = [
+  { key: 'lot', label: 'Lot', alwaysVisible: true },
+  { key: 'sesi', label: 'Nama Sesi Lelang', defaultVisible: true },
+  { key: 'tanggal_sesi', label: 'Tanggal Sesi', defaultVisible: true },
+  { key: 'no_polisi', label: 'No. Polisi', defaultVisible: true },
+  { key: 'unit_aset', label: 'Unit Aset', defaultVisible: true },
+  { key: 'gmv', label: 'Harga Terbentuk (GMV)', defaultVisible: true },
+  { key: 'pmk41', label: 'PPN Pemenang (PMK 41)', defaultVisible: true },
+  { key: 'fee_admin', label: 'Pemasukan Fee Admin', defaultVisible: true },
+  { key: 'fee_lelang', label: 'Pemasukan Fee Lelang', defaultVisible: true },
+  { key: 'dpp', label: 'DPP', defaultVisible: true },
+  { key: 'dpp_lain', label: 'DPP Nilai Lain', defaultVisible: true },
+  { key: 'ppn', label: 'PPN', defaultVisible: true },
+  { key: 'total_invoice_fee_lelang', label: 'Total Invoice Fee Lelang', defaultVisible: true },
+  { key: 'pph23', label: 'PPH 23 (2%)', defaultVisible: true },
+  { key: 'total_penerimaan', label: 'Total Penerimaan Indo Lelang', defaultVisible: true },
+  { key: 'pembayaran_provider', label: 'Pembayaran ke Provider', alwaysVisible: true },
+  { key: 'provider', label: 'Provider', defaultVisible: true },
+  { key: 'pemenang', label: 'Pemenang', defaultVisible: true },
+  { key: 'rekening', label: 'Rekening Tujuan', defaultVisible: true },
+];
 
 export default function FinanceReportPage() {
   const toast = useToast();
@@ -23,6 +46,8 @@ export default function FinanceReportPage() {
 
   const [providers, setProviders] = useState<any[]>([]);
   const [bidders, setBidders] = useState<any[]>([]);
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('laporan_keuangan_list', FINANCE_COLUMNS);
 
   // Fetch providers and bidders list on mount
   useEffect(() => {
@@ -124,27 +149,27 @@ export default function FinanceReportPage() {
       // H = E + G: total tagihan fee lelang sebelum dipotong PPh 23.
       const totalInvoiceFeeLelang = dpp + ppn;
 
-      return {
-        'No. Lot': item.lot?.lot_number ? `#${item.lot.lot_number}` : '-',
-        'Nama Sesi Lelang': item.lot?.session?.title || '-',
-        'Tanggal Sesi': item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
-        'No. Polisi': item.lot?.asset?.police_number || '-',
-        'Unit Aset': item.lot?.asset?.title ? `${item.lot.asset.title} (${item.lot.asset.year || '-'})` : '-',
-        'Harga Terbentuk (GMV)': item.gross_amount || 0,
-        'PPN Pemenang (PMK 41)': pmk41,
-        'Pemasukan Fee Admin': feeAdmin,
-        'Pemasukan Fee Lelang': item.commission_deducted || 0,
-        'DPP': dpp,
-        'DPP Nilai Lain': dppLain,
-        'PPN': ppn,
-        'Total Invoice Fee Lelang': totalInvoiceFeeLelang,
-        'PPH 23 (2%)': pph23,
-        'Total Penerimaan Indo Lelang': item.commission_deducted || 0,
-        'Pembayaran ke Provider': item.net_amount || 0,
-        'Provider': item.provider?.company_name || item.provider?.full_name || '-',
-        'Pemenang': item.winner?.full_name || '-',
-        'Rekening Tujuan': item.provider?.bank_account_no || '-',
-      };
+      const row: Record<string, any> = {};
+      if (isVisible('lot')) row['No. Lot'] = item.lot?.lot_number ? `#${item.lot.lot_number}` : '-';
+      if (isVisible('sesi')) row['Nama Sesi Lelang'] = item.lot?.session?.title || '-';
+      if (isVisible('tanggal_sesi')) row['Tanggal Sesi'] = item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+      if (isVisible('no_polisi')) row['No. Polisi'] = item.lot?.asset?.police_number || '-';
+      if (isVisible('unit_aset')) row['Unit Aset'] = item.lot?.asset?.title ? `${item.lot.asset.title} (${item.lot.asset.year || '-'})` : '-';
+      if (isVisible('gmv')) row['Harga Terbentuk (GMV)'] = item.gross_amount || 0;
+      if (isVisible('pmk41')) row['PPN Pemenang (PMK 41)'] = pmk41;
+      if (isVisible('fee_admin')) row['Pemasukan Fee Admin'] = feeAdmin;
+      if (isVisible('fee_lelang')) row['Pemasukan Fee Lelang'] = item.commission_deducted || 0;
+      if (isVisible('dpp')) row['DPP'] = dpp;
+      if (isVisible('dpp_lain')) row['DPP Nilai Lain'] = dppLain;
+      if (isVisible('ppn')) row['PPN'] = ppn;
+      if (isVisible('total_invoice_fee_lelang')) row['Total Invoice Fee Lelang'] = totalInvoiceFeeLelang;
+      if (isVisible('pph23')) row['PPH 23 (2%)'] = pph23;
+      if (isVisible('total_penerimaan')) row['Total Penerimaan Indo Lelang'] = item.commission_deducted || 0;
+      if (isVisible('pembayaran_provider')) row['Pembayaran ke Provider'] = item.net_amount || 0;
+      if (isVisible('provider')) row['Provider'] = item.provider?.company_name || item.provider?.full_name || '-';
+      if (isVisible('pemenang')) row['Pemenang'] = item.winner?.full_name || '-';
+      if (isVisible('rekening')) row['Rekening Tujuan'] = item.provider?.bank_account_no || '-';
+      return row;
     });
 
     const success = exportToExcel(dataToExport, 'Laporan_Keuangan_IndoLelang', 'Laporan Keuangan');
@@ -162,12 +187,20 @@ export default function FinanceReportPage() {
           <h1 className="page-title">Laporan Keuangan Balai Lelang</h1>
           <p className="page-subtitle">Rekapitulasi biaya administrasi, fee lelang, pajak, dan nominal pencairan hasil lelang real-time.</p>
         </div>
-        <button
-          onClick={handleExport}
-          className="btn btn-primary btn-sm"
-        >
-          📥 Export Excel
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={handleExport}
+            className="btn btn-primary btn-sm"
+          >
+            📥 Export Excel
+          </button>
+          <ColumnPicker
+            columns={FINANCE_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="laporan_keuangan_list"
+          />
+        </div>
       </div>
 
       {/* Filter Card */}
@@ -288,35 +321,35 @@ export default function FinanceReportPage() {
           <table className="text-xs" style={{ width: '100%', minWidth: '1200px' }}>
             <thead>
               <tr>
-                <th>Lot</th>
-                <th>Nama Sesi Lelang</th>
-                <th>Tanggal Sesi</th>
-                <th>No. Polisi</th>
-                <th>Unit Aset</th>
-                <th>Harga Terbentuk (GMV)</th>
-                <th>PPN Pemenang (PMK 41)</th>
-                <th>Pemasukan Fee Admin</th>
-                <th>Pemasukan Fee Lelang</th>
-                <th>DPP</th>
-                <th>DPP Nilai Lain</th>
-                <th>PPN</th>
-                <th>Total Invoice Fee Lelang</th>
-                <th>PPH 23 (2%)</th>
-                <th>Total Penerimaan Indo Lelang</th>
-                <th>Pembayaran ke Provider</th>
-                <th>Provider</th>
-                <th>Pemenang</th>
-                <th>Rekening Tujuan</th>
+                {isVisible('lot') && <th>Lot</th>}
+                {isVisible('sesi') && <th>Nama Sesi Lelang</th>}
+                {isVisible('tanggal_sesi') && <th>Tanggal Sesi</th>}
+                {isVisible('no_polisi') && <th>No. Polisi</th>}
+                {isVisible('unit_aset') && <th>Unit Aset</th>}
+                {isVisible('gmv') && <th>Harga Terbentuk (GMV)</th>}
+                {isVisible('pmk41') && <th>PPN Pemenang (PMK 41)</th>}
+                {isVisible('fee_admin') && <th>Pemasukan Fee Admin</th>}
+                {isVisible('fee_lelang') && <th>Pemasukan Fee Lelang</th>}
+                {isVisible('dpp') && <th>DPP</th>}
+                {isVisible('dpp_lain') && <th>DPP Nilai Lain</th>}
+                {isVisible('ppn') && <th>PPN</th>}
+                {isVisible('total_invoice_fee_lelang') && <th>Total Invoice Fee Lelang</th>}
+                {isVisible('pph23') && <th>PPH 23 (2%)</th>}
+                {isVisible('total_penerimaan') && <th>Total Penerimaan Indo Lelang</th>}
+                {isVisible('pembayaran_provider') && <th>Pembayaran ke Provider</th>}
+                {isVisible('provider') && <th>Provider</th>}
+                {isVisible('pemenang') && <th>Pemenang</th>}
+                {isVisible('rekening') && <th>Rekening Tujuan</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={19} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={visibleKeys.length} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={19} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={visibleKeys.length} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -335,32 +368,34 @@ export default function FinanceReportPage() {
 
                   return (
                     <tr key={item.id}>
-                      <td><strong>#{item.lot?.lot_number || '-'}</strong></td>
-                      <td><strong>{item.lot?.session?.title || '-'}</strong></td>
-                      <td>{item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
-                      <td><span className="badge-ui secondary" style={{ fontWeight: 600 }}>{item.lot?.asset?.police_number || '-'}</span></td>
-                      <td><strong>{item.lot?.asset?.title || '-'}</strong> ({item.lot?.asset?.year || '-'})</td>
-                      <td style={{ fontWeight: '600' }}>{formatPrice(item.gross_amount)}</td>
-                      <td className={pmk41 > 0 ? 'text-danger' : ''}>{pmk41 > 0 ? `-${formatPrice(pmk41)}` : formatPrice(0)}</td>
-                      <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(feeAdmin)}</td>
-                      <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(item.commission_deducted)}</td>
-                      <td>{formatPrice(dpp)}</td>
-                      <td>{formatPrice(dppLain)}</td>
-                      <td>{formatPrice(ppn)}</td>
-                      <td>{formatPrice(totalInvoiceFeeLelang)}</td>
-                      <td>{formatPrice(pph23)}</td>
-                      <td>{formatPrice(item.commission_deducted)}</td>
-                      <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
-                      <td><strong>{item.provider?.company_name || item.provider?.full_name || '-'}</strong></td>
-                      <td>
-                        {item.winner ? (
-                          <>
-                            <strong>{item.winner.full_name}</strong>
-                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>{item.winner.email}</div>
-                          </>
-                        ) : '-'}
-                      </td>
-                      <td>{item.provider?.bank_account_no || '-'}</td>
+                      {isVisible('lot') && <td><strong>#{item.lot?.lot_number || '-'}</strong></td>}
+                      {isVisible('sesi') && <td><strong>{item.lot?.session?.title || '-'}</strong></td>}
+                      {isVisible('tanggal_sesi') && <td>{item.lot?.session?.scheduled_at ? new Date(item.lot.session.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>}
+                      {isVisible('no_polisi') && <td><span className="badge-ui secondary" style={{ fontWeight: 600 }}>{item.lot?.asset?.police_number || '-'}</span></td>}
+                      {isVisible('unit_aset') && <td><strong>{item.lot?.asset?.title || '-'}</strong> ({item.lot?.asset?.year || '-'})</td>}
+                      {isVisible('gmv') && <td style={{ fontWeight: '600' }}>{formatPrice(item.gross_amount)}</td>}
+                      {isVisible('pmk41') && <td className={pmk41 > 0 ? 'text-danger' : ''}>{pmk41 > 0 ? `-${formatPrice(pmk41)}` : formatPrice(0)}</td>}
+                      {isVisible('fee_admin') && <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(feeAdmin)}</td>}
+                      {isVisible('fee_lelang') && <td className="text-success" style={{ fontWeight: '600' }}>{formatPrice(item.commission_deducted)}</td>}
+                      {isVisible('dpp') && <td>{formatPrice(dpp)}</td>}
+                      {isVisible('dpp_lain') && <td>{formatPrice(dppLain)}</td>}
+                      {isVisible('ppn') && <td>{formatPrice(ppn)}</td>}
+                      {isVisible('total_invoice_fee_lelang') && <td>{formatPrice(totalInvoiceFeeLelang)}</td>}
+                      {isVisible('pph23') && <td>{formatPrice(pph23)}</td>}
+                      {isVisible('total_penerimaan') && <td>{formatPrice(item.commission_deducted)}</td>}
+                      {isVisible('pembayaran_provider') && <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>}
+                      {isVisible('provider') && <td><strong>{item.provider?.company_name || item.provider?.full_name || '-'}</strong></td>}
+                      {isVisible('pemenang') && (
+                        <td>
+                          {item.winner ? (
+                            <>
+                              <strong>{item.winner.full_name}</strong>
+                              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{item.winner.email}</div>
+                            </>
+                          ) : '-'}
+                        </td>
+                      )}
+                      {isVisible('rekening') && <td>{item.provider?.bank_account_no || '-'}</td>}
                     </tr>
                   );
                 })

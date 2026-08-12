@@ -6,6 +6,19 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const AUDIT_COLUMNS: ColumnOption[] = [
+  { key: 'waktu', label: 'Waktu Kejadian', alwaysVisible: true },
+  { key: 'pelaku', label: 'Nama Pelaku (Actor)', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi (Action)', alwaysVisible: true },
+  { key: 'modul', label: 'Tipe Modul', defaultVisible: true },
+  { key: 'resource_id', label: 'ID Resource', defaultVisible: true },
+  { key: 'nilai_lama', label: 'Nilai Lama', defaultVisible: true },
+  { key: 'nilai_baru', label: 'Nilai Baru', defaultVisible: true },
+  { key: 'ip_address', label: 'Alamat IP', defaultVisible: true },
+];
 
 interface AuditLog {
   id: string;
@@ -44,6 +57,8 @@ export default function AuditTrailPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
   const perPage = 20;
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('audit_trail_list', AUDIT_COLUMNS);
 
   const fetchLogs = async () => {
     try {
@@ -162,6 +177,36 @@ export default function AuditTrailPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportExcel = () => {
+    const dataToExport = logs.map((log) => {
+      const row: Record<string, any> = {};
+      if (isVisible('waktu')) {
+        row['Waktu Kejadian'] = new Date(log.created_at).toLocaleString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+      }
+      if (isVisible('pelaku')) row['Nama Pelaku (Actor)'] = log.user ? log.user.full_name : 'System';
+      if (isVisible('aksi')) row['Aksi (Action)'] = log.action;
+      if (isVisible('modul')) row['Tipe Modul'] = log.resource_type;
+      if (isVisible('resource_id')) row['ID Resource'] = log.resource_id;
+      if (isVisible('nilai_lama')) row['Nilai Lama'] = log.old_value || '';
+      if (isVisible('nilai_baru')) row['Nilai Baru'] = log.new_value || '';
+      if (isVisible('ip_address')) row['Alamat IP'] = log.ip_address || '';
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Audit_Trail_IndoLelang', 'Audit Trail');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Audit Trail (.xlsx)');
+    } else {
+      toast.error('Tidak ada data audit trail untuk di-export');
+    }
+  };
+
   const getActionBadge = (action: string) => {
     if (action.includes('APPROVE') || action.includes('SUCCESS') || action.includes('PAID') || action.includes('CREATE')) {
       return <Badge variant="success">{action}</Badge>;
@@ -179,13 +224,27 @@ export default function AuditTrailPage() {
           <h1 className="page-title">Audit Trail Log Aktivitas Sistem</h1>
           <p className="page-subtitle">Daftar rekam jejak aktivitas staf administratif yang immutable untuk menjamin kepatuhan audit dan keamanan.</p>
         </div>
-        <div className="toolbar-right d-flex gap-1">
+        <div className="toolbar-right d-flex gap-1" style={{ alignItems: 'center' }}>
           <button className="btn btn-sm btn-outline" onClick={() => handleExport('json')} disabled={logs.length === 0}>
             💾 Ekspor JSON
           </button>
           <button className="btn btn-sm btn-primary" onClick={() => handleExport('csv')} disabled={logs.length === 0}>
             📊 Ekspor CSV
           </button>
+          <button
+            className="btn btn-sm btn-outline"
+            onClick={handleExportExcel}
+            disabled={logs.length === 0}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+          >
+            📥 Export Excel
+          </button>
+          <ColumnPicker
+            columns={AUDIT_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="audit_trail_list"
+          />
         </div>
       </div>
 
@@ -260,50 +319,54 @@ export default function AuditTrailPage() {
           <table>
             <thead>
               <tr>
-                <th>Waktu Kejadian</th>
-                <th>Nama Pelaku (Actor)</th>
-                <th>Aksi (Action)</th>
-                <th>Tipe Modul</th>
-                <th>ID Resource</th>
-                <th>Nilai Lama</th>
-                <th>Nilai Baru</th>
-                <th>Alamat IP</th>
+                {isVisible('waktu') && <th>Waktu Kejadian</th>}
+                {isVisible('pelaku') && <th>Nama Pelaku (Actor)</th>}
+                {isVisible('aksi') && <th>Aksi (Action)</th>}
+                {isVisible('modul') && <th>Tipe Modul</th>}
+                {isVisible('resource_id') && <th>ID Resource</th>}
+                {isVisible('nilai_lama') && <th>Nilai Lama</th>}
+                {isVisible('nilai_baru') && <th>Nilai Baru</th>}
+                {isVisible('ip_address') && <th>Alamat IP</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat log audit trail...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat log audit trail...</td></tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Belum ada rekaman log audit trail.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Belum ada rekaman log audit trail.</td></tr>
               ) : (
                 logs.map((log) => (
                   <tr key={log.id}>
-                    <td style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                      {new Date(log.created_at).toLocaleString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                      })}
-                    </td>
-                    <td>
-                      <div>
-                        <strong>{log.user ? log.user.full_name : 'System'}</strong>
-                        {log.user && (
-                          <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                            {log.user.email} | <span style={{ textTransform: 'capitalize' }}>{log.user.role}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td>{getActionBadge(log.action)}</td>
-                    <td><span className="badge badge-outline" style={{ fontSize: '0.75rem' }}>{log.resource_type}</span></td>
-                    <td><code style={{ fontSize: '0.8rem' }} title={log.resource_id}>{log.resource_id.substring(0, 8)}...</code></td>
-                    <td style={{ maxWidth: '180px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: '0.8rem', fontFamily: 'monospace' }} title={log.old_value}>{log.old_value || '-'}</td>
-                    <td style={{ maxWidth: '180px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: '0.8rem', fontFamily: 'monospace', color: '#2b6cb0' }} title={log.new_value}>{log.new_value || '-'}</td>
-                    <td><code style={{ fontSize: '0.85rem' }}>{log.ip_address}</code></td>
+                    {isVisible('waktu') && (
+                      <td style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                        {new Date(log.created_at).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}
+                      </td>
+                    )}
+                    {isVisible('pelaku') && (
+                      <td>
+                        <div>
+                          <strong>{log.user ? log.user.full_name : 'System'}</strong>
+                          {log.user && (
+                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              {log.user.email} | <span style={{ textTransform: 'capitalize' }}>{log.user.role}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    {isVisible('aksi') && <td>{getActionBadge(log.action)}</td>}
+                    {isVisible('modul') && <td><span className="badge badge-outline" style={{ fontSize: '0.75rem' }}>{log.resource_type}</span></td>}
+                    {isVisible('resource_id') && <td><code style={{ fontSize: '0.8rem' }} title={log.resource_id}>{log.resource_id.substring(0, 8)}...</code></td>}
+                    {isVisible('nilai_lama') && <td style={{ maxWidth: '180px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: '0.8rem', fontFamily: 'monospace' }} title={log.old_value}>{log.old_value || '-'}</td>}
+                    {isVisible('nilai_baru') && <td style={{ maxWidth: '180px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: '0.8rem', fontFamily: 'monospace', color: '#2b6cb0' }} title={log.new_value}>{log.new_value || '-'}</td>}
+                    {isVisible('ip_address') && <td><code style={{ fontSize: '0.85rem' }}>{log.ip_address}</code></td>}
                   </tr>
                 ))
               )}

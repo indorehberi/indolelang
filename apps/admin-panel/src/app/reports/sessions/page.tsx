@@ -6,6 +6,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { useToast } from '../../../providers/ToastProvider';
 import { apiFetch } from '../../../lib/api';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 interface SessionReport {
   id: string;
@@ -18,12 +19,22 @@ interface SessionReport {
   status: string;
 }
 
+const SESSION_REPORT_COLUMNS: ColumnOption[] = [
+  { key: 'name', label: 'Nama Sesi', alwaysVisible: true },
+  { key: 'date', label: 'Tanggal Sesi', defaultVisible: true },
+  { key: 'lots', label: 'Lot Terjual', defaultVisible: true },
+  { key: 'total_value', label: 'Total Transaksi', defaultVisible: true },
+  { key: 'sell_rate', label: '% Terjual', defaultVisible: true },
+  { key: 'download', label: 'Unduh', alwaysVisible: true },
+];
+
 export default function SessionReportsPage() {
   const toast = useToast();
   const [reports, setReports] = useState<SessionReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('reports_sessions_list', SESSION_REPORT_COLUMNS);
 
   React.useEffect(() => {
     const fetchReports = async () => {
@@ -166,9 +177,17 @@ export default function SessionReportsPage() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: '280px' }}
           />
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Menampilkan {filtered.length} sesi
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              Menampilkan {filtered.length} sesi
+            </span>
+            <ColumnPicker
+              columns={SESSION_REPORT_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="reports_sessions_list"
+            />
+          </div>
         </div>
 
         {/* Table */}
@@ -176,65 +195,72 @@ export default function SessionReportsPage() {
           <table>
             <thead>
               <tr>
-                <th>Nama Sesi</th>
-                <th>Tanggal Sesi</th>
-                <th>Lot Terjual</th>
-                <th>Total Transaksi</th>
-                <th>% Terjual</th>
-                <th>Unduh</th>
+                {isVisible('name') && <th>Nama Sesi</th>}
+                {isVisible('date') && <th>Tanggal Sesi</th>}
+                {isVisible('lots') && <th>Lot Terjual</th>}
+                {isVisible('total_value') && <th>Total Transaksi</th>}
+                {isVisible('sell_rate') && <th>% Terjual</th>}
+                {isVisible('download') && <th>Unduh</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                  <td colSpan={visibleKeys.length} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
                     Memuat data...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                  <td colSpan={visibleKeys.length} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
                     Tidak ada laporan ditemukan
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: 600, maxWidth: '280px' }}>{r.name}</td>
-                  <td>{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-                  <td>
-                    <span style={{ fontWeight: 600 }}>{r.sold_lots}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>/{r.total_lots} lot</span>
-                  </td>
-                  <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                    {formatPrice(r.total_value)}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: '6px',
-                          background: 'var(--border)',
-                          borderRadius: '99px',
-                          overflow: 'hidden',
-                          minWidth: '60px',
-                        }}
-                      >
+                  {isVisible('name') && <td style={{ fontWeight: 600, maxWidth: '280px' }}>{r.name}</td>}
+                  {isVisible('date') && <td>{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>}
+                  {isVisible('lots') && (
+                    <td>
+                      <span style={{ fontWeight: 600 }}>{r.sold_lots}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>/{r.total_lots} lot</span>
+                    </td>
+                  )}
+                  {isVisible('total_value') && (
+                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                      {formatPrice(r.total_value)}
+                    </td>
+                  )}
+                  {isVisible('sell_rate') && (
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div
                           style={{
-                            height: '100%',
-                            width: `${r.sell_rate}%`,
-                            background: r.sell_rate >= 90 ? '#22c55e' : r.sell_rate >= 75 ? '#f59e0b' : '#ef4444',
+                            flex: 1,
+                            height: '6px',
+                            background: 'var(--border)',
                             borderRadius: '99px',
+                            overflow: 'hidden',
+                            minWidth: '60px',
                           }}
-                        />
+                        >
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${r.sell_rate}%`,
+                              background: r.sell_rate >= 90 ? '#22c55e' : r.sell_rate >= 75 ? '#f59e0b' : '#ef4444',
+                              borderRadius: '99px',
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '36px' }}>
+                          {r.sell_rate}%
+                        </span>
                       </div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '36px' }}>
-                        {r.sell_rate}%
-                      </span>
-                    </div>
-                  </td>
+                    </td>
+                  )}
+                  {isVisible('download') && (
                   <td>
                     <div style={{ display: 'flex', gap: '0.375rem' }}>
                       <button
@@ -271,6 +297,7 @@ export default function SessionReportsPage() {
                       </button>
                     </div>
                   </td>
+                  )}
                 </tr>
               ))
               )}

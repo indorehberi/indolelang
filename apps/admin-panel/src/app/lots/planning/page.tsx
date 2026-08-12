@@ -5,6 +5,8 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import { apiUrl, apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 interface UnassignedAsset {
   id: string;
@@ -28,6 +30,23 @@ interface Lot {
   status?: string;
   asset?: { title: string; police_number?: string };
 }
+
+const REGISTERED_LOTS_COLUMNS: ColumnOption[] = [
+  { key: 'lot_number', label: 'Lot #', alwaysVisible: true },
+  { key: 'asset_name', label: 'Nama Unit Aset', defaultVisible: true },
+  { key: 'police_number', label: 'No Polisi', defaultVisible: true },
+  { key: 'starting_price', label: 'Harga Limit', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
+
+const UNASSIGNED_ASSETS_COLUMNS: ColumnOption[] = [
+  { key: 'title', label: 'Nama Unit', alwaysVisible: true },
+  { key: 'category', label: 'Kategori', defaultVisible: true },
+  { key: 'police_number', label: 'No Polisi', defaultVisible: true },
+  { key: 'base_price', label: 'Harga Limit', defaultVisible: true },
+  { key: 'provider', label: 'Provider', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
 
 export default function LotPlanningPage() {
   const toast = useToast();
@@ -56,6 +75,18 @@ export default function LotPlanningPage() {
   const [assetsPage, setAssetsPage] = useState(1);
   const [assetsTotalPages, setAssetsTotalPages] = useState(1);
   const [assetsTotalCount, setAssetsTotalCount] = useState(0);
+
+  const {
+    visibleKeys: registeredLotsVisibleKeys,
+    setVisibleKeys: setRegisteredLotsVisibleKeys,
+    isVisible: isRegisteredLotsVisible,
+  } = useColumnVisibility('lots_planning_registered_list', REGISTERED_LOTS_COLUMNS);
+
+  const {
+    visibleKeys: unassignedAssetsVisibleKeys,
+    setVisibleKeys: setUnassignedAssetsVisibleKeys,
+    isVisible: isUnassignedAssetsVisible,
+  } = useColumnVisibility('lots_planning_unassigned_list', UNASSIGNED_ASSETS_COLUMNS);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -250,6 +281,49 @@ export default function LotPlanningPage() {
     }
   };
 
+  const handleExportRegisteredLots = () => {
+    const dataToExport = lots.map((lot) => {
+      const row: Record<string, any> = {};
+      if (isRegisteredLotsVisible('lot_number')) row['Lot #'] = String(lot.lot_number).padStart(2, '0');
+      if (isRegisteredLotsVisible('asset_name')) row['Nama Unit Aset'] = lot.asset?.title || 'Unknown Asset';
+      if (isRegisteredLotsVisible('police_number')) row['No Polisi'] = lot.asset?.police_number || '-';
+      if (isRegisteredLotsVisible('starting_price')) row['Harga Limit'] = lot.starting_price;
+      return row;
+    });
+    if (dataToExport.length === 0) {
+      toast.error('Tidak ada data lot untuk di-export');
+      return;
+    }
+    const ok = exportToExcel(dataToExport, 'Lot_Terdaftar_Sesi_Lelang', 'Daftar Lot Terdaftar');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Daftar Lot (.xlsx)');
+    } else {
+      toast.error('Tidak ada data lot untuk di-export');
+    }
+  };
+
+  const handleExportUnassignedAssets = () => {
+    const dataToExport = assets.map((ast: any) => {
+      const row: Record<string, any> = {};
+      if (isUnassignedAssetsVisible('title')) row['Nama Unit'] = ast.title;
+      if (isUnassignedAssetsVisible('category')) row['Kategori'] = ast.category;
+      if (isUnassignedAssetsVisible('police_number')) row['No Polisi'] = ast.police_number || '-';
+      if (isUnassignedAssetsVisible('base_price')) row['Harga Limit'] = ast.base_price;
+      if (isUnassignedAssetsVisible('provider')) row['Provider'] = ast.provider?.company_name || ast.provider?.full_name || 'Provider';
+      return row;
+    });
+    if (dataToExport.length === 0) {
+      toast.error('Tidak ada data aset untuk di-export');
+      return;
+    }
+    const ok = exportToExcel(dataToExport, 'Aset_Siap_Dilelang', 'Aset Approved');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Aset Approved (.xlsx)');
+    } else {
+      toast.error('Tidak ada data aset untuk di-export');
+    }
+  };
+
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -311,42 +385,62 @@ export default function LotPlanningPage() {
 
             <hr />
 
-            <h3 className="card-title" style={{ fontSize: '1rem', marginTop: '1rem' }}>Daftar Lot Terdaftar (Sesi Terpilih)</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+              <h3 className="card-title" style={{ fontSize: '1rem', margin: 0 }}>Daftar Lot Terdaftar (Sesi Terpilih)</h3>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-xs btn-outline"
+                  onClick={handleExportRegisteredLots}
+                  style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+                >
+                  📥 Export Excel
+                </button>
+                <ColumnPicker
+                  columns={REGISTERED_LOTS_COLUMNS}
+                  visibleKeys={registeredLotsVisibleKeys}
+                  onChange={setRegisteredLotsVisibleKeys}
+                  tableId="lots_planning_registered_list"
+                />
+              </div>
+            </div>
             <div className="table-wrapper" style={{ maxHeight: '350px', overflowY: 'auto' }}>
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: '60px' }}>Lot #</th>
-                    <th>Nama Unit Aset</th>
-                    <th>No Polisi</th>
-                    <th>Harga Limit</th>
-                    <th style={{ textAlign: 'center' }}>Aksi</th>
+                    {isRegisteredLotsVisible('lot_number') && <th style={{ width: '60px' }}>Lot #</th>}
+                    {isRegisteredLotsVisible('asset_name') && <th>Nama Unit Aset</th>}
+                    {isRegisteredLotsVisible('police_number') && <th>No Polisi</th>}
+                    {isRegisteredLotsVisible('starting_price') && <th>Harga Limit</th>}
+                    {isRegisteredLotsVisible('aksi') && <th style={{ textAlign: 'center' }}>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {lots.length === 0 ? (
-                    <tr><td colSpan={5} className="text-center text-muted">Belum ada lot</td></tr>
+                    <tr><td colSpan={registeredLotsVisibleKeys.length} className="text-center text-muted">Belum ada lot</td></tr>
                   ) : (
                     lots.map(lot => (
                       <tr key={lot.id}>
-                        <td><strong>{String(lot.lot_number).padStart(2, '0')}</strong></td>
-                        <td>{lot.asset?.title || 'Unknown Asset'}</td>
-                        <td style={{ fontSize: '0.85rem' }}>{lot.asset?.police_number || '-'}</td>
-                        <td>{formatRupiah(lot.starting_price)}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          {lot.status === 'cancelled' ? (
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                              <span className="badge" style={{ backgroundColor: '#f87171', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>Dibatalkan</span>
-                              <button className="btn btn-xs btn-success" disabled={loading} onClick={() => handleUncancelLot(lot)}>Aktifkan Kembali</button>
-                              <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                              <button className="btn btn-xs btn-warning" disabled={loading} onClick={() => handleCancelLot(lot)}>Batalkan</button>
-                              <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
-                            </div>
-                          )}
-                        </td>
+                        {isRegisteredLotsVisible('lot_number') && <td><strong>{String(lot.lot_number).padStart(2, '0')}</strong></td>}
+                        {isRegisteredLotsVisible('asset_name') && <td>{lot.asset?.title || 'Unknown Asset'}</td>}
+                        {isRegisteredLotsVisible('police_number') && <td style={{ fontSize: '0.85rem' }}>{lot.asset?.police_number || '-'}</td>}
+                        {isRegisteredLotsVisible('starting_price') && <td>{formatRupiah(lot.starting_price)}</td>}
+                        {isRegisteredLotsVisible('aksi') && (
+                          <td style={{ textAlign: 'center' }}>
+                            {lot.status === 'cancelled' ? (
+                              <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span className="badge" style={{ backgroundColor: '#f87171', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>Dibatalkan</span>
+                                <button className="btn btn-xs btn-success" disabled={loading} onClick={() => handleUncancelLot(lot)}>Aktifkan Kembali</button>
+                                <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                <button className="btn btn-xs btn-warning" disabled={loading} onClick={() => handleCancelLot(lot)}>Batalkan</button>
+                                <button className="btn btn-xs btn-danger" disabled={loading} onClick={() => handleDeleteLot(lot)}>Hapus</button>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -390,10 +484,10 @@ export default function LotPlanningPage() {
                 <h2 className="card-title mb-1">2. Aset Siap Dilelang (Approved)</h2>
                 <p className="text-muted" style={{ fontSize: '0.85rem' }}>Klik tombol tambahkan untuk memasukkan aset ke sesi lelang aktif.</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <select 
-                  className="form-select form-select-sm" 
-                  value={filterProvider} 
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  className="form-select form-select-sm"
+                  value={filterProvider}
                   onChange={(e) => setFilterProvider(e.target.value)}
                   style={{ minWidth: '150px' }}
                 >
@@ -402,13 +496,27 @@ export default function LotPlanningPage() {
                     <option key={p.id} value={p.id}>{p.company_name || p.full_name || 'Tanpa Nama'}</option>
                   ))}
                 </select>
-                <input 
-                  type="text" 
-                  className="form-input form-input-sm" 
-                  placeholder="Cari No Polisi..." 
+                <input
+                  type="text"
+                  className="form-input form-input-sm"
+                  placeholder="Cari No Polisi..."
                   value={filterPoliceNumber}
                   onChange={(e) => setFilterPoliceNumber(e.target.value)}
                   style={{ width: '130px' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-xs btn-outline"
+                  onClick={handleExportUnassignedAssets}
+                  style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+                >
+                  📥 Export Excel
+                </button>
+                <ColumnPicker
+                  columns={UNASSIGNED_ASSETS_COLUMNS}
+                  visibleKeys={unassignedAssetsVisibleKeys}
+                  onChange={setUnassignedAssetsVisibleKeys}
+                  tableId="lots_planning_unassigned_list"
                 />
               </div>
             </div>
@@ -417,31 +525,37 @@ export default function LotPlanningPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Nama Unit</th>
-                    <th>Kategori</th>
-                    <th>No Polisi</th>
-                    <th>Harga Limit</th>
-                    <th>Provider</th>
-                    <th style={{ textAlign: 'center' }}>Aksi</th>
+                    {isUnassignedAssetsVisible('title') && <th>Nama Unit</th>}
+                    {isUnassignedAssetsVisible('category') && <th>Kategori</th>}
+                    {isUnassignedAssetsVisible('police_number') && <th>No Polisi</th>}
+                    {isUnassignedAssetsVisible('base_price') && <th>Harga Limit</th>}
+                    {isUnassignedAssetsVisible('provider') && <th>Provider</th>}
+                    {isUnassignedAssetsVisible('aksi') && <th style={{ textAlign: 'center' }}>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {assets.map((ast: any) => (
                     <tr key={ast.id}>
-                      <td>
-                        <strong>{ast.title}</strong>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', background: ast.category === 'mobil' ? '#ebf8ff' : '#fefcbf', color: ast.category === 'mobil' ? '#2b6cb0' : '#b7791f' }}>
-                          {ast.category}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.85rem' }}>{ast.police_number || '-'}</td>
-                      <td><strong>{formatRupiah(ast.base_price)}</strong></td>
-                      <td style={{ fontSize: '0.85rem' }}>{ast.provider?.company_name || ast.provider?.full_name || 'Provider'}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button className="btn btn-xs btn-success" onClick={() => openAddLotModal(ast)} disabled={loading}>+ Lot</button>
-                      </td>
+                      {isUnassignedAssetsVisible('title') && (
+                        <td>
+                          <strong>{ast.title}</strong>
+                        </td>
+                      )}
+                      {isUnassignedAssetsVisible('category') && (
+                        <td>
+                          <span style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', background: ast.category === 'mobil' ? '#ebf8ff' : '#fefcbf', color: ast.category === 'mobil' ? '#2b6cb0' : '#b7791f' }}>
+                            {ast.category}
+                          </span>
+                        </td>
+                      )}
+                      {isUnassignedAssetsVisible('police_number') && <td style={{ fontSize: '0.85rem' }}>{ast.police_number || '-'}</td>}
+                      {isUnassignedAssetsVisible('base_price') && <td><strong>{formatRupiah(ast.base_price)}</strong></td>}
+                      {isUnassignedAssetsVisible('provider') && <td style={{ fontSize: '0.85rem' }}>{ast.provider?.company_name || ast.provider?.full_name || 'Provider'}</td>}
+                      {isUnassignedAssetsVisible('aksi') && (
+                        <td style={{ textAlign: 'center' }}>
+                          <button className="btn btn-xs btn-success" onClick={() => openAddLotModal(ast)} disabled={loading}>+ Lot</button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

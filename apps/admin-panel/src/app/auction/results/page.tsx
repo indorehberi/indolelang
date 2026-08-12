@@ -7,12 +7,28 @@ import Badge from '../../../components/ui/Badge';
 import { apiUrl, apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
 import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const AUCTION_RESULTS_COLUMNS: ColumnOption[] = [
+  { key: 'lot', label: 'Lot', alwaysVisible: true },
+  { key: 'tanggal', label: 'Tgl Lelang', defaultVisible: true },
+  { key: 'jam', label: 'Jam Lelang', defaultVisible: true },
+  { key: 'lokasi', label: 'Lokasi', defaultVisible: true },
+  { key: 'unit', label: 'Unit', defaultVisible: true },
+  { key: 'no_polisi', label: 'No Polisi', defaultVisible: true },
+  { key: 'nipl', label: 'No NIPL', defaultVisible: true },
+  { key: 'harga_limit', label: 'Harga Limit', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'pembayaran', label: 'Pembayaran', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
 
 export default function AuctionResultsPage() {
   const toast = useToast();
   const [lots, setLots] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('auction_results_list', AUCTION_RESULTS_COLUMNS);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -249,23 +265,33 @@ export default function AuctionResultsPage() {
             />
           </div>
 
-          <div style={{ marginLeft: 'auto' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
             <button
               onClick={() => {
-                const dataToExport = filteredLots.map((l, index) => ({
-                  'No': index + 1,
-                  'No. Lot': l.lot_number || '-',
-                  'Nama Unit': l.asset?.title || '-',
-                  'Kategori': l.asset?.category || '-',
-                  'Mitra Provider': l.asset?.provider?.company_name || l.asset?.provider?.full_name || '-',
-                  'Harga Dasar (Rp)': l.starting_price ? Number(l.starting_price) : 0,
-                  'Harga Terbentuk (Hammer Price Rp)': l.status === 'sold' ? Number(l.hammer_price || l.current_price || 0) : 0,
-                  'Status Hasil': l.status === 'sold' ? 'TERJUAL (Sold)' : 'TIDAK LAKU (Unsold)',
-                  'Pemenang': l.winner?.full_name || '-',
-                  'Email Pemenang': l.winner?.email || '-',
-                  'No. HP Pemenang': l.winner?.phone || '-',
-                  'Status Pelunasan': l.invoices && l.invoices.length > 0 ? (l.invoices[0].status === 'paid' ? 'Lunas' : 'Belum Lunas') : 'Belum Invoice'
-                }));
+                const dataToExport = filteredLots.map((l, index) => {
+                  const row: Record<string, any> = {};
+                  if (isVisible('lot')) {
+                    row['No'] = index + 1;
+                    row['No. Lot'] = l.lot_number || '-';
+                  }
+                  if (isVisible('unit')) {
+                    row['Nama Unit'] = l.asset?.title || '-';
+                    row['Kategori'] = l.asset?.category || '-';
+                    row['Mitra Provider'] = l.asset?.provider?.company_name || l.asset?.provider?.full_name || '-';
+                  }
+                  if (isVisible('harga_limit')) {
+                    row['Harga Dasar (Rp)'] = l.starting_price ? Number(l.starting_price) : 0;
+                    row['Harga Terbentuk (Hammer Price Rp)'] = l.status === 'sold' ? Number(l.hammer_price || l.current_price || 0) : 0;
+                  }
+                  if (isVisible('status')) row['Status Hasil'] = l.status === 'sold' ? 'TERJUAL (Sold)' : 'TIDAK LAKU (Unsold)';
+                  if (isVisible('nipl')) {
+                    row['Pemenang'] = l.winner?.full_name || '-';
+                    row['Email Pemenang'] = l.winner?.email || '-';
+                    row['No. HP Pemenang'] = l.winner?.phone || '-';
+                  }
+                  if (isVisible('pembayaran')) row['Status Pelunasan'] = l.invoices && l.invoices.length > 0 ? (l.invoices[0].status === 'paid' ? 'Lunas' : 'Belum Lunas') : 'Belum Invoice';
+                  return row;
+                });
                 const ok = exportToExcel(dataToExport, 'Hasil_Sesi_Lelang_IndoLelang', 'Hasil Sesi');
                 if (ok) {
                   toast.success('Berhasil mendownload Excel Hasil Sesi (.xlsx)');
@@ -279,6 +305,12 @@ export default function AuctionResultsPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
               Export XLSX
             </button>
+            <ColumnPicker
+              columns={AUCTION_RESULTS_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="auction_results_list"
+            />
           </div>
         </div>
       </Card>
@@ -288,94 +320,112 @@ export default function AuctionResultsPage() {
           <table>
             <thead>
               <tr>
-                <th>Lot</th>
-                <th>Tgl Lelang</th>
-                <th>Jam Lelang</th>
-                <th>Lokasi</th>
-                <th>Unit</th>
-                <th>No Polisi</th>
-                <th>No NIPL</th>
-                <th>Harga Limit</th>
-                <th>Status</th>
-                <th>Pembayaran</th>
-                <th>Aksi</th>
+                {isVisible('lot') && <th>Lot</th>}
+                {isVisible('tanggal') && <th>Tgl Lelang</th>}
+                {isVisible('jam') && <th>Jam Lelang</th>}
+                {isVisible('lokasi') && <th>Lokasi</th>}
+                {isVisible('unit') && <th>Unit</th>}
+                {isVisible('no_polisi') && <th>No Polisi</th>}
+                {isVisible('nipl') && <th>No NIPL</th>}
+                {isVisible('harga_limit') && <th>Harga Limit</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('pembayaran') && <th>Pembayaran</th>}
+                {isVisible('aksi') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} className="text-center">Memuat data hasil lelang...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data hasil lelang...</td></tr>
               ) : filteredLots.length === 0 ? (
-                <tr><td colSpan={11} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada data hasil lelang ditemukan.</td></tr>
               ) : (
                 filteredLots.map((lot) => {
                   const assetInfo = lot.asset ? `${lot.asset.brand || ''} ${lot.asset.model || ''} (${lot.asset.year || '-'})` : '-';
 
                   return (
                     <tr key={lot.id}>
-                      <td><strong>#{lot.lot_number}</strong></td>
-                      <td>
-                        {lot.session ? new Date(lot.session.scheduled_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        }) : '-'}
-                      </td>
-                      <td>
-                        {lot.session ? new Date(lot.session.scheduled_at).toLocaleTimeString('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : '-'}
-                      </td>
-                      <td>
-                        {lot.session?.branch ? `${lot.session.branch.name}, ${lot.session.branch.city}` : '-'}
-                      </td>
-                      <td>
-                        <div><strong>{lot.asset?.title || '-'}</strong></div>
-                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>{assetInfo}</div>
-                      </td>
-                      <td>
-                        <strong>{lot.asset?.police_number || '-'}</strong>
-                      </td>
-                      <td>
-                        {lot.winner_id ? (
-                          <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                            NIPL-{lot.winner_id.substring(0, 8).toUpperCase()}
-                          </code>
-                        ) : '-'}
-                      </td>
-                      <td>{formatRupiah(lot.starting_price)}</td>
-                      <td>
-                        <Badge variant={lot.status === 'sold' ? 'success' : 'default'}>
-                          {lot.status === 'sold' ? 'Sold' : 'Unsold'}
-                        </Badge>
-                      </td>
-                      <td>
-                        {lot.status === 'sold' && (
-                          <Badge variant={lot.payment_status === 'paid' ? 'success' : 'warning'}>
-                            {lot.payment_status === 'paid' ? 'Terbayar' : 'Belum Terbayar'}
+                      {isVisible('lot') && <td><strong>#{lot.lot_number}</strong></td>}
+                      {isVisible('tanggal') && (
+                        <td>
+                          {lot.session ? new Date(lot.session.scheduled_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          }) : '-'}
+                        </td>
+                      )}
+                      {isVisible('jam') && (
+                        <td>
+                          {lot.session ? new Date(lot.session.scheduled_at).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-'}
+                        </td>
+                      )}
+                      {isVisible('lokasi') && (
+                        <td>
+                          {lot.session?.branch ? `${lot.session.branch.name}, ${lot.session.branch.city}` : '-'}
+                        </td>
+                      )}
+                      {isVisible('unit') && (
+                        <td>
+                          <div><strong>{lot.asset?.title || '-'}</strong></div>
+                          <div className="text-muted" style={{ fontSize: '0.8rem' }}>{assetInfo}</div>
+                        </td>
+                      )}
+                      {isVisible('no_polisi') && (
+                        <td>
+                          <strong>{lot.asset?.police_number || '-'}</strong>
+                        </td>
+                      )}
+                      {isVisible('nipl') && (
+                        <td>
+                          {lot.winner_id ? (
+                            <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                              NIPL-{lot.winner_id.substring(0, 8).toUpperCase()}
+                            </code>
+                          ) : '-'}
+                        </td>
+                      )}
+                      {isVisible('harga_limit') && <td>{formatRupiah(lot.starting_price)}</td>}
+                      {isVisible('status') && (
+                        <td>
+                          <Badge variant={lot.status === 'sold' ? 'success' : 'default'}>
+                            {lot.status === 'sold' ? 'Sold' : 'Unsold'}
                           </Badge>
-                        )}
-                      </td>
-                      <td>
-                        {lot.status === 'sold' && lot.payment_status !== 'paid' && (
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => handleMarkAsPaid(lot.id)}
-                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                          >
-                            Sudah Dibayar & BAPL
-                          </button>
-                        )}
-                        {lot.status === 'sold' && lot.payment_status === 'paid' && lot.invoice_id && (
-                          <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => handleDownloadBapl(lot.invoice_id)}
-                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                          >
-                            Unduh BAPL
-                          </button>
-                        )}
-                      </td>
+                        </td>
+                      )}
+                      {isVisible('pembayaran') && (
+                        <td>
+                          {lot.status === 'sold' && (
+                            <Badge variant={lot.payment_status === 'paid' ? 'success' : 'warning'}>
+                              {lot.payment_status === 'paid' ? 'Terbayar' : 'Belum Terbayar'}
+                            </Badge>
+                          )}
+                        </td>
+                      )}
+                      {isVisible('aksi') && (
+                        <td>
+                          {lot.status === 'sold' && lot.payment_status !== 'paid' && (
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleMarkAsPaid(lot.id)}
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                            >
+                              Sudah Dibayar & BAPL
+                            </button>
+                          )}
+                          {lot.status === 'sold' && lot.payment_status === 'paid' && lot.invoice_id && (
+                            <button
+                              className="btn btn-sm btn-outline"
+                              onClick={() => handleDownloadBapl(lot.invoice_id)}
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                            >
+                              Unduh BAPL
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })

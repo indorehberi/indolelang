@@ -7,6 +7,27 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const PROVIDER_SUMMARY_COLUMNS: ColumnOption[] = [
+  { key: 'provider', label: 'Provider', alwaysVisible: true },
+  { key: 'rekening', label: 'Info Rekening', defaultVisible: true },
+  { key: 'jumlah_unit', label: 'Jumlah Unit', defaultVisible: true },
+  { key: 'total_transfer', label: 'Total Transfer (Net)', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
+
+const UNIT_SETTLEMENT_COLUMNS: ColumnOption[] = [
+  { key: 'provider', label: 'Provider', alwaysVisible: true },
+  { key: 'unit_sesi', label: 'Unit / Sesi', defaultVisible: true },
+  { key: 'tipe', label: 'Tipe', defaultVisible: true },
+  { key: 'dasar_pembayaran', label: 'Dasar Pembayaran', defaultVisible: true },
+  { key: 'nilai_transfer', label: 'Nilai Transfer (Net)', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'waktu_verifikasi', label: 'Waktu Verifikasi Lunas', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
 
 interface SettlementItem {
   id: string;
@@ -61,6 +82,18 @@ export default function SettlementsPage() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [typeFilter, setTypeFilter] = useState('');
   const [userRole, setUserRole] = useState<string>('');
+
+  const {
+    visibleKeys: providerVisibleKeys,
+    setVisibleKeys: setProviderVisibleKeys,
+    isVisible: isProviderVisible,
+  } = useColumnVisibility('finance_settlements_pending_list', PROVIDER_SUMMARY_COLUMNS);
+
+  const {
+    visibleKeys: unitVisibleKeys,
+    setVisibleKeys: setUnitVisibleKeys,
+    isVisible: isUnitVisible,
+  } = useColumnVisibility('finance_settlements_history_list', UNIT_SETTLEMENT_COLUMNS);
 
   const fetchSettlements = useCallback(async () => {
     setLoading(true);
@@ -216,6 +249,65 @@ export default function SettlementsPage() {
     fetchSettlements();
   };
 
+  const handleExportProviderSummary = () => {
+    if (providerSummaries.length === 0) {
+      toast.error('Tidak ada data rekap provider untuk di-export');
+      return;
+    }
+    const dataToExport = providerSummaries.map((summary: any) => {
+      const row: Record<string, any> = {};
+      if (isProviderVisible('provider')) row['Provider'] = summary.provider_name;
+      if (isProviderVisible('rekening')) {
+        row['Bank'] = summary.bank_name;
+        row['No. Rekening'] = summary.bank_account_no;
+        row['Atas Nama'] = summary.bank_account_name;
+      }
+      if (isProviderVisible('jumlah_unit')) row['Jumlah Unit'] = summary.items_count;
+      if (isProviderVisible('total_transfer')) row['Total Transfer (Net)'] = summary.total_net;
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Rekap_Pencairan_Provider_IndoLelang', 'Rekap Provider');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Rekap Provider (.xlsx)');
+    } else {
+      toast.error('Tidak ada data untuk di-export');
+    }
+  };
+
+  const handleExportUnitSettlements = () => {
+    if (filteredSettlements.length === 0) {
+      toast.error('Tidak ada data settlement untuk di-export');
+      return;
+    }
+    const dataToExport = filteredSettlements.map((settlement) => {
+      const row: Record<string, any> = {};
+      if (isUnitVisible('provider')) row['Provider'] = settlement.provider?.company_name || settlement.provider?.full_name || '-';
+      if (isUnitVisible('unit_sesi')) {
+        row['Unit'] = settlement.lot?.asset?.title || '-';
+        row['Sesi'] = settlement.lot?.session?.title || '-';
+      }
+      if (isUnitVisible('tipe')) row['Tipe'] = settlement.is_forfeiture ? 'Forteit NIPL' : 'Pelunasan';
+      if (isUnitVisible('dasar_pembayaran')) {
+        row['Dasar Pembayaran'] = settlement.is_forfeiture
+          ? `Jaminan NIPL: ${settlement.nipl_forfeiture_amount || 0}`
+          : `Harga Palu: ${settlement.gross_amount}`;
+      }
+      if (isUnitVisible('nilai_transfer')) row['Nilai Transfer (Net)'] = settlement.net_amount;
+      if (isUnitVisible('status')) {
+        row['Status'] =
+          settlement.status === 'processed' ? 'Sudah Ditransfer' : settlement.status === 'failed' ? 'Gagal' : 'Siap Transfer';
+      }
+      if (isUnitVisible('waktu_verifikasi')) row['Waktu Verifikasi Lunas'] = new Date(settlement.created_at).toLocaleString('id-ID');
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Riwayat_Settlement_Provider_IndoLelang', 'Riwayat Settlement');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Riwayat Settlement (.xlsx)');
+    } else {
+      toast.error('Tidak ada data untuk di-export');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Keuangan" breadcrumbCurrent="Transfer Provider">
       <div className="toolbar">
@@ -349,81 +441,116 @@ export default function SettlementsPage() {
 
       <Card>
         {viewMode === 'provider' ? (
-          <div className="table-wrapper">
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <button className="btn btn-primary btn-sm" onClick={handleExportProviderSummary}>
+                📥 Export Excel
+              </button>
+              <ColumnPicker
+                columns={PROVIDER_SUMMARY_COLUMNS}
+                visibleKeys={providerVisibleKeys}
+                onChange={setProviderVisibleKeys}
+                tableId="finance_settlements_pending_list"
+              />
+            </div>
+            <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
-                  <th>Provider</th>
-                  <th>Info Rekening</th>
-                  <th>Jumlah Unit</th>
-                  <th>Total Transfer (Net)</th>
-                  <th>Aksi</th>
+                  {isProviderVisible('provider') && <th>Provider</th>}
+                  {isProviderVisible('rekening') && <th>Info Rekening</th>}
+                  {isProviderVisible('jumlah_unit') && <th>Jumlah Unit</th>}
+                  {isProviderVisible('total_transfer') && <th>Total Transfer (Net)</th>}
+                  {isProviderVisible('aksi') && <th>Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} className="text-center">Memuat rekap provider...</td></tr>
+                  <tr><td colSpan={providerVisibleKeys.length} className="text-center">Memuat rekap provider...</td></tr>
                 ) : providerSummaries.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center text-muted">Tidak ada data pembayaran yang siap ditransfer (pending).</td></tr>
+                  <tr><td colSpan={providerVisibleKeys.length} className="text-center text-muted">Tidak ada data pembayaran yang siap ditransfer (pending).</td></tr>
                 ) : (
                   providerSummaries.map((summary: any) => (
                     <tr key={summary.provider_id}>
-                      <td>
-                        <strong>{summary.provider_name}</strong>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem' }}>
-                          <div><strong>Bank:</strong> {summary.bank_name}</div>
-                          <div><strong>No. Rekening:</strong> {summary.bank_account_no}</div>
-                          <div><strong>Atas Nama:</strong> {summary.bank_account_name}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <Badge variant="warning">{summary.items_count} Siap Transfer</Badge>
-                      </td>
-                      <td>
-                        <strong className="text-primary" style={{ fontSize: '1.1rem' }}>
-                          {formatRupiah(summary.total_net)}
-                        </strong>
-                      </td>
-                      <td>
-                        {['admin', 'superadmin'].includes(userRole) && (
-                          <Button
-                            variant="success"
-                            size="sm"
-                            disabled={isDisbursingBulk}
-                            onClick={() => handleBulkTransfer(summary.provider_name, summary.settlement_ids, summary.total_net)}
-                          >
-                            {isDisbursingBulk ? 'Memproses...' : 'Transfer Semua'}
-                          </Button>
-                        )}
-                      </td>
+                      {isProviderVisible('provider') && (
+                        <td>
+                          <strong>{summary.provider_name}</strong>
+                        </td>
+                      )}
+                      {isProviderVisible('rekening') && (
+                        <td>
+                          <div style={{ fontSize: '0.85rem' }}>
+                            <div><strong>Bank:</strong> {summary.bank_name}</div>
+                            <div><strong>No. Rekening:</strong> {summary.bank_account_no}</div>
+                            <div><strong>Atas Nama:</strong> {summary.bank_account_name}</div>
+                          </div>
+                        </td>
+                      )}
+                      {isProviderVisible('jumlah_unit') && (
+                        <td>
+                          <Badge variant="warning">{summary.items_count} Siap Transfer</Badge>
+                        </td>
+                      )}
+                      {isProviderVisible('total_transfer') && (
+                        <td>
+                          <strong className="text-primary" style={{ fontSize: '1.1rem' }}>
+                            {formatRupiah(summary.total_net)}
+                          </strong>
+                        </td>
+                      )}
+                      {isProviderVisible('aksi') && (
+                        <td>
+                          {['admin', 'superadmin'].includes(userRole) && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              disabled={isDisbursingBulk}
+                              onClick={() => handleBulkTransfer(summary.provider_name, summary.settlement_ids, summary.total_net)}
+                            >
+                              {isDisbursingBulk ? 'Memproses...' : 'Transfer Semua'}
+                            </Button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
-          <div className="table-wrapper">
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <button className="btn btn-primary btn-sm" onClick={handleExportUnitSettlements}>
+                📥 Export Excel
+              </button>
+              <ColumnPicker
+                columns={UNIT_SETTLEMENT_COLUMNS}
+                visibleKeys={unitVisibleKeys}
+                onChange={setUnitVisibleKeys}
+                tableId="finance_settlements_history_list"
+              />
+            </div>
+            <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
-                  <th>Provider</th>
-                  <th>Unit / Sesi</th>
-                <th>Tipe</th>
-                <th>Dasar Pembayaran</th>
-                <th>Nilai Transfer (Net)</th>
-                <th>Status</th>
-                <th style={{ whiteSpace: 'nowrap' }}>Waktu Verifikasi Lunas</th>
-                <th>Aksi</th>
+                  {isUnitVisible('provider') && <th>Provider</th>}
+                  {isUnitVisible('unit_sesi') && <th>Unit / Sesi</th>}
+                {isUnitVisible('tipe') && <th>Tipe</th>}
+                {isUnitVisible('dasar_pembayaran') && <th>Dasar Pembayaran</th>}
+                {isUnitVisible('nilai_transfer') && <th>Nilai Transfer (Net)</th>}
+                {isUnitVisible('status') && <th>Status</th>}
+                {isUnitVisible('waktu_verifikasi') && <th style={{ whiteSpace: 'nowrap' }}>Waktu Verifikasi Lunas</th>}
+                {isUnitVisible('aksi') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center">Memuat daftar settlement...</td></tr>
+                <tr><td colSpan={unitVisibleKeys.length} className="text-center">Memuat daftar settlement...</td></tr>
               ) : filteredSettlements.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-muted">Tidak ada data settlement.</td></tr>
+                <tr><td colSpan={unitVisibleKeys.length} className="text-center text-muted">Tidak ada data settlement.</td></tr>
               ) : (
                 filteredSettlements.map((settlement) => {
                   const itemIsNew = isNew(settlement.created_at) && settlement.status === 'pending';
@@ -435,96 +562,111 @@ export default function SettlementsPage() {
                         borderLeft: '3px solid #ffc107',
                       } : {}}
                     >
-                      <td>
-                        <strong>{settlement.provider?.company_name || settlement.provider?.full_name}</strong>
-                      </td>
-                      <td>
-                        <strong>{settlement.lot?.asset?.title}</strong>
-                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                          Sesi: {settlement.lot?.session?.title || '-'}
-                        </div>
-                      </td>
-                      <td>
-                        {settlement.is_forfeiture ? (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            background: '#fff3e0', color: '#e65100', border: '1px solid #ff9800',
-                            borderRadius: '12px', padding: '2px 10px', fontSize: '0.78rem', fontWeight: 600,
-                          }}>
-                            Forteit NIPL
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            background: '#e8f5e9', color: '#2e7d32', border: '1px solid #66bb6a',
-                            borderRadius: '12px', padding: '2px 10px', fontSize: '0.78rem', fontWeight: 600,
-                          }}>
-                            Pelunasan
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {settlement.is_forfeiture ? (
-                          <div>
-                            <div style={{ fontSize: '0.78rem', color: '#888' }}>Jaminan NIPL</div>
-                            <div>{formatRupiah(settlement.nipl_forfeiture_amount || 0)}</div>
-                            <div style={{ fontSize: '0.78rem', color: '#e65100' }}>
-                              &frac12; = {formatRupiah(settlement.net_amount)}
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <div style={{ fontSize: '0.78rem', color: '#888' }}>Harga Palu</div>
-                            <div>{formatRupiah(settlement.gross_amount)}</div>
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <strong className="text-primary">{formatRupiah(settlement.net_amount)}</strong>
-                        {!settlement.is_forfeiture && (
+                      {isUnitVisible('provider') && (
+                        <td>
+                          <strong>{settlement.provider?.company_name || settlement.provider?.full_name}</strong>
+                        </td>
+                      )}
+                      {isUnitVisible('unit_sesi') && (
+                        <td>
+                          <strong>{settlement.lot?.asset?.title}</strong>
                           <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            Potongan: {formatRupiah(settlement.commission_deducted)}
+                            Sesi: {settlement.lot?.session?.title || '-'}
                           </div>
-                        )}
-                      </td>
-                      <td>{getStatusBadge(settlement.status)}</td>
-                      <td>
-                        <div style={{ fontSize: '0.82rem', color: '#555', whiteSpace: 'nowrap' }}>
-                          {formatDateTime(settlement.created_at)}
-                        </div>
-                        {itemIsNew && (
-                          <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            background: '#fff3e0', color: '#e65100', border: '1px solid #ffc107',
-                            borderRadius: '20px', padding: '1px 8px', fontSize: '0.72rem', fontWeight: 700,
-                            marginTop: '3px',
-                          }}>
-                            &#10022; BARU
+                        </td>
+                      )}
+                      {isUnitVisible('tipe') && (
+                        <td>
+                          {settlement.is_forfeiture ? (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              background: '#fff3e0', color: '#e65100', border: '1px solid #ff9800',
+                              borderRadius: '12px', padding: '2px 10px', fontSize: '0.78rem', fontWeight: 600,
+                            }}>
+                              Forteit NIPL
+                            </span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              background: '#e8f5e9', color: '#2e7d32', border: '1px solid #66bb6a',
+                              borderRadius: '12px', padding: '2px 10px', fontSize: '0.78rem', fontWeight: 600,
+                            }}>
+                              Pelunasan
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isUnitVisible('dasar_pembayaran') && (
+                        <td>
+                          {settlement.is_forfeiture ? (
+                            <div>
+                              <div style={{ fontSize: '0.78rem', color: '#888' }}>Jaminan NIPL</div>
+                              <div>{formatRupiah(settlement.nipl_forfeiture_amount || 0)}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#e65100' }}>
+                                &frac12; = {formatRupiah(settlement.net_amount)}
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{ fontSize: '0.78rem', color: '#888' }}>Harga Palu</div>
+                              <div>{formatRupiah(settlement.gross_amount)}</div>
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {isUnitVisible('nilai_transfer') && (
+                        <td>
+                          <strong className="text-primary">{formatRupiah(settlement.net_amount)}</strong>
+                          {!settlement.is_forfeiture && (
+                            <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                              Potongan: {formatRupiah(settlement.commission_deducted)}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {isUnitVisible('status') && <td>{getStatusBadge(settlement.status)}</td>}
+                      {isUnitVisible('waktu_verifikasi') && (
+                        <td>
+                          <div style={{ fontSize: '0.82rem', color: '#555', whiteSpace: 'nowrap' }}>
+                            {formatDateTime(settlement.created_at)}
                           </div>
-                        )}
-                        {settlement.transferred_at && (
-                          <div style={{ fontSize: '0.75rem', color: '#2e7d32', marginTop: '2px' }}>
-                            Ditransfer: {formatDateTime(settlement.transferred_at)}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {['admin', 'superadmin'].includes(userRole) && settlement.status === 'pending' && (
-                          <Button
-                            variant={settlement.is_forfeiture ? 'gold' : 'success'}
-                            size="sm"
-                            onClick={() => handleTransfer(settlement.id, settlement.is_forfeiture)}
-                          >
-                            {settlement.is_forfeiture ? 'Transfer Forteit' : 'Transfer Sekarang'}
-                          </Button>
-                        )}
-                      </td>
+                          {itemIsNew && (
+                            <div style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              background: '#fff3e0', color: '#e65100', border: '1px solid #ffc107',
+                              borderRadius: '20px', padding: '1px 8px', fontSize: '0.72rem', fontWeight: 700,
+                              marginTop: '3px',
+                            }}>
+                              &#10022; BARU
+                            </div>
+                          )}
+                          {settlement.transferred_at && (
+                            <div style={{ fontSize: '0.75rem', color: '#2e7d32', marginTop: '2px' }}>
+                              Ditransfer: {formatDateTime(settlement.transferred_at)}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {isUnitVisible('aksi') && (
+                        <td>
+                          {['admin', 'superadmin'].includes(userRole) && settlement.status === 'pending' && (
+                            <Button
+                              variant={settlement.is_forfeiture ? 'gold' : 'success'}
+                              size="sm"
+                              onClick={() => handleTransfer(settlement.id, settlement.is_forfeiture)}
+                            >
+                              {settlement.is_forfeiture ? 'Transfer Forteit' : 'Transfer Sekarang'}
+                            </Button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })
               )}
             </tbody>
           </table>
+        </div>
         </div>
         )}
       </Card>

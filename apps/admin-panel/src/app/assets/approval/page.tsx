@@ -8,6 +8,17 @@ import Button from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 import { apiFetch } from '../../../lib/api';
 import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const ASSETS_APPROVAL_COLUMNS: ColumnOption[] = [
+  { key: 'tanggal', label: 'Tanggal Masuk', defaultVisible: true },
+  { key: 'unit', label: 'Nama Unit / Deskripsi', alwaysVisible: true },
+  { key: 'no_polisi', label: 'No. Polisi', defaultVisible: true },
+  { key: 'kategori', label: 'Kategori', defaultVisible: true },
+  { key: 'harga_dasar', label: 'Taksiran Harga Dasar', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'aksi', label: 'Aksi', alwaysVisible: true },
+];
 
 interface Asset {
   id: string;
@@ -36,6 +47,7 @@ export default function AssetsApprovalPage() {
   const [search, setSearch] = useState('');
   const [searchPolice, setSearchPolice] = useState('');
   const [providers, setProviders] = useState<any[]>([]);
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('assets_approval_list', ASSETS_APPROVAL_COLUMNS);
 
   const fetchProviders = async () => {
     try {
@@ -161,22 +173,24 @@ export default function AssetsApprovalPage() {
           <h1 className="page-title">Daftar Approved Unit</h1>
           <p className="page-subtitle">Daftar unit yang telah disetujui oleh Admin dan siap dimasukkan ke dalam Lot lelang.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
               const dataToExport = assets.map((a, index) => {
                 const p = providers.find(pr => pr.id === a.provider_id);
-                return {
-                  'No': index + 1,
-                  'Nama Unit Approved': a.title || '-',
-                  'Kategori': a.category || '-',
-                  'Mitra Provider': p ? (p.company_name || p.full_name) : (a.provider_id || '-'),
-                  'Harga Dasar (Rp)': a.base_price ? Number(a.base_price) : 0,
-                  'Status': 'APPROVED',
-                  'Tanggal Disetujui': a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-'
-                };
+                const row: Record<string, any> = {};
+                if (isVisible('unit')) {
+                  row['No'] = index + 1;
+                  row['Nama Unit Approved'] = a.title || '-';
+                  row['Mitra Provider'] = p ? (p.company_name || p.full_name) : (a.provider_id || '-');
+                }
+                if (isVisible('kategori')) row['Kategori'] = a.category || '-';
+                if (isVisible('harga_dasar')) row['Harga Dasar (Rp)'] = a.base_price ? Number(a.base_price) : 0;
+                if (isVisible('status')) row['Status'] = 'APPROVED';
+                if (isVisible('tanggal')) row['Tanggal Disetujui'] = a.created_at ? new Date(a.created_at).toLocaleDateString('id-ID') : '-';
+                return row;
               });
               const ok = exportToExcel(dataToExport, 'Daftar_Unit_Approved_IndoLelang', 'Approved Unit');
               if (ok) {
@@ -190,6 +204,12 @@ export default function AssetsApprovalPage() {
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>file_download</span>
             Export XLSX
           </Button>
+          <ColumnPicker
+            columns={ASSETS_APPROVAL_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="assets_approval_list"
+          />
         </div>
       </div>
 
@@ -291,76 +311,90 @@ export default function AssetsApprovalPage() {
           <table>
             <thead>
               <tr>
-                <th>Tanggal Masuk</th>
-                <th>Nama Unit / Deskripsi</th>
-                <th>No. Polisi</th>
-                <th>Kategori</th>
-                <th>Taksiran Harga Dasar</th>
-                <th>Status</th>
-                <th>Aksi</th>
+                {isVisible('tanggal') && <th>Tanggal Masuk</th>}
+                {isVisible('unit') && <th>Nama Unit / Deskripsi</th>}
+                {isVisible('no_polisi') && <th>No. Polisi</th>}
+                {isVisible('kategori') && <th>Kategori</th>}
+                {isVisible('harga_dasar') && <th>Taksiran Harga Dasar</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('aksi') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center">Memuat antrean barang...</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Memuat antrean barang...</td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted">Tidak ada barang yang berstatus approved.</td>
+                  <td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada barang yang berstatus approved.</td>
                 </tr>
               ) : (
                 assets.map((asset) => (
                   <tr key={asset.id}>
-                    <td>
-                      {new Date(asset.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td style={{ maxWidth: '350px' }}>
-                      <div>
-                        <strong>{asset.title}</strong>
-                        <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-                          {asset.description || 'Tidak ada deskripsi.'}
+                    {isVisible('tanggal') && (
+                      <td>
+                        {new Date(asset.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                    )}
+                    {isVisible('unit') && (
+                      <td style={{ maxWidth: '350px' }}>
+                        <div>
+                          <strong>{asset.title}</strong>
+                          <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                            {asset.description || 'Tidak ada deskripsi.'}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>
-                    <td>
-                      <span style={{ textTransform: 'capitalize' }}>
-                        {asset.category.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td>
-                      <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
-                    </td>
-                    <td>
-                      <Badge variant="success">Approved</Badge>
-                    </td>
-                    <td>
-                      <div className="d-flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={processingId === asset.id}
-                          onClick={() => handleCancel(asset.id)}
-                        >
-                          {processingId === asset.id ? 'Memproses...' : 'Inspeksi Ulang'}
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          disabled={processingId === asset.id}
-                          onClick={() => handleReject(asset.id)}
-                        >
-                          {processingId === asset.id ? 'Memproses...' : 'Tolak'}
-                        </Button>
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {isVisible('no_polisi') && (
+                      <td style={{ fontSize: '0.85rem' }}>{(asset as any).police_number || '-'}</td>
+                    )}
+                    {isVisible('kategori') && (
+                      <td>
+                        <span style={{ textTransform: 'capitalize' }}>
+                          {asset.category.replace('_', ' ')}
+                        </span>
+                      </td>
+                    )}
+                    {isVisible('harga_dasar') && (
+                      <td>
+                        <strong className="text-primary">{formatRupiah(asset.base_price)}</strong>
+                      </td>
+                    )}
+                    {isVisible('status') && (
+                      <td>
+                        <Badge variant="success">Approved</Badge>
+                      </td>
+                    )}
+                    {isVisible('aksi') && (
+                      <td>
+                        <div className="d-flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={processingId === asset.id}
+                            onClick={() => handleCancel(asset.id)}
+                          >
+                            {processingId === asset.id ? 'Memproses...' : 'Inspeksi Ulang'}
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={processingId === asset.id}
+                            onClick={() => handleReject(asset.id)}
+                          >
+                            {processingId === asset.id ? 'Memproses...' : 'Tolak'}
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

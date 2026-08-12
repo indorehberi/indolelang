@@ -7,6 +7,8 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { apiFetch } from '../../../lib/api';
 import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 interface RefundItem {
   id: string;
@@ -28,6 +30,14 @@ interface RefundItem {
   };
 }
 
+const REFUND_COLUMNS: ColumnOption[] = [
+  { key: 'bidder', label: 'Bidder', alwaysVisible: true },
+  { key: 'amount', label: 'Nominal', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'created_at', label: 'Waktu Pengajuan', defaultVisible: true },
+  { key: 'action', label: 'Aksi', alwaysVisible: true },
+];
+
 const parseJwt = (token: string) => {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -42,6 +52,8 @@ export default function RefundsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [userRole, setUserRole] = useState<string>('');
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('finance_refunds_list', REFUND_COLUMNS);
 
   const fetchRefunds = useCallback(async () => {
     setLoading(true);
@@ -116,6 +128,27 @@ export default function RefundsPage() {
     return true; // semua
   });
 
+  const handleExport = () => {
+    if (filteredRefunds.length === 0) {
+      toast.error('Tidak ada data refund untuk di-export');
+      return;
+    }
+    const dataToExport = filteredRefunds.map((refund) => {
+      const row: Record<string, any> = {};
+      if (isVisible('bidder')) row['Bidder'] = refund.user?.full_name || '';
+      if (isVisible('amount')) row['Nominal'] = refund.amount;
+      if (isVisible('status')) row['Status'] = refund.status;
+      if (isVisible('created_at')) row['Waktu Pengajuan'] = new Date(refund.created_at).toLocaleString('id-ID');
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Antrean_Refund_NIPL', 'Daftar Refund');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Refund (.xlsx)');
+    } else {
+      toast.error('Tidak ada data refund untuk di-export');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Keuangan" breadcrumbCurrent="Daftar Refund NIPL">
       <div className="toolbar">
@@ -140,6 +173,22 @@ export default function RefundsPage() {
               <option value="refunded">Refunded (Selesai)</option>
             </select>
           </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              📥 Export Excel
+            </Button>
+            <ColumnPicker
+              columns={REFUND_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="finance_refunds_list"
+            />
+          </div>
         </div>
       </Card>
 
@@ -148,53 +197,61 @@ export default function RefundsPage() {
           <table>
             <thead>
               <tr>
-                <th>Bidder</th>
-                <th>Nominal</th>
-                <th>Status</th>
-                <th>Waktu Pengajuan</th>
-                <th>Aksi</th>
+                {isVisible('bidder') && <th>Bidder</th>}
+                {isVisible('amount') && <th>Nominal</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('created_at') && <th>Waktu Pengajuan</th>}
+                {isVisible('action') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center">Memuat daftar refund...</td>
+                  <td colSpan={visibleKeys.length} className="text-center">Memuat daftar refund...</td>
                 </tr>
               ) : filteredRefunds.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted">Tidak ada antrean refund.</td>
+                  <td colSpan={visibleKeys.length} className="text-center text-muted">Tidak ada antrean refund.</td>
                 </tr>
               ) : (
                 filteredRefunds.map((refund) => (
                   <tr key={refund.id}>
-                    <td>
-                      <div>
-                        <strong>{refund.user?.full_name}</strong>
-                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                          {refund.user?.phone} | {refund.user?.email}
+                    {isVisible('bidder') && (
+                      <td>
+                        <div>
+                          <strong>{refund.user?.full_name}</strong>
+                          <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                            {refund.user?.phone} | {refund.user?.email}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <strong className="text-primary">{formatRupiah(refund.amount)}</strong>
-                    </td>
-                    <td>{getStatusBadge(refund.status)}</td>
-                    <td>
-                      {new Date(refund.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td>
-                      <div className="d-flex gap-1 flex-wrap">
-                        {['admin', 'superadmin'].includes(userRole) && refund.status === 'pending_refund' && (
-                          <Button variant="success" size="sm" onClick={() => handleProcessRefund(refund.id)}>Proses Refund</Button>
-                        )}
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {isVisible('amount') && (
+                      <td>
+                        <strong className="text-primary">{formatRupiah(refund.amount)}</strong>
+                      </td>
+                    )}
+                    {isVisible('status') && <td>{getStatusBadge(refund.status)}</td>}
+                    {isVisible('created_at') && (
+                      <td>
+                        {new Date(refund.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </td>
+                    )}
+                    {isVisible('action') && (
+                      <td>
+                        <div className="d-flex gap-1 flex-wrap">
+                          {['admin', 'superadmin'].includes(userRole) && refund.status === 'pending_refund' && (
+                            <Button variant="success" size="sm" onClick={() => handleProcessRefund(refund.id)}>Proses Refund</Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

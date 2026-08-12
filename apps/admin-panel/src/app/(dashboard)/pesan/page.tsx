@@ -6,6 +6,17 @@ import Card from "../../../components/ui/Card";
 import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
 import { apiFetch } from "../../../lib/api";
+import { useToast } from "../../../providers/ToastProvider";
+import { exportToExcel } from "../../../lib/excelExport";
+import ColumnPicker, { useColumnVisibility, ColumnOption } from "../../../components/ui/ColumnPicker";
+
+const PESAN_COLUMNS: ColumnOption[] = [
+  { key: "pengirim", label: "Pengirim", alwaysVisible: true },
+  { key: "subjek", label: "Subjek", defaultVisible: true },
+  { key: "tanggal", label: "Tanggal", defaultVisible: true },
+  { key: "status", label: "Status", defaultVisible: true },
+  { key: "aksi", label: "Aksi", alwaysVisible: true },
+];
 
 interface ContactMessage {
   id: string;
@@ -46,12 +57,15 @@ const formatFullDate = (dateStr: string) => {
 };
 
 export default function PesanMasukPage() {
+  const toast = useToast();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility("pesan_inbox_list", PESAN_COLUMNS);
 
   // Filter and Sorting states
   const [dateFilter, setDateFilter] = useState("");
@@ -103,6 +117,26 @@ export default function PesanMasukPage() {
     setShowDeleteModal(true);
   };
 
+  const handleExport = () => {
+    const dataToExport = filteredMessages.map((msg) => {
+      const row: Record<string, any> = {};
+      if (isVisible("pengirim")) {
+        row["Nama Pengirim"] = msg.nama;
+        row["Email"] = msg.email;
+      }
+      if (isVisible("subjek")) row["Subjek"] = msg.subjek;
+      if (isVisible("tanggal")) row["Tanggal"] = formatFullDate(msg.created_at);
+      if (isVisible("status")) row["Status"] = msg.is_read ? "Sudah Dibaca" : "Belum Dibaca";
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, "Pesan_Masuk_IndoLelang", "Pesan Masuk");
+    if (ok) {
+      toast.success("Berhasil mendownload laporan Excel Pesan Masuk (.xlsx)");
+    } else {
+      toast.error("Tidak ada data pesan untuk di-export");
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedMessage) return;
     try {
@@ -149,7 +183,7 @@ export default function PesanMasukPage() {
           <h1 className="page-title">Pesan Masuk</h1>
           <p className="page-subtitle">Daftar pesan dari form Hubungi Kami.</p>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: '10px' }}>
+        <div className="toolbar-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input
             type="text"
             placeholder="Cari pesan..."
@@ -157,6 +191,20 @@ export default function PesanMasukPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: '250px' }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41' }}
+          >
+            📥 Export Excel
+          </Button>
+          <ColumnPicker
+            columns={PESAN_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="pesan_inbox_list"
           />
         </div>
       </div>
@@ -238,52 +286,58 @@ export default function PesanMasukPage() {
           <table>
             <thead>
               <tr>
-                <th>Pengirim</th>
-                <th>Subjek</th>
-                <th>Tanggal</th>
-                <th>Status</th>
-                <th>Aksi</th>
+                {isVisible('pengirim') && <th>Pengirim</th>}
+                {isVisible('subjek') && <th>Subjek</th>}
+                {isVisible('tanggal') && <th>Tanggal</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('aksi') && <th>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center' }}>
+                  <td colSpan={visibleKeys.length} style={{ textAlign: 'center' }}>
                     Memuat data...
                   </td>
                 </tr>
               ) : filteredMessages.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center' }}>
+                  <td colSpan={visibleKeys.length} style={{ textAlign: 'center' }}>
                     Tidak ada pesan cocok.
                   </td>
                 </tr>
               ) : (
                 filteredMessages.map((msg) => (
                   <tr key={msg.id}>
-                    <td>
-                      <div><strong>{msg.nama}</strong></div>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>{msg.email}</div>
-                    </td>
-                    <td>{msg.subjek}</td>
-                    <td>{formatShortDate(msg.created_at)}</td>
-                    <td>
-                      {msg.is_read ? (
-                        <Badge variant="success">Sudah Dibaca</Badge>
-                      ) : (
-                        <Badge variant="warning">Belum Dibaca</Badge>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <Button variant="outline" size="sm" onClick={() => openDetail(msg)}>
-                          Detail
-                        </Button>
-                        <Button variant="danger" size="sm" onClick={() => openDelete(msg)}>
-                          Hapus
-                        </Button>
-                      </div>
-                    </td>
+                    {isVisible('pengirim') && (
+                      <td>
+                        <div><strong>{msg.nama}</strong></div>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>{msg.email}</div>
+                      </td>
+                    )}
+                    {isVisible('subjek') && <td>{msg.subjek}</td>}
+                    {isVisible('tanggal') && <td>{formatShortDate(msg.created_at)}</td>}
+                    {isVisible('status') && (
+                      <td>
+                        {msg.is_read ? (
+                          <Badge variant="success">Sudah Dibaca</Badge>
+                        ) : (
+                          <Badge variant="warning">Belum Dibaca</Badge>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('aksi') && (
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <Button variant="outline" size="sm" onClick={() => openDetail(msg)}>
+                            Detail
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => openDelete(msg)}>
+                            Hapus
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

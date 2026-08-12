@@ -6,6 +6,8 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
+import { exportToExcel } from '../../../lib/excelExport';
+import { useToast } from '../../../providers/ToastProvider';
 import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 const ADMIN_COLUMNS: ColumnOption[] = [
@@ -17,6 +19,13 @@ const ADMIN_COLUMNS: ColumnOption[] = [
   { key: 'created_at', label: 'Tanggal Gabung' },
   { key: 'actions', label: 'Tindakan', alwaysVisible: true },
 ];
+
+const ROLE_LABEL: Record<Staff['role'], string> = {
+  superadmin: 'Super Admin',
+  admin: 'Admin Cabang',
+  operator: 'Operator',
+  inspector: 'Inspector',
+};
 
 interface Staff {
   id: string;
@@ -31,6 +40,7 @@ interface Staff {
 
 export default function AdminStaffPage() {
   const router = useRouter();
+  const toast = useToast();
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
@@ -78,6 +88,26 @@ export default function AdminStaffPage() {
     return true;
   });
 
+  const handleExport = () => {
+    const dataToExport = filteredStaff.map((staff) => {
+      const row: Record<string, any> = {};
+      if (isVisible('full_name')) row['Nama Lengkap'] = staff.full_name;
+      if (isVisible('contact')) row['Email'] = staff.email;
+      if (isVisible('contact')) row['No. Telepon'] = staff.phone;
+      if (isVisible('role')) row['Tingkat Akses (Role)'] = ROLE_LABEL[staff.role] || staff.role;
+      if (isVisible('branch')) row['Penugasan Cabang'] = staff.branch_name || '-';
+      if (isVisible('status')) row['Status Akun'] = staff.status === 'active' ? 'Aktif' : 'Disuspen';
+      if (isVisible('created_at')) row['Tanggal Gabung'] = staff.created_at ? new Date(staff.created_at).toLocaleDateString('id-ID') : '-';
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Daftar_Staf_Internal_IndoLelang', 'Daftar Staf');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Staf (.xlsx)');
+    } else {
+      toast.error('Tidak ada data staf untuk di-export');
+    }
+  };
+
   return (
     <DashboardLayout breadcrumbParent="Pengguna" breadcrumbCurrent="Admin & Operator">
       <div className="toolbar">
@@ -123,12 +153,21 @@ export default function AdminStaffPage() {
               ))}
             </select>
           </div>
-          <ColumnPicker
-            columns={ADMIN_COLUMNS}
-            visibleKeys={visibleKeys}
-            onChange={setVisibleKeys}
-            tableId="admin_staff_list"
-          />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleExport}
+            >
+              📥 Export Excel
+            </button>
+            <ColumnPicker
+              columns={ADMIN_COLUMNS}
+              visibleKeys={visibleKeys}
+              onChange={setVisibleKeys}
+              tableId="admin_staff_list"
+            />
+          </div>
         </div>
       </Card>
 

@@ -8,6 +8,9 @@ import Button from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
 import { apiFetch } from '../../lib/api';
 import Link from 'next/link';
+import { useToast } from '../../providers/ToastProvider';
+import { exportToExcel } from '../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../components/ui/ColumnPicker';
 
 interface Blog {
   id: string;
@@ -17,10 +20,21 @@ interface Blog {
   created_at: string;
 }
 
+const BLOG_COLUMNS: ColumnOption[] = [
+  { key: 'title', label: 'Judul Artikel', alwaysVisible: true },
+  { key: 'slug', label: 'Slug', defaultVisible: true },
+  { key: 'created_at', label: 'Tanggal Dibuat', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'action', label: 'Tindakan', alwaysVisible: true },
+];
+
 export default function BlogListPage() {
+  const toast = useToast();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+  const [toastMsg, setToastMsg] = useState<{ message: string; variant: 'success' | 'danger' } | null>(null);
+
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('blog_list', BLOG_COLUMNS);
 
   const fetchBlogs = async () => {
     setLoading(true);
@@ -54,10 +68,31 @@ export default function BlogListPage() {
         throw new Error(data.error?.message || 'Gagal menghapus artikel');
       }
 
-      setToast({ message: 'Artikel berhasil dihapus', variant: 'success' });
+      setToastMsg({ message: 'Artikel berhasil dihapus', variant: 'success' });
       fetchBlogs();
     } catch (err: any) {
-      setToast({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
+      setToastMsg({ message: err.message || 'Terjadi kesalahan sistem', variant: 'danger' });
+    }
+  };
+
+  const handleExport = () => {
+    if (blogs.length === 0) {
+      toast.error('Tidak ada data artikel untuk di-export');
+      return;
+    }
+    const dataToExport = blogs.map((blog) => {
+      const row: Record<string, any> = {};
+      if (isVisible('title')) row['Judul Artikel'] = blog.title;
+      if (isVisible('slug')) row['Slug'] = blog.slug;
+      if (isVisible('created_at')) row['Tanggal Dibuat'] = new Date(blog.created_at).toLocaleDateString('id-ID');
+      if (isVisible('status')) row['Status'] = blog.status === 'published' ? 'Dipublikasi' : 'Draft';
+      return row;
+    });
+    const ok = exportToExcel(dataToExport, 'Blog_Artikel', 'Daftar Artikel');
+    if (ok) {
+      toast.success('Berhasil mendownload laporan Excel Artikel (.xlsx)');
+    } else {
+      toast.error('Tidak ada data artikel untuk di-export');
     }
   };
 
@@ -68,7 +103,21 @@ export default function BlogListPage() {
           <h1 className="page-title">Blog & Artikel</h1>
           <p className="page-subtitle">Kelola daftar artikel blog yang tampil di website publik.</p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            style={{ backgroundColor: '#107c41', color: '#fff', borderColor: '#107c41', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            📥 Export Excel
+          </Button>
+          <ColumnPicker
+            columns={BLOG_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="blog_list"
+          />
           <Link href="/blog/tambah">
             <Button variant="primary" size="sm">
               + Tambah Artikel
@@ -82,39 +131,43 @@ export default function BlogListPage() {
           <table>
             <thead>
               <tr>
-                <th>Judul Artikel</th>
-                <th>Slug</th>
-                <th>Tanggal Dibuat</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'center' }}>Tindakan</th>
+                {isVisible('title') && <th>Judul Artikel</th>}
+                {isVisible('slug') && <th>Slug</th>}
+                {isVisible('created_at') && <th>Tanggal Dibuat</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('action') && <th style={{ textAlign: 'center' }}>Tindakan</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="text-center">Memuat data artikel...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center">Memuat data artikel...</td></tr>
               ) : blogs.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted">Belum ada artikel blog.</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted">Belum ada artikel blog.</td></tr>
               ) : (
                 blogs.map((blog) => (
                   <tr key={blog.id}>
-                    <td><strong>{blog.title}</strong></td>
-                    <td>{blog.slug}</td>
-                    <td>{new Date(blog.created_at).toLocaleDateString('id-ID')}</td>
-                    <td>
-                      {blog.status === 'published' ? (
-                        <Badge variant="success">Dipublikasi</Badge>
-                      ) : (
-                        <Badge variant="default">Draft</Badge>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="d-flex gap-1 justify-content-center">
-                        <Link href={`/blog/${blog.id}`}>
-                          <button className="btn btn-xs btn-outline">Edit</button>
-                        </Link>
-                        <button className="btn btn-xs btn-danger" onClick={() => handleDelete(blog.id)}>Hapus</button>
-                      </div>
-                    </td>
+                    {isVisible('title') && <td><strong>{blog.title}</strong></td>}
+                    {isVisible('slug') && <td>{blog.slug}</td>}
+                    {isVisible('created_at') && <td>{new Date(blog.created_at).toLocaleDateString('id-ID')}</td>}
+                    {isVisible('status') && (
+                      <td>
+                        {blog.status === 'published' ? (
+                          <Badge variant="success">Dipublikasi</Badge>
+                        ) : (
+                          <Badge variant="default">Draft</Badge>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('action') && (
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="d-flex gap-1 justify-content-center">
+                          <Link href={`/blog/${blog.id}`}>
+                            <button className="btn btn-xs btn-outline">Edit</button>
+                          </Link>
+                          <button className="btn btn-xs btn-danger" onClick={() => handleDelete(blog.id)}>Hapus</button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -123,11 +176,11 @@ export default function BlogListPage() {
         </div>
       </Card>
 
-      {toast && (
+      {toastMsg && (
         <Toast
-          message={toast.message}
-          variant={toast.variant}
-          onClose={() => setToast(null)}
+          message={toastMsg.message}
+          variant={toastMsg.variant}
+          onClose={() => setToastMsg(null)}
         />
       )}
     </DashboardLayout>

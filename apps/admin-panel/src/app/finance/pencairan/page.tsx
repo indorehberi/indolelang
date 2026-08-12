@@ -6,6 +6,22 @@ import Card from '../../../components/ui/Card';
 import { apiFetch } from '../../../lib/api';
 import { exportToExcel } from '../../../lib/excelExport';
 import { useToast } from '../../../providers/ToastProvider';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
+
+const PENCAIRAN_COLUMNS: ColumnOption[] = [
+  { key: 'no', label: 'No', alwaysVisible: true },
+  { key: 'sesi', label: 'Sesi Lelang', defaultVisible: true },
+  { key: 'tanggal', label: 'Tanggal Lelang', defaultVisible: true },
+  { key: 'unit', label: 'Nama Unit', defaultVisible: true },
+  { key: 'no_polisi', label: 'No Polisi', defaultVisible: true },
+  { key: 'provider', label: 'Provider', defaultVisible: true },
+  { key: 'gmv', label: 'Harga Terbentuk', defaultVisible: true },
+  { key: 'pembayaran', label: 'Total Pembayaran ke Provider', alwaysVisible: true },
+  { key: 'status', label: 'Status', alwaysVisible: true },
+  { key: 'pemenang', label: 'Pemenang', defaultVisible: true },
+  { key: 'no_rek', label: 'No Rek', defaultVisible: true },
+  { key: 'nama_rek', label: 'Nama Rekening', defaultVisible: true },
+];
 
 interface ProviderOption {
   id: string;
@@ -55,6 +71,7 @@ export default function PencairanPage() {
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('pencairan_list', PENCAIRAN_COLUMNS);
 
   // Filters
   const [providerFilter, setProviderFilter] = useState('');
@@ -159,22 +176,26 @@ export default function PencairanPage() {
       toast.error('Tidak ada data untuk diexport');
       return;
     }
-    const dataToExport = rows.map((item, idx) => ({
-      'No': idx + 1,
-      'Sesi Lelang': item.lot?.session?.title || '-',
-      'Tanggal Lelang': formatDate(item.lot?.session?.scheduled_at),
-      'Nama Unit': item.lot?.asset?.title || '-',
-      'No Polisi': item.lot?.asset?.police_number || '-',
-      'Provider': item.provider?.company_name || item.provider?.full_name || '-',
-      'Harga Terbentuk': item.gross_amount,
-      'Potongan Fee Lelang': item.commission_deducted,
-      'Potongan PMK 41': item.pmk41_amount || 0,
-      'Total Pembayaran ke Provider': item.net_amount,
-      'Status': item.status === 'processed' ? 'Sudah Ditransfer' : 'Siap Transfer',
-      'Pemenang': item.winner?.full_name || '-',
-      'No Rek': item.provider?.bank_account_no || '-',
-      'Nama Rekening': item.provider?.bank_account_name || '-',
-    }));
+    const dataToExport = rows.map((item, idx) => {
+      const row: Record<string, any> = {};
+      if (isVisible('no')) row['No'] = idx + 1;
+      if (isVisible('sesi')) row['Sesi Lelang'] = item.lot?.session?.title || '-';
+      if (isVisible('tanggal')) row['Tanggal Lelang'] = formatDate(item.lot?.session?.scheduled_at);
+      if (isVisible('unit')) row['Nama Unit'] = item.lot?.asset?.title || '-';
+      if (isVisible('no_polisi')) row['No Polisi'] = item.lot?.asset?.police_number || '-';
+      if (isVisible('provider')) row['Provider'] = item.provider?.company_name || item.provider?.full_name || '-';
+      if (isVisible('gmv')) row['Harga Terbentuk'] = item.gross_amount;
+      if (isVisible('pembayaran')) {
+        row['Potongan Fee Lelang'] = item.commission_deducted;
+        row['Potongan PMK 41'] = item.pmk41_amount || 0;
+        row['Total Pembayaran ke Provider'] = item.net_amount;
+      }
+      if (isVisible('status')) row['Status'] = item.status === 'processed' ? 'Sudah Ditransfer' : 'Siap Transfer';
+      if (isVisible('pemenang')) row['Pemenang'] = item.winner?.full_name || '-';
+      if (isVisible('no_rek')) row['No Rek'] = item.provider?.bank_account_no || '-';
+      if (isVisible('nama_rek')) row['Nama Rekening'] = item.provider?.bank_account_name || '-';
+      return row;
+    });
     const ok = exportToExcel(dataToExport, 'Pencairan_IndoLelang', 'Pencairan');
     if (ok) toast.success('Data pencairan berhasil diexport');
     else toast.error('Gagal export data');
@@ -194,10 +215,16 @@ export default function PencairanPage() {
             Daftar unit yang telah dilunasi oleh pemenang lelang dan siap/sudah dicairkan ke provider.
           </p>
         </div>
-        <div className="toolbar-right">
+        <div className="toolbar-right" style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-primary btn-sm" onClick={handleExport}>
             📥 Export Excel
           </button>
+          <ColumnPicker
+            columns={PENCAIRAN_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="pencairan_list"
+          />
         </div>
       </div>
 
@@ -278,128 +305,150 @@ export default function PencairanPage() {
           <table className="text-xs" style={{ width: '100%', minWidth: '1100px' }}>
             <thead>
               <tr>
-                <th style={{ width: '40px' }}>No</th>
-                <th>Sesi Lelang</th>
-                <th>Tanggal Lelang</th>
-                <th>Nama Unit</th>
-                <th>No Polisi</th>
-                <th>Provider</th>
-                <th>Harga Terbentuk</th>
-                <th>Total Pembayaran ke Provider</th>
-                <th>Status</th>
-                <th>Pemenang</th>
-                <th>No Rek</th>
-                <th>Nama Rekening</th>
+                {isVisible('no') && <th style={{ width: '40px' }}>No</th>}
+                {isVisible('sesi') && <th>Sesi Lelang</th>}
+                {isVisible('tanggal') && <th>Tanggal Lelang</th>}
+                {isVisible('unit') && <th>Nama Unit</th>}
+                {isVisible('no_polisi') && <th>No Polisi</th>}
+                {isVisible('provider') && <th>Provider</th>}
+                {isVisible('gmv') && <th>Harga Terbentuk</th>}
+                {isVisible('pembayaran') && <th>Total Pembayaran ke Provider</th>}
+                {isVisible('status') && <th>Status</th>}
+                {isVisible('pemenang') && <th>Pemenang</th>}
+                {isVisible('no_rek') && <th>No Rek</th>}
+                {isVisible('nama_rek') && <th>Nama Rekening</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} className="text-center" style={{ padding: '2rem' }}>Memuat data pencairan...</td></tr>
+                <tr><td colSpan={visibleKeys.length} className="text-center" style={{ padding: '2rem' }}>Memuat data pencairan...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={12} className="text-center text-muted" style={{ padding: '2rem' }}>
+                <tr><td colSpan={visibleKeys.length} className="text-center text-muted" style={{ padding: '2rem' }}>
                   Tidak ada data pencairan ditemukan{providerFilter || fromDate || toDate ? ' untuk filter yang dipilih.' : '.'}
                 </td></tr>
               ) : (
                 rows.map((row, idx) => (
                   <tr key={row.id}>
-                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>{idx + 1}</td>
-                    <td>
-                      <strong>{row.lot?.session?.title || '-'}</strong>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      {formatDate(row.lot?.session?.scheduled_at)}
-                    </td>
-                    <td>
-                      <strong>{row.lot?.asset?.title || '-'}</strong>
-                      {row.lot?.asset?.year && (
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{row.lot.asset.year}</div>
-                      )}
-                    </td>
-                    <td>
-                      {row.lot?.asset?.police_number ? (
-                        <span style={{
-                          display: 'inline-block', background: '#f1f5f9', border: '1px solid #cbd5e1',
-                          borderRadius: '4px', padding: '1px 6px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem'
-                        }}>
-                          {row.lot.asset.police_number}
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td>
-                      <strong>{row.provider?.company_name || row.provider?.full_name || '-'}</strong>
-                    </td>
-                    <td style={{ fontWeight: 600, color: '#1e40af' }}>
-                      {formatRupiah(row.gross_amount)}
-                    </td>
-                    <td style={{ fontWeight: 700, color: '#059669' }}>
-                      {formatRupiah(row.net_amount)}
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
-                        Potongan Fee Lelang: {formatRupiah(row.commission_deducted)}
-                      </div>
-                      {/* PMK 41 hanya memotong pencairan kalau PROVIDER yang
-                          menanggung — lihat provider/settlement/page.tsx */}
-                      {Number(row.pmk41_amount) > 0 && (
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
-                          Potongan PMK 41: {formatRupiah(row.pmk41_amount)}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleToggleStatus(row)}
-                        disabled={togglingIds.has(row.id)}
-                        title={row.status === 'processed' ? 'Klik untuk kembalikan ke Siap Ditransfer' : 'Klik untuk tandai Sudah Ditransfer'}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          cursor: togglingIds.has(row.id) ? 'wait' : 'pointer',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          letterSpacing: '0.02em',
-                          transition: 'all 0.18s ease',
-                          opacity: togglingIds.has(row.id) ? 0.65 : 1,
-                          ...(row.status === 'processed'
-                            ? { background: '#d1fae5', color: '#065f46' }
-                            : { background: '#fef3c7', color: '#92400e' }),
-                        }}
-                      >
-                        {togglingIds.has(row.id) ? (
-                          <span>⏳</span>
-                        ) : row.status === 'processed' ? (
-                          <span>✅</span>
-                        ) : (
-                          <span>🔄</span>
+                    {isVisible('no') && <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>{idx + 1}</td>}
+                    {isVisible('sesi') && (
+                      <td>
+                        <strong>{row.lot?.session?.title || '-'}</strong>
+                      </td>
+                    )}
+                    {isVisible('tanggal') && (
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {formatDate(row.lot?.session?.scheduled_at)}
+                      </td>
+                    )}
+                    {isVisible('unit') && (
+                      <td>
+                        <strong>{row.lot?.asset?.title || '-'}</strong>
+                        {row.lot?.asset?.year && (
+                          <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{row.lot.asset.year}</div>
                         )}
-                        {togglingIds.has(row.id)
-                          ? 'Memproses...'
-                          : row.status === 'processed'
-                          ? 'Sudah Ditransfer'
-                          : 'Siap Ditransfer'}
-                      </button>
-                    </td>
-                    <td>
-                      {row.winner ? (
-                        <>
-                          <strong>{row.winner.full_name}</strong>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{row.winner.email}</div>
-                        </>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td style={{ fontFamily: 'monospace' }}>
-                      {row.provider?.bank_account_no || '-'}
-                    </td>
-                    <td>
-                      {row.provider?.bank_account_name || '-'}
-                      {row.provider?.bank_name && (
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{row.provider.bank_name}</div>
-                      )}
-                    </td>
+                      </td>
+                    )}
+                    {isVisible('no_polisi') && (
+                      <td>
+                        {row.lot?.asset?.police_number ? (
+                          <span style={{
+                            display: 'inline-block', background: '#f1f5f9', border: '1px solid #cbd5e1',
+                            borderRadius: '4px', padding: '1px 6px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem'
+                          }}>
+                            {row.lot.asset.police_number}
+                          </span>
+                        ) : '-'}
+                      </td>
+                    )}
+                    {isVisible('provider') && (
+                      <td>
+                        <strong>{row.provider?.company_name || row.provider?.full_name || '-'}</strong>
+                      </td>
+                    )}
+                    {isVisible('gmv') && (
+                      <td style={{ fontWeight: 600, color: '#1e40af' }}>
+                        {formatRupiah(row.gross_amount)}
+                      </td>
+                    )}
+                    {isVisible('pembayaran') && (
+                      <td style={{ fontWeight: 700, color: '#059669' }}>
+                        {formatRupiah(row.net_amount)}
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
+                          Potongan Fee Lelang: {formatRupiah(row.commission_deducted)}
+                        </div>
+                        {/* PMK 41 hanya memotong pencairan kalau PROVIDER yang
+                            menanggung — lihat provider/settlement/page.tsx */}
+                        {Number(row.pmk41_amount) > 0 && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
+                            Potongan PMK 41: {formatRupiah(row.pmk41_amount)}
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('status') && (
+                      <td>
+                        <button
+                          onClick={() => handleToggleStatus(row)}
+                          disabled={togglingIds.has(row.id)}
+                          title={row.status === 'processed' ? 'Klik untuk kembalikan ke Siap Ditransfer' : 'Klik untuk tandai Sudah Ditransfer'}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            border: 'none',
+                            cursor: togglingIds.has(row.id) ? 'wait' : 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.02em',
+                            transition: 'all 0.18s ease',
+                            opacity: togglingIds.has(row.id) ? 0.65 : 1,
+                            ...(row.status === 'processed'
+                              ? { background: '#d1fae5', color: '#065f46' }
+                              : { background: '#fef3c7', color: '#92400e' }),
+                          }}
+                        >
+                          {togglingIds.has(row.id) ? (
+                            <span>⏳</span>
+                          ) : row.status === 'processed' ? (
+                            <span>✅</span>
+                          ) : (
+                            <span>🔄</span>
+                          )}
+                          {togglingIds.has(row.id)
+                            ? 'Memproses...'
+                            : row.status === 'processed'
+                            ? 'Sudah Ditransfer'
+                            : 'Siap Ditransfer'}
+                        </button>
+                      </td>
+                    )}
+                    {isVisible('pemenang') && (
+                      <td>
+                        {row.winner ? (
+                          <>
+                            <strong>{row.winner.full_name}</strong>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{row.winner.email}</div>
+                          </>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('no_rek') && (
+                      <td style={{ fontFamily: 'monospace' }}>
+                        {row.provider?.bank_account_no || '-'}
+                      </td>
+                    )}
+                    {isVisible('nama_rek') && (
+                      <td>
+                        {row.provider?.bank_account_name || '-'}
+                        {row.provider?.bank_name && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{row.provider.bank_name}</div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

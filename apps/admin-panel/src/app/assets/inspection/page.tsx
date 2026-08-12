@@ -6,6 +6,9 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastProvider';
+import { exportToExcel } from '../../../lib/excelExport';
+import ColumnPicker, { useColumnVisibility, ColumnOption } from '../../../components/ui/ColumnPicker';
 
 interface Asset {
   id: string;
@@ -35,6 +38,16 @@ interface Asset {
   photo_stnk?: string;
 }
 
+const ASSET_INSPECTION_COLUMNS: ColumnOption[] = [
+  { key: 'unit', label: 'Unit', alwaysVisible: true },
+  { key: 'police_number', label: 'No. Polisi', defaultVisible: true },
+  { key: 'category', label: 'Kategori', defaultVisible: true },
+  { key: 'provider', label: 'Provider', defaultVisible: true },
+  { key: 'base_price', label: 'Harga Dasar', defaultVisible: true },
+  { key: 'created_at', label: 'Tanggal Masuk', defaultVisible: true },
+  { key: 'actions', label: 'Aksi', alwaysVisible: true },
+];
+
 const GRADE_OPTIONS = [
   { value: 'N/A', label: 'N/A — Tidak Tersedia' },
   { value: 'A', label: 'A — Sangat Baik' },
@@ -52,6 +65,8 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function AssetsInspectionPage() {
+  const exportToast = useToast();
+  const { visibleKeys, setVisibleKeys, isVisible } = useColumnVisibility('assets_inspection_list', ASSET_INSPECTION_COLUMNS);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -207,6 +222,29 @@ export default function AssetsInspectionPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
   };
 
+  const handleExport = () => {
+    const dataToExport = assets.map((asset) => {
+      const row: Record<string, any> = {};
+      if (isVisible('unit')) row['Unit'] = asset.title;
+      if (isVisible('police_number')) row['No. Polisi'] = asset.police_number || '-';
+      if (isVisible('category')) row['Kategori'] = asset.category?.replace('_', ' ') || '-';
+      if (isVisible('provider')) row['Provider'] = asset.provider_id || '-';
+      if (isVisible('base_price')) row['Harga Dasar'] = asset.base_price;
+      if (isVisible('created_at')) row['Tanggal Masuk'] = new Date(asset.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      return row;
+    });
+    if (dataToExport.length === 0) {
+      exportToast.error('Tidak ada data inspeksi untuk di-export');
+      return;
+    }
+    const ok = exportToExcel(dataToExport, 'Antrean_Inspeksi_Unit', 'Antrean Inspeksi');
+    if (ok) {
+      exportToast.success('Berhasil mendownload laporan Excel Antrean Inspeksi (.xlsx)');
+    } else {
+      exportToast.error('Tidak ada data inspeksi untuk di-export');
+    }
+  };
+
   return (
     <DashboardLayout>
       {toast && (
@@ -226,7 +264,16 @@ export default function AssetsInspectionPage() {
           <h1 className="page-title">Inspeksi Unit</h1>
           <p className="page-subtitle">Lakukan inspeksi dan verifikasi kelayakan unit dari provider.</p>
         </div>
-        <Button variant="outline" onClick={fetchPendingAssets} disabled={loading}>🔄 Refresh</Button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Button variant="outline" onClick={fetchPendingAssets} disabled={loading}>🔄 Refresh</Button>
+          <button className="btn btn-primary btn-sm" onClick={handleExport}>📥 Export Excel</button>
+          <ColumnPicker
+            columns={ASSET_INSPECTION_COLUMNS}
+            visibleKeys={visibleKeys}
+            onChange={setVisibleKeys}
+            tableId="assets_inspection_list"
+          />
+        </div>
       </div>
 
       <Card title={`Daftar Menunggu Inspeksi${!loading ? ` (${assets.length})` : ''}`}>
@@ -243,30 +290,34 @@ export default function AssetsInspectionPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ color: '#fff' }}>Unit</th>
-                  <th style={{ color: '#fff' }}>No. Polisi</th>
-                  <th style={{ color: '#fff' }}>Kategori</th>
-                  <th style={{ color: '#fff' }}>Provider</th>
-                  <th style={{ color: '#fff' }}>Harga Dasar</th>
-                  <th style={{ color: '#fff' }}>Tanggal Masuk</th>
-                  <th style={{ color: '#fff', textAlign: 'right' }}>Aksi</th>
+                  {isVisible('unit') && <th style={{ color: '#fff' }}>Unit</th>}
+                  {isVisible('police_number') && <th style={{ color: '#fff' }}>No. Polisi</th>}
+                  {isVisible('category') && <th style={{ color: '#fff' }}>Kategori</th>}
+                  {isVisible('provider') && <th style={{ color: '#fff' }}>Provider</th>}
+                  {isVisible('base_price') && <th style={{ color: '#fff' }}>Harga Dasar</th>}
+                  {isVisible('created_at') && <th style={{ color: '#fff' }}>Tanggal Masuk</th>}
+                  {isVisible('actions') && <th style={{ color: '#fff', textAlign: 'right' }}>Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {assets.map((asset) => (
                   <tr key={asset.id}>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{asset.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--wf-text-muted)', marginTop: '2px' }}>ID: {asset.id.split('-')[0]}...</div>
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{asset.police_number || '-'}</td>
-                    <td><Badge variant="info">{asset.category.replace('_', ' ')}</Badge></td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>{asset.provider_id?.split('-')[0]}...</td>
-                    <td style={{ fontWeight: 600 }}>{formatRupiah(asset.base_price)}</td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>{new Date(asset.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Button size="sm" variant="primary" onClick={() => openInspection(asset)}>🔍 Inspeksi</Button>
-                    </td>
+                    {isVisible('unit') && (
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{asset.title}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--wf-text-muted)', marginTop: '2px' }}>ID: {asset.id.split('-')[0]}...</div>
+                      </td>
+                    )}
+                    {isVisible('police_number') && <td style={{ fontSize: '0.85rem' }}>{asset.police_number || '-'}</td>}
+                    {isVisible('category') && <td><Badge variant="info">{asset.category.replace('_', ' ')}</Badge></td>}
+                    {isVisible('provider') && <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>{asset.provider_id?.split('-')[0]}...</td>}
+                    {isVisible('base_price') && <td style={{ fontWeight: 600 }}>{formatRupiah(asset.base_price)}</td>}
+                    {isVisible('created_at') && <td style={{ fontSize: '0.85rem', color: 'var(--wf-text-muted)' }}>{new Date(asset.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>}
+                    {isVisible('actions') && (
+                      <td style={{ textAlign: 'right' }}>
+                        <Button size="sm" variant="primary" onClick={() => openInspection(asset)}>🔍 Inspeksi</Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
