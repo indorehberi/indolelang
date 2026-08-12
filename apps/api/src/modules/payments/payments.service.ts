@@ -611,6 +611,49 @@ export class PaymentsService {
   }
 
   /**
+   * Revert a processed settlement back to pending status.
+   * This allows admins to correct mistakes (e.g. transferred to wrong account).
+   * Only works on settlements with status = 'processed'.
+   */
+  async revertSettlement(settlementId: string): Promise<any> {
+    const settlement = await prisma.settlements.findUnique({
+      where: { id: settlementId },
+    });
+
+    if (!settlement) {
+      throw new AppError(404, ErrorCode.NOT_FOUND, 'Settlement tidak ditemukan');
+    }
+
+    if (settlement.status !== 'processed') {
+      throw new AppError(
+        400,
+        ErrorCode.BAD_REQUEST,
+        `Settlement tidak dapat dikembalikan karena status saat ini: ${settlement.status}`
+      );
+    }
+
+    const updated = await prisma.settlements.update({
+      where: { id: settlementId },
+      data: {
+        status: 'pending',
+        transferred_at: null,
+      },
+    });
+
+    await prisma.audit_logs.create({
+      data: {
+        action: 'REVERT_SETTLEMENT',
+        resource_type: 'settlement',
+        resource_id: settlementId,
+        old_value: 'processed',
+        new_value: 'pending',
+      },
+    });
+
+    return updated;
+  }
+
+  /**
    * Process manual or auto refund of a deposit NIPL
    */
   async refundDeposit(depositId: string): Promise<any> {

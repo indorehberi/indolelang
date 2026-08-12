@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import Card from '../../../components/ui/Card';
-import Badge from '../../../components/ui/Badge';
 import { apiFetch } from '../../../lib/api';
 import { exportToExcel } from '../../../lib/excelExport';
 import { useToast } from '../../../providers/ToastProvider';
@@ -55,6 +54,7 @@ export default function PencairanPage() {
   const [rows, setRows] = useState<DisbursementRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   // Filters
   const [providerFilter, setProviderFilter] = useState('');
@@ -114,6 +114,45 @@ export default function PencairanPage() {
   useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  const handleToggleStatus = async (row: DisbursementRow) => {
+    const isProcessed = row.status === 'processed';
+    const confirmMsg = isProcessed
+      ? `Kembalikan status ke "Siap Ditransfer"?\nIni akan membatalkan tanda sudah transfer untuk unit ${row.lot?.asset?.title || ''}.`
+      : `Tandai sebagai "Sudah Ditransfer"?\nIni akan memproses pencairan ke provider ${row.provider?.company_name || row.provider?.full_name || ''}.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setTogglingIds((prev) => new Set(prev).add(row.id));
+    try {
+      const endpoint = isProcessed
+        ? `/payments/settlements/${row.id}/revert`
+        : `/payments/settlements/${row.id}/disburse`;
+      const res = await apiFetch(endpoint, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(isProcessed ? 'Status dikembalikan ke Siap Ditransfer' : 'Berhasil ditandai Sudah Ditransfer');
+        // Update row status locally (optimistic)
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === row.id
+              ? { ...r, status: isProcessed ? 'pending' : 'processed' }
+              : r
+          )
+        );
+      } else {
+        toast.error(data.error?.message || 'Gagal mengubah status');
+      }
+    } catch {
+      toast.error('Terjadi kesalahan koneksi');
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(row.id);
+        return next;
+      });
+    }
+  };
 
   const handleExport = () => {
     if (rows.length === 0) {
@@ -306,11 +345,41 @@ export default function PencairanPage() {
                       )}
                     </td>
                     <td>
-                      {row.status === 'processed' ? (
-                        <Badge variant="success">Sudah Ditransfer</Badge>
-                      ) : (
-                        <Badge variant="warning">Siap Transfer</Badge>
-                      )}
+                      <button
+                        onClick={() => handleToggleStatus(row)}
+                        disabled={togglingIds.has(row.id)}
+                        title={row.status === 'processed' ? 'Klik untuk kembalikan ke Siap Ditransfer' : 'Klik untuk tandai Sudah Ditransfer'}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          border: 'none',
+                          cursor: togglingIds.has(row.id) ? 'wait' : 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          letterSpacing: '0.02em',
+                          transition: 'all 0.18s ease',
+                          opacity: togglingIds.has(row.id) ? 0.65 : 1,
+                          ...(row.status === 'processed'
+                            ? { background: '#d1fae5', color: '#065f46' }
+                            : { background: '#fef3c7', color: '#92400e' }),
+                        }}
+                      >
+                        {togglingIds.has(row.id) ? (
+                          <span>⏳</span>
+                        ) : row.status === 'processed' ? (
+                          <span>✅</span>
+                        ) : (
+                          <span>🔄</span>
+                        )}
+                        {togglingIds.has(row.id)
+                          ? 'Memproses...'
+                          : row.status === 'processed'
+                          ? 'Sudah Ditransfer'
+                          : 'Siap Ditransfer'}
+                      </button>
                     </td>
                     <td>
                       {row.winner ? (

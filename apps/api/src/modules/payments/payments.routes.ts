@@ -33,6 +33,13 @@ router.post(
   controller.disburseSettlement
 );
 
+router.post(
+  '/payments/settlements/:id/revert',
+  authenticate,
+  authorize(Role.ADMIN, Role.SUPERADMIN),
+  controller.revertSettlement
+);
+
 // Refund queue & processing
 router.get(
   '/payments/deposits/refund-queue',

@@ -394,6 +394,19 @@ export class PaymentsController {
   }
 
   /**
+   * POST revert settlement status from processed back to pending (Admin/Superadmin only)
+   */
+  async revertSettlement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await paymentsService.revertSettlement(id);
+      sendSuccess(res, result, 'Status pencairan berhasil dikembalikan ke Siap Transfer');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * GET refund queue (Admin/Operator only)
    */
   async getRefundQueue(req: Request, res: Response, next: NextFunction): Promise<void> {

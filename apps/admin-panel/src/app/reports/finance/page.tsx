@@ -140,7 +140,6 @@ export default function FinanceReportPage() {
         'Total Invoice Fee Lelang': totalInvoiceFeeLelang,
         'PPH 23 (2%)': pph23,
         'Total Penerimaan Indo Lelang': item.commission_deducted || 0,
-        'Nominal Settlement': item.net_amount || 0,
         'Pembayaran ke Provider': item.net_amount || 0,
         'Provider': item.provider?.company_name || item.provider?.full_name || '-',
         'Pemenang': item.winner?.full_name || '-',
@@ -304,7 +303,6 @@ export default function FinanceReportPage() {
                 <th>Total Invoice Fee Lelang</th>
                 <th>PPH 23 (2%)</th>
                 <th>Total Penerimaan Indo Lelang</th>
-                <th>Nominal Settlement</th>
                 <th>Pembayaran ke Provider</th>
                 <th>Provider</th>
                 <th>Pemenang</th>
@@ -314,11 +312,11 @@ export default function FinanceReportPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={20} className="text-center py-8">Memuat laporan keuangan...</td>
+                  <td colSpan={19} className="text-center py-8">Memuat laporan keuangan...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={20} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
+                  <td colSpan={19} className="text-center text-muted py-8">Tidak ada data keuangan ditemukan.</td>
                 </tr>
               ) : (
                 filtered.map((item) => {
@@ -352,7 +350,6 @@ export default function FinanceReportPage() {
                       <td>{formatPrice(totalInvoiceFeeLelang)}</td>
                       <td>{formatPrice(pph23)}</td>
                       <td>{formatPrice(item.commission_deducted)}</td>
-                      <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
                       <td className="font-bold text-slate-800" style={{ fontSize: '0.85rem' }}>{formatPrice(item.net_amount)}</td>
                       <td><strong>{item.provider?.company_name || item.provider?.full_name || '-'}</strong></td>
                       <td>
