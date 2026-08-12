@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { SessionsService } from './sessions.service';
 import { sendSuccess } from '../../lib/apiResponse';
 import { logAdminAction } from '../../lib/auditLog';
+import { masterDataService } from './masterData.service';
 
 const sessionsService = new SessionsService();
 
@@ -118,6 +119,24 @@ export class SessionsController {
       );
       
       sendSuccess(res, reports, 'Laporan sesi lelang berhasil dimuat', meta);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Download the 5-sheet "master data" workbook (Pendaftaran, Deposit, AR,
+   * BAL, SSBP) for a session — replaces the manual Excel admins used to
+   * build by hand from system data.
+   */
+  async downloadMasterData(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { buffer, filename } = await masterDataService.generateWorkbook(id);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
     } catch (error) {
       next(error);
     }

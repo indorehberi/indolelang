@@ -114,6 +114,7 @@ async function main() {
     { header: 'Harga Dasar Limit', key: 'base_price', width: 20 },
     { header: 'Cabang', key: 'branch', width: 22 },
     { header: 'Status Pool (in_pool/out_pool)', key: 'pool_status', width: 25 },
+    { header: 'Nama Kota (jika Out Pool)', key: 'pool_city', width: 25 },
     { header: 'Warna', key: 'color', width: 15 },
     { header: 'Bahan Bakar', key: 'fuel_type', width: 15 },
     { header: 'Transmisi', key: 'transmission', width: 15 },
@@ -168,6 +169,7 @@ async function main() {
     base_price: 150000000,
     branch: 'Indo-Lelang Jakarta',
     pool_status: 'in_pool',
+    pool_city: '',
     color: 'HITAM',
     fuel_type: 'Bensin',
     transmission: 'Otomatis',
@@ -285,7 +287,7 @@ async function main() {
   });
 
   // Color
-  worksheet.dataValidations.add(rangeOf('J'), {
+  worksheet.dataValidations.add(rangeOf('K'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,HITAM,PUTIH,PERAK (SILVER),ABU-ABU,MERAH,BIRU,HIJAU,KUNING,COKELAT,ORANGE"'],
@@ -293,7 +295,7 @@ async function main() {
   });
 
   // Fuel Type
-  worksheet.dataValidations.add(rangeOf('K'), {
+  worksheet.dataValidations.add(rangeOf('L'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"Bensin,Solar,Listrik,Hybrid"'],
@@ -303,7 +305,7 @@ async function main() {
   });
 
   // Transmission
-  worksheet.dataValidations.add(rangeOf('L'), {
+  worksheet.dataValidations.add(rangeOf('M'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"Otomatis,Manual"'],
@@ -313,7 +315,7 @@ async function main() {
   });
 
   // Body Type
-  worksheet.dataValidations.add(rangeOf('M'), {
+  worksheet.dataValidations.add(rangeOf('N'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,SEDAN,SUV,MPV,HATCHBACK,PICK UP,TRUK,BUS"'],
@@ -321,7 +323,7 @@ async function main() {
   });
 
   // Boolean documents
-  const boolCols = ['T', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AC'];
+  const boolCols = ['U', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AD'];
   for (const col of boolCols) {
     worksheet.dataValidations.add(rangeOf(col), {
       type: 'list',

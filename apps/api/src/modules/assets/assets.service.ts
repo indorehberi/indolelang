@@ -179,6 +179,7 @@ export class AssetsService {
 
         branch_id: data.branch_id || null,
         pool_status: data.pool_status || 'in_pool',
+        pool_city: data.pool_status === 'out_pool' ? (data.pool_city || null) : null,
         notes: data.notes || null,
         photo_front: data.photo_front || null,
         photo_back: data.photo_back || null,
@@ -312,6 +313,9 @@ export class AssetsService {
 
         branch_id: data.branch_id !== undefined ? data.branch_id : undefined,
         pool_status: data.pool_status ?? undefined,
+        // Balik ke in_pool langsung kosongkan nama kota lama, supaya tidak
+        // ada sisa kota nyangkut kalau unit dipindah balik ke pool sendiri.
+        pool_city: data.pool_status === 'in_pool' ? null : (data.pool_city !== undefined ? data.pool_city : undefined),
         notes: data.notes !== undefined ? data.notes : undefined,
         rejection_reason: data.rejection_reason !== undefined ? data.rejection_reason : undefined,
         photo_front: data.photo_front !== undefined ? data.photo_front : undefined,
@@ -335,6 +339,7 @@ export class AssetsService {
       status: updated.status,
       branch_id: (updated as any).branch_id || undefined,
       pool_status: (updated as any).pool_status || undefined,
+      pool_city: (updated as any).pool_city || undefined,
       notes: (updated as any).notes || undefined,
       rejection_reason: (updated as any).rejection_reason || undefined,
       photo_front: (updated as any).photo_front || undefined,

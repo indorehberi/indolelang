@@ -188,6 +188,7 @@ export default function NewAssetPage() {
     photo_stnk: '',
     notes: '',
     pool_status: 'in_pool',
+    pool_city: '',
   });
 
   const [providers, setProviders] = useState<{ id: string; company_name: string; full_name: string }[]>([]);
@@ -317,6 +318,7 @@ export default function NewAssetPage() {
         provider_id: formData.provider_id || undefined,
         branch_id: formData.branch_id || undefined,
         pool_status: formData.pool_status || 'in_pool',
+        pool_city: formData.pool_status === 'out_pool' ? (formData.pool_city || undefined) : undefined,
 
         // Specs
         brand: formData.brand,
@@ -471,6 +473,19 @@ export default function NewAssetPage() {
                 <option value="out_pool">Out Pool</option>
               </select>
             </Field>
+
+            {(formData as any).pool_status === 'out_pool' && (
+              <Field label="Nama Kota">
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                  value={(formData as any).pool_city || ''}
+                  onChange={e => setFormData({ ...formData, pool_city: e.target.value })}
+                  placeholder="Misal: Sumbawa Barat"
+                />
+              </Field>
+            )}
           </div>
 
           <Field label="Deskripsi Tambahan">

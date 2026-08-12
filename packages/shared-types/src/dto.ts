@@ -251,6 +251,7 @@ export interface AssetDTO {
   status: string;
   branch_id?: string;
   pool_status?: string;
+  pool_city?: string;
   notes?: string;
   rejection_reason?: string;
   photo_front?: string;

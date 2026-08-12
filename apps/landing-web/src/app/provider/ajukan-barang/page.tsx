@@ -226,6 +226,7 @@ function ProviderAjukanBarangContent() {
     base_price: "",
     branch_id: "",
     pool_status: "in_pool",
+    pool_city: "",
     notes: "",
 
     // Spesifikasi Kendaraan
@@ -391,6 +392,7 @@ function ProviderAjukanBarangContent() {
               branch_id: foundBranch ? foundBranch.id : undefined,
               branch_name: foundBranch ? foundBranch.name : branchInput || "-",
               pool_status: String(findVal(row, "Status Pool (in_pool/out_pool)", "pool_status") || "in_pool").trim().toLowerCase() === "out_pool" ? "out_pool" : "in_pool",
+              pool_city: String(findVal(row, "Nama Kota (jika Out Pool)", "pool_city") || "").trim(),
               color: String(findVal(row, "Warna", "color") || "N/A").trim().toUpperCase(),
               fuel_type: String(findVal(row, "Bahan Bakar", "fuel_type") || "Bensin").trim(),
               transmission: String(findVal(row, "Transmisi", "transmission") || "Otomatis").trim(),
@@ -609,6 +611,7 @@ function ProviderAjukanBarangContent() {
             base_price: a.base_price ?? prev.base_price,
             branch_id: a.branch_id || "",
             pool_status: a.pool_status || "in_pool",
+            pool_city: a.pool_city || "",
             notes: a.notes || "",
             brand: (a.brand || "").toUpperCase(),
             model: (a.model || "").toUpperCase(),
@@ -831,6 +834,7 @@ function ProviderAjukanBarangContent() {
         // unselected, since the backend's uuid validation rejects an empty
         // string as an invalid uuid (it only treats undefined as "not set").
         branch_id: formData.branch_id || undefined,
+        pool_city: formData.pool_status === "out_pool" ? (formData.pool_city || undefined) : undefined,
         cylinder: formData.cylinder && formData.cylinder !== "N/A" && formData.cylinder !== "n/a" ? Number(formData.cylinder) : undefined,
         odometer: formData.odometer && formData.odometer !== "N/A" && formData.odometer !== "n/a" ? Number(formData.odometer) : undefined,
         stnk_date: formData.stnk_date ? new Date(formData.stnk_date).toISOString() : undefined,
@@ -1281,6 +1285,19 @@ function ProviderAjukanBarangContent() {
                     </select>
                   </div>
                 </div>
+
+                {formData.pool_status === 'out_pool' && (
+                  <div className="panel-form-group mt-4">
+                    <label className="panel-form-label">Nama Kota</label>
+                    <input
+                      type="text"
+                      value={formData.pool_city}
+                      onChange={(e) => handleChange('pool_city', e.target.value)}
+                      placeholder="Misal: Sumbawa Barat"
+                      className="panel-form-input"
+                    />
+                  </div>
+                )}
 
                 <div className="panel-form-group mt-4">
                   <label className="panel-form-label">Deskripsi &amp; Kondisi Fisik Singkat</label>

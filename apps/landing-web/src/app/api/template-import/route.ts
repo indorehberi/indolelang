@@ -246,6 +246,7 @@ export async function GET() {
     { header: 'Harga Dasar Limit', key: 'base_price', width: 20 },
     { header: 'Cabang', key: 'branch', width: 22 },
     { header: 'Status Pool (in_pool/out_pool)', key: 'pool_status', width: 25 },
+    { header: 'Nama Kota (jika Out Pool)', key: 'pool_city', width: 25 },
     { header: 'Warna', key: 'color', width: 15 },
     { header: 'Bahan Bakar', key: 'fuel_type', width: 15 },
     { header: 'Transmisi', key: 'transmission', width: 15 },
@@ -300,6 +301,7 @@ export async function GET() {
     base_price: 150000000,
     branch: branchNames[0],
     pool_status: 'in_pool',
+    pool_city: '',
     color: 'HITAM',
     fuel_type: 'Bensin',
     transmission: 'Otomatis',
@@ -429,7 +431,7 @@ export async function GET() {
   });
 
   // Color validation
-  ws.dataValidations.add(rangeOf('J'), {
+  ws.dataValidations.add(rangeOf('K'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,HITAM,PUTIH,PERAK (SILVER),ABU-ABU,MERAH,BIRU,HIJAU,KUNING,COKELAT,ORANGE,LAINNYA"'],
@@ -437,7 +439,7 @@ export async function GET() {
   });
 
   // Fuel validation
-  ws.dataValidations.add(rangeOf('K'), {
+  ws.dataValidations.add(rangeOf('L'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,BENSIN,SOLAR,HYBRID,EV (LISTRIK),LAINNYA"'],
@@ -447,7 +449,7 @@ export async function GET() {
   });
 
   // Transmission validation
-  ws.dataValidations.add(rangeOf('L'), {
+  ws.dataValidations.add(rangeOf('M'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,OTOMATIS,MANUAL,LAINNYA"'],
@@ -457,7 +459,7 @@ export async function GET() {
   });
 
   // Body Type validation
-  ws.dataValidations.add(rangeOf('M'), {
+  ws.dataValidations.add(rangeOf('N'), {
     type: 'list',
     allowBlank: true,
     formulae: ['"N/A,SEDAN,SUV,MPV,HATCHBACK,PICK UP,TRUK,BUS,LAINNYA"'],
@@ -465,7 +467,7 @@ export async function GET() {
   });
 
   // Boolean documents validation
-  const boolCols = ['T', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AC'];
+  const boolCols = ['U', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AD'];
   for (const col of boolCols) {
     ws.dataValidations.add(rangeOf(col), {
       type: 'list',
@@ -477,8 +479,8 @@ export async function GET() {
     });
   }
 
-  // Date columns formatting and validation (STNK date = U, KEUR date = AB)
-  const dateCols = ['U', 'AB'];
+  // Date columns formatting and validation (STNK date = V, KEUR date = AC)
+  const dateCols = ['V', 'AC'];
   for (const col of dateCols) {
     worksheet.getColumn(col).numFmt = 'yyyy-mm-dd';
     for (let i = 2; i <= 100; i++) {

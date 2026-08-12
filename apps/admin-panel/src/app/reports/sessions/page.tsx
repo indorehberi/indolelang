@@ -76,6 +76,33 @@ export default function SessionReportsPage() {
     }, 1200);
   };
 
+  const handleDownloadMasterData = async (id: string) => {
+    setDownloading(`${id}-master`);
+    try {
+      const response = await apiFetch(`/admin/sessions/${id}/master-data`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        a.download = match ? match[1] : `Master_Data_Lelang_${id}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const errData = await response.json().catch(() => null);
+        toast.error(errData?.error?.message || 'Gagal mengunduh master data');
+      }
+    } catch {
+      toast.error('Gagal mengunduh master data. Periksa koneksi Anda.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const totalValue = filtered.reduce((acc, r) => acc + r.total_value, 0);
   const avgSellRate =
     filtered.length > 0
@@ -294,6 +321,23 @@ export default function SessionReportsPage() {
                         }}
                       >
                         {downloading === `${r.id}-excel` ? '...' : '📊 Excel'}
+                      </button>
+                      <button
+                        onClick={() => handleDownloadMasterData(r.id)}
+                        disabled={downloading === `${r.id}-master`}
+                        title="Unduh master data lelang (Pendaftaran, Deposit, AR, BAL, SSBP)"
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          fontSize: '0.75rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: '0.375rem',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'transparent',
+                        }}
+                      >
+                        {downloading === `${r.id}-master` ? '...' : '📁 Master Data'}
                       </button>
                     </div>
                   </td>

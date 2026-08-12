@@ -73,6 +73,9 @@ export default function PlatformSettingsPage() {
   const [dppLain, setDppLain] = useState('11/12');
   const [ppnDppLain, setPpnDppLain] = useState('12');
   const [pph23, setPph23] = useState('2');
+  // SSBP: pungutan resmi ke negara untuk lelang yang diawasi Pejabat Lelang
+  // (dipakai laporan BAL/SSBP), dihitung dari harga terbentuk per lot.
+  const [ssbp, setSsbp] = useState('0.6');
   // Default Fee Lelang used when a provider hasn't had a fee individually
   // configured on their profile (users/[id] page) — without this, providers
   // silently get 0% commission deducted, which is what looked "hardcoded".
@@ -282,6 +285,8 @@ export default function PlatformSettingsPage() {
               setPpnDppLain(item.value);
             } else if (item.key === 'pph23_percentage') {
               setPph23(item.value);
+            } else if (item.key === 'ssbp_percentage') {
+              setSsbp(item.value);
             } else if (item.key === 'default_provider_fee_type') {
               setDefaultProviderFeeType(item.value);
             } else if (item.key === 'commission_percentage') {
@@ -725,7 +730,7 @@ export default function PlatformSettingsPage() {
   };
 
   const handleSaveTaxSettings = async () => {
-    if (!tax || !pmk41 || !dppLain || !ppnDppLain || !pph23 || !defaultProviderFeeAmount) {
+    if (!tax || !pmk41 || !dppLain || !ppnDppLain || !pph23 || !ssbp || !defaultProviderFeeAmount) {
       toast.error('Semua bidang pajak dan potongan harus diisi.');
       return;
     }
@@ -737,6 +742,7 @@ export default function PlatformSettingsPage() {
         { key: 'dpp_lain_multiplier', value: dppLain },
         { key: 'ppn_dpp_lain_percentage', value: ppnDppLain },
         { key: 'pph23_percentage', value: pph23 },
+        { key: 'ssbp_percentage', value: ssbp },
         { key: 'default_provider_fee_type', value: defaultProviderFeeType },
         { key: 'commission_percentage', value: defaultProviderFeeAmount },
       ];
@@ -1322,6 +1328,11 @@ export default function PlatformSettingsPage() {
             <div className="form-group">
               <label className="form-label">Potongan PPh 23 Provider (%)</label>
               <input type="number" step="0.1" className="form-input" value={pph23} onChange={(e) => setPph23(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">SSBP — Setoran Pejabat Lelang (%)</label>
+              <input type="number" step="0.01" className="form-input" value={ssbp} onChange={(e) => setSsbp(e.target.value)} required />
+              <span className="form-hint">Dihitung dari harga terbentuk per lot, dipakai di laporan BAL/SSBP.</span>
             </div>
             <div className="form-group">
               <label className="form-label">Fee Lelang Provider — Default</label>
@@ -1929,6 +1940,7 @@ export default function PlatformSettingsPage() {
                 <li>PPN: <strong>{tax}%</strong></li>
                 <li>Potongan PMK 41: <strong>{pmk41}%</strong></li>
                 <li>Potongan PPh 23: <strong>{pph23}%</strong></li>
+                <li>SSBP (Setoran Pejabat Lelang): <strong>{ssbp}%</strong></li>
                 <li>Fee Lelang Provider (Default): <strong>{defaultProviderFeeType === 'flat' ? `Rp ${Number(defaultProviderFeeAmount).toLocaleString('id-ID')}` : `${defaultProviderFeeAmount}%`}</strong></li>
               </ul>
               <p className="mt-2 text-danger fw-bold">Tindakan ini tidak bisa dibatalkan secara sepihak setelah invoice terbit. Lanjutkan?</p>

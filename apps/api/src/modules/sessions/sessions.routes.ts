@@ -76,6 +76,13 @@ router.get(
   controller.getSessionReports
 );
 
+router.get(
+  '/admin/sessions/:id/master-data',
+  authenticate,
+  authorize(Role.ADMIN, Role.OPERATOR, Role.SUPERADMIN),
+  controller.downloadMasterData
+);
+
 router.post(
   '/admin/sessions',
   authenticate,

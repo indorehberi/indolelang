@@ -246,6 +246,9 @@ model assets {
   // --- Titip Jual: cabang/pool, catatan, alasan ditolak ---
   branch_id        String?
   pool_status      String? @default("in_pool")
+  // Kota tempat unit disimpan saat pool_status = 'out_pool' (di luar pool
+  // balai lelang) — dipakai laporan BAL/SSBP sebagai kolom POOL.
+  pool_city        String?
   notes            String?
   rejection_reason String?
 

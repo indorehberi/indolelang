@@ -38,6 +38,7 @@ interface AssetDetail {
   notes?: string;
   rejection_reason?: string;
   pool_status?: string;
+  pool_city?: string;
   doc_stnk?: boolean;
   doc_bpkb?: boolean;
   doc_faktur?: boolean;
@@ -408,6 +409,7 @@ export default function AssetDetailPage() {
         odometer: form.odometer && form.odometer !== 'N/A' && form.odometer !== 'n/a' ? Number(form.odometer) : (form.odometer === 'N/A' || form.odometer === 'n/a' ? 'N/A' : undefined),
         notes: form.notes,
         pool_status: form.pool_status,
+        pool_city: form.pool_status === 'out_pool' ? form.pool_city : undefined,
         doc_stnk: form.doc_stnk,
         doc_bpkb: form.doc_bpkb,
         doc_faktur: form.doc_faktur,
@@ -612,7 +614,11 @@ export default function AssetDetailPage() {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Badge variant="info">{editMode ? (form.category || asset.category) : asset.category}</Badge>
             <Badge variant={statusVariant}>{asset.status}</Badge>
-            {asset.pool_status && <Badge variant="default">{asset.pool_status === 'in_pool' ? 'Di Pool' : 'Keluar Pool'}</Badge>}
+            {asset.pool_status && (
+              <Badge variant="default">
+                {asset.pool_status === 'in_pool' ? 'Di Pool' : `Keluar Pool${asset.pool_city ? ` (${asset.pool_city})` : ''}`}
+              </Badge>
+            )}
           </div>
         </div>
       </Card>
@@ -630,6 +636,9 @@ export default function AssetDetailPage() {
                 <EditField label="Kategori" value={form.category} onChange={(v) => handleFormChange('category', v)} type="select" options={['mobil', 'motor', 'alat_berat', 'properti']} />
                 <EditField label="Harga Dasar (Rp)" value={form.base_price} onChange={(v) => handleFormChange('base_price', v)} type="number" />
                 <EditField label="Status Pool" value={form.pool_status} onChange={(v) => handleFormChange('pool_status', v)} type="select" options={['in_pool', 'out_pool']} />
+                {form.pool_status === 'out_pool' && (
+                  <EditField label="Nama Kota" value={form.pool_city} onChange={(v) => handleFormChange('pool_city', v)} />
+                )}
                 <EditField label="Deskripsi" value={form.description} onChange={(v) => handleFormChange('description', v)} type="textarea" />
                 <EditField label="Lokasi Unit" value={form.notes} onChange={(v) => handleFormChange('notes', v)} type="textarea" />
               </>
