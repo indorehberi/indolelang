@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { SessionStatus } from '@indo-lelang/shared-types';
 
+// branches.id is a plain string PK — the production seed upserts the default
+// branch with a hardcoded human-readable id ("default-jakarta-branch-id-production")
+// that is NOT a uuid. Validate branch_id as optional string (normalizing ""/null
+// to undefined), not as uuid, so both legacy and new uuid branch IDs are accepted.
+const optionalBranchId = () =>
+  z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().optional());
+
 export const createSessionSchema = z.object({
   body: z.object({
-    branch_id: z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().uuid('ID Cabang tidak valid').optional()),
+    branch_id: optionalBranchId(),
     title: z.string().min(5, 'Judul sesi minimal 5 karakter'),
     description: z.string().optional(),
     scheduled_at: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -17,7 +24,7 @@ export const createSessionSchema = z.object({
 
 export const updateSessionSchema = z.object({
   body: z.object({
-    branch_id: z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().uuid('ID Cabang tidak valid').optional()),
+    branch_id: optionalBranchId(),
     title: z.string().min(5, 'Judul sesi minimal 5 karakter').optional(),
     description: z.string().optional(),
     scheduled_at: z
@@ -52,7 +59,7 @@ export const getSessionsQuerySchema = z.object({
       SessionStatus.LIVE,
       SessionStatus.CLOSED,
     ]).optional(),
-    branch_id: z.preprocess((v) => (v === '' || v === null ? undefined : v), z.string().uuid('ID Cabang tidak valid').optional()),
+    branch_id: optionalBranchId(),
     search: z.string().optional(),
     is_exclusive: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
     date: z.string().optional(),
