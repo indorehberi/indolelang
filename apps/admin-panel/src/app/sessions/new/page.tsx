@@ -43,13 +43,10 @@ export default function NewSessionPage() {
         const response = await fetch(apiUrl('/branches?is_active=true'));
         const data = await response.json();
         if (response.ok && data.success) {
-          const central = data.data.find((b: any) => b.name.toLowerCase().includes('pusat') || b.name.toLowerCase().includes('jakarta'));
-          if (central) {
-            setBranches([central]);
-            setBranchId(central.id);
-          } else {
-            setBranches(data.data);
-            if (data.data.length > 0) setBranchId(data.data[0].id);
+          setBranches(data.data);
+          if (data.data.length > 0) {
+            const central = data.data.find((b: any) => b.name.toLowerCase().includes('pusat') || b.name.toLowerCase().includes('jakarta'));
+            setBranchId(central ? central.id : data.data[0].id);
           }
         } else {
           setBranches([]);

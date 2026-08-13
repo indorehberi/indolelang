@@ -98,17 +98,22 @@ describe('Sessions Module Integration Tests', () => {
       if (res.body.data?.id) sessionId = res.body.data.id;
     });
 
-    it('should reject session creation without branch_id', async () => {
+    it('should fall back to default branch when branch_id is not provided', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
       const res = await request(app)
         .post('/api/v1/admin/sessions')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          title: 'Missing Branch',
-          scheduled_at: new Date().toISOString(),
+          title: 'Test Fallback Session',
+          description: 'Sesi lelang fallback',
+          scheduled_at: futureDate.toISOString(),
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
+      expect([200, 201]).toContain(res.status);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.branch_id).toBeDefined();
     });
   });
 
