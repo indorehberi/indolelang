@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -35,7 +35,28 @@ function formatDeadlineDate(scheduledAt: string | undefined): string {
   return `${pad(deadline.getDate())}/${pad(deadline.getMonth() + 1)}/${deadline.getFullYear()} 18:00 WIB`;
 }
 
+/** Kunci tanggal lokal (WIB di sisi bidder) — dipakai untuk mengelompokkan lot per tanggal sesi. */
+function sessionDateKey(scheduledAt: string | null | undefined): string {
+  if (!scheduledAt) return "";
+  const d = new Date(scheduledAt);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function sessionDateLabel(scheduledAt: string): string {
+  return new Date(scheduledAt).toLocaleDateString("id-ID", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const initialLots: any[] = [];
+
+/** Nilai khusus filter tanggal sesi: tampilkan lot dari semua sesi yang sedang publish. */
+const SEMUA_TANGGAL_SESI = "ALL";
 
 const categories = ["Semua Lot", "Mobil", "Motor", "Properti", "Alat Berat"];
 
@@ -66,6 +87,9 @@ function KatalogContent() {
   const [lokasi, setLokasi] = useState("Semua Lokasi");
   const [status, setStatus] = useState("Semua Status");
   const [jenisLelangFilter, setJenisLelangFilter] = useState("Semua Jenis Lelang");
+  // Kosong = ikut default (tanggal sesi terdekat). Diisi hanya ketika bidder
+  // memilih sendiri di dropdown Tanggal Sesi.
+  const [tanggalSesi, setTanggalSesi] = useState("");
   const [urutan, setUrutan] = useState("No Lot Terendah");
   const [minHarga, setMinHarga] = useState("");
   const [maxHarga, setMaxHarga] = useState("");
@@ -166,6 +190,7 @@ function KatalogContent() {
           tanggal: dbLot.session ? new Date(dbLot.session.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Segera",
           notes: dbLot.asset.notes || undefined,
           scheduledAt: dbLot.session?.scheduled_at || undefined,
+          sessionDateKey: sessionDateKey(dbLot.session?.scheduled_at),
           view_count: dbLot.view_count || 0,
           like_count: dbLot.like_count || 0,
         };
@@ -175,6 +200,43 @@ function KatalogContent() {
   }, [dbFeaturedLots]);
 
   const uniqueLocations = Array.from(new Set(lotsList.map((l) => l.location))).filter(Boolean);
+
+  /* ---- Tanggal sesi: daftar opsi + tanggal terdekat sebagai default ---- */
+
+  const sessionDates = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; time: number; count: number }>();
+    lotsList.forEach((l) => {
+      if (!l.sessionDateKey || !l.scheduledAt) return;
+      const existing = map.get(l.sessionDateKey);
+      if (existing) {
+        existing.count += 1;
+        return;
+      }
+      const d = new Date(l.scheduledAt);
+      map.set(l.sessionDateKey, {
+        key: l.sessionDateKey,
+        label: sessionDateLabel(l.scheduledAt),
+        time: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+        count: 1,
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.time - b.time);
+  }, [lotsList]);
+
+  // Ketika admin mempublish lebih dari satu sesi, katalog default-nya hanya
+  // menampilkan lot dari sesi yang paling dekat jadwalnya: tanggal sesi paling
+  // awal yang belum lewat (hari ini ikut dihitung supaya sesi yang sedang
+  // berjalan tetap terpilih). Kalau semua sudah lewat, pakai yang paling akhir.
+  const nearestSessionDate = useMemo(() => {
+    if (sessionDates.length === 0) return "";
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const upcoming = sessionDates.find((s) => s.time >= todayStart);
+    return (upcoming || sessionDates[sessionDates.length - 1]).key;
+  }, [sessionDates]);
+
+  const selectedSessionDate = tanggalSesi || nearestSessionDate;
+  const activeSessionDate = sessionDates.find((s) => s.key === selectedSessionDate);
 
   useEffect(() => {
     const fetchPlatformSettings = async () => {
@@ -244,13 +306,17 @@ function KatalogContent() {
       (status === "Akan Datang" && (l.badge === "OPEN" || l.badge === "INSPEKSI"));
     const matchesJenisLelang =
       jenisLelangFilter === "Semua Jenis Lelang" || l.jenisLelang === jenisLelangFilter;
+    const matchesTanggalSesi =
+      selectedSessionDate === SEMUA_TANGGAL_SESI ||
+      !selectedSessionDate ||
+      l.sessionDateKey === selectedSessionDate;
 
     const priceVal = l.hargaValue;
     const minVal = minHarga ? parseFloat(minHarga.replace(/\./g, "")) : 0;
     const maxVal = maxHarga ? parseFloat(maxHarga.replace(/\./g, "")) : Infinity;
     const matchesPrice = priceVal >= minVal && priceVal <= maxVal;
 
-    return matchesSearch && matchesCategory && matchesLokasi && matchesStatus && matchesJenisLelang && matchesPrice;
+    return matchesSearch && matchesCategory && matchesLokasi && matchesStatus && matchesJenisLelang && matchesTanggalSesi && matchesPrice;
   }).sort((a, b) => {
     if (urutan === "No Lot Terendah") {
       return (a.lot_number || 0) - (b.lot_number || 0);
@@ -294,7 +360,13 @@ function KatalogContent() {
     sesiTerdekatText = "Live Lelang Sekarang";
     isSesiLive = true;
   } else if (dbSessions.length > 0) {
-    const nextSession = dbSessions[0];
+    // dbSessions terurut scheduled_at asc dan masih memuat sesi yang jadwalnya
+    // sudah lewat — ambil sesi terdekat yang belum lewat, jatuh ke sesi paling
+    // akhir kalau semuanya sudah lewat.
+    const now = Date.now();
+    const nextSession =
+      dbSessions.find((s: any) => s.scheduled_at && new Date(s.scheduled_at).getTime() >= now) ||
+      dbSessions[dbSessions.length - 1];
     if (nextSession && nextSession.scheduled_at) {
       const start = new Date(nextSession.scheduled_at);
       const dateString = start.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
@@ -450,7 +522,22 @@ function KatalogContent() {
                 </div>
 
                 {/* Dropdowns */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 lg:min-w-[680px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 xl:min-w-[860px]">
+                  <select
+                    value={selectedSessionDate || SEMUA_TANGGAL_SESI}
+                    onChange={(e) => {
+                      setTanggalSesi(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-body-md px-3 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                  >
+                    <option value={SEMUA_TANGGAL_SESI}>Semua Tanggal Sesi</option>
+                    {sessionDates.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label} ({s.count} lot)
+                      </option>
+                    ))}
+                  </select>
                   <select
                     value={lokasi}
                     onChange={(e) => setLokasi(e.target.value)}
@@ -514,6 +601,7 @@ function KatalogContent() {
                         setLokasi("Semua Lokasi");
                         setStatus("Semua Status");
                         setJenisLelangFilter("Semua Jenis Lelang");
+                        setTanggalSesi("");
                         setUrutan("No Lot Terendah");
                         setMinHarga("");
                         setMaxHarga("");
@@ -607,6 +695,28 @@ function KatalogContent() {
                     <p className="text-body-md text-on-surface-variant mt-1">
                       Menampilkan {paginatedLots.length} dari {filteredLots.length} lot
                     </p>
+                    {activeSessionDate ? (
+                      <p className="text-body-sm text-on-surface-variant mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-primary-strong">event</span>
+                        <span className="font-bold text-on-surface">Sesi {activeSessionDate.label}</span>
+                        {sessionDates.length > 1 && (
+                          <button
+                            onClick={() => {
+                              setTanggalSesi(SEMUA_TANGGAL_SESI);
+                              setCurrentPage(1);
+                            }}
+                            className="text-primary-strong font-bold hover:underline"
+                          >
+                            · Lihat semua {sessionDates.length} tanggal sesi
+                          </button>
+                        )}
+                      </p>
+                    ) : sessionDates.length > 1 ? (
+                      <p className="text-body-sm text-on-surface-variant mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-primary-strong">event</span>
+                        <span>Gabungan {sessionDates.length} tanggal sesi</span>
+                      </p>
+                    ) : null}
                   </div>
                   {!isStandalone && (
                     <div className="flex gap-2">
